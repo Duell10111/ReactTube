@@ -1446,12 +1446,12 @@
   resolved "https://registry.yarnpkg.com/@types/prop-types/-/prop-types-15.7.5.tgz#5f19d2b85a98e9558036f6a3cacc8819420f05cf"
   integrity sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==
 
-"@types/react-native@^0.68.0":
-  version "0.68.14"
-  resolved "https://registry.yarnpkg.com/@types/react-native/-/react-native-0.68.14.tgz#4f43f21d2b9e506ea0b0d0b14eb2276c575d5622"
-  integrity sha512-yoGSvqpgiBjrDA1ttNvvL2947b9foWzBswtSth7fusbJCXSSvwHyoQMchlCKWclMJOIvIEaPW1LmZDNvvirl0g==
+"@types/react-native@^0.69.8":
+  version "0.69.20"
+  resolved "https://registry.yarnpkg.com/@types/react-native/-/react-native-0.69.20.tgz#68d37af21a293af79ae3e42013c191358d494a70"
+  integrity sha512-zIAQb4zBecmJCpmf+FCnZK8IHoRZyDxC/BetiZrJHD4gpiCyhkA68CL25v0Qmq2KRgJWf1MFbRrbtnOSTJVAoA==
   dependencies:
-    "@types/react" "^17"
+    "@types/react" "*"
 
 "@types/react-test-renderer@^18.0.0":
   version "18.0.0"
@@ -1460,7 +1460,7 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react@*", "@types/react@^17", "@types/react@^18":
+"@types/react@*", "@types/react@^18":
   version "18.0.31"
   resolved "https://registry.yarnpkg.com/@types/react/-/react-18.0.31.tgz#a69ef8dd7bfa849734d258c793a8fe343a338205"
   integrity sha512-EEG67of7DsvRDU6BLLI0p+k1GojDLz9+lZsnCpCRTa/lOokvyPBvp8S5x+A24hME3yyQuIipcP70KJ6H7Qupww==
@@ -5803,10 +5803,10 @@ react-native-gradle-plugin@^0.0.7:
   resolved "https://registry.yarnpkg.com/react-native-gradle-plugin/-/react-native-gradle-plugin-0.0.7.tgz#96602f909745239deab7b589443f14fce5da2056"
   integrity sha512-+4JpbIx42zGTONhBTIXSyfyHICHC29VTvhkkoUOJAh/XHPEixpuBduYgf6Y4y9wsN1ARlQhBBoptTvXvAFQf5g==
 
-"react-native@npm:react-native-tvos@0.69.6-0":
-  version "0.69.6-0"
-  resolved "https://registry.yarnpkg.com/react-native-tvos/-/react-native-tvos-0.69.6-0.tgz#b0864d5d06f077dfb0a2b281b15cdd580cb445b9"
-  integrity sha512-p7PNapVDqIRAoVHFXIJnNSDCtf5KtcbNIQYc6oO4ODQq75L0akAVP3anqqN9qcTot8RIsrJSv0be2zfanphMYA==
+"react-native@npm:react-native-tvos@0.69.8-1":
+  version "0.69.8-1"
+  resolved "https://registry.yarnpkg.com/react-native-tvos/-/react-native-tvos-0.69.8-1.tgz#15fc6800e60bbb201cb3c814df66f8693d4cb356"
+  integrity sha512-jMLn2L9M1Go500/gyiKc0JvcGikyG58jN7arLcyw2iYJOLMRYejPmrqw4s0C/zp9iEhRF0WOXsynenKB/OpYYA==
   dependencies:
     "@jest/create-cache-key-function" "^27.0.1"
     "@react-native-community/cli" "^8.0.4"
