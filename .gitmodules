@@ -1,0 +1,3 @@
+[submodule "VueTube-Extractor"]
+	path = VueTube-Extractor
+	url = https://github.com/VueTubeApp/VueTube-Extractor.git
