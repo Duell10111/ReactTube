@@ -1,6 +1,7 @@
 import React from "react";
 import {Image, View} from "react-native";
 import {pageElements, pageSegment} from "youtube-extractor/dist/src/types";
+import VideoComponent from "./VideoComonent";
 
 interface Props {
   segment: pageSegment;
@@ -21,7 +22,7 @@ interface SegmentProps {
 }
 
 function Segment({element}: SegmentProps) {
-  if (element.type == "video") {
+  if (element.type === "video") {
     return (
       <View>
         <Image
@@ -31,6 +32,7 @@ function Segment({element}: SegmentProps) {
             width: element.thumbnails.thumbnails[0].width,
           }}
         />
+        <VideoComponent videoId={element.videoId} />
       </View>
     );
   }

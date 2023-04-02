@@ -8,8 +8,8 @@ export default function HomeScreen() {
 
   return (
     <ScrollView>
-      {homeScreen?.segments.map(segment => (
-        <PageSegment segment={segment} />
+      {homeScreen?.segments.map((segment, index) => (
+        <PageSegment key={index} segment={segment} />
       ))}
     </ScrollView>
   );

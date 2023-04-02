@@ -264,6 +264,11 @@ PODS:
   - React-jsinspector (0.69.8-1)
   - React-logger (0.69.8-1):
     - glog
+  - react-native-video (5.2.1):
+    - React-Core
+    - react-native-video/Video (= 5.2.1)
+  - react-native-video/Video (5.2.1):
+    - React-Core
   - React-perflogger (0.69.8-1)
   - React-RCTAnimation (0.69.8-1):
     - RCT-Folly (= 2021.06.28.00-v2)
@@ -372,6 +377,7 @@ DEPENDENCIES:
   - React-jsiexecutor (from `../node_modules/react-native/ReactCommon/jsiexecutor`)
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
+  - react-native-video (from `../node_modules/react-native-video`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
   - React-RCTAnimation (from `../node_modules/react-native/Libraries/NativeAnimation`)
   - React-RCTBlob (from `../node_modules/react-native/Libraries/Blob`)
@@ -443,6 +449,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/jsinspector"
   React-logger:
     :path: "../node_modules/react-native/ReactCommon/logger"
+  react-native-video:
+    :path: "../node_modules/react-native-video"
   React-perflogger:
     :path: "../node_modules/react-native/ReactCommon/reactperflogger"
   React-RCTAnimation:
@@ -499,6 +507,7 @@ SPEC CHECKSUMS:
   React-jsiexecutor: 8a5a414e4101eeabcf9a2297e203fd48f4b14276
   React-jsinspector: 6ce39feccf99bd891341bd656b83fff17515b790
   React-logger: f0e82c6aa0088d3c6e748732fee17c1d7181fc22
+  react-native-video: c26780b224543c62d5e1b2a7244a5cd1b50e8253
   React-perflogger: c3dddda09a2437d43bd2dc0b5c0db88efeebd7e0
   React-RCTAnimation: c5c1a79fb81614cbe18ffa536a82e877b03eaa97
   React-RCTBlob: 676e8e63d1a15c443e1ee2ccac5458c21c8de4b8

@@ -30,6 +30,7 @@ import {
 import "react-native/tvos-types.d";
 import useHomeScreen from "./src/hooks/useHomeScreen";
 import HomeScreen from "./src/screens/HomeScreen";
+import YoutubeContextProvider from "./src/context/YoutubeContext";
 
 const Section: React.FC<{
   title: string;
@@ -69,10 +70,12 @@ const App = () => {
   useHomeScreen();
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      <HomeScreen />
-    </SafeAreaView>
+    <YoutubeContextProvider>
+      <SafeAreaView style={backgroundStyle}>
+        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+        <HomeScreen />
+      </SafeAreaView>
+    </YoutubeContextProvider>
   );
 };
 
