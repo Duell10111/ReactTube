@@ -1,7 +1,8 @@
 import React from "react";
-import {Image, View} from "react-native";
+import { Image, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {pageElements, pageSegment} from "youtube-extractor/dist/src/types";
 import VideoComponent from "./VideoComonent";
+import { useNavigation } from "@react-navigation/native";
 
 interface Props {
   segment: pageSegment;
@@ -22,9 +23,12 @@ interface SegmentProps {
 }
 
 function Segment({element}: SegmentProps) {
+  const navigation = useNavigation();
+
+  const {width} = useWindowDimensions();
   if (element.type === "video") {
     return (
-      <View>
+      <TouchableOpacity onPress={() => navigation.navigate("VideoScreen", {videoId: element.videoId})}>
         <Image
           source={{
             uri: element.thumbnails.thumbnails[0].url,
@@ -32,10 +36,15 @@ function Segment({element}: SegmentProps) {
             width: element.thumbnails.thumbnails[0].width,
           }}
         />
-        <VideoComponent videoId={element.videoId} />
-      </View>
+      </TouchableOpacity>
     );
   }
 
   return null;
 }
+
+const styles = StyleSheet.create({
+  segmentContainer: {
+
+  }
+});

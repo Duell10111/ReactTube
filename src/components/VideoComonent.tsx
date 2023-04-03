@@ -2,29 +2,37 @@ import React from "react";
 import useVideoDetails from "../hooks/useVideoDetails";
 import Video from "react-native-video";
 import {useRef} from "react";
+import {StyleProp, StyleSheet, ViewStyle} from "react-native";
 
 interface Props {
-  videoId: string;
+  url: string;
+  style?: StyleProp<ViewStyle>;
 }
 
-export default function VideoComponent({videoId}: Props) {
-  const video = useVideoDetails(videoId);
+export default function VideoComponent({url, style}: Props) {
   const player = useRef<Video>();
-
-  if (!video) {
-    return null;
-  }
-
-  const selectedVideo = video.metadata.playbackEndpoints[0];
-  console.log("Video: ", selectedVideo);
 
   return (
     <Video
-      source={{uri: selectedVideo.url}}
-      style={{
-        width: 200,
-        height: 200,
+      source={{
+        uri: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
       }}
+      style={
+        style ?? {
+          ...styles.fullScreen,
+          backgroundColor: "blue",
+        }
+      }
     />
   );
 }
+
+const styles = StyleSheet.create({
+  fullScreen: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+  },
+});
