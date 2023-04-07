@@ -1,3 +1,4 @@
+require File.join(File.dirname(`node --print "require.resolve('expo/package.json')"`), "scripts/autolinking")
 require_relative '../node_modules/react-native/scripts/react_native_pods'
 require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
 
@@ -7,9 +8,10 @@ install! 'cocoapods', :deterministic_uuids => false
 
 production = ENV["PRODUCTION"] == "1"
 
-target 'reacttube' do
+platform :ios, '13.0'
 
-  platform :ios, '12.4'
+target 'reacttube' do
+  use_expo_modules!
 
   config = use_native_modules!
 
@@ -34,8 +36,8 @@ target 'reacttube' do
 end
 
 target 'reacttube-tvOS' do
+  use_expo_modules!
 
-  platform :tvos, '12.4'
 
   config = use_native_modules!
 
@@ -60,4 +62,12 @@ end
 post_install do |installer|
   react_native_post_install(installer)
   __apply_Xcode_12_5_M1_post_install_workaround(installer)
+
+  post_integrate do |installer|
+    begin
+      expo_patch_react_imports!(installer)
+    rescue => e
+      Pod::UI.warn e
+    end
+  end
 end

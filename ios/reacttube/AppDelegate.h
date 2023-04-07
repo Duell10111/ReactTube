@@ -1,7 +1,9 @@
+#import <Foundation/Foundation.h>
 #import <React/RCTBridgeDelegate.h>
+#import <Expo/Expo.h>
 #import <UIKit/UIKit.h>
 
-@interface AppDelegate : UIResponder <UIApplicationDelegate, RCTBridgeDelegate>
+@interface AppDelegate : EXAppDelegateWrapper <RCTBridgeDelegate>
 
 @property (nonatomic, strong) UIWindow *window;
 

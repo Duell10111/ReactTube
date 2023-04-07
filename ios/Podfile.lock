@@ -2,6 +2,11 @@ PODS:
   - boost (1.76.0)
   - CocoaAsyncSocket (7.6.5)
   - DoubleConversion (1.1.6)
+  - Expo (47.0.14):
+    - ExpoModulesCore
+  - ExpoModulesCore (1.1.1):
+    - React-Core
+    - ReactCommon/turbomodule/core
   - FBLazyVector (0.69.8-1)
   - FBReactNativeSpec (0.69.8-1):
     - RCT-Folly (= 2021.06.28.00-v2)
@@ -344,6 +349,8 @@ PODS:
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
+  - Expo (from `../node_modules/expo`)
+  - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - FBReactNativeSpec (from `../node_modules/react-native/React/FBReactNativeSpec`)
   - Flipper (= 0.125.0)
@@ -424,6 +431,10 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
+  Expo:
+    :path: "../node_modules/expo"
+  ExpoModulesCore:
+    :path: "../node_modules/expo-modules-core"
   FBLazyVector:
     :path: "../node_modules/react-native/Libraries/FBLazyVector"
   FBReactNativeSpec:
@@ -493,6 +504,8 @@ SPEC CHECKSUMS:
   boost: a7c83b31436843459a1961bfd74b96033dc77234
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
   DoubleConversion: 234abba95e31cc2aada0cf3b97cdb11bc5b90575
+  Expo: 5f4240506a147162542178989696e56e3dd72924
+  ExpoModulesCore: e4e314bc72c2c2b64e794444a7efae8d24f068f3
   FBLazyVector: 74c9f2f72b6287aead20a238d648ee0d4f07ff6e
   FBReactNativeSpec: 2c8a28378463797745377019ebcb974e01e19be7
   Flipper: 26fc4b7382499f1281eb8cb921e5c3ad6de91fe0
@@ -539,6 +552,6 @@ SPEC CHECKSUMS:
   Yoga: 4a0788440c29e71c40dc8b5f7f4d1495134223f9
   YogaKit: 1e22bf2228b3a5ac8cc88965153061ae92c494b5
 
-PODFILE CHECKSUM: 11105c654240af7311053ec9c7e7c3a61fbac57a
+PODFILE CHECKSUM: 66d1b9f7d33ac598697b7ea970d519cccd5fdbcd
 
 COCOAPODS: 1.11.2
