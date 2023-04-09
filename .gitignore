@@ -61,3 +61,8 @@ buck-out/
 # Ruby / CocoaPods
 /ios/Pods/
 /vendor/bundle/
+
+# Fastlane files
+/ios/fastlane/
+/ios/Gemfile
+/ios/Gemfile.lock

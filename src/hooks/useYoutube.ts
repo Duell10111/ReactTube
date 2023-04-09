@@ -5,9 +5,9 @@ export default function useYoutube() {
   const [youtube, setYoutube] = useState<YoutubeExtractor>();
 
   useEffect(() => {
-    console.log(YoutubeExtractor);
+    // console.log(YoutubeExtractor);
     new YoutubeExtractor().init().then(y => {
-      console.log("Init");
+      // console.log("Init");
       setYoutube(y);
     });
   }, []);

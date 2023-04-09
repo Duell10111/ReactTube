@@ -18,13 +18,13 @@ export default function VideoScreen({route}: Props) {
   const selectedVideo = video.metadata.playbackEndpoints?.find(
     v => v?.url !== undefined,
   );
-  console.log("Video: ", selectedVideo);
-
-  console.log("Video URL: ", selectedVideo?.url);
+  // console.log("Video: ", selectedVideo);
+  //
+  // console.log("Video URL: ", selectedVideo?.url);
 
   return (
     <View style={[StyleSheet.absoluteFill, {backgroundColor: "red"}]}>
-      <VideoComponent url={selectedVideo.url} />
+      <VideoComponent url={selectedVideo?.url ?? ""} />
       <Text />
     </View>
   );
