@@ -8,7 +8,6 @@ import {
   StyleSheet,
   ViewStyle,
 } from "react-native";
-import {useYoutubeContext} from "../context/YoutubeContext";
 
 interface Props {
   url: string;

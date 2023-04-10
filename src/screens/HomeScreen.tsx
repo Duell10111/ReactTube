@@ -8,7 +8,11 @@ export default function HomeScreen() {
   const {content} = useHomeScreen();
 
   const renderItem = useCallback(
-    ({item}) => <PageSegment segment={item} />,
+    ({item}) => (
+      <View style={{margin: 20}}>
+        <PageSegment segment={item} />
+      </View>
+    ),
     [],
   );
   const keyExtractor = useCallback((item, index) => index, []);
@@ -24,7 +28,13 @@ export default function HomeScreen() {
         data={array ?? ["", ""]}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        contentContainerStyle={{backgroundColor: "lightblue"}}
+        contentContainerStyle={{
+          backgroundColor: "lightblue",
+          padding: 30,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+        numColumns={3}
       />
     );
   } else {

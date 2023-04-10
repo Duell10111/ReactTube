@@ -48,7 +48,9 @@ function Segment({element}: SegmentProps) {
           <FastImage
             style={styles.imageStyle}
             source={{
-              uri: element.best_thumbnail?.url ?? "",
+              uri:
+                element.best_thumbnail?.url?.split("?")?.[0] ??
+                "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
             }}
           />
         </TouchableOpacity>
