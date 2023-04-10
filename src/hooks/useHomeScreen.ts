@@ -1,11 +1,12 @@
 import {useCallback, useEffect, useState} from "react";
 import {useYoutubeContext} from "../context/YoutubeContext";
+import {YT} from "../utils/Youtube";
 
 const minElements = 8;
 
 export default function useHomeScreen() {
   const youtube = useYoutubeContext();
-  const [homePage, setHomePage] = useState<HomeFeed>();
+  const [homePage, setHomePage] = useState<YT.HomeFeed>();
 
   useEffect(() => {
     if (youtube) {

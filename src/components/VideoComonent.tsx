@@ -34,7 +34,7 @@ export default function VideoComponent({url, style}: Props) {
           StyleSheet.absoluteFillObject,
         ]}
         controls
-        paused
+        // paused
         fullscreen
         resizeMode={"contain"}
         onLoad={data =>

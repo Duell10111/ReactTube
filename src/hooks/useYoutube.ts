@@ -1,12 +1,12 @@
 import {useEffect, useState} from "react";
-import YoutubeExtractor from "../utils/Youtube";
+import {Innertube} from "../utils/Youtube";
 
 export default function useYoutube() {
-  const [youtube, setYoutube] = useState<YoutubeExtractor>();
+  const [youtube, setYoutube] = useState<Innertube>();
 
   useEffect(() => {
     // console.log(YoutubeExtractor);
-    // YoutubeExtractor.create({}).then(setYoutube).catch(console.warn);
+    Innertube.create({}).then(setYoutube).catch(console.warn);
   }, []);
 
   return youtube;

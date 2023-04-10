@@ -15,6 +15,11 @@ export default function RootStackNavigator() {
   return (
     <Stack.Navigator screenOptions={Platform.isTV ? {headerShown: false} : {}}>
       <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen
+        name="VideoScreen"
+        component={VideoScreen}
+        // initialParams={{videoId: "iasbPFjuQZU"}}
+      />
     </Stack.Navigator>
   );
 }

@@ -10,10 +10,11 @@ interface Props {
 
 export default function PageSegment({segment}: Props) {
   // console.log(JSON.stringify(segment, null, 4));
-  if (segment.is(YTNodes.Video)) {
-    return <Segment element={segment} />;
+  // return <Text>test</Text>;
+  if (segment.is(YTNodes.RichItem)) {
+    return <Segment element={segment.content} />;
   } else {
-    console.log("Unknown type: ", JSON.stringify(segment, null, 4));
+    console.log("Unknown PageSegment type: ", JSON.stringify(segment, null, 4));
     return null;
   }
 
@@ -35,6 +36,7 @@ function Segment({element}: SegmentProps) {
 
   if (element.is(YTNodes.Video)) {
     // console.log("Segment: ", JSON.stringify(element.thumbnails.thumbnails[0]));
+    console.log("Best Thumbnail ", element.best_thumbnail?.url);
     return (
       <View style={styles.viewContainer}>
         <TouchableOpacity
@@ -54,6 +56,8 @@ function Segment({element}: SegmentProps) {
         <Text>{element.author.name}</Text>
       </View>
     );
+  } else {
+    console.log("Unknown Segment Type: ", JSON.stringify(element, null, 4));
   }
 
   return null;
