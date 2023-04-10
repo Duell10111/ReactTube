@@ -264,6 +264,17 @@ PODS:
   - React-jsinspector (0.69.8-1)
   - React-logger (0.69.8-1):
     - glog
+  - react-native-safe-area-context (4.5.1):
+    - RCT-Folly
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - ReactCommon/turbomodule/core
+  - react-native-video (5.2.1):
+    - React-Core
+    - react-native-video/Video (= 5.2.1)
+  - react-native-video/Video (5.2.1):
+    - React-Core
   - React-perflogger (0.69.8-1)
   - React-RCTAnimation (0.69.8-1):
     - RCT-Folly (= 2021.06.28.00-v2)
@@ -322,6 +333,9 @@ PODS:
     - React-jsi (= 0.69.8-1)
     - React-logger (= 0.69.8-1)
     - React-perflogger (= 0.69.8-1)
+  - RNScreens (3.20.0):
+    - React-Core
+    - React-RCTImage
   - SocketRocket (0.6.0)
   - Yoga (1.14.0)
   - YogaKit (1.18.1):
@@ -372,6 +386,8 @@ DEPENDENCIES:
   - React-jsiexecutor (from `../node_modules/react-native/ReactCommon/jsiexecutor`)
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
+  - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - react-native-video (from `../node_modules/react-native-video`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
   - React-RCTAnimation (from `../node_modules/react-native/Libraries/NativeAnimation`)
   - React-RCTBlob (from `../node_modules/react-native/Libraries/Blob`)
@@ -382,6 +398,7 @@ DEPENDENCIES:
   - React-RCTText (from `../node_modules/react-native/Libraries/Text`)
   - React-runtimeexecutor (from `../node_modules/react-native/ReactCommon/runtimeexecutor`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
+  - RNScreens (from `../node_modules/react-native-screens`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -443,6 +460,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/jsinspector"
   React-logger:
     :path: "../node_modules/react-native/ReactCommon/logger"
+  react-native-safe-area-context:
+    :path: "../node_modules/react-native-safe-area-context"
+  react-native-video:
+    :path: "../node_modules/react-native-video"
   React-perflogger:
     :path: "../node_modules/react-native/ReactCommon/reactperflogger"
   React-RCTAnimation:
@@ -463,6 +484,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/runtimeexecutor"
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
+  RNScreens:
+    :path: "../node_modules/react-native-screens"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -499,6 +522,8 @@ SPEC CHECKSUMS:
   React-jsiexecutor: 8a5a414e4101eeabcf9a2297e203fd48f4b14276
   React-jsinspector: 6ce39feccf99bd891341bd656b83fff17515b790
   React-logger: f0e82c6aa0088d3c6e748732fee17c1d7181fc22
+  react-native-safe-area-context: f5549f36508b1b7497434baa0cd97d7e470920d4
+  react-native-video: c26780b224543c62d5e1b2a7244a5cd1b50e8253
   React-perflogger: c3dddda09a2437d43bd2dc0b5c0db88efeebd7e0
   React-RCTAnimation: c5c1a79fb81614cbe18ffa536a82e877b03eaa97
   React-RCTBlob: 676e8e63d1a15c443e1ee2ccac5458c21c8de4b8
@@ -509,6 +534,7 @@ SPEC CHECKSUMS:
   React-RCTText: d1168b23bdfe1a1a8bede1b7864bbfb7a7e15650
   React-runtimeexecutor: 10b9de31368201af527b670d562f07d4d8e9a4b0
   ReactCommon: 74ed9fec71646d5a77e71a58a56e691871a037d7
+  RNScreens: 218801c16a2782546d30bd2026bb625c0302d70f
   SocketRocket: fccef3f9c5cedea1353a9ef6ada904fde10d6608
   Yoga: 4a0788440c29e71c40dc8b5f7f4d1495134223f9
   YogaKit: 1e22bf2228b3a5ac8cc88965153061ae92c494b5
