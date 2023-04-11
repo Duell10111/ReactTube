@@ -25,6 +25,5 @@ module.exports = (async () => {
       platforms,
     },
   };
-  console.log(config);
   return config;
 })();

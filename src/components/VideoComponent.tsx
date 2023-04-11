@@ -1,5 +1,4 @@
 import React from "react";
-import useVideoDetails from "../hooks/useVideoDetails";
 import Video from "react-native-video";
 import {useRef} from "react";
 import {

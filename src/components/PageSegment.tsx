@@ -3,6 +3,8 @@ import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import FastImage from "react-native-fast-image";
 import {YTNodes, Helpers} from "../utils/Youtube";
+import PageSection from "./PageSection";
+import VideoSegment from "./VideoSegment";
 
 interface Props {
   segment: Helpers.YTNode;
@@ -12,19 +14,13 @@ export default function PageSegment({segment}: Props) {
   // console.log(JSON.stringify(segment, null, 4));
   // return <Text>test</Text>;
   if (segment.is(YTNodes.RichItem)) {
-    return <Segment element={segment.content} />;
+    return <VideoSegment element={segment.content} style={{padding: 20}} />;
+  } else if (segment.is(YTNodes.RichSection)) {
+    return <PageSection node={segment} />;
   } else {
     console.log("Unknown PageSegment type: ", JSON.stringify(segment, null, 4));
     return null;
   }
-
-  // return (
-  //   <View>
-  //     {segment.contents.map((value, index) => (
-  //       <Segment key={index} element={value} />
-  //     ))}
-  //   </View>
-  // );
 }
 
 interface SegmentProps {

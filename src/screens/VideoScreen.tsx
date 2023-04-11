@@ -1,5 +1,5 @@
 import React from "react";
-import VideoComponent from "../components/VideoComonent";
+import VideoComponent from "../components/VideoComponent";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
 import {ActivityIndicator, StyleSheet, Text, View} from "react-native";
