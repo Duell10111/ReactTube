@@ -14,11 +14,13 @@ export default function VerticalVideoList({nodes}: Props) {
   const renderItem = useCallback(({item}: {item: Helpers.YTNode}) => {
     if (item.is(YTNodes.RichItem)) {
       return <VideoSegment element={item.content} style={{padding: 20}} />;
+    } else {
+      LOGGER.warn("Unknown Videolist type: ", item.type);
     }
     return null;
   }, []);
 
-  const keyExtractor = useCallback((item: Helpers.YTNode, index) => {
+  const keyExtractor = useCallback((item: Helpers.YTNode) => {
     return keyExtractorVideo(item);
   }, []);
 
