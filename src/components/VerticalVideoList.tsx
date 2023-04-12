@@ -14,6 +14,8 @@ export default function VerticalVideoList({nodes}: Props) {
   const renderItem = useCallback(({item}: {item: Helpers.YTNode}) => {
     if (item.is(YTNodes.RichItem)) {
       return <VideoSegment element={item.content} style={{padding: 20}} />;
+    } else if (item.is(YTNodes.Video)) {
+      return <VideoSegment element={item} style={{padding: 20}} />;
     } else {
       LOGGER.warn("Unknown Videolist type: ", item.type);
     }

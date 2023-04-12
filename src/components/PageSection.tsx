@@ -1,5 +1,5 @@
 import React from "react";
-import {YTNodes} from "../utils/Youtube";
+import {YTNodes, Helpers} from "../utils/Youtube";
 import {StyleSheet, Text, View} from "react-native";
 import VerticalVideoList from "./VerticalVideoList";
 import Logger from "../utils/Logger";
@@ -7,19 +7,26 @@ import Logger from "../utils/Logger";
 const LOGGER = Logger.extend("PAGE");
 
 interface Props {
-  node: YTNodes.RichSection;
+  node: Helpers.YTNode;
 }
 
 export default function PageSection({node}: Props) {
-  if (node.content.is(YTNodes.RichShelf)) {
+  if (node.is(YTNodes.RichShelf)) {
     return (
       <View>
-        <Text style={styles.textStyle}>{node.content.title.text}</Text>
+        <Text style={styles.textStyle}>{node.title.text}</Text>
+        <VerticalVideoList nodes={node.contents} />
+      </View>
+    );
+  } else if (node.is(YTNodes.Shelf) && node.content?.is(YTNodes.VerticalList)) {
+    return (
+      <View>
+        <Text style={styles.textStyle}>{node.title.text}</Text>
         <VerticalVideoList nodes={node.content.contents} />
       </View>
     );
   } else {
-    LOGGER.warn("Unknown PageSection type: ", node.type);
+    LOGGER.info("Unknown PageSection type: ", node.type);
   }
   return null;
 }

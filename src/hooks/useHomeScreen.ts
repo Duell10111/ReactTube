@@ -18,6 +18,7 @@ export default function useHomeScreen() {
       youtube
         .getHomeFeed()
         .then(value => {
+          LOGGER.debug("Fetched HomeFeed");
           // console.log("Value: ", JSON.stringify(value, null, 2));
           setHomePage(value);
           if (value.contents.is(YTNodes.RichGrid)) {
@@ -45,18 +46,20 @@ export default function useHomeScreen() {
     }
     const nextContent = await homePage.getContinuation();
     // LOGGER.debug("Fetched Content: ", JSON.stringify(nextContent, null, 4));
-    if (true) {
-      console.log("Item: ", nextContent.contents);
+    if (homePage.contents.type === "appendContinuationItemsAction") {
+      LOGGER.debug("Append Item Fetched");
       if (nextContent.contents.contents) {
         console.log("Contents");
         const newValues = _.concat(content, nextContent.contents.contents);
         setContent(newValues);
+      } else {
+        LOGGER.warn("Continue content empty!");
       }
     } else {
       console.warn("Unknown Type: ", nextContent.contents.type);
     }
     setHomePage(nextContent);
-  }, [homePage]);
+  }, [homePage, content]);
 
   // useEffect(() => {
   //   if (homePage? && homePage?.segments.length < minElements) {

@@ -5,35 +5,63 @@ import _ from "lodash";
 
 const firstRows = 2;
 
+const videoItems = ["RichItem", "Video"];
+const sectionItems = ["RichSection", "Shelf", "ReelShelf"];
+
+function gridCalculator(content: Helpers.YTNode[], columns: number) {
+  const groups = _.groupBy(content, node => node.type);
+
+  const types = Object.keys(groups);
+
+  const sectionsAvailable = _.intersection(types, sectionItems);
+
+  if (sectionsAvailable.length > 0) {
+    console.log("Sections Found");
+    const items = _.chain(videoItems)
+      .intersection(types)
+      .map(type => groups[type])
+      .flatten()
+      .value();
+    const sectionsItems = _.chain(sectionItems)
+      .intersection(types)
+      .map(type => groups[type])
+      .flatten()
+      .value();
+
+    const newArray = [];
+
+    for (const sections of sectionsItems) {
+      for (let i = 0; i < firstRows; i++) {
+        newArray.push(items.splice(0, columns));
+      }
+      newArray.push(sections);
+    }
+    newArray.push(..._.chunk(items, columns));
+
+    return newArray;
+  } else {
+    //TODO: Currently still does not work properly
+    console.log(
+      "Alternative: ",
+      content.map(v => listPrint(v)),
+    );
+    console.log(content.length);
+    const alContent = _.chunk(_.clone(content), columns);
+    console.log(
+      "Alternative Content: ",
+      alContent.map(v => listPrint(v)),
+    );
+    return content;
+  }
+}
+
 export default function useHomeShelf(content: Helpers.YTNode[]) {
   const {width} = useWindowDimensions();
 
   const list = useMemo(() => {
     const column = Math.floor(width / 500);
-    const groups = _.groupBy(content, node => node.type);
 
-    console.log(column);
-    console.log(JSON.stringify(Object.keys(groups), null, 4));
-
-    const types = Object.keys(groups);
-
-    if (types.indexOf("RichSection") >= 0) {
-      const items = groups.RichItem;
-
-      const newArray = [];
-
-      for (const sections of groups.RichSection) {
-        for (let i = 0; i < firstRows; i++) {
-          newArray.push(items.splice(0, 3));
-        }
-        newArray.push(sections);
-      }
-      newArray.push(..._.chunk(items, 3));
-
-      return newArray;
-    } else {
-      return content;
-    }
+    return gridCalculator(content, column);
   }, [content, width]);
 
   console.log(list.map(v => listPrint(v)));

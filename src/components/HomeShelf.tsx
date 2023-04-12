@@ -1,15 +1,23 @@
 import React, {useCallback} from "react";
 import {YTNodes, Helpers} from "../utils/Youtube";
-import {FlatList, StyleSheet, Text, View} from "react-native";
+import {
+  FlatList,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from "react-native";
 import PageSegment from "./PageSegment";
 import useHomeShelf from "../hooks/home/useHomeShelf";
 
 interface Props {
+  style?: StyleProp<ViewStyle>;
   shelfItem: Helpers.YTNode[];
   onEndReached: () => void;
 }
 
-export default function HomeShelf({shelfItem, onEndReached}: Props) {
+export default function HomeShelf({shelfItem, onEndReached, style}: Props) {
   const sorted = useHomeShelf(shelfItem);
 
   const renderItem = useCallback(({item}: {item: (typeof sorted)[number]}) => {
@@ -39,6 +47,7 @@ export default function HomeShelf({shelfItem, onEndReached}: Props) {
 
   return (
     <FlatList
+      style={style}
       data={sorted}
       renderItem={renderItem}
       keyExtractor={keyExtractor}

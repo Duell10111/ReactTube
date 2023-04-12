@@ -1,11 +1,12 @@
 import React, {useCallback} from "react";
-import {Button, FlatList, Text, View} from "react-native";
+import {Button, FlatList, Text, TouchableOpacity, View} from "react-native";
 import useHomeScreen from "../hooks/useHomeScreen";
 import PageSegment from "../components/PageSegment";
 import {YTNodes, Helpers} from "../utils/Youtube";
 import HomeShelf from "../components/HomeShelf";
 import Logger from "../utils/Logger";
 import {useNavigation} from "@react-navigation/native";
+import {Icon} from "@rneui/base";
 
 const LOGGER = Logger.extend("HOME");
 
@@ -19,7 +20,9 @@ export default function HomeScreen() {
   }
   return (
     <>
-      <Button title={"Search"} onPress={() => navigation.navigate("Search")} />
+      <TouchableOpacity onPress={() => navigation.navigate("Search")}>
+        <Icon name={"search"} type={"material"} raised />
+      </TouchableOpacity>
       <HomeShelf
         shelfItem={content}
         onEndReached={() => {

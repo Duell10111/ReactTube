@@ -7,6 +7,9 @@ import {
   StyleSheet,
   ViewStyle,
 } from "react-native";
+import Logger from "../utils/Logger";
+
+const LOGGER = Logger.extend("VIDEO");
 
 interface Props {
   url: string;
@@ -27,7 +30,7 @@ export default function VideoComponent({url, style}: Props) {
         style={[
           style ?? {
             ...styles.fullScreen,
-            backgroundColor: "rgba(0,34,255,0.6)",
+            // backgroundColor: "rgba(0,34,255,0.6)",
           },
           StyleSheet.absoluteFillObject,
         ]}
@@ -35,10 +38,10 @@ export default function VideoComponent({url, style}: Props) {
         // paused
         fullscreen
         resizeMode={"contain"}
-        onLoad={data =>
-          console.log("Video Loading...", JSON.stringify(data, null, 4))
+        onLoad={(data: any) =>
+          LOGGER.debug("Video Loading...", JSON.stringify(data, null, 4))
         }
-        onLoadStart={() => console.log("Video Start Loading...")}
+        onLoadStart={() => LOGGER.debug("Video Start Loading...")}
       />
     </>
   );

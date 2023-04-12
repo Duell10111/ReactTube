@@ -10,12 +10,19 @@
 
 import React from "react";
 import {FlatList, StatusBar, Text, useColorScheme} from "react-native";
+import {btoa, atob} from "react-native-quick-base64";
 
 import {Colors} from "react-native/Libraries/NewAppScreen";
 
 import "react-native/tvos-types.d";
 import Navigation from "./src/navigation/Navigation";
 import YoutubeContextProvider from "./src/context/YoutubeContext";
+
+// Polyfill for youtube.js
+Object.assign(global, {
+  btoa: btoa,
+  atob: atob,
+});
 
 const App = () => {
   const isDarkMode = useColorScheme() === "dark";
