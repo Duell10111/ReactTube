@@ -7,11 +7,12 @@ import HomeShelf from "../components/HomeShelf";
 import Logger from "../utils/Logger";
 import {useNavigation} from "@react-navigation/native";
 import {Icon} from "@rneui/base";
+import {NativeStackProp} from "../navigation/types";
 
 const LOGGER = Logger.extend("HOME");
 
 export default function HomeScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackProp>();
   const {content, fetchMore} = useHomeScreen();
 
   // console.log("Content: ", JSON.stringify(content, null, 4));
@@ -20,9 +21,6 @@ export default function HomeScreen() {
   }
   return (
     <>
-      <TouchableOpacity onPress={() => navigation.navigate("Search")}>
-        <Icon name={"search"} type={"material"} raised />
-      </TouchableOpacity>
       <HomeShelf
         shelfItem={content}
         onEndReached={() => {

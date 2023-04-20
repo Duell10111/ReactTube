@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import PageSegment from "./PageSegment";
 import useHomeShelf from "../hooks/home/useHomeShelf";
+import ShelfVideoSelectorProvider from "../context/ShelfVideoSelector";
+import VideoMenu from "./general/VideoMenu";
 
 interface Props {
   style?: StyleProp<ViewStyle>;
@@ -46,17 +48,22 @@ export default function HomeShelf({shelfItem, onEndReached, style}: Props) {
   );
 
   return (
-    <FlatList
-      style={style}
-      data={sorted}
-      renderItem={renderItem}
-      keyExtractor={keyExtractor}
-      contentContainerStyle={{
-        padding: 20,
-        backgroundColor: "lightblue",
-      }}
-      onEndReachedThreshold={0.7}
-      onEndReached={onEndReached}
-    />
+    <ShelfVideoSelectorProvider>
+      <>
+        <FlatList
+          style={style}
+          data={sorted}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={{
+            padding: 20,
+            backgroundColor: "lightblue",
+          }}
+          onEndReachedThreshold={0.7}
+          onEndReached={onEndReached}
+        />
+        <VideoMenu />
+      </>
+    </ShelfVideoSelectorProvider>
   );
 }

@@ -1,16 +1,8 @@
 import React from "react";
 import {Helpers, YTNodes} from "../utils/Youtube";
-import {
-  StyleProp,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ViewStyle,
-} from "react-native";
-import {useNavigation} from "@react-navigation/native";
-import FastImage from "react-native-fast-image";
+import {StyleProp, ViewStyle} from "react-native";
 import Logger from "../utils/Logger";
+import VideoCard from "./VideoCard";
 
 const LOGGER = Logger.extend("SEGMENT");
 
@@ -20,86 +12,64 @@ interface SegmentProps {
 }
 
 export default function VideoSegment({element, style}: SegmentProps) {
-  const navigation = useNavigation();
-
   if (element.is(YTNodes.Video)) {
-    // console.log("Segment: ", JSON.stringify(element.thumbnails.thumbnails[0]));
-    // console.log("Best Thumbnail ", element.best_thumbnail?.url);
+    element.duration.text;
     return (
-      <View style={[styles.viewContainer, style]}>
-        <TouchableOpacity
-          // onFocus={() => console.log("Focus")}
-          style={styles.segmentContainer}
-          onPress={() =>
-            navigation.navigate("VideoScreen", {videoId: element.id})
-          }>
-          <FastImage
-            style={styles.imageStyle}
-            source={{
-              uri:
-                element.best_thumbnail?.url?.split("?")?.[0] ??
-                "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
-            }}
-          />
-        </TouchableOpacity>
-        <Text style={styles.titleStyle}>{element.title.text}</Text>
-        <Text>{element.author.name}</Text>
-      </View>
+      <VideoCard
+        style={style}
+        videoId={element.id}
+        title={element.title.text ?? ""}
+        views={element.view_count.text ?? "0"}
+        duration={element.duration.text ?? ""}
+        author={element.author.name}
+        thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+      />
+    );
+  } else if (element.is(YTNodes.GridVideo)) {
+    return (
+      <VideoCard
+        style={style}
+        videoId={element.id}
+        title={element.title.text ?? ""}
+        views={element.views.text ?? ""}
+        thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+      />
+    );
+  } else if (element.is(YTNodes.CompactVideo)) {
+    return (
+      <VideoCard
+        style={style}
+        videoId={element.id}
+        title={element.title.text ?? ""}
+        views={element.view_count.text ?? ""}
+        thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+      />
     );
   } else if (element.is(YTNodes.ReelItem)) {
     return (
-      <View style={[styles.viewContainer, style]}>
-        <TouchableOpacity
-          // onFocus={() => console.log("Focus")}
-          style={styles.segmentContainer}
-          onPress={() =>
-            navigation.navigate("VideoScreen", {videoId: element.id})
-          }>
-          <FastImage
-            style={styles.imageStyle}
-            source={{
-              uri:
-                element.thumbnails[0]?.url?.split("?")?.[0] ??
-                "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
-            }}
-          />
-        </TouchableOpacity>
-        <Text style={styles.titleStyle}>{element.title.text}</Text>
-      </View>
+      <VideoCard
+        style={style}
+        videoId={element.id}
+        title={element.title.text ?? ""}
+        views={element.views.text ?? ""}
+        thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+      />
     );
   } else {
-    console.log("Unknown Segment Type: ", JSON.stringify(element, null, 4));
+    LOGGER.debug("Unknown Video Segment Type: ", element.type);
   }
 
   return null;
 }
 
-const styles = StyleSheet.create({
-  viewContainer: {
-    width: 500,
-    height: 400,
-  },
-  segmentContainer: {
-    backgroundColor: "#aaaaaa",
-    borderRadius: 25,
-    overflow: "hidden",
-    height: "70%",
-  },
-  imageStyle: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: "blue",
-  },
-  titleStyle: {
-    fontSize: 25,
-    maxWidth: "100%",
-  },
-});
-
 export function keyExtractorVideo(videoNode: Helpers.YTNode): string {
   if (videoNode.is(YTNodes.Video)) {
     return videoNode.id;
   } else if (videoNode.is(YTNodes.ReelItem)) {
+    return videoNode.id;
+  } else if (videoNode.is(YTNodes.GridVideo)) {
+    return videoNode.id;
+  } else if (videoNode.is(YTNodes.CompactVideo)) {
     return videoNode.id;
   } else if (videoNode.is(YTNodes.RichItem)) {
     return keyExtractorVideo(videoNode.content);

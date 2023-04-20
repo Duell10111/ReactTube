@@ -14,9 +14,10 @@ const LOGGER = Logger.extend("VIDEO");
 interface Props {
   url: string;
   style?: StyleProp<ViewStyle>;
+  onEndReached?: () => void;
 }
 
-export default function VideoComponent({url, style}: Props) {
+export default function VideoComponent({url, style, ...callbacks}: Props) {
   const player = useRef<Video>();
 
   return (
@@ -42,6 +43,10 @@ export default function VideoComponent({url, style}: Props) {
           LOGGER.debug("Video Loading...", JSON.stringify(data, null, 4))
         }
         onLoadStart={() => LOGGER.debug("Video Start Loading...")}
+        onEnd={() => {
+          LOGGER.debug("End reached");
+          callbacks.onEndReached?.();
+        }}
       />
     </>
   );

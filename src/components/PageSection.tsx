@@ -1,7 +1,7 @@
 import React from "react";
 import {YTNodes, Helpers} from "../utils/Youtube";
 import {StyleSheet, Text, View} from "react-native";
-import VerticalVideoList from "./VerticalVideoList";
+import HorizontalVideoList from "./HorizontalVideoList";
 import Logger from "../utils/Logger";
 
 const LOGGER = Logger.extend("PAGE");
@@ -15,14 +15,24 @@ export default function PageSection({node}: Props) {
     return (
       <View>
         <Text style={styles.textStyle}>{node.title.text}</Text>
-        <VerticalVideoList nodes={node.contents} />
+        <HorizontalVideoList nodes={node.contents} />
       </View>
     );
   } else if (node.is(YTNodes.Shelf) && node.content?.is(YTNodes.VerticalList)) {
     return (
       <View>
         <Text style={styles.textStyle}>{node.title.text}</Text>
-        <VerticalVideoList nodes={node.content.contents} />
+        <HorizontalVideoList nodes={node.content.contents} />
+      </View>
+    );
+  } else if (
+    node.is(YTNodes.Shelf) &&
+    node.content?.is(YTNodes.HorizontalList)
+  ) {
+    return (
+      <View>
+        <Text style={styles.textStyle}>{node.title.text}</Text>
+        <HorizontalVideoList nodes={node.content.contents} />
       </View>
     );
   } else {

@@ -7,7 +7,7 @@ export default function useVideoDetails(videoId: string) {
   const [Video, setVideo] = useState<YT.VideoInfo>();
 
   useEffect(() => {
-    youtube?.getBasicInfo(videoId).then(setVideo).catch(console.warn);
+    youtube?.getInfo(videoId).then(setVideo).catch(console.warn);
   }, [videoId, youtube]);
 
   // console.log("Video: ", JSON.stringify(Video, null, 2));
