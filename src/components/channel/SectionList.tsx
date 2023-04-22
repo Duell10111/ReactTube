@@ -7,14 +7,15 @@ import {itemSectionExtractor} from "../../utils/YTNodeKeyExtractor";
 interface Props {
   style?: StyleProp<ViewStyle>;
   node: Helpers.YTNode | Helpers.YTNode[];
+  onEndReached?: () => void;
 }
 
-export default function SectionList({node, style}: Props) {
+export default function SectionList({node, ...otherProps}: Props) {
   if (Array.isArray(node)) {
-    return <ItemList nodes={node} />;
+    return <ItemList nodes={node} {...otherProps} />;
   } else if (node.is(YTNodes.SectionList)) {
     console.log("Cont: ", node.continuation);
-    return <ItemList nodes={node.contents} />;
+    return <ItemList nodes={node.contents} {...otherProps} />;
   } else {
     console.log("Unsupported SectionList type: ", node.type);
     return null;
@@ -24,9 +25,10 @@ export default function SectionList({node, style}: Props) {
 interface ListProps {
   style?: StyleProp<ViewStyle>;
   nodes: Helpers.YTNode[];
+  onEndReached?: () => void;
 }
 
-function ItemList({nodes, style}: ListProps) {
+function ItemList({nodes, style, onEndReached}: ListProps) {
   const renderItem = useCallback(
     ({item}: {item: Helpers.YTNode}) => <PageSegment segment={item} />,
     [],
@@ -38,6 +40,8 @@ function ItemList({nodes, style}: ListProps) {
       data={nodes}
       renderItem={renderItem}
       keyExtractor={item => itemSectionExtractor(item)}
+      onEndReachedThreshold={0.7}
+      onEndReached={onEndReached}
     />
   );
 }

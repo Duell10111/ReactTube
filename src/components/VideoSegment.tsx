@@ -3,6 +3,7 @@ import {Helpers, YTNodes} from "../utils/Youtube";
 import {StyleProp, StyleSheet, TextStyle, ViewStyle} from "react-native";
 import Logger from "../utils/Logger";
 import VideoCard from "./VideoCard";
+import PlaylistCard from "./segments/PlaylistCard";
 
 const LOGGER = Logger.extend("SEGMENT");
 
@@ -65,6 +66,27 @@ export default function VideoSegment({
         videoId={element.id}
         title={element.title.text ?? ""}
         views={element.views.text ?? ""}
+        thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+      />
+    );
+  } else if (element.is(YTNodes.PlaylistVideo)) {
+    return (
+      <VideoCard
+        style={style}
+        textStyle={textStyle}
+        videoId={element.id}
+        title={element.title.text ?? ""}
+        views={""}
+        thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+      />
+    );
+  } else if (element.is(YTNodes.GridPlaylist)) {
+    return (
+      <PlaylistCard
+        style={style}
+        textStyle={textStyle}
+        playlistId={element.id}
+        title={element.title.text ?? ""}
         thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
       />
     );

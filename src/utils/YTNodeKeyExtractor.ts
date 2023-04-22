@@ -14,6 +14,8 @@ export function itemSectionExtractor(node: Helpers.YTNode): string {
     return node.title.text ?? "empty-title-reel";
   } else if (node.is(YTNodes.ChannelVideoPlayer)) {
     return node.id;
+  } else if (node.is(YTNodes.PlaylistVideoList)) {
+    return node.id;
   } else {
     LOGGER.warn("No item section key found for :", node.type);
   }
@@ -30,6 +32,8 @@ export function keyExtractorItems(itemNode: Helpers.YTNode): string {
   } else if (itemNode.is(YTNodes.CompactVideo)) {
     return itemNode.id;
   } else if (itemNode.is(YTNodes.GridChannel)) {
+    return itemNode.id;
+  } else if (itemNode.is(YTNodes.PlaylistVideo)) {
     return itemNode.id;
   } else if (itemNode.type === "CompactMovie") {
     // Currently unknown type?

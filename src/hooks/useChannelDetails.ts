@@ -11,6 +11,7 @@ export default function useChannelDetails(channelID: string) {
 
   useEffect(() => {
     if (!innerTube) {
+      LOGGER.warn("No Youtube Context available");
       return;
     }
 

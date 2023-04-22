@@ -17,7 +17,10 @@ interface AppStyleContext {
   style: AppStyle;
 }
 
-const Context = createContext<AppStyleContext>({});
+const Context = createContext<AppStyleContext>({
+  style: dark,
+  type: "dark",
+});
 
 interface Props {
   children?: React.ReactNode;

@@ -1,13 +1,6 @@
 import React, {useCallback} from "react";
 import {YTNodes, Helpers} from "../utils/Youtube";
-import {
-  FlatList,
-  StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-} from "react-native";
+import {FlatList, StyleProp, StyleSheet, View, ViewStyle} from "react-native";
 import PageSegment from "./PageSegment";
 import useHomeShelf from "../hooks/home/useHomeShelf";
 import ShelfVideoSelectorProvider from "../context/ShelfVideoSelector";
@@ -16,7 +9,7 @@ import VideoMenu from "./general/VideoMenu";
 interface Props {
   style?: StyleProp<ViewStyle>;
   shelfItem: Helpers.YTNode[];
-  onEndReached: () => void;
+  onEndReached?: () => void;
 }
 
 export default function HomeShelf({shelfItem, onEndReached, style}: Props) {

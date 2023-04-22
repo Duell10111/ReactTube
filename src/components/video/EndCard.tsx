@@ -1,8 +1,7 @@
-import React, {useState} from "react";
+import React from "react";
 import {YT} from "../../utils/Youtube";
-import {Modal, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {Modal, StyleSheet, Text, View} from "react-native";
 import HorizontalVideoList from "../HorizontalVideoList";
-import FastImage from "react-native-fast-image";
 import ChannelIcon from "./ChannelIcon";
 
 interface Props {
@@ -18,6 +17,7 @@ export default function EndCard({visible, onCloseRequest, video}: Props) {
     // TODO: Add warning or debug message
     return null;
   }
+  console.log("Channel URL: ", video.basic_info.channel_id);
 
   return (
     <Modal
@@ -28,12 +28,14 @@ export default function EndCard({visible, onCloseRequest, video}: Props) {
         <View style={styles.nextVideoContainer}>
           <Text style={styles.text}>Nächstes Video</Text>
         </View>
-        <ChannelIcon channelId={video.basic_info.channel_id ?? ""} />
+        <View style={styles.channelContainer}>
+          <ChannelIcon channelId={video.basic_info.channel?.id ?? ""} />
+        </View>
         <View style={styles.bottomContainer}>
           <Text style={styles.bottomText}>Related Videos</Text>
           <HorizontalVideoList
             nodes={video.watch_next_feed}
-            textStyle={{color: "white"}}
+            textStyle={styles.text}
           />
         </View>
       </View>
@@ -46,6 +48,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#11111199",
     flex: 1,
     justifyContent: "flex-end",
+  },
+  channelContainer: {
+    backgroundColor: "#111111cc",
+    marginStart: 20,
   },
   text: {
     color: "white",

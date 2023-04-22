@@ -8,16 +8,18 @@ interface Props {
 }
 
 export default function PageSegment({segment}: Props) {
-  // console.log(JSON.stringify(segment, null, 4));
-  // return <Text>test</Text>;
   if (segment.is(YTNodes.RichItem)) {
-    return <VideoSegment element={segment.content} style={{padding: 20}} />;
+    return <VideoSegment element={segment.content} />;
   } else if (segment.is(YTNodes.RichSection)) {
     return <PageSection node={segment.content} />;
   } else if (segment.is(YTNodes.Video)) {
-    return <VideoSegment element={segment} style={{padding: 20}} />;
+    return <VideoSegment element={segment} />;
+  } else if (segment.is(YTNodes.PlaylistVideo)) {
+    return <VideoSegment element={segment} />;
   } else if (segment.is(YTNodes.ReelItem)) {
-    return <VideoSegment element={segment} style={{padding: 20}} />;
+    return <VideoSegment element={segment} />;
+  } else if (segment.is(YTNodes.GridPlaylist)) {
+    return <VideoSegment element={segment} />;
   } else if (segment.is(YTNodes.Shelf)) {
     return <PageSection node={segment} />;
   } else if (segment.is(YTNodes.ReelShelf)) {

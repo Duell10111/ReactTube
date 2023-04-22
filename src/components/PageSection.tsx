@@ -3,6 +3,7 @@ import {YTNodes, Helpers} from "../utils/Youtube";
 import {StyleSheet, Text, View} from "react-native";
 import HorizontalVideoList from "./HorizontalVideoList";
 import Logger from "../utils/Logger";
+import HomeShelf from "./HomeShelf";
 
 const LOGGER = Logger.extend("PAGE");
 
@@ -41,6 +42,11 @@ export default function PageSection({node}: Props) {
         <Text style={styles.textStyle}>{node.title.text}</Text>
         <HorizontalVideoList nodes={node.content.contents} />
       </View>
+    );
+  } else if (node.is(YTNodes.PlaylistVideoList)) {
+    //TODO: Use Vertical List?
+    return (
+      <HomeShelf shelfItem={node.videos.array()} onEndReached={() => {}} />
     );
   } else {
     LOGGER.info("Unknown PageSection type: ", node.type);

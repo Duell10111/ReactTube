@@ -11,9 +11,14 @@ const LOGGER = Logger.extend("SEGMENT");
 interface Props {
   textStyle?: StyleProp<TextStyle>;
   nodes: Helpers.YTNode[];
+  onEndReached?: () => void;
 }
 
-export default function HorizontalVideoList({nodes, textStyle}: Props) {
+export default function HorizontalVideoList({
+  nodes,
+  textStyle,
+  onEndReached,
+}: Props) {
   const renderItem = useCallback(
     ({item}: {item: Helpers.YTNode}) => {
       if (item.is(YTNodes.RichItem)) {
@@ -25,6 +30,8 @@ export default function HorizontalVideoList({nodes, textStyle}: Props) {
       } else if (item.is(YTNodes.CompactVideo)) {
         return <VideoSegment element={item} textStyle={textStyle} />;
       } else if (item.is(YTNodes.ReelItem)) {
+        return <VideoSegment element={item} textStyle={textStyle} />;
+      } else if (item.is(YTNodes.PlaylistVideo)) {
         return <VideoSegment element={item} textStyle={textStyle} />;
       } else if (item.is(YTNodes.GridChannel)) {
         return <ChannelSegment element={item} />;
@@ -46,6 +53,8 @@ export default function HorizontalVideoList({nodes, textStyle}: Props) {
       data={nodes}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.7}
     />
   );
 }

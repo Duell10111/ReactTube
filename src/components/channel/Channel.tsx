@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useMemo, useState} from "react";
 import {Pressable, Text, TouchableOpacity, View} from "react-native";
 import {YT, YTNodes} from "../../utils/Youtube";
 import useChannelData, {
@@ -9,6 +9,7 @@ import {recursiveTypeLogger} from "../../utils/YTNodeLogger";
 import SectionList from "./SectionList";
 import {ButtonGroup, Button} from "@rneui/base";
 import HomeShelf from "../HomeShelf";
+import _ from "lodash";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -18,20 +19,34 @@ interface Props {
 
 export default function Channel({channel}: Props) {
   const [selected, setSelected] = useState<ChannelContentTypes>("Home");
-  const buttons = [
-    {
-      element: () => <Text>Home</Text>,
-      key: "Home" as ChannelContentTypes,
-    },
-    {
-      element: () => <Text>Videos</Text>,
-      key: "Videos" as ChannelContentTypes,
-    },
-    {
-      element: () => <Text>Reels</Text>,
-      key: "Reels" as ChannelContentTypes,
-    },
-  ];
+  const buttons = useMemo(
+    () =>
+      _.compact([
+        {
+          element: () => <Text>Home</Text>,
+          key: "Home" as ChannelContentTypes,
+        },
+        channel.has_videos
+          ? {
+              element: () => <Text>Videos</Text>,
+              key: "Videos" as ChannelContentTypes,
+            }
+          : null,
+        channel.has_shorts
+          ? {
+              element: () => <Text>Reels</Text>,
+              key: "Reels" as ChannelContentTypes,
+            }
+          : null,
+        channel.has_playlists
+          ? {
+              element: () => <Text>Playlists</Text>,
+              key: "Playlists" as ChannelContentTypes,
+            }
+          : null,
+      ]),
+    [],
+  );
 
   return (
     <View style={{flex: 1}}>
@@ -51,6 +66,9 @@ export default function Channel({channel}: Props) {
         ) : null}
         {channel.has_shorts && selected === "Reels" ? (
           <ChannelRow channel={channel} type={"Reels"} />
+        ) : null}
+        {channel.has_playlists && selected === "Playlists" ? (
+          <ChannelRow channel={channel} type={"Playlists"} />
         ) : null}
       </View>
     </View>

@@ -1,6 +1,5 @@
 import React from "react";
 import Video from "react-native-video";
-import {useRef} from "react";
 import {
   ActivityIndicator,
   StyleProp,
@@ -18,7 +17,7 @@ interface Props {
 }
 
 export default function VideoComponent({url, style, ...callbacks}: Props) {
-  const player = useRef<Video>();
+  // const player = useRef<Video>();
 
   return (
     <>
