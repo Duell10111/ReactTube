@@ -51,7 +51,7 @@ function gridCalculator(content: Helpers.YTNode[], columns: number) {
       "Alternative Content: ",
       alContent.map(v => listPrint(v)),
     );
-    return content;
+    return alContent;
   }
 }
 

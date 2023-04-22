@@ -1,11 +1,15 @@
 import React, {useCallback, useState} from "react";
+import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import {
-  Gesture,
-  GestureDetector,
-  TouchableOpacity,
-} from "react-native-gesture-handler";
-import {Pressable, StyleProp, View, ViewStyle} from "react-native";
+  Pressable,
+  StyleProp,
+  useTVEventHandler,
+  View,
+  ViewStyle,
+} from "react-native";
 import {runOnJS} from "react-native-reanimated";
+
+// TODO: Long Press not working always
 
 type Props = {
   style?: StyleProp<ViewStyle>;
@@ -28,6 +32,14 @@ export default function VideoTouchable({
     console.log("tap");
     runOnJS(longPress)();
   });
+
+  // useTVEventHandler(event => {
+  //   if (onLongPress && focus && event.eventType === "longSelect") {
+  //     onLongPress();
+  //   } else {
+  //     console.log("Event: ", event);
+  //   }
+  // });
 
   return (
     <GestureDetector gesture={tap}>

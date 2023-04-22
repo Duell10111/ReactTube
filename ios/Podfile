@@ -55,6 +55,7 @@ target 'reacttube-tvOS' do
     inherit! :complete
     # Pods for testing
   end
+  pod 'TVVLCKit', '3.5.1'
 end
 
 post_install do |installer|

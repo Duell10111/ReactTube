@@ -19,3 +19,26 @@ export function itemSectionExtractor(node: Helpers.YTNode): string {
   }
   return "";
 }
+
+export function keyExtractorItems(itemNode: Helpers.YTNode): string {
+  if (itemNode.is(YTNodes.Video)) {
+    return itemNode.id;
+  } else if (itemNode.is(YTNodes.ReelItem)) {
+    return itemNode.id;
+  } else if (itemNode.is(YTNodes.GridVideo)) {
+    return itemNode.id;
+  } else if (itemNode.is(YTNodes.CompactVideo)) {
+    return itemNode.id;
+  } else if (itemNode.is(YTNodes.GridChannel)) {
+    return itemNode.id;
+  } else if (itemNode.type === "CompactMovie") {
+    // Currently unknown type?
+    // @ts-ignore
+    return itemNode.id;
+  } else if (itemNode.is(YTNodes.RichItem)) {
+    return keyExtractorItems(itemNode.content);
+  } else {
+    LOGGER.debug("Unknown Video keyExtractor type: ", itemNode.type);
+  }
+  return "";
+}

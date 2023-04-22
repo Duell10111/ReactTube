@@ -18,6 +18,13 @@ export default function PageSection({node}: Props) {
         <HorizontalVideoList nodes={node.contents} />
       </View>
     );
+  } else if (node.is(YTNodes.ReelShelf)) {
+    return (
+      <View>
+        <Text style={styles.textStyle}>{node.title.text}</Text>
+        <HorizontalVideoList nodes={node.contents} />
+      </View>
+    );
   } else if (node.is(YTNodes.Shelf) && node.content?.is(YTNodes.VerticalList)) {
     return (
       <View>

@@ -20,7 +20,7 @@ export default function VideoMenu() {
       visible={selectedVideo !== undefined}
       transparent
       onRequestClose={() => setSelectedVideo()}>
-      <View style={styles.container}>
+      <View style={styles.touchContainer}>
         {selectedVideo ? (
           <VideoMenuContent
             videoId={selectedVideo}
@@ -79,8 +79,8 @@ function VideoMenuItem({title, onPress}: ItemProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "red",
+  touchContainer: {
+    backgroundColor: "#222222",
     width: "20%",
     height: "100%",
     alignSelf: "flex-end",

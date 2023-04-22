@@ -1,5 +1,12 @@
 import VideoTouchable from "./general/VideoTouchable";
-import {StyleProp, StyleSheet, Text, View, ViewStyle} from "react-native";
+import {
+  StyleProp,
+  StyleSheet,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native";
 import React from "react";
 import {useNavigation, useRoute} from "@react-navigation/native";
 import FastImage from "react-native-fast-image";
@@ -7,6 +14,7 @@ import {useShelfVideoSelector} from "../context/ShelfVideoSelector";
 import {NativeStackProp, RootRouteProp} from "../navigation/types";
 
 interface Props {
+  textStyle?: StyleProp<TextStyle>;
   style?: StyleProp<ViewStyle>;
   videoId: string;
   title: string;
@@ -16,7 +24,7 @@ interface Props {
   author?: string;
 }
 
-export default function VideoCard({style, ...data}: Props) {
+export default function VideoCard({style, textStyle, ...data}: Props) {
   const navigation = useNavigation<NativeStackProp>();
   const route = useRoute<RootRouteProp>();
   const {setSelectedVideo} = useShelfVideoSelector();
@@ -46,9 +54,9 @@ export default function VideoCard({style, ...data}: Props) {
         />
         <Text style={styles.timeStyle}>{data.duration}</Text>
       </VideoTouchable>
-      <Text style={styles.titleStyle}>{data.title}</Text>
-      {data.author ? <Text>{data.author}</Text> : null}
-      <Text style={styles.viewsStyle}>{data.views}</Text>
+      <Text style={[styles.titleStyle, textStyle]}>{data.title}</Text>
+      {data.author ? <Text style={textStyle}>{data.author}</Text> : null}
+      <Text style={[styles.viewsStyle, textStyle]}>{data.views}</Text>
     </View>
   );
 }

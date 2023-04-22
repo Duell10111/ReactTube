@@ -8,7 +8,7 @@ interface Props {
 
 export default function ChannelHeader({imgURL, channelName}: Props) {
   return (
-    <View style={styles.container}>
+    <View style={styles.touchContainer}>
       <Image source={{uri: imgURL}} style={styles.img} />
       <Text style={styles.channelTitle}>{channelName}</Text>
     </View>
@@ -16,7 +16,7 @@ export default function ChannelHeader({imgURL, channelName}: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  touchContainer: {
     flexDirection: "row",
     alignItems: "center",
     margin: 20,

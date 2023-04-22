@@ -6,11 +6,14 @@ import {itemSectionExtractor} from "../../utils/YTNodeKeyExtractor";
 
 interface Props {
   style?: StyleProp<ViewStyle>;
-  node: Helpers.YTNode;
+  node: Helpers.YTNode | Helpers.YTNode[];
 }
 
 export default function SectionList({node, style}: Props) {
-  if (node.is(YTNodes.SectionList)) {
+  if (Array.isArray(node)) {
+    return <ItemList nodes={node} />;
+  } else if (node.is(YTNodes.SectionList)) {
+    console.log("Cont: ", node.continuation);
     return <ItemList nodes={node.contents} />;
   } else {
     console.log("Unsupported SectionList type: ", node.type);
@@ -31,7 +34,7 @@ function ItemList({nodes, style}: ListProps) {
 
   return (
     <FlatList
-      style={{height: "100%", backgroundColor: "red"}}
+      style={{height: "100%"}}
       data={nodes}
       renderItem={renderItem}
       keyExtractor={item => itemSectionExtractor(item)}

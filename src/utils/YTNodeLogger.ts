@@ -7,7 +7,9 @@ export function recursiveTypeLogger(nodes: Helpers.YTNode[]): string {
 
 function recursiveTypeResolver(nodes: Helpers.YTNode[]): any {
   return nodes.map(node => {
-    if (node.is(YTNodes.SectionList)) {
+    if (!node) {
+      return "undefined";
+    } else if (node.is(YTNodes.SectionList)) {
       return {type: node.type, content: recursiveTypeResolver(node.contents)};
     } else if (node.is(YTNodes.ItemSection)) {
       return node.contents

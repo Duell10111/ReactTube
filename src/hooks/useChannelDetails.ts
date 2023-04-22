@@ -1,6 +1,6 @@
 import {useYoutubeContext} from "../context/YoutubeContext";
-import {useEffect, useMemo, useState} from "react";
-import {YT, YTNodes} from "../utils/Youtube";
+import {useEffect, useState} from "react";
+import {YT} from "../utils/Youtube";
 import Logger from "../utils/Logger";
 
 const LOGGER = Logger.extend("CHANNEL");
@@ -24,15 +24,5 @@ export default function useChannelDetails(channelID: string) {
       .catch(LOGGER.warn);
   }, [innerTube, channelID]);
 
-  const channelData = useMemo(() => {
-    const data = channel?.page_contents;
-    if (data?.is(YTNodes.SectionList)) {
-      return data.contents;
-    } else {
-      LOGGER.warn("Unknown type: ", data?.type);
-      return undefined;
-    }
-  }, [channel]);
-
-  return {channel, channelData: []};
+  return {channel};
 }

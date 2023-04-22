@@ -2,9 +2,15 @@ import React, {useEffect, useState} from "react";
 import VideoComponent from "../components/VideoComponent";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
-import {ActivityIndicator, StyleSheet, Text, View} from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  View,
+  useTVEventHandler,
+} from "react-native";
 import useVideoDetails from "../hooks/useVideoDetails";
 import EndCard from "../components/video/EndCard";
+import LOGGER from "../utils/Logger";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -21,6 +27,13 @@ export default function VideoScreen({route, navigation}: Props) {
       setShowEndCard(false);
     });
   }, [navigation]);
+
+  useTVEventHandler(event => {
+    LOGGER.debug("TV Event: ", event.eventType);
+    if (event.eventType === "longDown" || event.eventType === "longSelect") {
+      setShowEndCard(true);
+    }
+  });
 
   if (!Video) {
     return (

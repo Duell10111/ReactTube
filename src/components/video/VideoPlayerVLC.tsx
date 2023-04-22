@@ -1,13 +1,12 @@
 import React from "react";
-import Video from "react-native-video";
-import {useRef} from "react";
 import {
   ActivityIndicator,
   StyleProp,
   StyleSheet,
   ViewStyle,
 } from "react-native";
-import Logger from "../utils/Logger";
+import {VLCPlayer} from "react-native-vlc-media-player";
+import Logger from "../../utils/Logger";
 
 const LOGGER = Logger.extend("VIDEO");
 
@@ -17,20 +16,17 @@ interface Props {
   onEndReached?: () => void;
 }
 
-export default function VideoComponent({url, style, ...callbacks}: Props) {
-  const player = useRef<Video>();
-
+export default function VideoPlayerVLC({url, style, ...callbacks}: Props) {
   return (
     <>
       <ActivityIndicator style={styles.activityIndicator} size={"large"} />
-      <Video
+      <VLCPlayer
         source={{
           // uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
           // uri: "https://sample.vodobox.net/skate_phantom_flex_4k/skate_phantom_flex_4k.m3u8",
           // type: "m3u8",
-          // uri: "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
-          // type: "mpd",
-          uri: url,
+          uri: "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
+          type: "mpd",
         }}
         style={[
           style ?? {
@@ -39,15 +35,7 @@ export default function VideoComponent({url, style, ...callbacks}: Props) {
           },
           StyleSheet.absoluteFillObject,
         ]}
-        controls
-        // paused
-        fullscreen
-        resizeMode={"contain"}
-        onLoad={(data: any) =>
-          LOGGER.debug("Video Loading...", JSON.stringify(data, null, 4))
-        }
-        onLoadStart={() => LOGGER.debug("Video Start Loading...")}
-        onEnd={() => {
+        onEnded={() => {
           LOGGER.debug("End reached");
           callbacks.onEndReached?.();
         }}

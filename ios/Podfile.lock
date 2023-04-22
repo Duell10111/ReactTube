@@ -83,6 +83,7 @@ PODS:
   - libwebp/mux (1.2.4):
     - libwebp/demux
   - libwebp/webp (1.2.4)
+  - MobileVLCKit (3.5.1)
   - OpenSSL-Universal (1.1.1100)
   - RCT-Folly (2021.06.28.00-v2):
     - boost
@@ -284,6 +285,10 @@ PODS:
     - react-native-video/Video (= 5.2.1)
   - react-native-video/Video (5.2.1):
     - React-Core
+  - react-native-vlc-media-player (1.0.38):
+    - MobileVLCKit (= 3.5.1)
+    - React
+    - TVVLCKit (= 3.5.1)
   - React-perflogger (0.69.8-1)
   - React-RCTAnimation (0.69.8-1):
     - RCT-Folly (= 2021.06.28.00-v2)
@@ -388,6 +393,7 @@ PODS:
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.10)
   - SocketRocket (0.6.0)
+  - TVVLCKit (3.5.1)
   - Yoga (1.14.0)
   - YogaKit (1.18.1):
     - Yoga
@@ -439,6 +445,7 @@ DEPENDENCIES:
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - react-native-video (from `../node_modules/react-native-video`)
+  - react-native-vlc-media-player (from `../node_modules/react-native-vlc-media-player`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
   - React-RCTAnimation (from `../node_modules/react-native/Libraries/NativeAnimation`)
   - React-RCTBlob (from `../node_modules/react-native/Libraries/Blob`)
@@ -455,6 +462,7 @@ DEPENDENCIES:
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
+  - TVVLCKit (= 3.5.1)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -473,10 +481,12 @@ SPEC REPOS:
     - Flipper-RSocket
     - FlipperKit
     - libwebp
+    - MobileVLCKit
     - OpenSSL-Universal
     - SDWebImage
     - SDWebImageWebPCoder
     - SocketRocket
+    - TVVLCKit
 
 EXTERNAL SOURCES:
   boost:
@@ -523,6 +533,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-video:
     :path: "../node_modules/react-native-video"
+  react-native-vlc-media-player:
+    :path: "../node_modules/react-native-vlc-media-player"
   React-perflogger:
     :path: "../node_modules/react-native/ReactCommon/reactperflogger"
   React-RCTAnimation:
@@ -577,6 +589,7 @@ SPEC CHECKSUMS:
   glog: bac6d5aa2990176cc22d0432fb3e28805d580aeb
   libevent: a6d75fcd7be07cbc5070300ea8dbc8d55dfab88e
   libwebp: f62cb61d0a484ba548448a4bd52aabf150ff6eef
+  MobileVLCKit: 144d5f565512d1147d63b0fa1379231b3fd66535
   OpenSSL-Universal: ebc357f1e6bc71fa463ccb2fe676756aff50e88c
   RCT-Folly: 6955e7728b76277c5df5a5aba37ee1ff1dd99976
   RCTRequired: 950521848475d18aaa7914635cca03f99c6dc5ef
@@ -594,6 +607,7 @@ SPEC CHECKSUMS:
   React-logger: f0e82c6aa0088d3c6e748732fee17c1d7181fc22
   react-native-safe-area-context: f5549f36508b1b7497434baa0cd97d7e470920d4
   react-native-video: c26780b224543c62d5e1b2a7244a5cd1b50e8253
+  react-native-vlc-media-player: 0f9860bded57cd6764ac55b5c0e97347069cb40a
   React-perflogger: c3dddda09a2437d43bd2dc0b5c0db88efeebd7e0
   React-RCTAnimation: c5c1a79fb81614cbe18ffa536a82e877b03eaa97
   React-RCTBlob: 676e8e63d1a15c443e1ee2ccac5458c21c8de4b8
@@ -613,9 +627,10 @@ SPEC CHECKSUMS:
   SDWebImage: a7f831e1a65eb5e285e3fb046a23fcfbf08e696d
   SDWebImageWebPCoder: 908b83b6adda48effe7667cd2b7f78c897e5111d
   SocketRocket: fccef3f9c5cedea1353a9ef6ada904fde10d6608
+  TVVLCKit: a9ab3e8d62ad2d02b7c89101d214f36ad874d45a
   Yoga: 4a0788440c29e71c40dc8b5f7f4d1495134223f9
   YogaKit: 1e22bf2228b3a5ac8cc88965153061ae92c494b5
 
-PODFILE CHECKSUM: 11105c654240af7311053ec9c7e7c3a61fbac57a
+PODFILE CHECKSUM: 2aa07ce7d03188e6e66f2f1cdee8b13c0dda0c84
 
 COCOAPODS: 1.11.2
