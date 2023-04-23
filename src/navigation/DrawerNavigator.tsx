@@ -11,8 +11,8 @@ import {
   useLinkBuilder,
 } from "@react-navigation/native";
 import {TouchableOpacity} from "react-native";
-import SearchScreen from "../screens/SearchScreen";
 import HomeScreen from "../screens/HomeScreen";
+import {Icon} from "@rneui/base";
 
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
 
@@ -24,17 +24,16 @@ export type RootDrawerParamList = {
 export function DrawerNavigator() {
   return (
     <Drawer.Navigator
-      screenOptions={{headerShown: false}}
+      screenOptions={{
+        headerShown: false,
+        swipeEnabled: false,
+        drawerType: "slide",
+      }}
       drawerContent={DrawerContent}>
       <Drawer.Screen
         name="HomeFeed"
         component={HomeScreen}
-        options={{title: "Home"}}
-      />
-      <Drawer.Screen
-        name="SearchScreen"
-        component={SearchScreen}
-        options={{title: "Search"}}
+        options={{title: "Home", drawerIcon: () => <Icon name={"home"} />}}
       />
     </Drawer.Navigator>
   );
@@ -42,8 +41,25 @@ export function DrawerNavigator() {
 
 export function DrawerContent(props: DrawerContentComponentProps) {
   return (
-    <DrawerContentScrollView {...props}>
+    <DrawerContentScrollView
+      {...props}
+      contentContainerStyle={{paddingStart: 0}}>
+      <TouchableOpacity onPress={() => props.navigation.navigate("Search")}>
+        <DrawerItem
+          label={"Search"}
+          icon={() => <Icon name={"search"} />}
+          onPress={() => {}}
+        />
+      </TouchableOpacity>
       <DrawerItemList {...props} />
+      <TouchableOpacity
+        onPress={() => props.navigation.navigate("SettingsScreen")}>
+        <DrawerItem
+          label={"Settings"}
+          icon={() => <Icon name={"settings"} />}
+          onPress={() => {}}
+        />
+      </TouchableOpacity>
     </DrawerContentScrollView>
   );
 }
@@ -96,7 +112,10 @@ export function DrawerItemList({
     } = descriptors[route.key].options;
 
     return (
-      <TouchableOpacity onPress={onPress} key={route.key}>
+      <TouchableOpacity
+        onPress={onPress}
+        key={route.key}
+        hasTVPreferredFocus={focused}>
         <DrawerItem
           label={
             drawerLabel !== undefined

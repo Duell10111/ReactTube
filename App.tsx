@@ -9,14 +9,15 @@
  */
 
 import React from "react";
-import {FlatList, StatusBar, Text, useColorScheme} from "react-native";
+import {StatusBar, useColorScheme} from "react-native";
 import {btoa, atob} from "react-native-quick-base64";
-
-import {Colors} from "react-native/Libraries/NewAppScreen";
 
 import "react-native/tvos-types.d";
 import Navigation from "./src/navigation/Navigation";
 import YoutubeContextProvider from "./src/context/YoutubeContext";
+import AppStyleProvider from "./src/context/AppStyleContext";
+import BackgroundWrapper from "./src/utils/BackgroundWrapper";
+import AppDataContextProvider from "./src/context/AppDataContext";
 
 // Polyfill for youtube.js
 Object.assign(global, {
@@ -27,17 +28,15 @@ Object.assign(global, {
 const App = () => {
   const isDarkMode = useColorScheme() === "dark";
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  // return <FlatList data={["", ""]} renderItem={() => <Text>test</Text>} />;
-
   return (
-    <YoutubeContextProvider>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      <Navigation />
-    </YoutubeContextProvider>
+    <AppStyleProvider>
+      <AppDataContextProvider>
+        <YoutubeContextProvider>
+          <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+          <Navigation />
+        </YoutubeContextProvider>
+      </AppDataContextProvider>
+    </AppStyleProvider>
   );
 };
 

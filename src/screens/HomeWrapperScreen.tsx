@@ -1,5 +1,5 @@
 import {DrawerNavigator} from "../navigation/DrawerNavigator";
-import {TouchableOpacity, View} from "react-native";
+import {Pressable, TouchableOpacity, View} from "react-native";
 import {Icon} from "@rneui/base";
 import React from "react";
 import {DrawerActions, useNavigation} from "@react-navigation/native";
@@ -9,14 +9,14 @@ export default function HomeWrapperScreen() {
   const navigation = useNavigation<NativeStackProp>();
 
   return (
-    <>
-      <TouchableOpacity
-        onPress={() => navigation.navigate("Search")}
-        // onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-      >
-        <Icon name={"search"} type={"material"} raised />
-      </TouchableOpacity>
+    <View style={{flexDirection: "row", backgroundColor: "blue", flex: 1}}>
+      <Pressable
+        style={{width: 1, height: "100%", backgroundColor: "blue"}}
+        onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+        onFocus={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+        focusable={false}
+      />
       <DrawerNavigator />
-    </>
+    </View>
   );
 }

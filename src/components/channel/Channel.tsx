@@ -1,15 +1,15 @@
 import React, {useMemo, useState} from "react";
-import {Pressable, Text, TouchableOpacity, View} from "react-native";
+import {Text, TouchableOpacity, View} from "react-native";
 import {YT, YTNodes} from "../../utils/Youtube";
 import useChannelData, {
   ChannelContentTypes,
 } from "../../hooks/channel/useChannelData";
 import Logger from "../../utils/Logger";
-import {recursiveTypeLogger} from "../../utils/YTNodeLogger";
 import SectionList from "./SectionList";
 import {ButtonGroup, Button} from "@rneui/base";
 import HomeShelf from "../HomeShelf";
 import _ from "lodash";
+import {useAppStyle} from "../../context/AppStyleContext";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -19,6 +19,7 @@ interface Props {
 
 export default function Channel({channel}: Props) {
   const [selected, setSelected] = useState<ChannelContentTypes>("Home");
+  const {style} = useAppStyle();
   const buttons = useMemo(
     () =>
       _.compact([
@@ -45,7 +46,7 @@ export default function Channel({channel}: Props) {
             }
           : null,
       ]),
-    [],
+    [channel],
   );
 
   return (
@@ -56,6 +57,9 @@ export default function Channel({channel}: Props) {
         buttons={buttons}
         onPress={e => setSelected(buttons[e as number].key ?? "Home")}
         selectedButtonStyle={{backgroundColor: "lightblue"}}
+        buttonContainerStyle={{borderColor: "#555555"}}
+        containerStyle={{backgroundColor: "#333333"}}
+        buttonStyle={{backgroundColor: "#555555"}}
       />
       <View style={{flex: 1}}>
         {channel.has_home && selected === "Home" ? (

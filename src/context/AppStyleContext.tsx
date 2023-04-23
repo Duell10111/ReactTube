@@ -5,11 +5,15 @@ type StyleType = "dark" | "light";
 interface AppStyle {
   textColor: string;
   invertedTextColor: string;
+  backgroundColor: string;
+  backgroundColorAlpha: string;
 }
 
 const dark: AppStyle = {
   textColor: "white",
   invertedTextColor: "black",
+  backgroundColor: "black",
+  backgroundColorAlpha: "#111111cc",
 };
 
 interface AppStyleContext {

@@ -90,6 +90,16 @@ export default function VideoSegment({
         thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
       />
     );
+  } else if (element.is(YTNodes.Playlist)) {
+    return (
+      <PlaylistCard
+        style={style}
+        textStyle={textStyle}
+        playlistId={element.id}
+        title={element.title.text ?? ""}
+        thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+      />
+    );
   } else {
     LOGGER.debug("Unknown Video Segment Type: ", element.type);
   }

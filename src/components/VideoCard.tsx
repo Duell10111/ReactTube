@@ -12,6 +12,7 @@ import {useNavigation, useRoute} from "@react-navigation/native";
 import FastImage from "react-native-fast-image";
 import {useShelfVideoSelector} from "../context/ShelfVideoSelector";
 import {NativeStackProp, RootRouteProp} from "../navigation/types";
+import {useAppStyle} from "../context/AppStyleContext";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
@@ -28,6 +29,7 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
   const navigation = useNavigation<NativeStackProp>();
   const route = useRoute<RootRouteProp>();
   const {setSelectedVideo} = useShelfVideoSelector();
+  const {style: appStyle} = useAppStyle();
 
   return (
     <View style={[styles.viewContainer, style]}>
@@ -54,9 +56,17 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
         />
         <Text style={styles.timeStyle}>{data.duration}</Text>
       </VideoTouchable>
-      <Text style={[styles.titleStyle, textStyle]}>{data.title}</Text>
-      {data.author ? <Text style={textStyle}>{data.author}</Text> : null}
-      <Text style={[styles.viewsStyle, textStyle]}>{data.views}</Text>
+      <Text style={[styles.titleStyle, {color: appStyle.textColor}, textStyle]}>
+        {data.title}
+      </Text>
+      {data.author ? (
+        <Text style={[{color: appStyle.textColor}, textStyle]}>
+          {data.author}
+        </Text>
+      ) : null}
+      <Text style={[styles.viewsStyle, {color: appStyle.textColor}, textStyle]}>
+        {data.views}
+      </Text>
     </View>
   );
 }

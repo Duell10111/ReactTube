@@ -9,6 +9,7 @@ import Logger from "../utils/Logger";
 import {YTNodes} from "../utils/Youtube";
 import SectionList from "../components/channel/SectionList";
 import {recursiveTypeLogger} from "../utils/YTNodeLogger";
+import {useAppStyle} from "../context/AppStyleContext";
 
 const LOGGER = Logger.extend("PLAYLIST");
 
@@ -18,6 +19,8 @@ export default function PlaylistScreen({route}: Props) {
   const {playlistId} = route.params;
   const {playlist, data, fetchMore} = usePlaylistDetails(playlistId);
 
+  const {style} = useAppStyle();
+
   if (!playlist) {
     return <LoadingComponent />;
   }
@@ -26,8 +29,12 @@ export default function PlaylistScreen({route}: Props) {
 
   return (
     <View style={{margin: 20, flex: 1}}>
-      <Text style={{fontSize: 25}}>{playlist.info.title}</Text>
-      <Text style={{fontSize: 20}}>{playlist.info.last_updated}</Text>
+      <Text style={[{fontSize: 25, color: style.textColor}]}>
+        {playlist.info.title}
+      </Text>
+      <Text style={{fontSize: 20, color: style.textColor}}>
+        {playlist.info.last_updated}
+      </Text>
       {/*{playlist.page_contents.is(YTNodes.SectionList) ? (*/}
       {/*  <SectionList*/}
       {/*    node={playlist.page_contents}*/}

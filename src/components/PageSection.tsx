@@ -1,9 +1,9 @@
 import React from "react";
 import {YTNodes, Helpers} from "../utils/Youtube";
-import {StyleSheet, Text, View} from "react-native";
-import HorizontalVideoList from "./HorizontalVideoList";
+import {StyleSheet} from "react-native";
 import Logger from "../utils/Logger";
 import HomeShelf from "./HomeShelf";
+import PageSectionList from "./segments/PageSectionList";
 
 const LOGGER = Logger.extend("PAGE");
 
@@ -14,34 +14,28 @@ interface Props {
 export default function PageSection({node}: Props) {
   if (node.is(YTNodes.RichShelf)) {
     return (
-      <View>
-        <Text style={styles.textStyle}>{node.title.text}</Text>
-        <HorizontalVideoList nodes={node.contents} />
-      </View>
+      <PageSectionList headerText={node.title.text} content={node.contents} />
     );
   } else if (node.is(YTNodes.ReelShelf)) {
     return (
-      <View>
-        <Text style={styles.textStyle}>{node.title.text}</Text>
-        <HorizontalVideoList nodes={node.contents} />
-      </View>
+      <PageSectionList headerText={node.title.text} content={node.contents} />
     );
   } else if (node.is(YTNodes.Shelf) && node.content?.is(YTNodes.VerticalList)) {
     return (
-      <View>
-        <Text style={styles.textStyle}>{node.title.text}</Text>
-        <HorizontalVideoList nodes={node.content.contents} />
-      </View>
+      <PageSectionList
+        headerText={node.title.text}
+        content={node.content.contents}
+      />
     );
   } else if (
     node.is(YTNodes.Shelf) &&
     node.content?.is(YTNodes.HorizontalList)
   ) {
     return (
-      <View>
-        <Text style={styles.textStyle}>{node.title.text}</Text>
-        <HorizontalVideoList nodes={node.content.contents} />
-      </View>
+      <PageSectionList
+        headerText={node.title.text}
+        content={node.content.contents}
+      />
     );
   } else if (node.is(YTNodes.PlaylistVideoList)) {
     //TODO: Use Vertical List?

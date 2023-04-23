@@ -12,6 +12,8 @@ export function itemSectionExtractor(node: Helpers.YTNode): string {
     return node.title.text ?? "empty-title";
   } else if (node.is(YTNodes.ReelShelf)) {
     return node.title.text ?? "empty-title-reel";
+  } else if (node.is(YTNodes.RecognitionShelf)) {
+    return node.title.text ?? "empty-title-recognition-shelf";
   } else if (node.is(YTNodes.ChannelVideoPlayer)) {
     return node.id;
   } else if (node.is(YTNodes.PlaylistVideoList)) {

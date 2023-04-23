@@ -3,6 +3,7 @@ import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import FastImage from "react-native-fast-image";
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackProp} from "../navigation/types";
+import {useAppStyle} from "../context/AppStyleContext";
 
 interface Props {
   id: string;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function ChannelCard({id, channelName, imageUrl}: Props) {
+  const {style} = useAppStyle();
   const navigation = useNavigation<NativeStackProp>();
   return (
     <View style={styles.container}>
@@ -29,7 +31,9 @@ export default function ChannelCard({id, channelName, imageUrl}: Props) {
               "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
           }}
         />
-        <Text style={styles.text}>{channelName}</Text>
+        <Text style={[styles.text, {color: style.textColor}]}>
+          {channelName}
+        </Text>
       </TouchableOpacity>
     </View>
   );

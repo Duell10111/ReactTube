@@ -6,6 +6,7 @@ import SearchScreen from "../screens/SearchScreen";
 import HomeWrapperScreen from "../screens/HomeWrapperScreen";
 import ChannelScreen from "../screens/ChannelScreen";
 import PlaylistScreen from "../screens/PlaylistScreen";
+import SettingsScreen from "../screens/SettingsScreen";
 
 export type RootStackParamList = {
   Home: undefined;
@@ -13,6 +14,7 @@ export type RootStackParamList = {
   ChannelScreen: {channelId: string};
   PlaylistScreen: {playlistId: string};
   Search: undefined;
+  SettingsScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -29,6 +31,7 @@ export default function RootStackNavigator() {
       <Stack.Screen name={"ChannelScreen"} component={ChannelScreen} />
       <Stack.Screen name={"PlaylistScreen"} component={PlaylistScreen} />
       <Stack.Screen name={"Search"} component={SearchScreen} />
+      <Stack.Screen name={"SettingsScreen"} component={SettingsScreen} />
     </Stack.Navigator>
   );
 }

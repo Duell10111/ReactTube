@@ -50,7 +50,6 @@ export default function HomeShelf({shelfItem, onEndReached, style}: Props) {
           keyExtractor={keyExtractor}
           contentContainerStyle={{
             padding: 20,
-            backgroundColor: "lightblue",
           }}
           onEndReachedThreshold={0.7}
           onEndReached={onEndReached}

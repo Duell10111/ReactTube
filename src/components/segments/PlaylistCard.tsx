@@ -11,6 +11,7 @@ import {useNavigation, useRoute} from "@react-navigation/native";
 import {NativeStackProp, RootRouteProp} from "../../navigation/types";
 import VideoTouchable from "../general/VideoTouchable";
 import FastImage from "react-native-fast-image";
+import {useAppStyle} from "../../context/AppStyleContext";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
@@ -25,6 +26,7 @@ interface Props {
 export default function PlaylistCard({style, textStyle, ...data}: Props) {
   const navigation = useNavigation<NativeStackProp>();
   const route = useRoute<RootRouteProp>();
+  const {style: appStyle} = useAppStyle();
 
   return (
     <View style={[styles.viewContainer, style]}>
@@ -50,8 +52,14 @@ export default function PlaylistCard({style, textStyle, ...data}: Props) {
         />
         <Text style={styles.timeStyle}>{data.duration}</Text>
       </VideoTouchable>
-      <Text style={[styles.titleStyle, textStyle]}>{data.title}</Text>
-      {data.author ? <Text style={textStyle}>{data.author}</Text> : null}
+      <Text style={[styles.titleStyle, {color: appStyle.textColor}, textStyle]}>
+        {data.title}
+      </Text>
+      {data.author ? (
+        <Text style={[{color: appStyle.textColor}, textStyle]}>
+          {data.author}
+        </Text>
+      ) : null}
     </View>
   );
 }

@@ -20,6 +20,8 @@ export default function PageSegment({segment}: Props) {
     return <VideoSegment element={segment} />;
   } else if (segment.is(YTNodes.GridPlaylist)) {
     return <VideoSegment element={segment} />;
+  } else if (segment.is(YTNodes.Playlist)) {
+    return <VideoSegment element={segment} />;
   } else if (segment.is(YTNodes.Shelf)) {
     return <PageSection node={segment} />;
   } else if (segment.is(YTNodes.ReelShelf)) {
