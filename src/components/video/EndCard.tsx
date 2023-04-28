@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   },
   channelContainer: {
     backgroundColor: "#111111cc",
-    marginStart: 20,
+    paddingStart: 20,
   },
   text: {
     color: "white",

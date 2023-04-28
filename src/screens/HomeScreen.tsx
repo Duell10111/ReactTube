@@ -1,24 +1,21 @@
-import React, {useCallback} from "react";
-import {Button, FlatList, Text, TouchableOpacity, View} from "react-native";
+import React from "react";
 import useHomeScreen from "../hooks/useHomeScreen";
-import PageSegment from "../components/PageSegment";
-import {YTNodes, Helpers} from "../utils/Youtube";
 import HomeShelf from "../components/HomeShelf";
 import Logger from "../utils/Logger";
-import {useNavigation} from "@react-navigation/native";
-import {Icon} from "@rneui/base";
-import {NativeStackProp} from "../navigation/types";
+import LoadingComponent from "../components/general/LoadingComponent";
+import {useDrawerContext} from "../navigation/DrawerContext";
 
 const LOGGER = Logger.extend("HOME");
 
 export default function HomeScreen() {
-  const navigation = useNavigation<NativeStackProp>();
   const {content, fetchMore} = useHomeScreen();
 
-  // console.log("Content: ", JSON.stringify(content, null, 4));
+  const {onScreenFocused} = useDrawerContext();
+
   if (!content) {
-    return null;
+    return <LoadingComponent />;
   }
+
   return (
     <>
       <HomeShelf
@@ -27,14 +24,8 @@ export default function HomeScreen() {
           console.log("End reached");
           fetchMore().catch(console.warn);
         }}
+        onElementFocused={onScreenFocused}
       />
     </>
   );
-
-  // else {
-  //   LOGGER.warn("Unknown type: ", content.type);
-  //   LOGGER.debug("Type: ", typeof content);
-  //   // console.log("Unknown type detected: ", JSON.stringify(content, null, 4));
-  //   return null;
-  // }
 }

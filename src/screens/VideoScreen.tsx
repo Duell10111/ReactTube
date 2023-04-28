@@ -11,6 +11,8 @@ import {
 import useVideoDetails from "../hooks/useVideoDetails";
 import EndCard from "../components/video/EndCard";
 import LOGGER from "../utils/Logger";
+import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
+import {useAppData} from "../context/AppDataContext";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -35,6 +37,8 @@ export default function VideoScreen({route, navigation}: Props) {
     }
   });
 
+  const {appSettings} = useAppData();
+
   if (!Video) {
     return (
       <View
@@ -52,10 +56,18 @@ export default function VideoScreen({route, navigation}: Props) {
 
   return (
     <View style={[StyleSheet.absoluteFill]}>
-      <VideoComponent
-        url={selectedVideo ?? ""}
-        onEndReached={() => setShowEndCard(true)}
-      />
+      {appSettings.vlcEnabled ? (
+        <VideoPlayerVLC
+          videoInfo={Video}
+          url={selectedVideo ?? ""}
+          onEndReached={() => setShowEndCard(true)}
+        />
+      ) : (
+        <VideoComponent
+          url={selectedVideo ?? ""}
+          onEndReached={() => setShowEndCard(true)}
+        />
+      )}
       <EndCard
         video={Video}
         visible={showEndCard}

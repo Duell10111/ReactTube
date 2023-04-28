@@ -10,9 +10,15 @@ interface Props {
   style?: StyleProp<ViewStyle>;
   shelfItem: Helpers.YTNode[];
   onEndReached?: () => void;
+  onElementFocused?: () => void;
 }
 
-export default function HomeShelf({shelfItem, onEndReached, style}: Props) {
+export default function HomeShelf({
+  shelfItem,
+  onEndReached,
+  style,
+  onElementFocused,
+}: Props) {
   const sorted = useHomeShelf(shelfItem);
 
   const renderItem = useCallback(({item}: {item: (typeof sorted)[number]}) => {
@@ -41,7 +47,7 @@ export default function HomeShelf({shelfItem, onEndReached, style}: Props) {
   );
 
   return (
-    <ShelfVideoSelectorProvider>
+    <ShelfVideoSelectorProvider onElementFocused={onElementFocused}>
       <>
         <FlatList
           style={style}

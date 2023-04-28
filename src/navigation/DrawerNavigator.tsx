@@ -3,7 +3,6 @@ import {
   createDrawerNavigator,
   DrawerContentComponentProps,
   DrawerContentScrollView,
-  DrawerItem,
 } from "@react-navigation/drawer";
 import {
   CommonActions,
@@ -13,6 +12,7 @@ import {
 import {TouchableOpacity} from "react-native";
 import HomeScreen from "../screens/HomeScreen";
 import {Icon} from "@rneui/base";
+import DrawerItem from "./DrawerItem";
 
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
 
@@ -21,13 +21,29 @@ export type RootDrawerParamList = {
   SearchScreen: undefined;
 };
 
-export function DrawerNavigator() {
+interface Props {
+  showSelector?: () => void;
+  hideSelector?: () => void;
+}
+
+export function DrawerNavigator(props: Props) {
   return (
     <Drawer.Navigator
       screenOptions={{
         headerShown: false,
         swipeEnabled: false,
         drawerType: "slide",
+        overlayColor: "red",
+      }}
+      screenListeners={{
+        focus: event => {
+          console.log("Focus drawer: ", event);
+          props.showSelector?.();
+        },
+        blur: () => {
+          console.log("Blur drawer");
+          props.hideSelector?.();
+        },
       }}
       drawerContent={DrawerContent}>
       <Drawer.Screen
@@ -44,22 +60,13 @@ export function DrawerContent(props: DrawerContentComponentProps) {
     <DrawerContentScrollView
       {...props}
       contentContainerStyle={{paddingStart: 0}}>
-      <TouchableOpacity onPress={() => props.navigation.navigate("Search")}>
-        <DrawerItem
-          label={"Search"}
-          icon={() => <Icon name={"search"} />}
-          onPress={() => {}}
-        />
-      </TouchableOpacity>
+      <DrawerItem label={"Test"} onPress={() => {}} />
       <DrawerItemList {...props} />
-      <TouchableOpacity
-        onPress={() => props.navigation.navigate("SettingsScreen")}>
-        <DrawerItem
-          label={"Settings"}
-          icon={() => <Icon name={"settings"} />}
-          onPress={() => {}}
-        />
-      </TouchableOpacity>
+      <DrawerItem
+        label={"Settings"}
+        icon={() => <Icon name={"settings"} />}
+        onPress={() => props.navigation.navigate("SettingsScreen")}
+      />
     </DrawerContentScrollView>
   );
 }
@@ -112,30 +119,27 @@ export function DrawerItemList({
     } = descriptors[route.key].options;
 
     return (
-      <TouchableOpacity
+      <DrawerItem
         onPress={onPress}
         key={route.key}
-        hasTVPreferredFocus={focused}>
-        <DrawerItem
-          label={
-            drawerLabel !== undefined
-              ? drawerLabel
-              : title !== undefined
-              ? title
-              : route.name
-          }
-          icon={drawerIcon}
-          focused={focused}
-          activeTintColor={drawerActiveTintColor}
-          inactiveTintColor={drawerInactiveTintColor}
-          activeBackgroundColor={drawerActiveBackgroundColor}
-          inactiveBackgroundColor={drawerInactiveBackgroundColor}
-          allowFontScaling={drawerAllowFontScaling}
-          labelStyle={drawerLabelStyle}
-          style={drawerItemStyle}
-          to={buildLink(route.name, route.params)}
-        />
-      </TouchableOpacity>
+        label={
+          drawerLabel !== undefined
+            ? drawerLabel
+            : title !== undefined
+            ? title
+            : route.name
+        }
+        icon={drawerIcon}
+        focused={focused}
+        activeTintColor={drawerActiveTintColor}
+        inactiveTintColor={drawerInactiveTintColor}
+        activeBackgroundColor={drawerActiveBackgroundColor}
+        inactiveBackgroundColor={drawerInactiveBackgroundColor}
+        allowFontScaling={drawerAllowFontScaling}
+        labelStyle={drawerLabelStyle}
+        style={drawerItemStyle}
+        to={buildLink(route.name, route.params)}
+      />
     );
   }) as React.ReactNode as React.ReactElement;
 }

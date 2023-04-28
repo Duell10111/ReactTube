@@ -1,12 +1,6 @@
 import React, {useCallback, useState} from "react";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
-import {
-  Pressable,
-  StyleProp,
-  useTVEventHandler,
-  View,
-  ViewStyle,
-} from "react-native";
+import {Pressable, StyleProp, View, ViewStyle} from "react-native";
 import {runOnJS} from "react-native-reanimated";
 
 // TODO: Long Press not working always
@@ -15,12 +9,14 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   onLongPress?: () => void;
   onPress?: () => void;
+  onFocus?: () => void;
   children: React.ReactNode;
 };
 
 export default function VideoTouchable({
   onLongPress,
   onPress,
+  onFocus,
   children,
   style,
 }: Props) {
@@ -49,7 +45,10 @@ export default function VideoTouchable({
           onPress && onPress();
         }}
         onLongPress={() => console.log("LongPress")}
-        onFocus={() => setFocus(true)}
+        onFocus={() => {
+          setFocus(true);
+          onFocus?.();
+        }}
         onBlur={() => setFocus(false)}
         onPressIn={() => console.log("PressIn")}
         onPressOut={() => console.log("PressOut")}

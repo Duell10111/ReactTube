@@ -28,7 +28,7 @@ interface Props {
 export default function VideoCard({style, textStyle, ...data}: Props) {
   const navigation = useNavigation<NativeStackProp>();
   const route = useRoute<RootRouteProp>();
-  const {setSelectedVideo} = useShelfVideoSelector();
+  const {setSelectedVideo, onElementFocused} = useShelfVideoSelector();
   const {style: appStyle} = useAppStyle();
 
   return (
@@ -43,6 +43,7 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
             navigation.navigate("VideoScreen", {videoId: data.videoId});
           }
         }}
+        onFocus={onElementFocused}
         onLongPress={() => {
           setSelectedVideo(data.videoId);
         }}>

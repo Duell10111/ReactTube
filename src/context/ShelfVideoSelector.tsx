@@ -7,6 +7,7 @@ interface ShelfVideo {
 
 interface ShelfVideoContext extends ShelfVideo {
   setSelectedVideo: (video?: string) => void;
+  onElementFocused?: () => void;
 }
 
 const defaultValue: ShelfVideoContext = {
@@ -17,9 +18,13 @@ const ShelfVideoContext = createContext<ShelfVideoContext>(defaultValue);
 
 interface Props {
   children: React.ReactNode;
+  onElementFocused?: () => void;
 }
 
-export default function ShelfVideoSelectorProvider({children}: Props) {
+export default function ShelfVideoSelectorProvider({
+  children,
+  onElementFocused,
+}: Props) {
   const [shelfData, setShelfData] = useState<ShelfVideo>({});
 
   const value: ShelfVideoContext = {
@@ -29,6 +34,7 @@ export default function ShelfVideoSelectorProvider({children}: Props) {
         selectedVideo: video,
       });
     },
+    onElementFocused,
   };
 
   return <ShelfVideoContext.Provider value={value} children={children} />;
