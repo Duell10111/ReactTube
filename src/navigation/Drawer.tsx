@@ -64,9 +64,19 @@ export default function Drawer({open, onOpen, onClose}: Props) {
         onPress={() => navigation.navigate("Search")}
       />
       <DrawerItem
-        title={"Search"}
+        title={"Login"}
         onFocus={() => onOpen()}
-        onPress={() => navigation.navigate("Search")}
+        onPress={() => navigation.navigate("LoginScreen")}
+      />
+      <DrawerItem
+        title={"Subscriptions"}
+        onFocus={() => onOpen()}
+        onPress={() => navigation.navigate("SubscriptionScreen")}
+      />
+      <DrawerItem
+        title={"History"}
+        onFocus={() => onOpen()}
+        onPress={() => navigation.navigate("HistoryScreen")}
       />
       <DrawerItem
         bottom

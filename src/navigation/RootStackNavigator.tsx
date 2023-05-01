@@ -7,6 +7,9 @@ import HomeWrapperScreen from "../screens/HomeWrapperScreen";
 import ChannelScreen from "../screens/ChannelScreen";
 import PlaylistScreen from "../screens/PlaylistScreen";
 import SettingsScreen from "../screens/SettingsScreen";
+import LoginScreen from "../screens/LoginScreen";
+import SubscriptionScreen from "../screens/SubscriptionScreen";
+import HistoryScreen from "../screens/HistoryScreen";
 
 export type RootStackParamList = {
   Home: undefined;
@@ -14,7 +17,10 @@ export type RootStackParamList = {
   ChannelScreen: {channelId: string};
   PlaylistScreen: {playlistId: string};
   Search: undefined;
+  SubscriptionScreen: undefined;
+  HistoryScreen: undefined;
   SettingsScreen: undefined;
+  LoginScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -31,7 +37,13 @@ export default function RootStackNavigator() {
       <Stack.Screen name={"ChannelScreen"} component={ChannelScreen} />
       <Stack.Screen name={"PlaylistScreen"} component={PlaylistScreen} />
       <Stack.Screen name={"Search"} component={SearchScreen} />
+      <Stack.Screen
+        name={"SubscriptionScreen"}
+        component={SubscriptionScreen}
+      />
+      <Stack.Screen name={"HistoryScreen"} component={HistoryScreen} />
       <Stack.Screen name={"SettingsScreen"} component={SettingsScreen} />
+      <Stack.Screen name={"LoginScreen"} component={LoginScreen} />
     </Stack.Navigator>
   );
 }

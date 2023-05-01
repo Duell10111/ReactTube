@@ -23,6 +23,8 @@ interface Props {
   duration?: string;
   thumbnailURL?: string;
   author?: string;
+  date?: string;
+  disabled?: boolean;
 }
 
 export default function VideoCard({style, textStyle, ...data}: Props) {
@@ -37,6 +39,9 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
         // onFocus={() => console.log("Focus")}
         style={styles.segmentContainer}
         onPress={() => {
+          if (data.disabled) {
+            return;
+          }
           if (route.name === "VideoScreen") {
             navigation.replace("VideoScreen", {videoId: data.videoId});
           } else {
@@ -68,6 +73,11 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
       <Text style={[styles.viewsStyle, {color: appStyle.textColor}, textStyle]}>
         {data.views}
       </Text>
+      {data.date ? (
+        <Text style={[{color: appStyle.textColor}, textStyle]}>
+          {data.date}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -86,7 +96,7 @@ const styles = StyleSheet.create({
   imageStyle: {
     width: "100%",
     height: "100%",
-    backgroundColor: "blue",
+    backgroundColor: "grey", // TODO: REMOVE?
   },
   titleStyle: {
     fontSize: 25,
@@ -99,6 +109,7 @@ const styles = StyleSheet.create({
     bottom: 10,
     color: "white",
     backgroundColor: "black",
-    padding: 1,
+    padding: 5,
+    fontSize: 20,
   },
 });

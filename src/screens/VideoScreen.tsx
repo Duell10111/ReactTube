@@ -61,6 +61,7 @@ export default function VideoScreen({route, navigation}: Props) {
           videoInfo={Video}
           url={selectedVideo ?? ""}
           onEndReached={() => setShowEndCard(true)}
+          disableControls={showEndCard}
         />
       ) : (
         <VideoComponent

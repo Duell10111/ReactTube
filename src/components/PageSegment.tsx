@@ -8,9 +8,9 @@ interface Props {
 }
 
 export default function PageSegment({segment}: Props) {
-  if (segment.is(YTNodes.RichItem)) {
+  if (segment.is(YTNodes.RichItem) && segment.content) {
     return <VideoSegment element={segment.content} />;
-  } else if (segment.is(YTNodes.RichSection)) {
+  } else if (segment.is(YTNodes.RichSection) && segment.content) {
     return <PageSection node={segment.content} />;
   } else if (segment.is(YTNodes.Video)) {
     return <VideoSegment element={segment} />;

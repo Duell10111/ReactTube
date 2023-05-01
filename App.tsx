@@ -18,6 +18,7 @@ import YoutubeContextProvider from "./src/context/YoutubeContext";
 import AppStyleProvider from "./src/context/AppStyleContext";
 import BackgroundWrapper from "./src/utils/BackgroundWrapper";
 import AppDataContextProvider from "./src/context/AppDataContext";
+import AccountContextProvider from "./src/context/AccountContext";
 
 // Polyfill for youtube.js
 Object.assign(global, {
@@ -32,8 +33,12 @@ const App = () => {
     <AppStyleProvider>
       <AppDataContextProvider>
         <YoutubeContextProvider>
-          <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-          <Navigation />
+          <AccountContextProvider>
+            <StatusBar
+              barStyle={isDarkMode ? "light-content" : "dark-content"}
+            />
+            <Navigation />
+          </AccountContextProvider>
         </YoutubeContextProvider>
       </AppDataContextProvider>
     </AppStyleProvider>

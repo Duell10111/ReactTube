@@ -3,7 +3,7 @@ import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import {Pressable, StyleProp, View, ViewStyle} from "react-native";
 import {runOnJS} from "react-native-reanimated";
 
-// TODO: Long Press not working always
+// TODO: Long Press not working always maybe use TVEvent instead?
 
 type Props = {
   style?: StyleProp<ViewStyle>;
@@ -25,7 +25,6 @@ export default function VideoTouchable({
   const longPress = useCallback(() => onLongPress?.(), [onLongPress]);
 
   const tap = Gesture.LongPress().onStart(() => {
-    console.log("tap");
     runOnJS(longPress)();
   });
 

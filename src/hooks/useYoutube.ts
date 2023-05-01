@@ -16,8 +16,23 @@ export default function useYoutube() {
     //   });
     // }
 
-    Innertube.create({}).then(setYoutube).catch(console.warn);
+    Innertube.create({
+      lang: "de",
+    })
+      .then(setYoutube)
+      .catch(console.warn);
   }, []);
+
+  // useEffect(() => {
+  //   // TODO: Check if visitorData is wanted
+  //   if (youtube && true) {
+  //     youtube.actions
+  //       .execute("/visitor_id?key=AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8")
+  //       .then(response => {
+  //         console.log("VisitorData: ", JSON.stringify(response.data));
+  //       });
+  //   }
+  // }, [youtube]);
 
   return youtube;
 }

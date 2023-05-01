@@ -6,12 +6,13 @@ import _ from "lodash";
 const firstRows = 2;
 
 const videoItems = ["RichItem", "Video"];
-const sectionItems = ["RichSection", "Shelf", "ReelShelf"];
+const sectionItems = ["RichSection", "Shelf", "ReelShelf", "ItemSection"];
 
 function gridCalculator(content: Helpers.YTNode[], columns: number) {
   const groups = _.groupBy(content, node => node.type);
 
   const types = Object.keys(groups);
+  console.log("Types: ", types);
 
   const sectionsAvailable = _.intersection(types, sectionItems);
 

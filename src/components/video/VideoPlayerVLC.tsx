@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ViewStyle,
 } from "react-native";
-import {VLCPlayer} from "react-native-vlc-media-player";
 import Logger from "../../utils/Logger";
 import {YT} from "../../utils/Youtube";
 import useYoutubeDash from "../../hooks/video/useYoutubeDash";
@@ -18,15 +17,15 @@ interface Props {
   url: string;
   style?: StyleProp<ViewStyle>;
   onEndReached?: () => void;
+  disableControls?: boolean;
 }
 
 export default function VideoPlayerVLC({
-  url,
   style,
   videoInfo,
   ...callbacks
 }: Props) {
-  const {dashUrl} = useYoutubeDash(videoInfo);
+  const {dashUrl, videoQuality, audioQuality} = useYoutubeDash(videoInfo);
 
   LOGGER.debug("Dash URL: ", dashUrl);
 
@@ -41,7 +40,7 @@ export default function VideoPlayerVLC({
             // type: "m3u8",
             // uri: "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
             // type: "mpd",
-            uri: url,
+            uri: dashUrl,
           }}
           style={[
             style ?? {
@@ -54,6 +53,10 @@ export default function VideoPlayerVLC({
             LOGGER.debug("End reached");
             callbacks.onEndReached?.();
           }}
+          disableControls={callbacks.disableControls}
+          repeat={false}
+          quality={[videoQuality, audioQuality]}
+          videoInfo={videoInfo}
         />
       ) : null}
     </>

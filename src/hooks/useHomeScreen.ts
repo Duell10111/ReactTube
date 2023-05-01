@@ -13,6 +13,8 @@ export default function useHomeScreen() {
   const [homePage, setHomePage] = useState<YT.HomeFeed>();
   const [content, setContent] = useState<Helpers.YTNode[]>([]);
 
+  console.log("MEMO: ", homePage?.memo.size);
+
   useEffect(() => {
     if (youtube) {
       youtube
@@ -37,6 +39,31 @@ export default function useHomeScreen() {
     }
   }, [youtube]);
 
+  useEffect(() => {
+    if (youtube?.session.logged_in) {
+      // Refetch once
+      youtube
+        .getHomeFeed()
+        .then(value => {
+          LOGGER.debug("Fetched HomeFeed");
+          // console.log("Value: ", JSON.stringify(value, null, 2));
+          setHomePage(value);
+          if (value.contents.is(YTNodes.RichGrid)) {
+            setContent(value.contents.contents);
+          }
+          console.log("Page Content: ", value.page_contents.type);
+          console.log(
+            "Page Content Size:",
+            value.page_contents.as(YTNodes.RichGrid).contents.length,
+          );
+        })
+        .catch(reason => {
+          // console.log(JSON.stringify(reason));
+          console.warn(reason);
+        });
+    }
+  }, [youtube?.session.logged_in]);
+
   const fetchMore = useCallback(async () => {
     if (!homePage) {
       throw new Error("No Homepage available!");
@@ -49,7 +76,6 @@ export default function useHomeScreen() {
     if (homePage.contents.type === "appendContinuationItemsAction") {
       LOGGER.debug("Append Item Fetched");
       if (nextContent.contents.contents) {
-        console.log("Contents");
         const newValues = _.concat(content, nextContent.contents.contents);
         setContent(newValues);
       } else {
@@ -60,14 +86,6 @@ export default function useHomeScreen() {
     }
     setHomePage(nextContent);
   }, [homePage, content]);
-
-  // useEffect(() => {
-  //   if (homePage? && homePage?.segments.length < minElements) {
-  //     fetchMore().catch(console.warn);
-  //   }
-  // }, [homePage, fetchMore]);
-
-  // console.log(JSON.stringify(homePage?.contents, null, 4));
 
   console.log(content.length);
 

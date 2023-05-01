@@ -1,9 +1,9 @@
 import React from "react";
 import {YTNodes, Helpers} from "../utils/Youtube";
-import {StyleSheet} from "react-native";
 import Logger from "../utils/Logger";
 import HomeShelf from "./HomeShelf";
 import PageSectionList from "./segments/PageSectionList";
+import PageSegment from "./PageSegment";
 
 const LOGGER = Logger.extend("PAGE");
 
@@ -37,19 +37,22 @@ export default function PageSection({node}: Props) {
         content={node.content.contents}
       />
     );
+  } else if (node.is(YTNodes.Shelf) && node.content?.is(YTNodes.Grid)) {
+    // TODO: Fix for Subscription Screen
+    return (
+      <PageSectionList
+        headerText={node.title.text}
+        content={node.content.contents}
+      />
+    );
   } else if (node.is(YTNodes.PlaylistVideoList)) {
     //TODO: Use Vertical List?
-    return (
-      <HomeShelf shelfItem={node.videos.array()} onEndReached={() => {}} />
-    );
+    return <HomeShelf shelfItem={node.videos} onEndReached={() => {}} />;
+  } else if (node.is(YTNodes.Video)) {
+    //TODO: Use Vertical List?
+    return <PageSegment segment={node} />;
   } else {
     LOGGER.info("Unknown PageSection type: ", node.type);
   }
   return null;
 }
-
-const styles = StyleSheet.create({
-  textStyle: {
-    fontSize: 25,
-  },
-});

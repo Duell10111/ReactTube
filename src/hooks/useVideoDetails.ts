@@ -18,7 +18,6 @@ export default function useVideoDetails(videoId: string) {
       return undefined;
     }
     // TODO: Add fallback if no matching format found
-    // Video?.toDash().then(LOGGER.debug, LOGGER.warn);
     try {
       let format = Video?.chooseFormat({
         type: "video+audio",

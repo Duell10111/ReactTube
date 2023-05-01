@@ -7,6 +7,7 @@ import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
 import DOMParser from "youtubei.js/dist/src/platform/polyfills/server-dom.js";
 import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
 import evaluate from "./jinterMetro";
+import uuid from "react-native-uuid";
 
 import RNFS from "react-native-fs";
 
@@ -109,7 +110,7 @@ Platform.load({
     return crypto.createHash("sha1").update(data).digest("hex");
   },
   uuidv4() {
-    return crypto.randomUUID();
+    return uuid.v4().toString();
   },
   serializeDOM(document) {
     return document.toString();

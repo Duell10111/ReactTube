@@ -1,6 +1,6 @@
 import React from "react";
 import {Helpers, YTNodes} from "../utils/Youtube";
-import {StyleProp, StyleSheet, TextStyle, ViewStyle} from "react-native";
+import {StyleProp, TextStyle, ViewStyle} from "react-native";
 import Logger from "../utils/Logger";
 import VideoCard from "./VideoCard";
 import PlaylistCard from "./segments/PlaylistCard";
@@ -32,6 +32,7 @@ export default function VideoSegment({
         duration={element.duration.text ?? ""}
         author={element.author.name}
         thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+        date={element.published.text}
       />
     );
   } else if (element.is(YTNodes.GridVideo)) {
@@ -44,6 +45,21 @@ export default function VideoSegment({
         views={element.views.text ?? ""}
         duration={element.duration?.text}
         thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+        date={element.published.text}
+      />
+    );
+  } else if (element.is(YTNodes.Movie)) {
+    // TODO: Currently not supported
+    return (
+      <VideoCard
+        style={style}
+        textStyle={textStyle}
+        videoId={element.id}
+        title={element.title.text ?? ""}
+        views={""}
+        duration={element.duration?.text}
+        thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+        disabled={true}
       />
     );
   } else if (element.is(YTNodes.CompactVideo)) {
@@ -56,6 +72,7 @@ export default function VideoSegment({
         views={element.view_count.text ?? ""}
         duration={element.duration.text}
         thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+        date={element.published.text}
       />
     );
   } else if (element.is(YTNodes.ReelItem)) {
@@ -77,6 +94,18 @@ export default function VideoSegment({
         videoId={element.id}
         title={element.title.text ?? ""}
         views={""}
+        thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
+      />
+    );
+  } else if (element.is(YTNodes.Mix)) {
+    // TODO: Support Mixes?
+    return (
+      <VideoCard
+        style={style}
+        textStyle={textStyle}
+        videoId={element.id}
+        title={element.title.text ?? ""}
+        views={"MIX"}
         thumbnailURL={element.thumbnails[0]?.url?.split("?")?.[0]}
       />
     );

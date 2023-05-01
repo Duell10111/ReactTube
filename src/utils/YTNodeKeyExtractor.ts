@@ -37,6 +37,8 @@ export function keyExtractorItems(itemNode: Helpers.YTNode): string {
     return itemNode.id;
   } else if (itemNode.is(YTNodes.PlaylistVideo)) {
     return itemNode.id;
+  } else if (itemNode.is(YTNodes.Movie)) {
+    return itemNode.id;
   } else if (itemNode.type === "CompactMovie") {
     // Currently unknown type?
     // @ts-ignore
