@@ -3,16 +3,26 @@ import {YT} from "../../utils/Youtube";
 import {Modal, StyleSheet, Text, View} from "react-native";
 import HorizontalVideoList from "../HorizontalVideoList";
 import ChannelIcon from "./ChannelIcon";
+import NextVideo from "./endcard/NextVideo";
+import {useNavigation} from "@react-navigation/native";
+import {NativeStackProp} from "../../navigation/types";
 
 interface Props {
   video: YT.VideoInfo;
   visible: boolean;
   onCloseRequest: () => void;
+  endCard?: boolean;
 }
 
 // TODO: Add autoplay for next video
 
-export default function EndCard({visible, onCloseRequest, video}: Props) {
+export default function EndCard({
+  visible,
+  onCloseRequest,
+  video,
+  endCard,
+}: Props) {
+  const navigation = useNavigation<NativeStackProp>();
   if (!video.watch_next_feed) {
     // TODO: Add warning or debug message
     return null;
@@ -26,7 +36,14 @@ export default function EndCard({visible, onCloseRequest, video}: Props) {
       transparent>
       <View style={styles.touchContainer}>
         <View style={styles.nextVideoContainer}>
-          <Text style={styles.text}>Nächstes Video</Text>
+          {endCard ? (
+            <NextVideo
+              nextVideos={video.watch_next_feed}
+              onPress={videoId => {
+                navigation.replace("VideoScreen", {videoId: videoId});
+              }}
+            />
+          ) : null}
         </View>
         <View style={styles.channelContainer}>
           <ChannelIcon channelId={video.basic_info.channel?.id ?? ""} />

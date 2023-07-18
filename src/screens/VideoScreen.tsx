@@ -23,6 +23,8 @@ export default function VideoScreen({route, navigation}: Props) {
   const {videoId} = route.params;
   const {Video, selectedVideo} = useVideoDetails(videoId);
   const [showEndCard, setShowEndCard] = useState(false);
+  // TODO: Workaround maybe replace with two components
+  const [ended, setEnded] = useState(false);
 
   useEffect(() => {
     return navigation.addListener("blur", () => {
@@ -33,6 +35,7 @@ export default function VideoScreen({route, navigation}: Props) {
   useTVEventHandler(event => {
     LOGGER.debug("TV Event: ", event.eventType);
     if (event.eventType === "longDown" || event.eventType === "longSelect") {
+      setEnded(false);
       setShowEndCard(true);
     }
   });
@@ -60,13 +63,19 @@ export default function VideoScreen({route, navigation}: Props) {
         <VideoPlayerVLC
           videoInfo={Video}
           url={selectedVideo ?? ""}
-          onEndReached={() => setShowEndCard(true)}
+          onEndReached={() => {
+            setEnded(true);
+            setShowEndCard(true);
+          }}
           disableControls={showEndCard}
         />
       ) : (
         <VideoComponent
           url={selectedVideo ?? ""}
-          onEndReached={() => setShowEndCard(true)}
+          onEndReached={() => {
+            setEnded(true);
+            setShowEndCard(true);
+          }}
         />
       )}
       <EndCard
@@ -76,6 +85,7 @@ export default function VideoScreen({route, navigation}: Props) {
           console.log("Back pressed");
           setShowEndCard(false);
         }}
+        endCard={ended}
       />
     </View>
   );

@@ -42,7 +42,7 @@
     "react-native-vlc-media-player": "^1.0.52",
     "stream-browserify": "^3.0.0",
     "web-streams-polyfill": "^3.2.1",
-    "youtubei.js": "^5.4.0"
+    "youtubei.js": "^5.5.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9",
