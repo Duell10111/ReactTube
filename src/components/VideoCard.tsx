@@ -13,6 +13,9 @@ import FastImage from "react-native-fast-image";
 import {useShelfVideoSelector} from "../context/ShelfVideoSelector";
 import {NativeStackProp, RootRouteProp} from "../navigation/types";
 import {useAppStyle} from "../context/AppStyleContext";
+import Logger from "../utils/Logger";
+
+const LOGGER = Logger.extend("VIDEOCARD");
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
@@ -42,7 +45,10 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
           if (data.disabled) {
             return;
           }
+          LOGGER.debug("State: ", navigation.getState());
+          LOGGER.debug("Route name: ", route.name);
           if (route.name === "VideoScreen") {
+            console.log("Replacing Video Screen");
             navigation.replace("VideoScreen", {videoId: data.videoId});
           } else {
             navigation.navigate("VideoScreen", {videoId: data.videoId});

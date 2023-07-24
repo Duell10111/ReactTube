@@ -1,7 +1,7 @@
 import React from "react";
 import {Text, View} from "react-native";
-import HomeShelf from "../components/HomeShelf";
 import useHistory from "../hooks/useHistory";
+import GridView from "../components/GridView";
 
 export default function HistoryScreen() {
   const {content, fetchMore} = useHistory();
@@ -9,7 +9,7 @@ export default function HistoryScreen() {
   return (
     <View>
       <Text>History</Text>
-      <HomeShelf
+      <GridView
         shelfItem={content}
         onEndReached={() => fetchMore().catch(console.warn)}
       />

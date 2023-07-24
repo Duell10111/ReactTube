@@ -2,9 +2,11 @@ import React, {useCallback} from "react";
 import {Helpers} from "../utils/Youtube";
 import {FlatList, StyleProp, View, ViewStyle} from "react-native";
 import PageSegment from "./PageSegment";
-import useHomeShelf from "../hooks/home/useHomeShelf";
 import ShelfVideoSelectorProvider from "../context/ShelfVideoSelector";
 import VideoMenu from "./general/VideoMenu";
+import useGrid from "../hooks/home/useGrid";
+import PageSectionList from "./segments/PageSectionList";
+import VideoSegment from "./VideoSegment";
 
 interface Props {
   style?: StyleProp<ViewStyle>;
@@ -13,13 +15,13 @@ interface Props {
   onElementFocused?: () => void;
 }
 
-export default function HomeShelf({
+export default function GridView({
   shelfItem,
   onEndReached,
   style,
   onElementFocused,
 }: Props) {
-  const sorted = useHomeShelf(shelfItem);
+  const sorted = useGrid(shelfItem);
 
   const renderItem = useCallback(({item}: {item: (typeof sorted)[number]}) => {
     if (Array.isArray(item)) {
@@ -31,18 +33,18 @@ export default function HomeShelf({
             alignItems: "center",
           }}>
           {item.map((v, index) => (
-            <PageSegment key={`${v.type}-${index}`} segment={v} />
+            <VideoSegment key={`${v.id}-${index}`} element={v.originalNode} />
           ))}
         </View>
       );
     }
-    return <PageSegment segment={item} />;
+    return <PageSectionList headerText={item.title} content={item.data} />;
   }, []);
   const keyExtractor = useCallback(
     (item: (typeof sorted)[number], index: number) =>
       Array.isArray(item)
-        ? `homeFeed-${item.map(v => v.type).join("#")}-${index}`
-        : `homeFeed-${item.type}-${index}`,
+        ? `homeFeed-${item.map(v => v.id).join("#")}-${index}`
+        : `homeFeed-${item.id}-${index}`,
     [],
   );
 

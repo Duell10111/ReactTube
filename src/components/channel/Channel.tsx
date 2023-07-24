@@ -10,6 +10,7 @@ import {ButtonGroup, Button} from "@rneui/base";
 import HomeShelf from "../HomeShelf";
 import _ from "lodash";
 import {useAppStyle} from "../../context/AppStyleContext";
+import GridView from "../GridView";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -92,7 +93,7 @@ function ChannelRow({channel, type}: RowProps) {
   if (data?.page_contents && data.page_contents.is(YTNodes.SectionList)) {
     return <SectionList node={data?.page_contents} />;
   } else if (Array.isArray(nodes)) {
-    return <HomeShelf shelfItem={nodes} onEndReached={() => fetchMore()} />;
+    return <GridView shelfItem={nodes} onEndReached={() => fetchMore()} />;
   } else {
     LOGGER.warn("Unsupported Channel Type: ", data?.page_contents);
   }

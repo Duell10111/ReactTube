@@ -65,14 +65,14 @@ export default function useHomeShelf(content: Helpers.YTNode[]) {
     return gridCalculator(content, column);
   }, [content, width]);
 
-  console.log(list.map(v => listPrint(v)));
+  // console.log(list.map(v => listPrint(v)));
 
   return list;
 }
 
-function listPrint(v) {
+function listPrint(v: any): any {
   if (Array.isArray(v)) {
-    return v.map(v => listPrint(v));
+    return v.map((v2: any) => listPrint(v2));
   }
   return v.type;
 }

@@ -40,7 +40,7 @@ export default function VideoPlayerVLC({
             // type: "m3u8",
             // uri: "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
             // type: "mpd",
-            uri: dashUrl,
+            uri: callbacks.url,
           }}
           style={[
             style ?? {

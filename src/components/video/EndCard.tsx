@@ -45,8 +45,21 @@ export default function EndCard({
             />
           ) : null}
         </View>
-        <View style={styles.channelContainer}>
-          <ChannelIcon channelId={video.basic_info.channel?.id ?? ""} />
+        <View style={styles.videoInfoContainer}>
+          <View style={styles.channelContainer}>
+            <ChannelIcon channelId={video.basic_info.channel?.id ?? ""} />
+            <Text style={[styles.text, styles.channelText]}>
+              {video.basic_info.channel?.name ?? ""}
+            </Text>
+          </View>
+          <View style={styles.videoContainer}>
+            <Text style={[styles.text, styles.videoTitle]}>
+              {video.basic_info.title}
+            </Text>
+            <Text style={[styles.text, styles.viewsText]}>
+              {`${video.basic_info.view_count} Views`}
+            </Text>
+          </View>
         </View>
         <View style={styles.bottomContainer}>
           <Text style={styles.bottomText}>Related Videos</Text>
@@ -66,9 +79,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end",
   },
-  channelContainer: {
+  videoInfoContainer: {
     backgroundColor: "#111111cc",
     paddingStart: 20,
+    flexDirection: "row",
+  },
+  channelContainer: {
+    alignItems: "center",
+  },
+  channelText: {
+    fontSize: 17,
+  },
+  videoContainer: {
+    marginStart: 10,
+    justifyContent: "center",
+  },
+  videoTitle: {
+    fontSize: 25,
+  },
+  viewsText: {
+    alignSelf: "flex-start",
   },
   text: {
     color: "white",
