@@ -7,6 +7,7 @@ import {
   ViewStyle,
 } from "react-native";
 import Logger from "../utils/Logger";
+import {useIsFocused} from "@react-navigation/native";
 
 const LOGGER = Logger.extend("VIDEO");
 
@@ -18,6 +19,7 @@ interface Props {
 
 export default function VideoComponent({url, style, ...callbacks}: Props) {
   // const player = useRef<Video>();
+  const isFocused = useIsFocused();
 
   return (
     <>
@@ -39,7 +41,7 @@ export default function VideoComponent({url, style, ...callbacks}: Props) {
           StyleSheet.absoluteFillObject,
         ]}
         controls
-        // paused
+        paused={!isFocused}
         fullscreen
         resizeMode={"contain"}
         onLoad={(data: any) =>

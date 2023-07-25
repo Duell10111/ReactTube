@@ -1,20 +1,10 @@
-import {DrawerNavigator} from "../navigation/DrawerNavigator";
-import {
-  Pressable,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
-import {Icon} from "@rneui/base";
-import React, {useEffect, useRef, useState} from "react";
-import {DrawerActions, useNavigation} from "@react-navigation/native";
-import {NativeStackProp} from "../navigation/types";
+import {View} from "react-native";
+import React, {useState} from "react";
 import Drawer from "../navigation/Drawer";
 import DrawerContextProvider from "../navigation/DrawerContext";
 import DrawerStackNavigator from "../navigation/DrawerStackNavigator";
 
 export default function HomeWrapperScreen() {
-  const navigation = useNavigation<NativeStackProp>();
   const [open, setOpen] = useState(false);
 
   return (

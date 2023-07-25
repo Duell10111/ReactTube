@@ -7,12 +7,16 @@ export interface Thumbnail {
   width: number;
 }
 
+// TODO: Split from ElementData in VideoData or PlaylistData
+
+export type ElementData = VideoData | PlaylistData;
+
 export interface VideoData {
   originalNode: Helpers.YTNode;
+  type: "video" | "reel";
   id: string;
   thumbnailImage: Thumbnail;
   title: string;
-  type: "video" | "reel";
   short_views: string;
   author?: Author;
   quality?: string;
@@ -22,6 +26,15 @@ export interface Author {
   id: string;
   name: string;
   thumbnail: Thumbnail;
+}
+
+export interface PlaylistData {
+  originalNode: Helpers.YTNode;
+  type: "playlist";
+  id: string;
+  title: string;
+  author?: Author;
+  videos?: string[];
 }
 
 const LOGGER = Logger.extend("EXTRACTION");
@@ -37,10 +50,11 @@ export function getVideoDataOfFirstElement(
 
 // Exclude not supported formats? e.x. CompactMovies
 
+// TODO: Rename to ElementData
+
 export function getVideoData(ytNode: Helpers.YTNode) {
   // TODO: Maybe split
   if (ytNode.is(YTNodes.Video, YTNodes.CompactVideo)) {
-    ytNode.author;
     return {
       id: ytNode.id,
       title: ytNode.title.toString(),
@@ -59,6 +73,14 @@ export function getVideoData(ytNode: Helpers.YTNode) {
       type: "reel",
       originalNode: ytNode,
     } as VideoData;
+  } else if (ytNode.is(YTNodes.GridPlaylist)) {
+    return {
+      type: "playlist",
+      id: ytNode.id,
+      title: ytNode.title.toString(),
+      author: ytNode.author ? getAuthor(ytNode.author) : undefined,
+      originalNode: ytNode,
+    } as PlaylistData;
   } else {
     LOGGER.warn("getVideoData: Unknown type: ", ytNode.type);
   }

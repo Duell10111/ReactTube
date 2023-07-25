@@ -20,6 +20,8 @@ This project uses the [Youtube.js](https://github.com/LuanRT/YouTube.js) library
 | Youtube Login via QR Code                       | ✅         |
 | History Page                                    | ✅         |
 | Subscription Page                               | ⏳ WIP     |
+| Social Interactions (Like, Subscribe etc.)      | ❌         |
+| Chapter-Information                             | ⏳         |
 
 ### Building
 

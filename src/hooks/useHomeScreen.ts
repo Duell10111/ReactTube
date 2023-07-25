@@ -82,7 +82,7 @@ export default function useHomeScreen() {
         LOGGER.warn("Continue content empty!");
       }
     } else {
-      console.warn("Unknown Type: ", nextContent.contents.type);
+      console.warn("Unknown Home Type: ", nextContent.contents.type);
     }
     setHomePage(nextContent);
   }, [homePage, content]);

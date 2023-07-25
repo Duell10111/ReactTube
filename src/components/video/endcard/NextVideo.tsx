@@ -1,7 +1,7 @@
 import React, {useMemo} from "react";
 import {StyleSheet, Text, View} from "react-native";
 import PlayButton from "./PlayButton";
-import {getVideoDataOfFirstElement} from "../../../extraction/VideoData";
+import {getVideoDataOfFirstElement} from "../../../extraction/ElementData";
 import {Helpers} from "../../../utils/Youtube";
 import useNextVideo from "../../../hooks/ui/useNextVideo";
 import FastImage from "react-native-fast-image";

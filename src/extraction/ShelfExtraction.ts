@@ -1,6 +1,6 @@
 import {Helpers, YTNodes} from "../utils/Youtube";
 import _ from "lodash";
-import {getVideoData, VideoData} from "./VideoData";
+import {getVideoData, ElementData} from "./ElementData";
 
 const firstRows = 2;
 
@@ -25,7 +25,7 @@ export function gridCalculatorExtract(
 export function gridCalculator(
   content: Helpers.YTNode[],
   columns: number,
-): (VideoData[] | HorizontalData)[] {
+): (ElementData[] | HorizontalData)[] {
   console.log("TypesArr: ", listPrintTypes(content));
 
   const groups = _.groupBy(content, node => node.type);
@@ -90,7 +90,7 @@ function parseHorizontalNode(node: Helpers.YTNode): HorizontalData | undefined {
       loadMore: () => {},
       id: node.header + node.type,
       originalNode: node,
-      title: extractHeader(node.header),
+      title: node.header ? extractHeader(node.header) : "",
     };
   } else {
     console.warn("Unknown horizontal type: ", node.type);
