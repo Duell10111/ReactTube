@@ -10,6 +10,7 @@ import {YTNodes} from "../utils/Youtube";
 import SectionList from "../components/channel/SectionList";
 import {recursiveTypeLogger} from "../utils/YTNodeLogger";
 import {useAppStyle} from "../context/AppStyleContext";
+import GridView from "../components/GridView";
 
 const LOGGER = Logger.extend("PLAYLIST");
 
@@ -41,7 +42,7 @@ export default function PlaylistScreen({route}: Props) {
       {/*    onEndReached={() => LOGGER.debug("End reached")}*/}
       {/*  />*/}
       {/*) : null}*/}
-      <HomeShelf shelfItem={data} onEndReached={() => fetchMore()} />
+      <GridView shelfItem={data} onEndReached={() => fetchMore()} />
     </View>
   );
 }

@@ -7,6 +7,8 @@ export interface Thumbnail {
   width: number;
 }
 
+// TODO: Add ChannelData
+
 // TODO: Split from ElementData in VideoData or PlaylistData
 
 export type ElementData = VideoData | PlaylistData;
@@ -17,7 +19,9 @@ export interface VideoData {
   id: string;
   thumbnailImage: Thumbnail;
   title: string;
+  duration?: string;
   short_views: string;
+  publishDate?: string;
   author?: Author;
   quality?: string;
 }
@@ -33,7 +37,9 @@ export interface PlaylistData {
   type: "playlist";
   id: string;
   title: string;
+  thumbnailImage: Thumbnail;
   author?: Author;
+  videoCount?: string;
   videos?: string[];
 }
 
@@ -52,7 +58,7 @@ export function getVideoDataOfFirstElement(
 
 // TODO: Rename to ElementData
 
-export function getVideoData(ytNode: Helpers.YTNode) {
+export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
   // TODO: Maybe split
   if (ytNode.is(YTNodes.Video, YTNodes.CompactVideo)) {
     return {
@@ -61,7 +67,9 @@ export function getVideoData(ytNode: Helpers.YTNode) {
       thumbnailImage: ytNode.best_thumbnail,
       short_views: ytNode.short_view_count.toString(),
       author: getAuthor(ytNode.author),
+      publishDate: ytNode.published.text,
       type: "video",
+      duration: ytNode.duration.text,
       originalNode: ytNode,
     } as VideoData;
   } else if (ytNode.is(YTNodes.ReelItem)) {
@@ -70,6 +78,7 @@ export function getVideoData(ytNode: Helpers.YTNode) {
       title: ytNode.title.toString(),
       thumbnailImage: ytNode.thumbnails[0],
       short_views: ytNode.views.toString(),
+      duration: "",
       type: "reel",
       originalNode: ytNode,
     } as VideoData;
@@ -78,9 +87,32 @@ export function getVideoData(ytNode: Helpers.YTNode) {
       type: "playlist",
       id: ytNode.id,
       title: ytNode.title.toString(),
+      thumbnailImage: ytNode.thumbnails[0],
       author: ytNode.author ? getAuthor(ytNode.author) : undefined,
       originalNode: ytNode,
+      videoCount: ytNode.video_count_short.text,
     } as PlaylistData;
+  } else if (ytNode.is(YTNodes.Playlist)) {
+    return {
+      type: "playlist",
+      originalNode: ytNode,
+      id: ytNode.id,
+      title: ytNode.title.toString(),
+      thumbnailImage: ytNode.thumbnails[0],
+      videoCount: ytNode.video_count_short.text,
+    } as PlaylistData;
+  } else if (ytNode.is(YTNodes.PlaylistVideo)) {
+    return {
+      type: "video",
+      originalNode: ytNode,
+      id: ytNode.id,
+      title: ytNode.title.toString(),
+      thumbnailImage: ytNode.thumbnails[0],
+      short_views: "",
+    } as VideoData;
+  } else if (ytNode.is(YTNodes.RichItem)) {
+    // Recursive extraction
+    return getVideoData(ytNode.content);
   } else {
     LOGGER.warn("getVideoData: Unknown type: ", ytNode.type);
   }

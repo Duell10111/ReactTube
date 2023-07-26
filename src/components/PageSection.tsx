@@ -4,6 +4,7 @@ import Logger from "../utils/Logger";
 import HomeShelf from "./HomeShelf";
 import PageSectionList from "./segments/PageSectionList";
 import PageSegment from "./PageSegment";
+import GridView from "./GridView";
 
 const LOGGER = Logger.extend("PAGE");
 
@@ -47,7 +48,7 @@ export default function PageSection({node}: Props) {
     );
   } else if (node.is(YTNodes.PlaylistVideoList)) {
     //TODO: Use Vertical List?
-    return <HomeShelf shelfItem={node.videos} onEndReached={() => {}} />;
+    return <GridView shelfItem={node.videos} onEndReached={() => {}} />;
   } else if (node.is(YTNodes.Video)) {
     //TODO: Use Vertical List?
     return <PageSegment segment={node} />;

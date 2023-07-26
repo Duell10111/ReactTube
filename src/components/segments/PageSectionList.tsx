@@ -3,10 +3,11 @@ import {Helpers} from "../../utils/Youtube";
 import {StyleSheet, Text, View} from "react-native";
 import HorizontalVideoList from "../HorizontalVideoList";
 import {useAppStyle} from "../../context/AppStyleContext";
+import {HorizontalData} from "../../extraction/ShelfExtraction";
 
 interface Props {
   headerText?: string;
-  content: Helpers.YTNode[];
+  content: Helpers.YTNode[] | HorizontalData;
 }
 
 export default function PageSectionList({headerText, content}: Props) {
@@ -17,7 +18,9 @@ export default function PageSectionList({headerText, content}: Props) {
       <Text style={[styles.textStyle, {color: style.textColor}]}>
         {headerText}
       </Text>
-      <HorizontalVideoList nodes={content} />
+      <HorizontalVideoList
+        nodes={Array.isArray(content) ? content : content.parsedData}
+      />
     </View>
   );
 }

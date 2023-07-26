@@ -86,7 +86,7 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
               "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
           }}
         />
-        <Text style={styles.timeStyle}>{data.duration}</Text>
+        <Text style={styles.countContainer}>{data.duration}</Text>
       </VideoTouchable>
       <Text style={[styles.titleStyle, {color: appStyle.textColor}, textStyle]}>
         {data.title}
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
   },
   viewsStyle: {},
-  timeStyle: {
+  countContainer: {
     position: "absolute",
     right: 10,
     bottom: 10,

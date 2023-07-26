@@ -4,6 +4,7 @@ import HomeShelf from "../components/HomeShelf";
 import Logger from "../utils/Logger";
 import LoadingComponent from "../components/general/LoadingComponent";
 import {useDrawerContext} from "../navigation/DrawerContext";
+import GridView from "../components/GridView";
 
 const LOGGER = Logger.extend("HOME");
 
@@ -18,7 +19,7 @@ export default function HomeScreen() {
 
   return (
     <>
-      <HomeShelf
+      <GridView
         shelfItem={content}
         onEndReached={() => {
           console.log("End reached");

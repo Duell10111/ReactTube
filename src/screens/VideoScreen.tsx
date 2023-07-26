@@ -7,12 +7,15 @@ import {
   StyleSheet,
   View,
   useTVEventHandler,
+  TVEventControl,
 } from "react-native";
 import useVideoDetails from "../hooks/useVideoDetails";
 import EndCard from "../components/video/EndCard";
 import LOGGER from "../utils/Logger";
 import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
 import {useAppData} from "../context/AppDataContext";
+import ErrorComponent from "../components/general/ErrorComponent";
+import {useFocusEffect} from "@react-navigation/native";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -40,6 +43,11 @@ export default function VideoScreen({route, navigation}: Props) {
     }
   });
 
+  useFocusEffect(() => {
+    // Enable TV Menu Key to fix issue if video not loading
+    TVEventControl.enableTVMenuKey();
+  });
+
   const {appSettings} = useAppData();
 
   if (!Video) {
@@ -57,6 +65,15 @@ export default function VideoScreen({route, navigation}: Props) {
     );
   }
 
+  if (!selectedVideo) {
+    return (
+      <ErrorComponent
+        text={
+          Video.playability_status.reason ?? "Video source is not available"
+        }
+      />
+    );
+  }
   return (
     <View style={[StyleSheet.absoluteFill]}>
       {appSettings.vlcEnabled ? (

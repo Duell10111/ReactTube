@@ -33,7 +33,7 @@ export default function GridView({
             alignItems: "center",
           }}>
           {item.map((v, index) => (
-            <VideoSegment key={`${v.id}-${index}`} element={v.originalNode} />
+            <VideoSegment key={`${v.id}-${index}`} element={v} />
           ))}
         </View>
       );

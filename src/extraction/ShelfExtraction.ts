@@ -10,6 +10,7 @@ const sectionItems = ["RichSection", "Shelf", "ReelShelf", "ItemSection"];
 export interface HorizontalData {
   originalNode: Helpers.YTNode;
   data: Helpers.YTNode[];
+  parsedData: ElementData[];
   loadMore: () => void;
   id: string;
   title?: string;
@@ -78,28 +79,67 @@ export function gridCalculator(
 
 function parseHorizontalNode(node: Helpers.YTNode): HorizontalData | undefined {
   if (node.is(YTNodes.Shelf)) {
+    const {content, parsedData} = node.content
+      ? extractContent(node.content)
+      : {content: [], parsedData: []};
     return {
-      data: node.content ? extractListContent(node.content) : [],
+      data: content,
+      parsedData,
       loadMore: () => {},
       id: node.title + node.type,
       originalNode: node,
     };
   } else if (node.is(YTNodes.ItemSection)) {
+    const {content, parsedData} = extractContent(Array.from(node.contents));
     return {
-      data: Array.from(node.contents.values()),
+      data: content,
+      parsedData: parsedData,
       loadMore: () => {},
       id: node.header + node.type,
       originalNode: node,
       title: node.header ? extractHeader(node.header) : "",
     };
+  } else if (node.is(YTNodes.RichShelf)) {
+    const {content, parsedData} = extractContent(Array.from(node.contents));
+    return {
+      data: content,
+      parsedData: parsedData,
+      loadMore: () => {},
+      id: node.title.text + node.type,
+      originalNode: node,
+      title: node.title.text,
+    };
+  } else if (node.is(YTNodes.RichSection)) {
+    return parseHorizontalNode(node.content);
+  } else if (node.is(YTNodes.ReelShelf)) {
+    const {content, parsedData} = extractContent(Array.from(node.contents));
+    return {
+      data: content,
+      parsedData: parsedData,
+      loadMore: () => {},
+      id: node.title + node.type,
+      originalNode: node,
+      title: node.title.text ?? "",
+    };
   } else {
-    console.warn("Unknown horizontal type: ", node.type);
+    console.warn("ShelfExtraction: Unknown horizontal type: ", node.type);
   }
+}
+
+function extractContent(node: Helpers.YTNode | Helpers.YTNode[]) {
+  const content = Array.isArray(node) ? node : extractListContent(node);
+  const parsedData = _.chain(content).map(getVideoData).compact().value();
+  return {
+    content,
+    parsedData,
+  };
 }
 
 function extractListContent(node: Helpers.YTNode) {
   if (node.is(YTNodes.VerticalList)) {
     return Array.from(node.contents.values());
+  } else {
+    console.log("Unknown ListContent extraction type: ", node.type);
   }
   return [];
 }
@@ -108,7 +148,7 @@ function extractHeader(node: Helpers.YTNode) {
   if (node.is(YTNodes.ItemSectionHeader)) {
     return node.title.toString();
   } else {
-    console.warn("nknown Header type: ", node.type);
+    console.warn("Unknown Header type: ", node.type);
   }
 }
 
