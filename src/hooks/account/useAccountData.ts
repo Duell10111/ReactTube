@@ -134,7 +134,12 @@ export default function useAccountData() {
     }
     youtube.session
       .signOut()
-      .then(() => LOGGER.debug("Logout succeeded"))
+      .then(() => {
+        updateSettings({
+          accounts: [], // Adapt when using multiple accounts
+        });
+        LOGGER.debug("Logout succeeded");
+      })
       .catch(LOGGER.warn);
     LOGGER.debug("Logout triggered");
   };

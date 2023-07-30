@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useMemo} from "react";
 import {YT} from "../../utils/Youtube";
 import {Modal, StyleSheet, Text, View} from "react-native";
 import HorizontalVideoList from "../HorizontalVideoList";
@@ -6,6 +6,7 @@ import ChannelIcon from "./ChannelIcon";
 import NextVideo from "./endcard/NextVideo";
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackProp} from "../../navigation/types";
+import {parseObservedArray} from "../../extraction/ArrayExtraction";
 
 interface Props {
   video: YT.VideoInfo;
@@ -23,6 +24,13 @@ export default function EndCard({
   endCard,
 }: Props) {
   const navigation = useNavigation<NativeStackProp>();
+
+  const watchNextList = useMemo(
+    () =>
+      video.watch_next_feed ? parseObservedArray(video.watch_next_feed) : [],
+    [video.watch_next_feed],
+  );
+
   if (!video.watch_next_feed) {
     // TODO: Add warning or debug message
     return null;
@@ -63,10 +71,7 @@ export default function EndCard({
         </View>
         <View style={styles.bottomContainer}>
           <Text style={styles.bottomText}>Related Videos</Text>
-          <HorizontalVideoList
-            nodes={video.watch_next_feed}
-            textStyle={styles.text}
-          />
+          <HorizontalVideoList nodes={watchNextList} textStyle={styles.text} />
         </View>
       </View>
     </Modal>

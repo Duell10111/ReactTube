@@ -1,6 +1,5 @@
 import {useEffect, useState} from "react";
 import {Innertube} from "../utils/Youtube";
-import {Settings} from "react-native";
 
 const visitorDataKey = "visitorDataYT";
 

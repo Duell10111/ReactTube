@@ -1,7 +1,7 @@
 import React, {useCallback, useMemo, useRef, useState} from "react";
 // @ts-ignore
 import {VLCPlayer} from "react-native-vlc-media-player";
-import {Text, useTVEventHandler, View} from "react-native";
+import {Text, useTVEventHandler} from "react-native";
 import VideoProgressBar, {Progress as BarProgress} from "./VideoProgressBar";
 import {useSharedValue} from "react-native-reanimated";
 import Logger from "../../utils/Logger";
@@ -142,7 +142,7 @@ export default function VLCPlayerControls(props: Props) {
         <VideoInfo videoInfos={props.videoInfo} />
         <Text>{props.quality?.[0] ?? ""}</Text>
         <VideoProgressBar
-          progress={progressValue}
+          // TODO: Extract Chapters: https://github.com/LuanRT/YouTube.js/pull/263
           progressValue={progressSharedValue}
           currentString={curState}
           durationString={duration}

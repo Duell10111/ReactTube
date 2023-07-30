@@ -1,6 +1,9 @@
 import {Helpers, YTNodes} from "../utils/Youtube";
 import _ from "lodash";
 import {getVideoData, ElementData} from "./ElementData";
+import Logger from "../utils/Logger";
+
+const LOGGER = Logger.extend("SHELF-EXTRACTION");
 
 const firstRows = 2;
 
@@ -40,14 +43,14 @@ export function gridCalculator(
     console.log("Sections Found");
     const items = _.chain(videoItems)
       .intersection(types)
-      .map(type => groups[type])
+      .map(type => (type ? groups[type] : []))
       .flatten()
       .map(getVideoData)
       .compact()
       .value();
     const sectionsItems = _.chain(sectionItems)
       .intersection(types)
-      .map(type => groups[type])
+      .map(type => (type ? groups[type] : []))
       .flatten()
       .map(parseHorizontalNode)
       .compact()
@@ -78,6 +81,10 @@ export function gridCalculator(
 }
 
 function parseHorizontalNode(node: Helpers.YTNode): HorizontalData | undefined {
+  if (!node) {
+    LOGGER.warn("FALSE TYPE PROVIDED!");
+    return undefined;
+  }
   if (node.is(YTNodes.Shelf)) {
     const {content, parsedData} = node.content
       ? extractContent(node.content)

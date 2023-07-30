@@ -43,6 +43,8 @@ export interface PlaylistData {
   videos?: string[];
 }
 
+const skippedTypes = [YTNodes.GridMovie, YTNodes.Movie];
+
 const LOGGER = Logger.extend("EXTRACTION");
 
 export function getVideoDataOfFirstElement(
@@ -59,6 +61,16 @@ export function getVideoDataOfFirstElement(
 // TODO: Rename to ElementData
 
 export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
+  if (!ytNode) {
+    LOGGER.warn("FALSE TYPE PROVIDED!");
+    return undefined;
+  }
+
+  if (ytNode.is(...skippedTypes)) {
+    LOGGER.debug("Skipping acknowledged type");
+    return undefined;
+  }
+
   // TODO: Maybe split
   if (ytNode.is(YTNodes.Video, YTNodes.CompactVideo)) {
     return {
