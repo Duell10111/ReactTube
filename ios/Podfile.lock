@@ -2,6 +2,8 @@ PODS:
   - boost (1.76.0)
   - CocoaAsyncSocket (7.6.5)
   - DoubleConversion (1.1.6)
+  - dr-pogodin-react-native-static-server (0.8.1):
+    - React-Core
   - FBLazyVector (0.69.8-1)
   - FBReactNativeSpec (0.69.8-1):
     - RCT-Folly (= 2021.06.28.00-v2)
@@ -403,6 +405,7 @@ PODS:
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
+  - "dr-pogodin-react-native-static-server (from `../node_modules/@dr.pogodin/react-native-static-server`)"
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - FBReactNativeSpec (from `../node_modules/react-native/React/FBReactNativeSpec`)
   - Flipper (= 0.125.0)
@@ -496,6 +499,8 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
+  dr-pogodin-react-native-static-server:
+    :path: "../node_modules/@dr.pogodin/react-native-static-server"
   FBLazyVector:
     :path: "../node_modules/react-native/Libraries/FBLazyVector"
   FBReactNativeSpec:
@@ -579,6 +584,7 @@ SPEC CHECKSUMS:
   boost: a7c83b31436843459a1961bfd74b96033dc77234
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
   DoubleConversion: 234abba95e31cc2aada0cf3b97cdb11bc5b90575
+  dr-pogodin-react-native-static-server: d9af6f32fcc43ce116279737788f552c0ae9ad58
   FBLazyVector: 74c9f2f72b6287aead20a238d648ee0d4f07ff6e
   FBReactNativeSpec: 2c8a28378463797745377019ebcb974e01e19be7
   Flipper: 26fc4b7382499f1281eb8cb921e5c3ad6de91fe0

@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import Logger from "../utils/Logger";
 import {useIsFocused} from "@react-navigation/native";
+import useHLS from "../hls/useHLS";
 
 const LOGGER = Logger.extend("VIDEO");
 
@@ -15,9 +16,15 @@ interface Props {
   url: string;
   style?: StyleProp<ViewStyle>;
   onEndReached?: () => void;
+  videoId: string;
 }
 
-export default function VideoComponent({url, style, ...callbacks}: Props) {
+export default function VideoComponent({
+  url,
+  style,
+  videoId,
+  ...callbacks
+}: Props) {
   // const player = useRef<Video>();
   const isFocused = useIsFocused();
 
@@ -48,6 +55,7 @@ export default function VideoComponent({url, style, ...callbacks}: Props) {
           LOGGER.debug("Video Loading...", JSON.stringify(data, null, 4))
         }
         onLoadStart={() => LOGGER.debug("Video Start Loading...")}
+        onError={LOGGER.warn}
         onEnd={() => {
           LOGGER.debug("End reached");
           callbacks.onEndReached?.();

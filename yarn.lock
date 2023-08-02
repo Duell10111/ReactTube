@@ -830,6 +830,18 @@
     ieee754 "^1.2.1"
     react-native-quick-base64 "^2.0.5"
 
+"@dr.pogodin/js-utils@^0.0.6":
+  version "0.0.6"
+  resolved "https://registry.yarnpkg.com/@dr.pogodin/js-utils/-/js-utils-0.0.6.tgz#60f076dd90b87caa7812ad5aecd98bf960a7ad51"
+  integrity sha512-6DyIS8s+V2d2GKqhW/TOxPugcskKPsKiJt9lFLBEddw012WKGicchPizar9osq+p7ECnNmYMsDUPAC3T+ZkZKw==
+
+"@dr.pogodin/react-native-static-server@^0.8.1":
+  version "0.8.1"
+  resolved "https://registry.yarnpkg.com/@dr.pogodin/react-native-static-server/-/react-native-static-server-0.8.1.tgz#009d82d7b5dc49ff9afcb4f72795643e78a48f91"
+  integrity sha512-dpS/GfnKFkcZZMc6QaCzZ0orL3/5af+62i3KE9o4nfUmzPj6gNRy3PJxJeU2w8oolLr1JczhJ+kE/e0CwSmogw==
+  dependencies:
+    "@dr.pogodin/js-utils" "^0.0.6"
+
 "@egjs/hammerjs@^2.0.17":
   version "2.0.17"
   resolved "https://registry.yarnpkg.com/@egjs/hammerjs/-/hammerjs-2.0.17.tgz#5dc02af75a6a06e4c2db0202cae38c9263895124"

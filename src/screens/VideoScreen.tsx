@@ -88,6 +88,7 @@ export default function VideoScreen({route, navigation}: Props) {
         />
       ) : (
         <VideoComponent
+          videoId={videoId}
           url={selectedVideo ?? ""}
           onEndReached={() => {
             setEnded(true);
