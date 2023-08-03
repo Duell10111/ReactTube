@@ -9,6 +9,7 @@ import {
 import Logger from "../utils/Logger";
 import {useIsFocused} from "@react-navigation/native";
 import useHLS from "../hls/useHLS";
+import {useHLSServerContext} from "../hls/HLSServerContext";
 
 const LOGGER = Logger.extend("VIDEO");
 
@@ -28,6 +29,19 @@ export default function VideoComponent({
   // const player = useRef<Video>();
   const isFocused = useIsFocused();
 
+  const hlsURL = useHLS(videoId);
+  const {originURL} = useHLSServerContext();
+
+  console.log(hlsURL);
+
+  // TODO: Add fallback if HLS Server or HLS URL fetch fails
+  if (!hlsURL || !originURL) {
+    return null;
+  }
+  //
+  // const localFile = `file://${hlsURL}`;
+  // console.log("LocalFile: ", localFile);
+
   return (
     <>
       <ActivityIndicator style={styles.activityIndicator} size={"large"} />
@@ -38,7 +52,9 @@ export default function VideoComponent({
           // type: "m3u8",
           // uri: "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
           // type: "mpd",
-          uri: url,
+          // uri: `http://192.168.178.40:7500/video/${videoId}/master.m3u8`,
+          uri: `${originURL}/${videoId}/master.m3u8`,
+          // uri: localFile,
         }}
         style={[
           style ?? {

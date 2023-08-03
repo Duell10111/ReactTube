@@ -5,6 +5,8 @@ import {contentFolder} from "./StorageFkts";
 export default function useHLSServer() {
   const [origin, setOrigin] = useState("");
 
+  console.log("HLS Server Origin: ", origin);
+
   useEffect(() => {
     let server = new Server({
       fileDir: contentFolder,
@@ -27,7 +29,7 @@ export default function useHLSServer() {
       setOrigin("");
 
       // No harm to trigger .stop() even if server has not been launched yet.
-      server.stop();
+      server?.stop();
 
       server = undefined;
     };
