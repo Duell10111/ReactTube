@@ -1,7 +1,7 @@
 import React from "react";
 import {Text, View} from "react-native";
 import useSubscriptions from "../hooks/useSubscriptions";
-import HomeShelf from "../components/HomeShelf";
+import GridView from "../components/GridView";
 
 export default function SubscriptionScreen() {
   const {content, fetchMore} = useSubscriptions();
@@ -9,7 +9,7 @@ export default function SubscriptionScreen() {
   return (
     <View>
       <Text>Subscription</Text>
-      <HomeShelf
+      <GridView
         shelfItem={content}
         onEndReached={() => fetchMore().catch(console.warn)}
       />

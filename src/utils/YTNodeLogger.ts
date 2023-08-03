@@ -27,7 +27,10 @@ function recursiveTypeResolver(nodes: Helpers.YTNode[]): any {
         : node.type;
     } else if (node.is(YTNodes.PlaylistVideoList)) {
       return node.videos
-        ? {type: node.type, content: recursiveTypeResolver(node.videos.array())}
+        ? {
+            type: node.type,
+            content: recursiveTypeResolver(Array.from(node.videos.values())),
+          }
         : node.type;
     } else {
       return node.type;

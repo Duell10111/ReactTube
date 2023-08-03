@@ -10,6 +10,19 @@ Main goals:
 
 This project uses the [Youtube.js](https://github.com/LuanRT/YouTube.js) library to access the Youtube API.
 
+## Features
+
+| Feature                                         | Available |
+| ----------------------------------------------- | --------- |
+| Basic UI (including Channel and Playlist Views) | ✅         |
+| Video Playback up until 720p                    | ✅         |
+| 1080p playback up to 4K                         | ❌         |
+| Youtube Login via QR Code                       | ✅         |
+| History Page                                    | ✅         |
+| Subscription Page                               | ⏳ WIP     |
+| Social Interactions (Like, Subscribe etc.)      | ❌         |
+| Chapter-Information                             | ⏳         |
+
 ### Building
 
 The app can be build like any other react-native app.

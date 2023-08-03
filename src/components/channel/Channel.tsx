@@ -1,15 +1,15 @@
 import React, {useMemo, useState} from "react";
-import {Text, TouchableOpacity, View} from "react-native";
+import {Text, TextProps, TouchableOpacity, View} from "react-native";
 import {YT, YTNodes} from "../../utils/Youtube";
 import useChannelData, {
   ChannelContentTypes,
 } from "../../hooks/channel/useChannelData";
 import Logger from "../../utils/Logger";
 import SectionList from "./SectionList";
-import {ButtonGroup, Button} from "@rneui/base";
-import HomeShelf from "../HomeShelf";
+import {ButtonGroup} from "@rneui/base";
 import _ from "lodash";
 import {useAppStyle} from "../../context/AppStyleContext";
+import GridView from "../GridView";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -24,24 +24,34 @@ export default function Channel({channel}: Props) {
     () =>
       _.compact([
         {
-          element: () => <Text>Home</Text>,
+          element: ({isSelected}: {isSelected?: boolean}) => (
+            <ChannelBtnText isSelected={isSelected}>Home</ChannelBtnText>
+          ),
           key: "Home" as ChannelContentTypes,
         },
         channel.has_videos
           ? {
-              element: () => <Text>Videos</Text>,
+              element: ({isSelected}: {isSelected?: boolean}) => (
+                <ChannelBtnText isSelected={isSelected}>Videos</ChannelBtnText>
+              ),
               key: "Videos" as ChannelContentTypes,
             }
           : null,
         channel.has_shorts
           ? {
-              element: () => <Text>Reels</Text>,
+              element: ({isSelected}: {isSelected?: boolean}) => (
+                <ChannelBtnText isSelected={isSelected}>Reels</ChannelBtnText>
+              ),
               key: "Reels" as ChannelContentTypes,
             }
           : null,
         channel.has_playlists
           ? {
-              element: () => <Text>Playlists</Text>,
+              element: ({isSelected}: {isSelected?: boolean}) => (
+                <ChannelBtnText isSelected={isSelected}>
+                  Playlists
+                </ChannelBtnText>
+              ),
               key: "Playlists" as ChannelContentTypes,
             }
           : null,
@@ -92,7 +102,7 @@ function ChannelRow({channel, type}: RowProps) {
   if (data?.page_contents && data.page_contents.is(YTNodes.SectionList)) {
     return <SectionList node={data?.page_contents} />;
   } else if (Array.isArray(nodes)) {
-    return <HomeShelf shelfItem={nodes} onEndReached={() => fetchMore()} />;
+    return <GridView shelfItem={nodes} onEndReached={() => fetchMore()} />;
   } else {
     LOGGER.warn("Unsupported Channel Type: ", data?.page_contents);
   }
@@ -101,5 +111,18 @@ function ChannelRow({channel, type}: RowProps) {
     <View>
       <Text>Unsupported Channel Type</Text>
     </View>
+  );
+}
+
+interface ChannelBtnTextProps {
+  children: TextProps["children"];
+  isSelected?: boolean;
+}
+
+function ChannelBtnText({children, isSelected}: ChannelBtnTextProps) {
+  return (
+    <Text style={{color: isSelected ? "black" : "white", fontSize: 22}}>
+      {children}
+    </Text>
   );
 }

@@ -5078,10 +5078,10 @@ jetifier@^1.6.2:
   resolved "https://registry.yarnpkg.com/jetifier/-/jetifier-1.6.8.tgz#e88068697875cbda98c32472902c4d3756247798"
   integrity sha512-3Zi16h6L5tXDRQJTb221cnRoVG9/9OvreLdLU2/ZjRv/GILL+2Cemt0IKvkowwkDpvouAU1DQPOJ7qaiHeIdrw==
 
-jintr@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/jintr/-/jintr-1.0.0.tgz#12acb549c7d7fe474a5302942e01d8b0c806de4d"
-  integrity sha512-Kbyb5jiIzmTrbhbdjQGt+jjVzn9BPluvL3mZU5ihFQIEGjCHUA4+rsXE2PNDKmg1UlfdTn3947aSwWOVnc5UIw==
+jintr@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/jintr/-/jintr-1.1.0.tgz#223a3b07f5e03d410cec6e715c537c8ad1e714c3"
+  integrity sha512-Tu9wk3BpN2v+kb8yT6YBtue+/nbjeLFv4vvVC4PJ7oCidHKbifWhvORrAbQfxVIQZG+67am/mDagpiGSVtvrZg==
   dependencies:
     acorn "^8.8.0"
 
@@ -8305,12 +8305,12 @@ yocto-queue@^0.1.0:
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
 
-youtubei.js@^5.4.0:
-  version "5.4.0"
-  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-5.4.0.tgz#2ed90d75be78a6ec1ed4fbb00955bb16a1cb4012"
-  integrity sha512-higEZACamf/MR/3QF8K3R2pcwIFc+XE4xCHUKMh1ZnPSnmlmiJU201NCXKUP+lIlnILO2iXlUuyt4S2ovhm6xA==
+youtubei.js@^5.7.1:
+  version "5.7.1"
+  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-5.7.1.tgz#efb18f197cf92087623c403109544c4bcbb233cb"
+  integrity sha512-K4f6OmcwM/v4+Hr0BohkKLg+xZMygJ10Qwyfhi8USSw7K2kLxPHq3x8oygsYpqCUcVXXUAHOsonV8R2xmOOymg==
   dependencies:
-    jintr "^1.0.0"
+    jintr "^1.1.0"
     linkedom "^0.14.12"
     tslib "^2.5.0"
     undici "^5.19.1"

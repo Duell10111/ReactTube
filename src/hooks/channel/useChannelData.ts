@@ -75,7 +75,7 @@ export default function useChannelData(
     }
   }, [type, nodes, data]);
 
-  LOGGER.debug("Data: ", JSON.stringify(data?.videos, null, 4));
+  // LOGGER.debug("Data: ", JSON.stringify(data?.videos, null, 4));
   LOGGER.debug("Continue: ", data?.has_continuation);
 
   return {data, nodes: nodes, grid: type === "Home", fetchMore};

@@ -1,6 +1,6 @@
 import React, {useCallback} from "react";
-import {YTNodes, Helpers} from "../utils/Youtube";
-import {FlatList, StyleProp, StyleSheet, View, ViewStyle} from "react-native";
+import {Helpers} from "../utils/Youtube";
+import {FlatList, StyleProp, View, ViewStyle} from "react-native";
 import PageSegment from "./PageSegment";
 import useHomeShelf from "../hooks/home/useHomeShelf";
 import ShelfVideoSelectorProvider from "../context/ShelfVideoSelector";

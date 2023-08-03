@@ -1,8 +1,8 @@
 import React from "react";
 import useSearchScreen from "../hooks/useSearchScreen";
 import SearchBar from "../components/search/SearchBar";
-import HomeShelf from "../components/HomeShelf";
-import {StyleSheet, Text, View} from "react-native";
+import {View} from "react-native";
+import GridView from "../components/GridView";
 
 export default function SearchScreen() {
   const {search, searchResult, fetchMore} = useSearchScreen();
@@ -15,7 +15,7 @@ export default function SearchScreen() {
     <>
       <SearchBar onSubmit={text => search(text).catch(console.warn)} />
       <View style={{flex: 1}}>
-        <HomeShelf
+        <GridView
           shelfItem={searchResult}
           onEndReached={() => fetchMore().catch(console.warn)}
         />

@@ -49,7 +49,7 @@ export function useFeedData(
       return;
     }
 
-    LOGGER.debug("Feed: ", await feed.getContinuationData());
+    // LOGGER.debug("Feed: ", await feed.getContinuationData());
 
     const newFeed = await feed.getContinuation();
 
@@ -78,6 +78,8 @@ export function useFeedData(
 
 function extractYTNodes(node: Helpers.YTNode) {
   if (node.is(YTNodes.SectionList)) {
+    return node.contents;
+  } else if (node.is(YTNodes.RichGrid)) {
     return node.contents;
   } else {
     LOGGER.warn("Unknown type of Feed Node: ", node.type);

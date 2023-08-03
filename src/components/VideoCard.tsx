@@ -8,11 +8,14 @@ import {
   ViewStyle,
 } from "react-native";
 import React from "react";
-import {useNavigation, useRoute} from "@react-navigation/native";
+import {CommonActions, useNavigation, useRoute} from "@react-navigation/native";
 import FastImage from "react-native-fast-image";
 import {useShelfVideoSelector} from "../context/ShelfVideoSelector";
 import {NativeStackProp, RootRouteProp} from "../navigation/types";
 import {useAppStyle} from "../context/AppStyleContext";
+import Logger from "../utils/Logger";
+
+const LOGGER = Logger.extend("VIDEOCARD");
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
@@ -42,8 +45,31 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
           if (data.disabled) {
             return;
           }
+          LOGGER.debug("State: ", navigation.getState());
+          LOGGER.debug("Route name: ", route.name);
           if (route.name === "VideoScreen") {
+            LOGGER.debug("Replacing Video Screen");
             navigation.replace("VideoScreen", {videoId: data.videoId});
+          } else if (
+            navigation
+              .getState()
+              .routes.find(route => route.name == "VideoScreen")
+          ) {
+            LOGGER.debug("Remove all existing Video Screens");
+            navigation.dispatch(state => {
+              const routes = state.routes.filter(r => r.name !== "VideoScreen");
+
+              routes.push({
+                name: "VideoScreen",
+                params: {videoId: data.videoId},
+              });
+
+              return CommonActions.reset({
+                ...state,
+                routes,
+                index: routes.length - 1,
+              });
+            });
           } else {
             navigation.navigate("VideoScreen", {videoId: data.videoId});
           }
@@ -60,7 +86,7 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
               "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
           }}
         />
-        <Text style={styles.timeStyle}>{data.duration}</Text>
+        <Text style={styles.countContainer}>{data.duration}</Text>
       </VideoTouchable>
       <Text style={[styles.titleStyle, {color: appStyle.textColor}, textStyle]}>
         {data.title}
@@ -103,7 +129,7 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
   },
   viewsStyle: {},
-  timeStyle: {
+  countContainer: {
     position: "absolute",
     right: 10,
     bottom: 10,

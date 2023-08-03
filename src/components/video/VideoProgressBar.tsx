@@ -17,15 +17,21 @@ export interface Progress {
   remainingTime: number;
 }
 
+export interface Chapter {
+  thumbnail?: string;
+  title: string;
+  startTime: number;
+  endTime: number;
+}
+
 interface Props {
-  progress: SharedValue<number>;
   progressValue: SharedValue<Progress | undefined>;
   durationString: string;
   currentString: string;
+  chapters?: Chapter[];
 }
 
 export default function VideoProgressBar({
-  progress,
   progressValue,
   currentString,
   durationString,
@@ -50,6 +56,8 @@ export default function VideoProgressBar({
   }));
 
   // console.log("CurrentText: ", currentString);
+
+  // TODO: Add chapters to progress bar
 
   return (
     <View style={styles.container}>

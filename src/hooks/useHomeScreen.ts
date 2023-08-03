@@ -1,12 +1,15 @@
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {useYoutubeContext} from "../context/YoutubeContext";
-import {YT, Helpers, YTNodes} from "../utils/Youtube";
+import {
+  YT,
+  Helpers,
+  YTNodes,
+  AppendContinuationItemsAction,
+} from "../utils/Youtube";
 import Logger from "../utils/Logger";
 import _ from "lodash";
 
 const LOGGER = Logger.extend("HOOKS");
-
-const minElements = 8;
 
 export default function useHomeScreen() {
   const youtube = useYoutubeContext();
@@ -73,7 +76,7 @@ export default function useHomeScreen() {
     }
     const nextContent = await homePage.getContinuation();
     // LOGGER.debug("Fetched Content: ", JSON.stringify(nextContent, null, 4));
-    if (homePage.contents.type === "appendContinuationItemsAction") {
+    if (nextContent.contents.is(AppendContinuationItemsAction)) {
       LOGGER.debug("Append Item Fetched");
       if (nextContent.contents.contents) {
         const newValues = _.concat(content, nextContent.contents.contents);
@@ -82,7 +85,7 @@ export default function useHomeScreen() {
         LOGGER.warn("Continue content empty!");
       }
     } else {
-      console.warn("Unknown Type: ", nextContent.contents.type);
+      console.warn("Unknown Home Type: ", nextContent.contents?.type);
     }
     setHomePage(nextContent);
   }, [homePage, content]);

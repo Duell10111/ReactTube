@@ -12,18 +12,24 @@ import {NativeStackProp, RootRouteProp} from "../../navigation/types";
 import VideoTouchable from "../general/VideoTouchable";
 import FastImage from "react-native-fast-image";
 import {useAppStyle} from "../../context/AppStyleContext";
+import {Icon} from "@rneui/base";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
   style?: StyleProp<ViewStyle>;
   playlistId: string;
   title: string;
-  duration?: string;
+  videoCount?: string;
   thumbnailURL?: string;
   author?: string;
 }
 
-export default function PlaylistCard({style, textStyle, ...data}: Props) {
+export default function PlaylistCard({
+  style,
+  textStyle,
+  videoCount,
+  ...data
+}: Props) {
   const navigation = useNavigation<NativeStackProp>();
   const route = useRoute<RootRouteProp>();
   const {style: appStyle} = useAppStyle();
@@ -50,7 +56,12 @@ export default function PlaylistCard({style, textStyle, ...data}: Props) {
               "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
           }}
         />
-        <Text style={styles.timeStyle}>{data.duration}</Text>
+        {videoCount ? (
+          <View style={styles.countContainer}>
+            <Icon name={"book"} color={"white"} />
+            <Text style={styles.countStyle}>{videoCount}</Text>
+          </View>
+        ) : null}
       </VideoTouchable>
       <Text style={[styles.titleStyle, {color: appStyle.textColor}, textStyle]}>
         {data.title}
@@ -68,6 +79,8 @@ const styles = StyleSheet.create({
   viewContainer: {
     width: 500,
     height: 400,
+    borderWidth: 2,
+    borderColor: "yellow",
   },
   segmentContainer: {
     backgroundColor: "#aaaaaa",
@@ -85,12 +98,18 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
   },
   viewsStyle: {},
-  timeStyle: {
+  countContainer: {
     position: "absolute",
     right: 10,
     bottom: 10,
-    color: "white",
     backgroundColor: "black",
-    padding: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 5,
+  },
+  countStyle: {
+    color: "white",
+    fontSize: 20,
   },
 });
