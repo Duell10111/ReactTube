@@ -1,7 +1,13 @@
-import {Settings} from "react-native";
+import {Platform, Settings} from "react-native";
 import {useCallback, useState} from "react";
 
+// TODO: Add concrete Android implementation
+
 function getSettings<T>(settingsKey: string) {
+  if (Platform.OS === "android") {
+    return undefined;
+  }
+
   const value = Settings.get(settingsKey);
   if (value && typeof value === "string") {
     return JSON.parse(value) as T;
@@ -10,6 +16,9 @@ function getSettings<T>(settingsKey: string) {
 }
 
 function setSettings<T>(settingsKey: string, settings: Partial<T>) {
+  if (Platform.OS === "android") {
+    return;
+  }
   const curSettings = getSettings<T>(settingsKey);
   const newValue = {
     ...curSettings,
