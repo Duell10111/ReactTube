@@ -1,5 +1,5 @@
 import React from "react";
-import {StyleProp, View, ViewStyle} from "react-native";
+import {StyleProp, ViewStyle} from "react-native";
 import {Helpers, YTNodes} from "../utils/Youtube";
 import ChannelCard from "./ChannelCard";
 import Logger from "../utils/Logger";

@@ -25,9 +25,7 @@ export default function ChannelIcon({channelId}: Props) {
       <FastImage
         style={styles.image}
         source={{
-          uri:
-            thumbnail ??
-            "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
+          uri: thumbnail ?? require("../../../assets/grey-background.jpg"),
         }}
       />
     </TouchableOpacity>

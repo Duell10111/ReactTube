@@ -11,7 +11,7 @@ export interface Thumbnail {
 
 // TODO: Split from ElementData in VideoData or PlaylistData
 
-export type ElementData = VideoData | PlaylistData;
+export type ElementData = VideoData | PlaylistData | ChannelData;
 
 export interface VideoData {
   originalNode: Helpers.YTNode;
@@ -41,6 +41,15 @@ export interface PlaylistData {
   author?: Author;
   videoCount?: string;
   videos?: string[];
+}
+
+export interface ChannelData {
+  originalNode: Helpers.YTNode;
+  type: "channel";
+  id: string;
+  title: string;
+  thumbnailImage: Thumbnail;
+  author?: Author;
 }
 
 const skippedTypes = [YTNodes.GridMovie, YTNodes.Movie];
@@ -94,7 +103,18 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       type: "reel",
       originalNode: ytNode,
     } as VideoData;
-  } else if (ytNode.is(YTNodes.GridPlaylist)) {
+  } else if (ytNode.is(YTNodes.PlaylistVideo)) {
+    return {
+      type: "video",
+      originalNode: ytNode,
+      id: ytNode.id,
+      title: ytNode.title.toString(),
+      thumbnailImage: ytNode.thumbnails[0],
+      short_views: "",
+    } as VideoData;
+  }
+  // Playlist Data
+  else if (ytNode.is(YTNodes.GridPlaylist)) {
     return {
       type: "playlist",
       id: ytNode.id,
@@ -113,16 +133,38 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       thumbnailImage: ytNode.thumbnails[0],
       videoCount: ytNode.video_count_short.text,
     } as PlaylistData;
-  } else if (ytNode.is(YTNodes.PlaylistVideo)) {
+  } else if (ytNode.is(YTNodes.CompactMix)) {
     return {
-      type: "video",
+      type: "playlist",
       originalNode: ytNode,
       id: ytNode.id,
-      title: ytNode.title.toString(),
+      title: "MIX - " + ytNode.title.toString(),
       thumbnailImage: ytNode.thumbnails[0],
-      short_views: "",
-    } as VideoData;
-  } else if (ytNode.is(YTNodes.RichItem)) {
+      videoCount: ytNode.video_count_short.text,
+    } as PlaylistData;
+  } else if (ytNode.is(YTNodes.Mix)) {
+    return {
+      type: "playlist",
+      originalNode: ytNode,
+      id: ytNode.id,
+      title: "MIX - " + ytNode.title.toString(),
+      thumbnailImage: ytNode.thumbnails[0],
+      videoCount: ytNode.video_count_short.text,
+    } as PlaylistData;
+  }
+  // Channel Data
+  else if (ytNode.is(YTNodes.GridChannel)) {
+    const author = getAuthor(ytNode.author);
+    return {
+      type: "channel",
+      id: ytNode.id,
+      author: author,
+      title: author.name,
+      thumbnailImage: author.thumbnail,
+    } as ChannelData;
+  }
+  // Recursive Section
+  else if (ytNode.is(YTNodes.RichItem)) {
     // Recursive extraction
     return getVideoData(ytNode.content);
   } else {

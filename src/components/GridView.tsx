@@ -1,7 +1,6 @@
 import React, {useCallback} from "react";
 import {Helpers} from "../utils/Youtube";
 import {FlatList, StyleProp, View, ViewStyle} from "react-native";
-import PageSegment from "./PageSegment";
 import ShelfVideoSelectorProvider from "../context/ShelfVideoSelector";
 import VideoMenu from "./general/VideoMenu";
 import useGrid from "../hooks/home/useGrid";
