@@ -1,5 +1,5 @@
 import React, {createContext, useCallback, useContext, useState} from "react";
-import {Settings} from "react-native";
+import {Platform, Settings} from "react-native";
 import useAccountData from "../hooks/account/useAccountData";
 
 const settingsKey = "appSettings";
@@ -21,7 +21,13 @@ const defaultContext: AppDataContext = {
 
 const context = createContext<AppDataContext>(defaultContext);
 
+// TODO: Add concrete implementation for Android
+
 function getSettings() {
+  if (Platform.OS === "android") {
+    return undefined;
+  }
+
   const value = Settings.get(settingsKey);
   if (value && typeof value === "string") {
     return JSON.parse(value) as AppSettings;
@@ -30,6 +36,10 @@ function getSettings() {
 }
 
 function setSettings(settings: Partial<AppSettings>) {
+  if (Platform.OS === "android") {
+    return;
+  }
+
   const curSettings = getSettings();
   const newValue: AppSettings = {
     ...curSettings,
