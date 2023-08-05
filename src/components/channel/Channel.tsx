@@ -10,6 +10,7 @@ import {ButtonGroup} from "@rneui/base";
 import _ from "lodash";
 import {useAppStyle} from "../../context/AppStyleContext";
 import GridView from "../GridView";
+import {extractSectionList} from "../../extraction/ShelfExtraction";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -100,7 +101,7 @@ function ChannelRow({channel, type}: RowProps) {
   // LOGGER.debug(data ? recursiveTypeLogger([data.page_contents]) : "");
 
   if (data?.page_contents && data.page_contents.is(YTNodes.SectionList)) {
-    return <SectionList node={data?.page_contents} />;
+    return <SectionList node={extractSectionList(data.page_contents)} />;
   } else if (Array.isArray(nodes)) {
     return <GridView shelfItem={nodes} onEndReached={() => fetchMore()} />;
   } else {

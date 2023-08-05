@@ -56,10 +56,12 @@ export default function PlaylistCard({
               "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
           }}
         />
+        <View style={styles.bottomBorder}>
+          <Icon name={"book"} color={"white"} />
+        </View>
         {videoCount ? (
           <View style={styles.countContainer}>
-            <Icon name={"book"} color={"white"} />
-            <Text style={styles.countStyle}>{videoCount}</Text>
+            <Text style={styles.countStyle}>{videoCount} Videos</Text>
           </View>
         ) : null}
       </VideoTouchable>
@@ -79,14 +81,24 @@ const styles = StyleSheet.create({
   viewContainer: {
     width: 500,
     height: 400,
-    borderWidth: 2,
-    borderColor: "yellow",
   },
   segmentContainer: {
     backgroundColor: "#aaaaaa",
     borderRadius: 25,
     overflow: "hidden",
     height: "70%",
+  },
+  bottomBorder: {
+    position: "absolute",
+    left: 0,
+    bottom: 0,
+    right: 0,
+    height: "20%",
+    backgroundColor: "#111111bb",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingHorizontal: 15,
   },
   imageStyle: {
     width: "100%",

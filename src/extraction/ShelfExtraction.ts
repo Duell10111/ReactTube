@@ -2,6 +2,8 @@ import {Helpers, YTNodes} from "../utils/Youtube";
 import _ from "lodash";
 import {getVideoData, ElementData} from "./ElementData";
 import Logger from "../utils/Logger";
+import {parseObservedArrayHorizontalData} from "./ArrayExtraction";
+import {extractKeyNode} from "./KeyExtraction";
 
 const LOGGER = Logger.extend("SHELF-EXTRACTION");
 
@@ -80,7 +82,9 @@ export function gridCalculator(
   }
 }
 
-function parseHorizontalNode(node: Helpers.YTNode): HorizontalData | undefined {
+export function parseHorizontalNode(
+  node: Helpers.YTNode,
+): HorizontalData | undefined {
   if (!node) {
     LOGGER.warn("FALSE TYPE PROVIDED!");
     return undefined;
@@ -93,18 +97,28 @@ function parseHorizontalNode(node: Helpers.YTNode): HorizontalData | undefined {
       data: content,
       parsedData,
       loadMore: () => {},
-      id: node.title + node.type,
+      id: extractKeyNode(node),
       originalNode: node,
+      title: node.title.text,
     };
   } else if (node.is(YTNodes.ItemSection)) {
     const {content, parsedData} = extractContent(Array.from(node.contents));
+
+    // TODO: Currently producing warnings in extractContent?
+    // For Channel Homescreen
+    if (content.length === 1 && parsedData.length === 0) {
+      console.log("Nested Shelf?");
+      console.log(node.header);
+      return parseHorizontalNode(content[0]);
+    }
+
     return {
       data: content,
       parsedData: parsedData,
       loadMore: () => {},
-      id: node.header + node.type,
+      id: extractKeyNode(node),
       originalNode: node,
-      title: node.header ? extractHeader(node.header) : "",
+      title: node.header ? extractHeader(node.header) : undefined,
     };
   } else if (node.is(YTNodes.RichShelf)) {
     const {content, parsedData} = extractContent(Array.from(node.contents));
@@ -112,7 +126,7 @@ function parseHorizontalNode(node: Helpers.YTNode): HorizontalData | undefined {
       data: content,
       parsedData: parsedData,
       loadMore: () => {},
-      id: node.title.text + node.type,
+      id: extractKeyNode(node),
       originalNode: node,
       title: node.title.text,
     };
@@ -124,9 +138,9 @@ function parseHorizontalNode(node: Helpers.YTNode): HorizontalData | undefined {
       data: content,
       parsedData: parsedData,
       loadMore: () => {},
-      id: node.title + node.type,
+      id: extractKeyNode(node),
       originalNode: node,
-      title: node.title.text ?? "",
+      title: node.title.text,
     };
   } else {
     console.warn("ShelfExtraction: Unknown horizontal type: ", node.type);
@@ -142,8 +156,14 @@ function extractContent(node: Helpers.YTNode | Helpers.YTNode[]) {
   };
 }
 
-function extractListContent(node: Helpers.YTNode) {
+function extractListContent(node: Helpers.YTNode): Helpers.YTNode[] {
   if (node.is(YTNodes.VerticalList)) {
+    return Array.from(node.contents.values());
+  } else if (node.is(YTNodes.HorizontalList)) {
+    return Array.from(node.contents.values());
+  } else if (node.is(YTNodes.Shelf)) {
+    return node.content ? extractListContent(node.content) : [];
+  } else if (node.is(YTNodes.ReelShelf)) {
     return Array.from(node.contents.values());
   } else {
     console.log("Unknown ListContent extraction type: ", node.type);
@@ -171,4 +191,16 @@ function listPrintTypes(v: Helpers.YTNode | Helpers.YTNode[]): any {
     return v.map((v2: any) => listPrintTypes(v2));
   }
   return v.type;
+}
+
+// SectionList Extraction
+
+export function extractSectionList(node: Helpers.YTNode) {
+  if (node.is(YTNodes.SectionList)) {
+    console.log(JSON.stringify(listPrintTypes(node), null, 4));
+    return parseObservedArrayHorizontalData(node.contents);
+  } else {
+    LOGGER.warn("Unknown SectionList type: ", node.type);
+  }
+  return [];
 }

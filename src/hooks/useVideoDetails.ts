@@ -8,12 +8,16 @@ const LOGGER = Logger.extend("VIDEO");
 export default function useVideoDetails(videoId: string) {
   const youtube = useYoutubeContext();
   const [Video, setVideo] = useState<YT.VideoInfo>();
+  const isLivestream = useMemo(
+    () => !!Video?.streaming_data?.hls_manifest_url,
+    [Video],
+  );
 
   useEffect(() => {
     youtube?.getInfo(videoId).then(setVideo).catch(console.warn);
   }, [videoId, youtube]);
 
-  const selectedVideo = useMemo(() => {
+  const httpVideoURL = useMemo(() => {
     if (!youtube?.actions.session.player) {
       return undefined;
     }
@@ -38,7 +42,12 @@ export default function useVideoDetails(videoId: string) {
     return undefined;
   }, [Video, youtube]);
 
-  LOGGER.debug("Video: ", selectedVideo);
+  LOGGER.debug("Video: ", httpVideoURL);
 
-  return {Video, selectedVideo};
+  return {
+    Video,
+    hlsManifestUrl: Video?.streaming_data?.hls_manifest_url,
+    httpVideoURL,
+    isLivestream,
+  };
 }

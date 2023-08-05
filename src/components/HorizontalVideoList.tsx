@@ -23,7 +23,11 @@ export default function HorizontalVideoList({
   const renderItem = useCallback(
     ({item}: {item: Helpers.YTNode | ElementData}) => {
       if (!(item instanceof Helpers.YTNode)) {
-        return <VideoSegment element={item} textStyle={textStyle} />;
+        if (item.type === "channel") {
+          return <ChannelSegment element={item.originalNode} />;
+        } else {
+          return <VideoSegment element={item} textStyle={textStyle} />;
+        }
       } else {
         if (item.is(YTNodes.RichItem)) {
           return <VideoSegment element={item.content} textStyle={textStyle} />;

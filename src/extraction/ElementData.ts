@@ -93,6 +93,18 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       duration: ytNode.duration.text,
       originalNode: ytNode,
     } as VideoData;
+  } else if (ytNode.is(YTNodes.GridVideo)) {
+    return {
+      id: ytNode.id,
+      title: ytNode.title.toString(),
+      thumbnailImage: ytNode.thumbnails[0],
+      short_views: ytNode.short_view_count.toString(),
+      author: ytNode.author ? getAuthor(ytNode.author) : undefined,
+      publishDate: ytNode.published.text,
+      type: "video",
+      duration: ytNode.duration?.text,
+      originalNode: ytNode,
+    } as VideoData;
   } else if (ytNode.is(YTNodes.ReelItem)) {
     return {
       id: ytNode.id,
@@ -157,6 +169,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
     const author = getAuthor(ytNode.author);
     return {
       type: "channel",
+      originalNode: ytNode,
       id: ytNode.id,
       author: author,
       title: author.name,

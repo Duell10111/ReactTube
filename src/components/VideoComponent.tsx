@@ -12,12 +12,23 @@ import {useIsFocused} from "@react-navigation/native";
 const LOGGER = Logger.extend("VIDEO");
 
 interface Props {
+  videoId: string;
   url: string;
+  isLiveSteam?: boolean;
   style?: StyleProp<ViewStyle>;
   onEndReached?: () => void;
+  onPlaybackInfoUpdate?: (playbackInfos: {
+    width: number;
+    height: number;
+  }) => void;
 }
 
-export default function VideoComponent({url, style, ...callbacks}: Props) {
+export default function VideoComponent({
+  url,
+  videoId,
+  style,
+  ...callbacks
+}: Props) {
   // const player = useRef<Video>();
   const isFocused = useIsFocused();
 
@@ -31,12 +42,12 @@ export default function VideoComponent({url, style, ...callbacks}: Props) {
           // type: "m3u8",
           // uri: "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
           // type: "mpd",
+          // uri: `http://localhost:7500/video/${videoId}/master.m3u8`,
           uri: url,
         }}
         style={[
           style ?? {
             ...styles.fullScreen,
-            // backgroundColor: "rgba(0,34,255,0.6)",
           },
           StyleSheet.absoluteFillObject,
         ]}
@@ -44,10 +55,15 @@ export default function VideoComponent({url, style, ...callbacks}: Props) {
         paused={!isFocused}
         fullscreen
         resizeMode={"contain"}
-        onLoad={(data: any) =>
-          LOGGER.debug("Video Loading...", JSON.stringify(data, null, 4))
-        }
+        onLoad={(data: any) => {
+          LOGGER.debug("Video Loading...", JSON.stringify(data, null, 4));
+          callbacks.onPlaybackInfoUpdate?.({
+            width: data?.naturalSize?.width,
+            height: data?.naturalSize?.height,
+          });
+        }}
         onLoadStart={() => LOGGER.debug("Video Start Loading...")}
+        onError={LOGGER.warn}
         onEnd={() => {
           LOGGER.debug("End reached");
           callbacks.onEndReached?.();

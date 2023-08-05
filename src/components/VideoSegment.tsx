@@ -25,7 +25,7 @@ export default function VideoSegment({
     if (element.type === "video" || element.type === "reel") {
       return (
         <VideoCard
-          style={style}
+          style={[style, element.type === "reel" ? reelStyle : {}]}
           textStyle={textStyle}
           videoId={element.id}
           title={element.title}
@@ -169,3 +169,5 @@ export default function VideoSegment({
 }
 
 const defaultStyle = {padding: 20};
+
+const reelStyle: StyleProp<ViewStyle> = {width: 350, height: 750};

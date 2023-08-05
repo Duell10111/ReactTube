@@ -8751,10 +8751,10 @@ yocto-queue@^0.1.0:
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
 
-youtubei.js@^5.7.1:
-  version "5.7.1"
-  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-5.7.1.tgz#efb18f197cf92087623c403109544c4bcbb233cb"
-  integrity sha512-K4f6OmcwM/v4+Hr0BohkKLg+xZMygJ10Qwyfhi8USSw7K2kLxPHq3x8oygsYpqCUcVXXUAHOsonV8R2xmOOymg==
+youtubei.js@5.8.0:
+  version "5.8.0"
+  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-5.8.0.tgz#4c6dc898b6a2c6cbf91f95932be18e981e394e2d"
+  integrity sha512-xMQxbhy0TMpLvJnGbLnqAE9RhiLCwBuVrsTyVd0ZFX6o98fmJmddcE1qeRIagNGNr16BmofqtsbGXIfpZprFhA==
   dependencies:
     jintr "^1.1.0"
     linkedom "^0.14.12"

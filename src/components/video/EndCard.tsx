@@ -13,6 +13,7 @@ interface Props {
   visible: boolean;
   onCloseRequest: () => void;
   endCard?: boolean;
+  currentResolution?: string;
 }
 
 // TODO: Add autoplay for next video
@@ -22,6 +23,7 @@ export default function EndCard({
   onCloseRequest,
   video,
   endCard,
+  currentResolution,
 }: Props) {
   const navigation = useNavigation<NativeStackProp>();
 
@@ -67,6 +69,11 @@ export default function EndCard({
             <Text style={[styles.text, styles.viewsText]}>
               {`${video.basic_info.view_count} Views`}
             </Text>
+            {currentResolution ? (
+              <Text style={[styles.text, styles.viewsText]}>
+                {`Current Resolution ${currentResolution}`}
+              </Text>
+            ) : null}
           </View>
         </View>
         <View style={styles.bottomContainer}>

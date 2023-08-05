@@ -19,12 +19,18 @@ import {useFocusEffect} from "@react-navigation/native";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
+interface PlaybackInformation {
+  resolution: string;
+}
+
 // TODO: Fix if freeze if video does only provide audio!!
 // TODO: Add TV remote input for suggestions https://github.com/react-native-tvos/react-native-tvos/blob/tvos-v0.64.2/README.md
 
 export default function VideoScreen({route, navigation}: Props) {
   const {videoId} = route.params;
-  const {Video, selectedVideo} = useVideoDetails(videoId);
+  const {Video, httpVideoURL, isLivestream, hlsManifestUrl} =
+    useVideoDetails(videoId);
+  const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components
   const [ended, setEnded] = useState(false);
@@ -65,7 +71,7 @@ export default function VideoScreen({route, navigation}: Props) {
     );
   }
 
-  if (!selectedVideo) {
+  if (!httpVideoURL) {
     return (
       <ErrorComponent
         text={
@@ -79,7 +85,7 @@ export default function VideoScreen({route, navigation}: Props) {
       {appSettings.vlcEnabled ? (
         <VideoPlayerVLC
           videoInfo={Video}
-          url={selectedVideo ?? ""}
+          url={httpVideoURL}
           onEndReached={() => {
             setEnded(true);
             setShowEndCard(true);
@@ -88,10 +94,15 @@ export default function VideoScreen({route, navigation}: Props) {
         />
       ) : (
         <VideoComponent
-          url={selectedVideo ?? ""}
+          videoId={videoId}
+          url={hlsManifestUrl ?? httpVideoURL}
+          isLiveSteam={isLivestream}
           onEndReached={() => {
             setEnded(true);
             setShowEndCard(true);
+          }}
+          onPlaybackInfoUpdate={infos => {
+            setPlaybackInfos({resolution: infos.height.toString() + "p"});
           }}
         />
       )}
@@ -103,6 +114,7 @@ export default function VideoScreen({route, navigation}: Props) {
           setShowEndCard(false);
         }}
         endCard={ended}
+        currentResolution={playbackInfos?.resolution}
       />
     </View>
   );
