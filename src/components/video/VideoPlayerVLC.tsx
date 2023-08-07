@@ -15,6 +15,7 @@ const LOGGER = Logger.extend("VIDEO");
 interface Props {
   videoInfo: YT.VideoInfo;
   url: string;
+  hlsUrl?: string;
   style?: StyleProp<ViewStyle>;
   onEndReached?: () => void;
   disableControls?: boolean;
@@ -27,7 +28,7 @@ export default function VideoPlayerVLC({
 }: Props) {
   const {dashUrl, videoQuality, audioQuality} = useYoutubeDash(videoInfo);
 
-  LOGGER.debug("Dash URL: ", dashUrl);
+  // LOGGER.debug("Dash URL: ", dashUrl);
 
   return (
     <>

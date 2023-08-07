@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import Video from "react-native-video";
 import {
   ActivityIndicator,
@@ -12,9 +12,9 @@ import {useIsFocused} from "@react-navigation/native";
 const LOGGER = Logger.extend("VIDEO");
 
 interface Props {
-  videoId: string;
   url: string;
   isLiveSteam?: boolean;
+  hlsUrl?: string;
   style?: StyleProp<ViewStyle>;
   onEndReached?: () => void;
   onPlaybackInfoUpdate?: (playbackInfos: {
@@ -25,12 +25,18 @@ interface Props {
 
 export default function VideoComponent({
   url,
-  videoId,
+  hlsUrl,
   style,
   ...callbacks
 }: Props) {
   // const player = useRef<Video>();
   const isFocused = useIsFocused();
+  const [failbackURL, setFailbackUrl] = useState(false);
+
+  // As changing url causes duplicate errors
+  if (failbackURL) {
+    return <VideoComponent url={url} {...callbacks} />;
+  }
 
   return (
     <>
@@ -43,14 +49,9 @@ export default function VideoComponent({
           // uri: "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
           // type: "mpd",
           // uri: `http://localhost:7500/video/${videoId}/master.m3u8`,
-          uri: url,
+          uri: hlsUrl ?? url,
         }}
-        style={[
-          style ?? {
-            ...styles.fullScreen,
-          },
-          StyleSheet.absoluteFillObject,
-        ]}
+        style={[styles.fullScreen, StyleSheet.absoluteFillObject]}
         controls
         paused={!isFocused}
         fullscreen
@@ -63,7 +64,13 @@ export default function VideoComponent({
           });
         }}
         onLoadStart={() => LOGGER.debug("Video Start Loading...")}
-        onError={LOGGER.warn}
+        onError={(error: any) => {
+          LOGGER.warn(error);
+          if (hlsUrl) {
+            setFailbackUrl(true);
+            LOGGER.warn("Switching to fallback url");
+          }
+        }}
         onEnd={() => {
           LOGGER.debug("End reached");
           callbacks.onEndReached?.();

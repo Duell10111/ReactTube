@@ -145,25 +145,27 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       thumbnailImage: ytNode.thumbnails[0],
       videoCount: ytNode.video_count_short.text,
     } as PlaylistData;
-  } else if (ytNode.is(YTNodes.CompactMix)) {
-    return {
-      type: "playlist",
-      originalNode: ytNode,
-      id: ytNode.id,
-      title: "MIX - " + ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
-      videoCount: ytNode.video_count_short.text,
-    } as PlaylistData;
-  } else if (ytNode.is(YTNodes.Mix)) {
-    return {
-      type: "playlist",
-      originalNode: ytNode,
-      id: ytNode.id,
-      title: "MIX - " + ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
-      videoCount: ytNode.video_count_short.text,
-    } as PlaylistData;
   }
+  // TODO: Mixes are currently not accessible via yt.js
+  // else if (ytNode.is(YTNodes.CompactMix)) {
+  //   return {
+  //     type: "playlist",
+  //     originalNode: ytNode,
+  //     id: ytNode.id,
+  //     title: "MIX - " + ytNode.title.toString(),
+  //     thumbnailImage: ytNode.thumbnails[0],
+  //     videoCount: ytNode.video_count_short.text,
+  //   } as PlaylistData;
+  // } else if (ytNode.is(YTNodes.Mix)) {
+  //   return {
+  //     type: "playlist",
+  //     originalNode: ytNode,
+  //     id: ytNode.id,
+  //     title: "MIX - " + ytNode.title.toString(),
+  //     thumbnailImage: ytNode.thumbnails[0],
+  //     videoCount: ytNode.video_count_short.text,
+  //   } as PlaylistData;
+  // }
   // Channel Data
   else if (ytNode.is(YTNodes.GridChannel)) {
     const author = getAuthor(ytNode.author);

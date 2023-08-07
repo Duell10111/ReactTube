@@ -1,22 +1,22 @@
 import React from "react";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
 import {DrawerScreenProps} from "@react-navigation/drawer";
-import {Text, TouchableOpacity, View} from "react-native";
+import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {Button, CheckBox} from "@rneui/base";
 import {useAppData} from "../context/AppDataContext";
 import useAccountData from "../hooks/account/useAccountData";
 
 type Props = DrawerScreenProps<RootStackParamList, "SettingsScreen">;
 
-export default function SettingsScreen(props: Props) {
+export default function SettingsScreen({}: Props) {
   const {appSettings, updateSettings} = useAppData();
   const {logout, clearAllData} = useAccountData();
 
   return (
-    <View style={{backgroundColor: "red", flex: 1}}>
+    <View style={styles.containerStyle}>
       <Text>Settings</Text>
       <CheckBox
-        style={{flex: 1}}
+        style={styles.checkBoxStyle}
         center
         title="VLC"
         checked={appSettings.vlcEnabled ?? false}
@@ -26,8 +26,27 @@ export default function SettingsScreen(props: Props) {
         }}
         Component={TouchableOpacity}
       />
+      <CheckBox
+        style={styles.checkBoxStyle}
+        center
+        title="HLS Enabled (if available)"
+        checked={appSettings.hlsEnabled ?? true}
+        onPress={() => {
+          updateSettings({hlsEnabled: !(appSettings.hlsEnabled ?? true)});
+        }}
+        Component={TouchableOpacity}
+      />
       <Button title={"Logout"} onPress={() => logout()} />
       <Button title={"Clear all"} onPress={() => clearAllData()} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  containerStyle: {
+    flex: 1,
+  },
+  checkBoxStyle: {
+    flex: 1,
+  },
+});

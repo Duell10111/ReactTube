@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import VideoComponent from "../components/VideoComponent";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
@@ -35,6 +35,15 @@ export default function VideoScreen({route, navigation}: Props) {
   // TODO: Workaround maybe replace with two components
   const [ended, setEnded] = useState(false);
 
+  const {appSettings} = useAppData();
+
+  // TODO: Will be replaced once embed server is available on tvOS
+  const hlsUrl = useMemo(() => {
+    return appSettings.hlsEnabled ?? true ? undefined : undefined;
+  }, [appSettings.hlsEnabled, videoId]);
+
+  console.log(videoId);
+
   useEffect(() => {
     return navigation.addListener("blur", () => {
       setShowEndCard(false);
@@ -53,8 +62,6 @@ export default function VideoScreen({route, navigation}: Props) {
     // Enable TV Menu Key to fix issue if video not loading
     TVEventControl.enableTVMenuKey();
   });
-
-  const {appSettings} = useAppData();
 
   if (!Video) {
     return (
@@ -86,6 +93,7 @@ export default function VideoScreen({route, navigation}: Props) {
         <VideoPlayerVLC
           videoInfo={Video}
           url={httpVideoURL}
+          hlsUrl={hlsUrl}
           onEndReached={() => {
             setEnded(true);
             setShowEndCard(true);
@@ -94,9 +102,9 @@ export default function VideoScreen({route, navigation}: Props) {
         />
       ) : (
         <VideoComponent
-          videoId={videoId}
           url={hlsManifestUrl ?? httpVideoURL}
           isLiveSteam={isLivestream}
+          hlsUrl={hlsUrl}
           onEndReached={() => {
             setEnded(true);
             setShowEndCard(true);
