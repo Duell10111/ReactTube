@@ -14,6 +14,7 @@ import {useShelfVideoSelector} from "../context/ShelfVideoSelector";
 import {NativeStackProp, RootRouteProp} from "../navigation/types";
 import {useAppStyle} from "../context/AppStyleContext";
 import Logger from "../utils/Logger";
+import {Icon} from "@rneui/base";
 
 const LOGGER = Logger.extend("VIDEOCARD");
 
@@ -28,6 +29,7 @@ interface Props {
   author?: string;
   date?: string;
   disabled?: boolean;
+  livestream?: boolean;
 }
 
 export default function VideoCard({style, textStyle, ...data}: Props) {
@@ -86,7 +88,15 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
               "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
           }}
         />
-        <Text style={styles.countContainer}>{data.duration}</Text>
+        {data.duration ? (
+          <Text style={styles.countContainer}>{data.duration}</Text>
+        ) : null}
+        {data.livestream ? (
+          <View style={styles.liveContainer}>
+            <Icon name={"record"} type={"material-community"} color={"red"} />
+            <Text style={styles.liveStyle}>Live</Text>
+          </View>
+        ) : null}
       </VideoTouchable>
       <Text style={[styles.titleStyle, {color: appStyle.textColor}, textStyle]}>
         {data.title}
@@ -137,5 +147,18 @@ const styles = StyleSheet.create({
     backgroundColor: "black",
     padding: 5,
     fontSize: 20,
+  },
+  liveContainer: {
+    position: "absolute",
+    left: 10,
+    bottom: 10,
+    backgroundColor: "black",
+    padding: 5,
+    fontSize: 20,
+    flexDirection: "row",
+  },
+  liveStyle: {
+    fontSize: 20,
+    color: "red",
   },
 });

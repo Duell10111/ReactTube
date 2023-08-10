@@ -37,7 +37,7 @@ export default function GridView({
         </View>
       );
     }
-    return <PageSectionList headerText={item.title} content={item.data} />;
+    return <PageSectionList headerText={item.title} content={item} />;
   }, []);
   const keyExtractor = useCallback(
     (item: (typeof sorted)[number], index: number) =>

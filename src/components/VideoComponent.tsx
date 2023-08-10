@@ -13,7 +13,6 @@ const LOGGER = Logger.extend("VIDEO");
 
 interface Props {
   url: string;
-  isLiveSteam?: boolean;
   hlsUrl?: string;
   style?: StyleProp<ViewStyle>;
   onEndReached?: () => void;

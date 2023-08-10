@@ -14,6 +14,7 @@ export default function PageSegment({segment}: Props) {
     console.log("Title: ", segment.title);
     return <PageSectionList content={segment} headerText={segment.title} />;
   } else {
+    console.warn("Page Segment: OLD WAY!");
     if (segment.is(YTNodes.RichItem) && segment.content) {
       return <VideoSegment element={segment.content} />;
     } else if (segment.is(YTNodes.RichSection) && segment.content) {

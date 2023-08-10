@@ -34,6 +34,7 @@ export default function VideoSegment({
           author={element.author?.name}
           thumbnailURL={element.thumbnailImage?.url?.split("?")?.[0]}
           date={element.publishDate}
+          livestream={element.livestream}
         />
       );
     } else if (element.type === "playlist") {
@@ -51,7 +52,7 @@ export default function VideoSegment({
       console.warn("Unknown element data: ", element.type);
     }
   } else {
-    // console.warn("Used old way!")
+    console.warn("Used old way!");
     // TODO: Remove once not needed anymore!
     if (element.is(YTNodes.Video)) {
       return (

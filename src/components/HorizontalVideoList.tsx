@@ -29,6 +29,7 @@ export default function HorizontalVideoList({
           return <VideoSegment element={item} textStyle={textStyle} />;
         }
       } else {
+        console.warn("! Old Way");
         if (item.is(YTNodes.RichItem)) {
           return <VideoSegment element={item.content} textStyle={textStyle} />;
         } else if (item.is(YTNodes.Video)) {

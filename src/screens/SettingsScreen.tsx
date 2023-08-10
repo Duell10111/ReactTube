@@ -36,6 +36,18 @@ export default function SettingsScreen({}: Props) {
         }}
         Component={TouchableOpacity}
       />
+      <CheckBox
+        style={styles.checkBoxStyle}
+        center
+        title="Local HLS Enabled"
+        checked={appSettings.localHlsEnabled ?? false}
+        onPress={() => {
+          updateSettings({
+            localHlsEnabled: !(appSettings.localHlsEnabled ?? false),
+          });
+        }}
+        Component={TouchableOpacity}
+      />
       <Button title={"Logout"} onPress={() => logout()} />
       <Button title={"Clear all"} onPress={() => clearAllData()} />
     </View>

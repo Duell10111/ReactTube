@@ -1,25 +1,29 @@
 import {useYoutubeContext} from "../context/YoutubeContext";
 import {useCallback, useEffect, useState} from "react";
-import {YTNodes, YT, Helpers} from "../utils/Youtube";
+import {YTNodes, YT} from "../utils/Youtube";
 import Logger from "../utils/Logger";
+
+type PlaylistItems =
+  | YTNodes.Video
+  | YTNodes.CompactVideo
+  | YTNodes.GridVideo
+  | YTNodes.PlaylistPanelVideo
+  | YTNodes.PlaylistVideo
+  | YTNodes.ReelItem
+  | YTNodes.WatchCardCompactVideo;
 
 const LOGGER = Logger.extend("PLAYLIST");
 
 export default function usePlaylistDetails(playlistId: string) {
   const youtube = useYoutubeContext();
   const [playlist, setPlaylist] = useState<YT.Playlist>();
-  const [data, setData] = useState<Helpers.YTNode[]>([]);
+  const [data, setData] = useState<PlaylistItems[]>([]);
 
   useEffect(() => {
     youtube
       ?.getPlaylist(playlistId)
       .then(p => {
         setPlaylist(p);
-        // if (p.page_contents.is(YTNodes.SectionList)) {
-        //   setData(p.page_contents.contents);
-        // } else {
-        //   LOGGER.warn("Unknown playlist content type: ", p.page_contents.type);
-        // }
         setData(p.items);
       })
       .catch(LOGGER.warn);

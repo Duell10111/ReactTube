@@ -1,4 +1,4 @@
-import {YTNodes, Helpers, Misc} from "../utils/Youtube";
+import {YT, YTNodes, Helpers, Misc} from "../utils/Youtube";
 import Logger from "../utils/Logger";
 
 export interface Thumbnail {
@@ -24,6 +24,7 @@ export interface VideoData {
   publishDate?: string;
   author?: Author;
   quality?: string;
+  livestream?: boolean;
 }
 
 export interface Author {
@@ -52,7 +53,15 @@ export interface ChannelData {
   author?: Author;
 }
 
-const skippedTypes = [YTNodes.GridMovie, YTNodes.Movie];
+const skippedTypes = [
+  // Movies are skipped
+  YTNodes.GridMovie,
+  YTNodes.Movie,
+  // "CompactMovie", // No type available
+  // As Long As Mixed do not work
+  YTNodes.Mix,
+  YTNodes.CompactMix,
+];
 
 const LOGGER = Logger.extend("EXTRACTION");
 
@@ -71,7 +80,7 @@ export function getVideoDataOfFirstElement(
 
 export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
   if (!ytNode) {
-    LOGGER.warn("FALSE TYPE PROVIDED!");
+    // LOGGER.warn("FALSE TYPE PROVIDED!");
     return undefined;
   }
 
@@ -82,6 +91,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
 
   // TODO: Maybe split
   if (ytNode.is(YTNodes.Video, YTNodes.CompactVideo)) {
+    const duration = ytNode.duration.text;
     return {
       id: ytNode.id,
       title: ytNode.title.toString(),
@@ -90,7 +100,8 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       author: getAuthor(ytNode.author),
       publishDate: ytNode.published.text,
       type: "video",
-      duration: ytNode.duration.text,
+      duration: duration?.startsWith("N/A") ? undefined : duration,
+      livestream: ytNode.is_live,
       originalNode: ytNode,
     } as VideoData;
   } else if (ytNode.is(YTNodes.GridVideo)) {
@@ -111,7 +122,6 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       title: ytNode.title.toString(),
       thumbnailImage: ytNode.thumbnails[0],
       short_views: ytNode.views.toString(),
-      duration: "",
       type: "reel",
       originalNode: ytNode,
     } as VideoData;
@@ -145,22 +155,43 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       thumbnailImage: ytNode.thumbnails[0],
       videoCount: ytNode.video_count_short.text,
     } as PlaylistData;
+  } else if (ytNode.is(YTNodes.CompactPlaylist)) {
+    return {
+      type: "playlist",
+      originalNode: ytNode,
+      id: ytNode.id,
+      title: ytNode.title.toString(),
+      thumbnailImage: ytNode.thumbnails[0],
+      videoCount: ytNode.video_count_short.text,
+    } as PlaylistData;
   }
   // TODO: Mixes are currently not accessible via yt.js
   // else if (ytNode.is(YTNodes.CompactMix)) {
+  //   LOGGER.warn("Compact MIX Content: ", JSON.stringify(ytNode));
+  //   const playlistId = ytNode.endpoint.payload?.playlistId;
+  //   if (!playlistId) {
+  //     LOGGER.warn("playlistId undefined");
+  //     return undefined;
+  //   }
   //   return {
   //     type: "playlist",
   //     originalNode: ytNode,
-  //     id: ytNode.id,
+  //     id: playlistId,
   //     title: "MIX - " + ytNode.title.toString(),
   //     thumbnailImage: ytNode.thumbnails[0],
   //     videoCount: ytNode.video_count_short.text,
   //   } as PlaylistData;
   // } else if (ytNode.is(YTNodes.Mix)) {
+  //   LOGGER.warn("MIX Content: ", JSON.stringify(ytNode));
+  //   const playlistId = ytNode.endpoint.payload?.playlistId;
+  //   if (!playlistId) {
+  //     LOGGER.warn("playlistId undefined");
+  //     return undefined;
+  //   }
   //   return {
   //     type: "playlist",
   //     originalNode: ytNode,
-  //     id: ytNode.id,
+  //     id: playlistId,
   //     title: "MIX - " + ytNode.title.toString(),
   //     thumbnailImage: ytNode.thumbnails[0],
   //     videoCount: ytNode.video_count_short.text,
@@ -193,4 +224,19 @@ export function getAuthor(author: Misc.Author) {
     name: author.name,
     thumbnail: author.best_thumbnail,
   } as Author;
+}
+
+// Declare own extractor for these cases?
+
+export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
+  return {
+    type: "video",
+    id: videoInfo.basic_info.id,
+    duration: videoInfo.basic_info.duration,
+    livestream: videoInfo.basic_info.is_live,
+    thumbnailImage: videoInfo.basic_info.thumbnail?.[0],
+    title: videoInfo.basic_info.title,
+    short_views: videoInfo.basic_info.view_count?.toString(),
+    originalNode: {} as Helpers.YTNode,
+  } as VideoData;
 }

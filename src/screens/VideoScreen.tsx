@@ -28,8 +28,7 @@ interface PlaybackInformation {
 
 export default function VideoScreen({route, navigation}: Props) {
   const {videoId} = route.params;
-  const {Video, httpVideoURL, isLivestream, hlsManifestUrl} =
-    useVideoDetails(videoId);
+  const {Video, httpVideoURL, hlsManifestUrl} = useVideoDetails(videoId);
   const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components
@@ -39,8 +38,10 @@ export default function VideoScreen({route, navigation}: Props) {
 
   // TODO: Will be replaced once embed server is available on tvOS
   const hlsUrl = useMemo(() => {
-    return appSettings.hlsEnabled ?? true ? undefined : undefined;
-  }, [appSettings.hlsEnabled, videoId]);
+    return appSettings.localHlsEnabled
+      ? `http://192.168.178.10:7500/video/${videoId}/master.m3u8`
+      : undefined;
+  }, [appSettings.localHlsEnabled, videoId]);
 
   console.log(videoId);
 
@@ -63,6 +64,13 @@ export default function VideoScreen({route, navigation}: Props) {
     TVEventControl.enableTVMenuKey();
   });
 
+  const videoUrl = useMemo(
+    () => hlsManifestUrl ?? httpVideoURL,
+    [hlsManifestUrl, httpVideoURL],
+  );
+
+  console.log("Video Url: ", videoUrl);
+
   if (!Video) {
     return (
       <View
@@ -78,7 +86,7 @@ export default function VideoScreen({route, navigation}: Props) {
     );
   }
 
-  if (!httpVideoURL) {
+  if (!videoUrl) {
     return (
       <ErrorComponent
         text={
@@ -92,7 +100,7 @@ export default function VideoScreen({route, navigation}: Props) {
       {appSettings.vlcEnabled ? (
         <VideoPlayerVLC
           videoInfo={Video}
-          url={httpVideoURL}
+          url={videoUrl}
           hlsUrl={hlsUrl}
           onEndReached={() => {
             setEnded(true);
@@ -102,8 +110,7 @@ export default function VideoScreen({route, navigation}: Props) {
         />
       ) : (
         <VideoComponent
-          url={hlsManifestUrl ?? httpVideoURL}
-          isLiveSteam={isLivestream}
+          url={videoUrl}
           hlsUrl={hlsUrl}
           onEndReached={() => {
             setEnded(true);

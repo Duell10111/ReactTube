@@ -13,6 +13,10 @@ interface Props {
 export default function PageSectionList({headerText, content}: Props) {
   const {style} = useAppStyle();
 
+  if (Array.isArray(content)) {
+    console.warn("PageSectionList: OLDWAY!");
+  }
+
   return (
     <View>
       <Text style={[styles.textStyle, {color: style.textColor}]}>
