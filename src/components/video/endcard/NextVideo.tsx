@@ -1,12 +1,12 @@
 import React from "react";
 import {StyleSheet, Text, View} from "react-native";
 import PlayButton from "./PlayButton";
-import {ElementData} from "../../../extraction/ElementData";
 import useNextVideo from "../../../hooks/ui/useNextVideo";
 import FastImage from "react-native-fast-image";
+import {YTVideoInfo} from "../../../extraction/Types";
 
 interface NextVideoProps {
-  nextVideo?: ElementData;
+  nextVideo?: YTVideoInfo;
   onPress?: (id: string) => void;
 }
 
@@ -20,15 +20,15 @@ export default function NextVideo({nextVideo, onPress}: NextVideoProps) {
 
   // TODO: Optimize image for end-card
 
+  console.log("URI: ", nextVideo?.thumbnailImage?.url?.split("?")?.[0]);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.nextVideoText}>
-        {"Nächstes Video in " + countdown}
-      </Text>
+      <Text style={styles.nextVideoText}>{"Next Video in " + countdown}</Text>
       <Text style={styles.videoTitle}>{nextVideo?.title}</Text>
       <FastImage
         style={styles.imageContainer}
-        source={{uri: nextVideo?.thumbnailImage?.url?.split("?")?.[0]}}
+        source={{uri: nextVideo?.thumbnailImage?.url}}
       />
       <PlayButton
         style={styles.playStyle}

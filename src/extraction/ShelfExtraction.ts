@@ -1,9 +1,10 @@
 import {Helpers, YTNodes} from "../utils/Youtube";
 import _ from "lodash";
-import {getVideoData, ElementData} from "./ElementData";
+import {getVideoData} from "./ElementData";
 import Logger from "../utils/Logger";
 import {parseObservedArrayHorizontalData} from "./ArrayExtraction";
 import {extractKeyNode} from "./KeyExtraction";
+import {ElementData} from "./Types";
 
 const LOGGER = Logger.extend("SHELF-EXTRACTION");
 

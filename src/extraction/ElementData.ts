@@ -1,57 +1,16 @@
-import {YT, YTNodes, Helpers, Misc} from "../utils/Youtube";
+import {Helpers, YTNodes} from "../utils/Youtube";
 import Logger from "../utils/Logger";
-
-export interface Thumbnail {
-  url: string;
-  height: number;
-  width: number;
-}
+import {
+  ChannelData,
+  ElementData,
+  getAuthor,
+  PlaylistData,
+  VideoData,
+} from "./Types";
 
 // TODO: Add ChannelData
 
 // TODO: Split from ElementData in VideoData or PlaylistData
-
-export type ElementData = VideoData | PlaylistData | ChannelData;
-
-export interface VideoData {
-  originalNode: Helpers.YTNode;
-  type: "video" | "reel";
-  id: string;
-  thumbnailImage: Thumbnail;
-  title: string;
-  duration?: string;
-  short_views: string;
-  publishDate?: string;
-  author?: Author;
-  quality?: string;
-  livestream?: boolean;
-}
-
-export interface Author {
-  id: string;
-  name: string;
-  thumbnail: Thumbnail;
-}
-
-export interface PlaylistData {
-  originalNode: Helpers.YTNode;
-  type: "playlist";
-  id: string;
-  title: string;
-  thumbnailImage: Thumbnail;
-  author?: Author;
-  videoCount?: string;
-  videos?: string[];
-}
-
-export interface ChannelData {
-  originalNode: Helpers.YTNode;
-  type: "channel";
-  id: string;
-  title: string;
-  thumbnailImage: Thumbnail;
-  author?: Author;
-}
 
 const skippedTypes = [
   // Movies are skipped
@@ -216,27 +175,4 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
   } else {
     LOGGER.warn("getVideoData: Unknown type: ", ytNode.type);
   }
-}
-
-export function getAuthor(author: Misc.Author) {
-  return {
-    id: author.id,
-    name: author.name,
-    thumbnail: author.best_thumbnail,
-  } as Author;
-}
-
-// Declare own extractor for these cases?
-
-export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
-  return {
-    type: "video",
-    id: videoInfo.basic_info.id,
-    duration: videoInfo.basic_info.duration,
-    livestream: videoInfo.basic_info.is_live,
-    thumbnailImage: videoInfo.basic_info.thumbnail?.[0],
-    title: videoInfo.basic_info.title,
-    short_views: videoInfo.basic_info.view_count?.toString(),
-    originalNode: {} as Helpers.YTNode,
-  } as VideoData;
 }

@@ -3,9 +3,9 @@ import {Modal, StyleSheet, View} from "react-native";
 import {ListItem} from "@rneui/base";
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackProp} from "../../navigation/types";
-import useVideoDetails from "../../hooks/useVideoDetails";
 import {useShelfVideoSelector} from "../../context/ShelfVideoSelector";
 import LOGGER from "../../utils/Logger";
+import useVideoElementData from "../../hooks/video/useVideoElementData";
 
 const Logger = LOGGER.extend("VIDEOMENU");
 
@@ -43,7 +43,7 @@ function VideoMenuContent({
   onCloseModal: () => void;
 }) {
   const navigation = useNavigation<NativeStackProp>();
-  const {Video} = useVideoDetails(videoId);
+  const {Video} = useVideoElementData(videoId);
   // console.log("VideoInfo: ", JSON.stringify(Video?.basic_info, null, 4));
   return (
     <VideoMenuItem

@@ -4,7 +4,8 @@ import {StyleProp, TextStyle, ViewStyle} from "react-native";
 import Logger from "../utils/Logger";
 import VideoCard from "./VideoCard";
 import PlaylistCard from "./segments/PlaylistCard";
-import {ElementData} from "../extraction/ElementData";
+
+import {ElementData} from "../extraction/Types";
 
 const LOGGER = Logger.extend("SEGMENT");
 

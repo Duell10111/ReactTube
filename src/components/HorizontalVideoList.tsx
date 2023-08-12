@@ -5,7 +5,8 @@ import VideoSegment from "./VideoSegment";
 import Logger from "../utils/Logger";
 import {keyExtractorItems} from "../utils/YTNodeKeyExtractor";
 import ChannelSegment from "./ChannelSegment";
-import {ElementData} from "../extraction/ElementData";
+
+import {ElementData} from "../extraction/Types";
 
 const LOGGER = Logger.extend("SEGMENT");
 
