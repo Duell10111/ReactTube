@@ -28,7 +28,7 @@ interface PlaybackInformation {
 
 export default function VideoScreen({route, navigation}: Props) {
   const {videoId} = route.params;
-  const {Video, httpVideoURL, hlsManifestUrl} = useVideoDetails(videoId);
+  const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(videoId);
   const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components
@@ -70,8 +70,9 @@ export default function VideoScreen({route, navigation}: Props) {
   );
 
   console.log("Video Url: ", videoUrl);
+  // console.log("Chapters: ", YTVideoInfo?.chapters);
 
-  if (!Video) {
+  if (!YTVideoInfo) {
     return (
       <View
         style={[
@@ -90,7 +91,8 @@ export default function VideoScreen({route, navigation}: Props) {
     return (
       <ErrorComponent
         text={
-          Video.playability_status.reason ?? "Video source is not available"
+          YTVideoInfo.originalData.playability_status.reason ??
+          "Video source is not available"
         }
       />
     );
@@ -99,7 +101,7 @@ export default function VideoScreen({route, navigation}: Props) {
     <View style={[StyleSheet.absoluteFill]}>
       {appSettings.vlcEnabled ? (
         <VideoPlayerVLC
-          videoInfo={Video}
+          videoInfo={YTVideoInfo.originalData}
           url={videoUrl}
           hlsUrl={hlsUrl}
           onEndReached={() => {
@@ -112,6 +114,7 @@ export default function VideoScreen({route, navigation}: Props) {
         <VideoComponent
           url={videoUrl}
           hlsUrl={hlsUrl}
+          videoInfo={YTVideoInfo}
           onEndReached={() => {
             setEnded(true);
             setShowEndCard(true);
@@ -122,7 +125,7 @@ export default function VideoScreen({route, navigation}: Props) {
         />
       )}
       <EndCard
-        video={Video}
+        video={YTVideoInfo.originalData}
         visible={showEndCard}
         onCloseRequest={() => {
           console.log("Back pressed");

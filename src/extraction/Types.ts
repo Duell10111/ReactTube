@@ -56,12 +56,22 @@ export interface YTVideoInfo {
   id: string;
   thumbnailImage: Thumbnail;
   title: string;
+  description?: string;
   duration?: string;
   short_views: string;
   publishDate?: string;
   quality?: string;
   livestream?: boolean;
   author?: Author;
+  chapters?: YTChapter[];
+}
+
+export interface YTChapter {
+  originalData: YTNodes.Chapter;
+  title: string;
+  thumbnailImage: Thumbnail;
+  startDuration: number;
+  endDuration: number;
 }
 
 export function getAuthor(author: Misc.Author) {

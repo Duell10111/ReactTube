@@ -3,6 +3,7 @@ import {useEffect, useMemo, useState} from "react";
 import {YT, YTNodes} from "../utils/Youtube";
 import Logger from "../utils/Logger";
 import {useAppData} from "../context/AppDataContext";
+import {getElementDataFromVideoInfo} from "../extraction/YTElements";
 
 const LOGGER = Logger.extend("VIDEO");
 
@@ -19,6 +20,10 @@ export default function useVideoDetails(
       .then(setVideo)
       .catch(console.warn);
   }, [appSettings.hlsEnabled, videoId, youtube]);
+
+  const YTVideoInfo = useMemo(() => {
+    return Video ? getElementDataFromVideoInfo(Video) : undefined;
+  }, [Video]);
 
   // console.log("HLS: ", Video?.streaming_data?.hls_manifest_url);
 
@@ -52,6 +57,7 @@ export default function useVideoDetails(
 
   return {
     Video,
+    YTVideoInfo,
     hlsManifestUrl: Video?.streaming_data?.hls_manifest_url,
     httpVideoURL,
   };

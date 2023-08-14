@@ -11,11 +11,19 @@ import {Icon} from "@rneui/base";
 interface Props {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
+  hasTVPreferredFocus?: boolean;
 }
 
-export default function PlayButton({onPress, style}: Props) {
+export default function PlayButton({
+  onPress,
+  style,
+  hasTVPreferredFocus,
+}: Props) {
   return (
-    <TouchableOpacity style={style} onPress={onPress}>
+    <TouchableOpacity
+      style={style}
+      onPress={onPress}
+      hasTVPreferredFocus={hasTVPreferredFocus}>
       <View style={styles.container}>
         <Icon name={"play"} type={"font-awesome-5"} size={20} />
       </View>

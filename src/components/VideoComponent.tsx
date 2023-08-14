@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useMemo, useState} from "react";
 import Video from "react-native-video";
 import {
   ActivityIndicator,
@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import Logger from "../utils/Logger";
 import {useIsFocused} from "@react-navigation/native";
+import {YTChapter, YTVideoInfo} from "../extraction/Types";
 
 const LOGGER = Logger.extend("VIDEO");
 
@@ -15,6 +16,8 @@ interface Props {
   url: string;
   hlsUrl?: string;
   style?: StyleProp<ViewStyle>;
+  videoInfo?: YTVideoInfo;
+  chapters?: YTChapter[];
   onEndReached?: () => void;
   onPlaybackInfoUpdate?: (playbackInfos: {
     width: number;
@@ -25,12 +28,17 @@ interface Props {
 export default function VideoComponent({
   url,
   hlsUrl,
+  videoInfo,
   style,
   ...callbacks
 }: Props) {
   // const player = useRef<Video>();
   const isFocused = useIsFocused();
   const [failbackURL, setFailbackUrl] = useState(false);
+
+  const parsedChapters = useMemo(() => {
+    return videoInfo?.chapters?.map(mapChapters) ?? [];
+  }, [videoInfo?.chapters]);
 
   // As changing url causes duplicate errors
   if (failbackURL) {
@@ -49,12 +57,19 @@ export default function VideoComponent({
           // type: "mpd",
           // uri: `http://localhost:7500/video/${videoId}/master.m3u8`,
           uri: hlsUrl ?? url,
+          // @ts-ignore Own version
+          title: videoInfo?.title,
+          subtitle: videoInfo?.author?.name,
+          description: videoInfo?.description,
         }}
         style={[styles.fullScreen, StyleSheet.absoluteFillObject]}
         controls
         paused={!isFocused}
         fullscreen
         resizeMode={"contain"}
+        // @ts-ignore Own version
+        chapters={parsedChapters}
+        // Event listener
         onLoad={(data: any) => {
           LOGGER.debug("Video Loading...", JSON.stringify(data, null, 4));
           callbacks.onPlaybackInfoUpdate?.({
@@ -95,3 +110,11 @@ const styles = StyleSheet.create({
     right: 0,
   },
 });
+
+function mapChapters(chapter: YTChapter) {
+  return {
+    title: chapter.title,
+    startTime: chapter.startDuration,
+    endTime: chapter.endDuration,
+  };
+}

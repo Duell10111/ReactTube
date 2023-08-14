@@ -29,11 +29,7 @@ export default function RootStackNavigator() {
   return (
     <Stack.Navigator screenOptions={Platform.isTV ? {headerShown: false} : {}}>
       <Stack.Screen name="Home" component={HomeWrapperScreen} />
-      <Stack.Screen
-        name="VideoScreen"
-        component={VideoScreen}
-        // initialParams={{videoId: "iasbPFjuQZU"}}
-      />
+      <Stack.Screen name="VideoScreen" component={VideoScreen} />
       <Stack.Screen name={"ChannelScreen"} component={ChannelScreen} />
       <Stack.Screen name={"PlaylistScreen"} component={PlaylistScreen} />
       <Stack.Screen name={"Search"} component={SearchScreen} />

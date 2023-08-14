@@ -33,6 +33,7 @@ export default function NextVideo({nextVideo, onPress}: NextVideoProps) {
       <PlayButton
         style={styles.playStyle}
         onPress={() => nextVideo && onPress?.(nextVideo.id)}
+        hasTVPreferredFocus={true}
       />
     </View>
   );

@@ -31,16 +31,18 @@ const App = () => {
 
   return (
     <AppStyleProvider>
-      <AppDataContextProvider>
-        <YoutubeContextProvider>
-          <AccountContextProvider>
-            <StatusBar
-              barStyle={isDarkMode ? "light-content" : "dark-content"}
-            />
-            <Navigation />
-          </AccountContextProvider>
-        </YoutubeContextProvider>
-      </AppDataContextProvider>
+      <BackgroundWrapper>
+        <AppDataContextProvider>
+          <YoutubeContextProvider>
+            <AccountContextProvider>
+              <StatusBar
+                barStyle={isDarkMode ? "light-content" : "dark-content"}
+              />
+              <Navigation />
+            </AccountContextProvider>
+          </YoutubeContextProvider>
+        </AppDataContextProvider>
+      </BackgroundWrapper>
     </AppStyleProvider>
   );
 };
