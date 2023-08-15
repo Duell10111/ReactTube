@@ -1,5 +1,5 @@
-import React from "react";
-import {StyleSheet, Text, View} from "react-native";
+import React, {useEffect, useRef} from "react";
+import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import PlayButton from "./PlayButton";
 import useNextVideo from "../../../hooks/ui/useNextVideo";
 import FastImage from "react-native-fast-image";
@@ -20,8 +20,6 @@ export default function NextVideo({nextVideo, onPress}: NextVideoProps) {
 
   // TODO: Optimize image for end-card
 
-  console.log("URI: ", nextVideo?.thumbnailImage?.url?.split("?")?.[0]);
-
   return (
     <View style={styles.container}>
       <Text style={styles.nextVideoText}>{"Next Video in " + countdown}</Text>
@@ -33,7 +31,6 @@ export default function NextVideo({nextVideo, onPress}: NextVideoProps) {
       <PlayButton
         style={styles.playStyle}
         onPress={() => nextVideo && onPress?.(nextVideo.id)}
-        hasTVPreferredFocus={true}
       />
     </View>
   );
