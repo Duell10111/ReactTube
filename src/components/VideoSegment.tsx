@@ -46,8 +46,9 @@ export default function VideoSegment({
           textStyle={textStyle}
           playlistId={element.id}
           title={element.title}
-          thumbnailURL={element.thumbnailImage.url?.split("?")?.[0]}
+          thumbnail={element.thumbnailImage}
           videoCount={element.videoCount}
+          author={element.author}
         />
       );
     } else {

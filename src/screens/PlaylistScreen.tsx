@@ -1,7 +1,7 @@
 import React from "react";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
-import {Text, View} from "react-native";
+import {Platform, Text, View} from "react-native";
 import LoadingComponent from "../components/general/LoadingComponent";
 import usePlaylistDetails from "../hooks/usePlaylistDetails";
 import Logger from "../utils/Logger";
@@ -26,7 +26,7 @@ export default function PlaylistScreen({route}: Props) {
   LOGGER.debug("Playlist: ", recursiveTypeLogger([playlist.page_contents]));
 
   return (
-    <View style={{margin: 20, flex: 1}}>
+    <View style={{margin: Platform.isTV ? 20 : 0, flex: 1}}>
       <Text style={[{fontSize: 25, color: style.textColor}]}>
         {playlist.info.title}
       </Text>

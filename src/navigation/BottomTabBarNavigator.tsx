@@ -22,9 +22,7 @@ export default function BottomTabBarNavigator() {
           let iconName;
 
           if (route.name === "HomeFeed") {
-            iconName = focused
-              ? "ios-information-circle"
-              : "ios-information-circle-outline";
+            iconName = "home";
           } else if (route.name === "Settings") {
             iconName = focused ? "ios-list" : "ios-list-outline";
           }
