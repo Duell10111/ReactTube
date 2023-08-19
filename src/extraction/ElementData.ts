@@ -7,6 +7,7 @@ import {
   PlaylistData,
   VideoData,
 } from "./Types";
+import {getThumbnail} from "./Misc";
 
 // TODO: Add ChannelData
 
@@ -54,7 +55,9 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
     return {
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.best_thumbnail,
+      thumbnailImage: ytNode.best_thumbnail
+        ? getThumbnail(ytNode.best_thumbnail)
+        : undefined,
       short_views: ytNode.short_view_count.toString(),
       author: getAuthor(ytNode.author),
       publishDate: ytNode.published.text,
@@ -67,7 +70,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
     return {
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       short_views: ytNode.short_view_count.toString(),
       author: ytNode.author ? getAuthor(ytNode.author) : undefined,
       publishDate: ytNode.published.text,
@@ -79,7 +82,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
     return {
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       short_views: ytNode.views.toString(),
       type: "reel",
       originalNode: ytNode,
@@ -90,7 +93,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       originalNode: ytNode,
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       short_views: "",
     } as VideoData;
   }
@@ -100,7 +103,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       type: "playlist",
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       author: ytNode.author ? getAuthor(ytNode.author) : undefined,
       originalNode: ytNode,
       videoCount: ytNode.video_count_short.text,
@@ -111,7 +114,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       originalNode: ytNode,
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       videoCount: ytNode.video_count_short.text,
     } as PlaylistData;
   } else if (ytNode.is(YTNodes.CompactPlaylist)) {
@@ -120,7 +123,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       originalNode: ytNode,
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       videoCount: ytNode.video_count_short.text,
     } as PlaylistData;
   }
@@ -172,6 +175,9 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
   else if (ytNode.is(YTNodes.RichItem)) {
     // Recursive extraction
     return getVideoData(ytNode.content);
+  } else if (ytNode.is(YTNodes.ReelShelf)) {
+    console.log("ReelShelf Nav Endpoint: ", ytNode.endpoint);
+    console.log("ReelShelf: ", ytNode.items);
   } else {
     LOGGER.warn("getVideoData: Unknown type: ", ytNode.type);
   }

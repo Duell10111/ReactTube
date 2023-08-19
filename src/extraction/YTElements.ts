@@ -20,8 +20,12 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     thumbnailImage: thumbnail,
     title: videoInfo.basic_info.title,
     description: videoInfo.basic_info.short_description,
-    short_views: videoInfo.primary_info?.short_view_count.text,
+    short_views:
+      videoInfo.primary_info?.short_view_count.text ??
+      videoInfo.primary_info?.view_count.text,
     chapters: chapters,
+    channel_id:
+      videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
   } as YTVideoInfo;
 }
 

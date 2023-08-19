@@ -1,4 +1,6 @@
-import VideoTouchable from "./general/VideoTouchable";
+import React from "react";
+import {useShelfVideoSelector} from "../../../context/ShelfVideoSelector";
+import {useAppStyle} from "../../../context/AppStyleContext";
 import {
   StyleProp,
   StyleSheet,
@@ -7,34 +9,32 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import React from "react";
-import {CommonActions, useNavigation, useRoute} from "@react-navigation/native";
+import VideoTouchable from "../../general/VideoTouchable";
 import FastImage from "react-native-fast-image";
-import {useShelfVideoSelector} from "../context/ShelfVideoSelector";
-import {NativeStackProp, RootRouteProp} from "../navigation/types";
-import {useAppStyle} from "../context/AppStyleContext";
-import Logger from "../utils/Logger";
 import {Icon} from "@rneui/base";
-
-const LOGGER = Logger.extend("VIDEOCARD");
+import {Author} from "../../../extraction/Types";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
   style?: StyleProp<ViewStyle>;
+  onPress?: () => void;
   videoId: string;
   title: string;
   views: string;
   duration?: string;
   thumbnailURL?: string;
-  author?: string;
+  author?: Author;
   date?: string;
   disabled?: boolean;
   livestream?: boolean;
 }
 
-export default function VideoCard({style, textStyle, ...data}: Props) {
-  const navigation = useNavigation<NativeStackProp>();
-  const route = useRoute<RootRouteProp>();
+export default function VideoCardTV({
+  style,
+  textStyle,
+  onPress,
+  ...data
+}: Props) {
   const {setSelectedVideo, onElementFocused} = useShelfVideoSelector();
   const {style: appStyle} = useAppStyle();
 
@@ -43,39 +43,7 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
       <VideoTouchable
         // onFocus={() => console.log("Focus")}
         style={styles.segmentContainer}
-        onPress={() => {
-          if (data.disabled) {
-            return;
-          }
-          LOGGER.debug("State: ", navigation.getState());
-          LOGGER.debug("Route name: ", route.name);
-          if (route.name === "VideoScreen") {
-            LOGGER.debug("Replacing Video Screen");
-            navigation.replace("VideoScreen", {videoId: data.videoId});
-          } else if (
-            navigation
-              .getState()
-              .routes.find(route => route.name == "VideoScreen")
-          ) {
-            LOGGER.debug("Remove all existing Video Screens");
-            navigation.dispatch(state => {
-              const routes = state.routes.filter(r => r.name !== "VideoScreen");
-
-              routes.push({
-                name: "VideoScreen",
-                params: {videoId: data.videoId},
-              });
-
-              return CommonActions.reset({
-                ...state,
-                routes,
-                index: routes.length - 1,
-              });
-            });
-          } else {
-            navigation.navigate("VideoScreen", {videoId: data.videoId});
-          }
-        }}
+        onPress={onPress}
         onFocus={onElementFocused}
         onLongPress={() => {
           setSelectedVideo(data.videoId);
@@ -103,7 +71,7 @@ export default function VideoCard({style, textStyle, ...data}: Props) {
       </Text>
       {data.author ? (
         <Text style={[{color: appStyle.textColor}, textStyle]}>
-          {data.author}
+          {data.author?.name}
         </Text>
       ) : null}
       <Text style={[styles.viewsStyle, {color: appStyle.textColor}, textStyle]}>
@@ -122,6 +90,7 @@ const styles = StyleSheet.create({
   viewContainer: {
     width: 500,
     height: 400,
+    marginHorizontal: 20,
   },
   segmentContainer: {
     backgroundColor: "#aaaaaa",

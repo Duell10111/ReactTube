@@ -18,6 +18,7 @@ interface Props {
   style?: StyleProp<ViewStyle>;
   videoInfo?: YTVideoInfo;
   chapters?: YTChapter[];
+  fullscreen?: boolean;
   onEndReached?: () => void;
   onPlaybackInfoUpdate?: (playbackInfos: {
     width: number;
@@ -29,6 +30,7 @@ export default function VideoComponent({
   url,
   hlsUrl,
   videoInfo,
+  fullscreen,
   style,
   ...callbacks
 }: Props) {
@@ -42,7 +44,7 @@ export default function VideoComponent({
 
   // As changing url causes duplicate errors
   if (failbackURL) {
-    return <VideoComponent url={url} {...callbacks} />;
+    return <VideoComponent url={url} style={style} {...callbacks} />;
   }
 
   return (
@@ -62,10 +64,12 @@ export default function VideoComponent({
           subtitle: videoInfo?.author?.name,
           description: videoInfo?.description,
         }}
-        style={[styles.fullScreen, StyleSheet.absoluteFillObject]}
+        style={
+          (style as any) ?? [styles.fullScreen, StyleSheet.absoluteFillObject]
+        }
         controls
         paused={!isFocused}
-        fullscreen
+        fullscreen={fullscreen ?? true}
         resizeMode={"contain"}
         // @ts-ignore Own version
         chapters={parsedChapters}

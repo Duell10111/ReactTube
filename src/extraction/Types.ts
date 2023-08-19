@@ -64,6 +64,7 @@ export interface YTVideoInfo {
   livestream?: boolean;
   author?: Author;
   chapters?: YTChapter[];
+  channel_id?: string;
 }
 
 export interface YTChapter {

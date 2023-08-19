@@ -1,5 +1,5 @@
 import React, {useMemo, useState} from "react";
-import {Text, TextProps, TouchableOpacity, View} from "react-native";
+import {Platform, Text, TextProps, TouchableOpacity, View} from "react-native";
 import {YT, YTNodes} from "../../utils/Youtube";
 import useChannelData, {
   ChannelContentTypes,
@@ -103,7 +103,14 @@ function ChannelRow({channel, type}: RowProps) {
   if (data?.page_contents && data.page_contents.is(YTNodes.SectionList)) {
     return <SectionList node={extractSectionList(data.page_contents)} />;
   } else if (Array.isArray(nodes)) {
-    return <GridView shelfItem={nodes} onEndReached={() => fetchMore()} />;
+    return (
+      <GridView
+        shelfItem={nodes}
+        onEndReached={() => fetchMore()}
+        // TODO: Optimize
+        columns={type === "Reels" && !Platform.isTV ? 2 : undefined}
+      />
+    );
   } else {
     LOGGER.warn("Unsupported Channel Type: ", data?.page_contents);
   }

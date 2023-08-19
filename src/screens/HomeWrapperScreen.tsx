@@ -1,10 +1,19 @@
-import {View} from "react-native";
+import {Platform, View} from "react-native";
 import React, {useState} from "react";
 import Drawer from "../navigation/Drawer";
 import DrawerContextProvider from "../navigation/DrawerContext";
 import DrawerStackNavigator from "../navigation/DrawerStackNavigator";
+import BottomTabBarNavigator from "../navigation/BottomTabBarNavigator";
 
 export default function HomeWrapperScreen() {
+  if (Platform.isTV) {
+    return <TVVariant />;
+  } else {
+    return <DeviceVariant />;
+  }
+}
+
+function TVVariant() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -19,4 +28,8 @@ export default function HomeWrapperScreen() {
       </DrawerContextProvider>
     </View>
   );
+}
+
+function DeviceVariant() {
+  return <BottomTabBarNavigator />;
 }

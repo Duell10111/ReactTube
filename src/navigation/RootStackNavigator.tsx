@@ -1,6 +1,7 @@
 import React from "react";
 import {createNativeStackNavigator} from "@react-navigation/native-stack";
 import VideoScreen from "../screens/VideoScreen";
+import VideoScreenPhone from "../screens/phone/VideoScreen";
 import {Platform} from "react-native";
 import SearchScreen from "../screens/SearchScreen";
 import HomeWrapperScreen from "../screens/HomeWrapperScreen";
@@ -28,8 +29,15 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function RootStackNavigator() {
   return (
     <Stack.Navigator screenOptions={Platform.isTV ? {headerShown: false} : {}}>
-      <Stack.Screen name="Home" component={HomeWrapperScreen} />
-      <Stack.Screen name="VideoScreen" component={VideoScreen} />
+      <Stack.Screen
+        name="Home"
+        component={HomeWrapperScreen}
+        options={!Platform.isTV ? {headerShown: false} : undefined}
+      />
+      <Stack.Screen
+        name="VideoScreen"
+        component={Platform.isTV ? VideoScreen : VideoScreenPhone}
+      />
       <Stack.Screen name={"ChannelScreen"} component={ChannelScreen} />
       <Stack.Screen name={"PlaylistScreen"} component={PlaylistScreen} />
       <Stack.Screen name={"Search"} component={SearchScreen} />

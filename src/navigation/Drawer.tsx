@@ -34,7 +34,7 @@ export default function Drawer({open, onOpen, onClose}: Props) {
   const style = useAnimatedStyle(() => {
     return {
       height: "100%",
-      width: withTiming(openDrawer.value ? 400 : 100),
+      width: withTiming(openDrawer.value ? 300 : 150),
     };
   });
 

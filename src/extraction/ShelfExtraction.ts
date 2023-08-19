@@ -73,9 +73,9 @@ export function gridCalculator(
   } else {
     const list = _.chain(content)
       .map(getVideoData)
-      .compact()
+      .filter(v => v !== undefined)
       .chunk(columns)
-      .value();
+      .value() as ElementData[][];
 
     listPrint(list);
 

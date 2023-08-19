@@ -4,7 +4,6 @@ import {ICache} from "youtubei.js/dist/src/types/Cache.js";
 import {Platform} from "youtubei.js/dist/src/utils/Utils.js";
 import crypto from "crypto-browserify";
 import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
-import DOMParser from "youtubei.js/dist/src/platform/polyfills/server-dom.js";
 import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
 import evaluate from "./jinterMetro";
 import uuid from "react-native-uuid";
@@ -112,11 +111,7 @@ Platform.load({
   uuidv4() {
     return uuid.v4().toString();
   },
-  serializeDOM(document) {
-    return document.toString();
-  },
   eval: evaluate,
-  DOMParser,
   fetch: fetch as unknown as FetchFunction,
   Request: Request as unknown as typeof globalThis.Request,
   Response: Response as unknown as typeof globalThis.Response,
