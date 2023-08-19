@@ -2,6 +2,19 @@ PODS:
   - boost (1.76.0)
   - CocoaAsyncSocket (7.6.5)
   - DoubleConversion (1.1.6)
+  - EXConstants (14.2.1):
+    - ExpoModulesCore
+  - EXFileSystem (15.2.2):
+    - ExpoModulesCore
+  - Expo (48.0.20):
+    - ExpoModulesCore
+  - ExpoModulesCore (1.2.7):
+    - React-Core
+    - React-RCTAppDelegate
+    - ReactCommon/turbomodule/core
+  - EXScreenOrientation (5.1.1):
+    - ExpoModulesCore
+    - React-Core
   - FBLazyVector (0.71.12-0)
   - FBReactNativeSpec (0.71.12-0):
     - RCT-Folly (= 2021.07.22.00)
@@ -479,6 +492,11 @@ PODS:
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
+  - EXConstants (from `../node_modules/expo-constants/ios`)
+  - EXFileSystem (from `../node_modules/expo-file-system/ios`)
+  - Expo (from `../node_modules/expo`)
+  - ExpoModulesCore (from `../node_modules/expo-modules-core`)
+  - EXScreenOrientation (from `../node_modules/expo-screen-orientation/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - FBReactNativeSpec (from `../node_modules/react-native/React/FBReactNativeSpec`)
   - Flipper (= 0.125.0)
@@ -577,6 +595,16 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
+  EXConstants:
+    :path: "../node_modules/expo-constants/ios"
+  EXFileSystem:
+    :path: "../node_modules/expo-file-system/ios"
+  Expo:
+    :path: "../node_modules/expo"
+  ExpoModulesCore:
+    :path: "../node_modules/expo-modules-core"
+  EXScreenOrientation:
+    :path: "../node_modules/expo-screen-orientation/ios"
   FBLazyVector:
     :path: "../node_modules/react-native/Libraries/FBLazyVector"
   FBReactNativeSpec:
@@ -666,6 +694,11 @@ SPEC CHECKSUMS:
   boost: 0ed1b9a58a27b2f7885dc9f279bc3b341f44512b
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
   DoubleConversion: 234abba95e31cc2aada0cf3b97cdb11bc5b90575
+  EXConstants: f348da07e21b23d2b085e270d7b74f282df1a7d9
+  EXFileSystem: 844e86ca9b5375486ecc4ef06d3838d5597d895d
+  Expo: b7d2843b0a0027d0ce76121a63085764355a16ed
+  ExpoModulesCore: 653958063a301098b541ae4dfed1ac0b98db607b
+  EXScreenOrientation: 52220f8f2477ed25a37e3b2cdbbaa8635d250256
   FBLazyVector: 2397364ecb274b21cd73ab7cafca5ed804256f76
   FBReactNativeSpec: d26e003e048018761d58a7fce16b6de638ab6a1c
   Flipper: 26fc4b7382499f1281eb8cb921e5c3ad6de91fe0
@@ -729,6 +762,6 @@ SPEC CHECKSUMS:
   Yoga: 8b8c06e142662150974d1c70b4c5ffb08eb468db
   YogaKit: 1e22bf2228b3a5ac8cc88965153061ae92c494b5
 
-PODFILE CHECKSUM: 2e322a68e810ca78543ccb332bf6cef6767766a7
+PODFILE CHECKSUM: b33decaea019df6e3379ef2c950df9ec5dbfce38
 
 COCOAPODS: 1.12.1

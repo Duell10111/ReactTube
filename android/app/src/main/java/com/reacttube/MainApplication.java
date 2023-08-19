@@ -1,5 +1,8 @@
 package com.reacttube;
 
+import android.content.res.Configuration;
+import expo.modules.ApplicationLifecycleDispatcher;
+import expo.modules.ReactNativeHostWrapper;
 import android.app.Application;
 import com.facebook.react.PackageList;
 import com.facebook.react.ReactApplication;
@@ -13,7 +16,7 @@ import java.util.List;
 public class MainApplication extends Application implements ReactApplication {
 
   private final ReactNativeHost mReactNativeHost =
-      new DefaultReactNativeHost(this) {
+      new ReactNativeHostWrapper(this, new DefaultReactNativeHost(this) {
         @Override
         public boolean getUseDeveloperSupport() {
           return BuildConfig.DEBUG;
@@ -42,7 +45,7 @@ public class MainApplication extends Application implements ReactApplication {
             return BuildConfig.IS_HERMES_ENABLED;
         }
 
-      };
+      });
 
       @Override
       public ReactNativeHost getReactNativeHost() {
@@ -59,5 +62,11 @@ public class MainApplication extends Application implements ReactApplication {
         }
         ReactNativeFlipper.initializeFlipper(this, getReactNativeHost().getReactInstanceManager());
       }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        ApplicationLifecycleDispatcher.onConfigurationChanged(this, newConfig);
+     }
 
 }

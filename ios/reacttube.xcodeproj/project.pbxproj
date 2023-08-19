@@ -14,12 +14,14 @@
 		2D02E4BC1E0B4A80006451C7 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		2D02E4BF1E0B4AB3006451C7 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		2DCD954D1E0B4F2C00145EB5 /* reacttubeTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* reacttubeTests.m */; };
+		2E25BD173BF406DD204756E2 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DC3360F0E028285BC0ED17D /* ExpoModulesProvider.swift */; };
 		3B025671FBDCF12B5BD7E0DF /* libPods-reacttube.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BF73BDE9CEF19B552CCD3B79 /* libPods-reacttube.a */; };
 		4785EB4716A710B13D795C7F /* libPods-reacttube-tvOS-reacttube-tvOSTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 489E4262F01B068A7E31B8A7 /* libPods-reacttube-tvOS-reacttube-tvOSTests.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		E6B4924F8329DB4045079E36 /* libPods-reacttube-tvOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4C778F910296337228650B19 /* libPods-reacttube-tvOS.a */; };
 		F06CD0A92A6F0FA300FADC62 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		F06CD0AA2A6F0FA500FADC62 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		F2F56F949CD02092AFBE62C9 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A898E7DB5CB01D9D70A0D470 /* ExpoModulesProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,7 +48,7 @@
 		015BA46D04C1496C29E63456 /* Pods-reacttube.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-reacttube.debug.xcconfig"; path = "Target Support Files/Pods-reacttube/Pods-reacttube.debug.xcconfig"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* reacttube.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = reacttube.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = reacttube/AppDelegate.h; sourceTree = "<group>"; };
-		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.mm; path = reacttube/AppDelegate.mm; sourceTree = "<group>"; };
+		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppDelegate.mm; path = reacttube/AppDelegate.mm; sourceTree = "<group>"; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = reacttube/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = reacttube/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = reacttube/main.m; sourceTree = "<group>"; };
@@ -61,6 +63,8 @@
 		4C778F910296337228650B19 /* libPods-reacttube-tvOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-reacttube-tvOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		51AA2C4684D5E0B106FBA5F7 /* libPods-reacttube-reacttubeTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-reacttube-reacttubeTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = reacttube/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		8DC3360F0E028285BC0ED17D /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-reacttube/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		A898E7DB5CB01D9D70A0D470 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-reacttube-reacttubeTests/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		BF73BDE9CEF19B552CCD3B79 /* libPods-reacttube.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-reacttube.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CCE9A90FED9D09047497AB6D /* Pods-reacttube-tvOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-reacttube-tvOS.debug.xcconfig"; path = "Target Support Files/Pods-reacttube-tvOS/Pods-reacttube-tvOS.debug.xcconfig"; sourceTree = "<group>"; };
 		E8891750AE2DFBD87A5BDB74 /* Pods-reacttube-tvOS-reacttube-tvOSTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-reacttube-tvOS-reacttube-tvOSTests.debug.xcconfig"; path = "Target Support Files/Pods-reacttube-tvOS-reacttube-tvOSTests/Pods-reacttube-tvOS-reacttube-tvOSTests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -151,6 +155,14 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		327FE14B414BF21FFBF6C1D3 /* reacttubeTests */ = {
+			isa = PBXGroup;
+			children = (
+				A898E7DB5CB01D9D70A0D470 /* ExpoModulesProvider.swift */,
+			);
+			name = reacttubeTests;
+			sourceTree = "<group>";
+		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
@@ -167,6 +179,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				9B1644CBAE2FABCCC6E29A69 /* Pods */,
+				8905FC47CF8F08C35E97EFB6 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -184,6 +197,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		8905FC47CF8F08C35E97EFB6 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				CAAD50ED2DC08527E8F8AEEA /* reacttube */,
+				327FE14B414BF21FFBF6C1D3 /* reacttubeTests */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
 		9B1644CBAE2FABCCC6E29A69 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
@@ -197,6 +219,14 @@
 				3BDF8C4CCF278F944E8C6CBF /* Pods-reacttube-tvOS-reacttube-tvOSTests.release.xcconfig */,
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		CAAD50ED2DC08527E8F8AEEA /* reacttube */ = {
+			isa = PBXGroup;
+			children = (
+				8DC3360F0E028285BC0ED17D /* ExpoModulesProvider.swift */,
+			);
+			name = reacttube;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -671,6 +701,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				00E356F31AD99517003FC87E /* reacttubeTests.m in Sources */,
+				F2F56F949CD02092AFBE62C9 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -680,6 +711,7 @@
 			files = (
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
+				2E25BD173BF406DD204756E2 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -737,6 +769,7 @@
 					"-lc++",
 					"$(inherited)",
 				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/reacttube.app/reacttube";
@@ -761,6 +794,7 @@
 					"-lc++",
 					"$(inherited)",
 				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/reacttube.app/reacttube";
@@ -790,6 +824,7 @@
 					"-ObjC",
 					"-lc++",
 				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = reacttube;
 				SWIFT_OBJC_BRIDGING_HEADER = "reacttube-Bridging-Header.h";
@@ -817,6 +852,7 @@
 					"-ObjC",
 					"-lc++",
 				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = reacttube;
 				SWIFT_OBJC_BRIDGING_HEADER = "reacttube-Bridging-Header.h";
@@ -852,6 +888,7 @@
 					"-ObjC",
 					"-lc++",
 				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.reacttube-tvOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
@@ -859,7 +896,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 12.4;
+				TVOS_DEPLOYMENT_TARGET = 13.0;
 			};
 			name = Debug;
 		};
@@ -889,13 +926,14 @@
 					"-ObjC",
 					"-lc++",
 				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.reacttube-tvOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
 				SWIFT_OBJC_BRIDGING_HEADER = "reacttube-tvOS-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 12.4;
+				TVOS_DEPLOYMENT_TARGET = 13.0;
 			};
 			name = Release;
 		};
@@ -922,11 +960,12 @@
 					"-ObjC",
 					"-lc++",
 				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.reacttube-tvOSTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/reacttube-tvOS.app/reacttube-tvOS";
-				TVOS_DEPLOYMENT_TARGET = 12.4;
+				TVOS_DEPLOYMENT_TARGET = 13.0;
 			};
 			name = Debug;
 		};
@@ -953,11 +992,12 @@
 					"-ObjC",
 					"-lc++",
 				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.reacttube-tvOSTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/reacttube-tvOS.app/reacttube-tvOS";
-				TVOS_DEPLOYMENT_TARGET = 12.4;
+				TVOS_DEPLOYMENT_TARGET = 13.0;
 			};
 			name = Release;
 		};
@@ -1010,7 +1050,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					/usr/lib/swift,
 					"$(inherited)",
@@ -1069,7 +1109,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					/usr/lib/swift,
 					"$(inherited)",

@@ -1,3 +1,4 @@
+require File.join(File.dirname(`node --print "require.resolve('expo/package.json')"`), "scripts/autolinking")
 require_relative '../node_modules/react-native/scripts/react_native_pods'
 require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
 
@@ -23,7 +24,18 @@ end
 
 target 'reacttube' do
 
-  platform :ios, min_ios_version_supported
+  platform :ios, '13.0'
+
+  # Expo Integration
+  use_expo_modules!
+  post_integrate do |installer|
+    begin
+      expo_patch_react_imports!(installer)
+    rescue => e
+      Pod::UI.warn e
+    end
+  end
+  # END
 
   config = use_native_modules!
 
@@ -54,7 +66,7 @@ end
 
 target 'reacttube-tvOS' do
 
-  platform :tvos, min_ios_version_supported
+  platform :tvos, '13.0'
 
   config = use_native_modules!
 

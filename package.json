@@ -21,6 +21,8 @@
     "crypto-browserify": "^3.12.0",
     "event-target-polyfill": "^0.0.3",
     "events": "^3.3.0",
+    "expo": "^48.0.20",
+    "expo-screen-orientation": "~5.1.1",
     "fast-text-encoding": "^1.0.6",
     "lodash": "^4.17.21",
     "luxon": "^3.3.0",
@@ -84,5 +86,14 @@
       "json",
       "node"
     ]
+  },
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "expo-keep-awake",
+        "expo-font",
+        "expo-application"
+      ]
+    }
   }
 }
