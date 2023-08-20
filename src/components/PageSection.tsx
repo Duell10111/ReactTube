@@ -1,7 +1,6 @@
 import React from "react";
 import {YTNodes, Helpers} from "../utils/Youtube";
 import Logger from "../utils/Logger";
-import HomeShelf from "./HomeShelf";
 import PageSectionList from "./segments/PageSectionList";
 import PageSegment from "./PageSegment";
 import GridView from "./GridView";

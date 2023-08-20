@@ -19,6 +19,7 @@ import AppStyleProvider from "./src/context/AppStyleContext";
 import BackgroundWrapper from "./src/utils/BackgroundWrapper";
 import AppDataContextProvider from "./src/context/AppDataContext";
 import AccountContextProvider from "./src/context/AccountContext";
+import {SafeAreaProvider} from "react-native-safe-area-context";
 
 // Polyfill for youtube.js
 Object.assign(global, {
@@ -31,16 +32,20 @@ const App = () => {
 
   return (
     <AppStyleProvider>
-      <AppDataContextProvider>
-        <YoutubeContextProvider>
-          <AccountContextProvider>
-            <StatusBar
-              barStyle={isDarkMode ? "light-content" : "dark-content"}
-            />
-            <Navigation />
-          </AccountContextProvider>
-        </YoutubeContextProvider>
-      </AppDataContextProvider>
+      <BackgroundWrapper>
+        <AppDataContextProvider>
+          <YoutubeContextProvider>
+            <AccountContextProvider>
+              <StatusBar
+                barStyle={isDarkMode ? "light-content" : "dark-content"}
+              />
+              <SafeAreaProvider>
+                <Navigation />
+              </SafeAreaProvider>
+            </AccountContextProvider>
+          </YoutubeContextProvider>
+        </AppDataContextProvider>
+      </BackgroundWrapper>
     </AppStyleProvider>
   );
 };

@@ -88,6 +88,9 @@ PODS:
   - libwebp/webp (1.2.4)
   - MobileVLCKit (3.5.1)
   - OpenSSL-Universal (1.1.1100)
+  - PromisesObjC (2.3.1)
+  - PromisesSwift (2.3.1):
+    - PromisesObjC (= 2.3.1)
   - RCT-Folly (2021.07.22.00):
     - boost
     - DoubleConversion
@@ -326,16 +329,19 @@ PODS:
   - React-jsinspector (0.71.12-0)
   - React-logger (0.71.12-0):
     - glog
+  - react-native-orientation-locker (1.5.0):
+    - React-Core
   - react-native-safe-area-context (4.5.1):
     - RCT-Folly
     - RCTRequired
     - RCTTypeSafety
     - React-Core
     - ReactCommon/turbomodule/core
-  - react-native-video (5.2.1):
+  - react-native-video (6.0.0-alpha.7):
     - React-Core
-    - react-native-video/Video (= 5.2.1)
-  - react-native-video/Video (5.2.1):
+    - react-native-video/Video (= 6.0.0-alpha.7)
+  - react-native-video/Video (6.0.0-alpha.7):
+    - PromisesSwift
     - React-Core
   - react-native-vlc-media-player (1.0.38):
     - MobileVLCKit (= 3.5.1)
@@ -419,6 +425,8 @@ PODS:
     - React-jsi (= 0.71.12-0)
     - React-logger (= 0.71.12-0)
     - React-perflogger (= 0.71.12-0)
+  - RNDeviceInfo (10.8.0):
+    - React-Core
   - RNFastImage (8.6.3):
     - React-Core
     - SDWebImage (~> 5.11.1)
@@ -519,6 +527,7 @@ DEPENDENCIES:
   - React-jsiexecutor (from `../node_modules/react-native/ReactCommon/jsiexecutor`)
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
+  - react-native-orientation-locker (from `../node_modules/react-native-orientation-locker`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - react-native-video (from `../node_modules/react-native-video`)
   - react-native-vlc-media-player (from `../node_modules/react-native-vlc-media-player`)
@@ -534,6 +543,7 @@ DEPENDENCIES:
   - React-RCTText (from `../node_modules/react-native/Libraries/Text`)
   - React-runtimeexecutor (from `../node_modules/react-native/ReactCommon/runtimeexecutor`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
+  - RNDeviceInfo (from `../node_modules/react-native-device-info`)
   - RNFastImage (from `../node_modules/react-native-fast-image`)
   - RNFS (from `../node_modules/react-native-fs`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
@@ -561,6 +571,8 @@ SPEC REPOS:
     - libwebp
     - MobileVLCKit
     - OpenSSL-Universal
+    - PromisesObjC
+    - PromisesSwift
     - SDWebImage
     - SDWebImageWebPCoder
     - SocketRocket
@@ -609,6 +621,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/jsinspector"
   React-logger:
     :path: "../node_modules/react-native/ReactCommon/logger"
+  react-native-orientation-locker:
+    :path: "../node_modules/react-native-orientation-locker"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-video:
@@ -639,6 +653,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/runtimeexecutor"
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
+  RNDeviceInfo:
+    :path: "../node_modules/react-native-device-info"
   RNFastImage:
     :path: "../node_modules/react-native-fast-image"
   RNFS:
@@ -657,7 +673,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  boost: a7c83b31436843459a1961bfd74b96033dc77234
+  boost: 0ed1b9a58a27b2f7885dc9f279bc3b341f44512b
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
   DoubleConversion: 234abba95e31cc2aada0cf3b97cdb11bc5b90575
   FBLazyVector: 2397364ecb274b21cd73ab7cafca5ed804256f76
@@ -672,12 +688,14 @@ SPEC CHECKSUMS:
   Flipper-RSocket: d9d9ade67cbecf6ac10730304bf5607266dd2541
   FlipperKit: cbdee19bdd4e7f05472a66ce290f1b729ba3cb86
   fmt: 135c0c55547979f715b56dfa54037ececa96d07a
-  glog: bac6d5aa2990176cc22d0432fb3e28805d580aeb
+  glog: a2ded9bf28f0cb2fce90ad21eb419299a500ff6c
   hermes-engine: 3d04f537177e132da926803412639dacd59a0ee9
   libevent: a6d75fcd7be07cbc5070300ea8dbc8d55dfab88e
   libwebp: f62cb61d0a484ba548448a4bd52aabf150ff6eef
   MobileVLCKit: 144d5f565512d1147d63b0fa1379231b3fd66535
   OpenSSL-Universal: ebc357f1e6bc71fa463ccb2fe676756aff50e88c
+  PromisesObjC: c50d2056b5253dadbd6c2bea79b0674bd5a52fa4
+  PromisesSwift: 28dca69a9c40779916ac2d6985a0192a5cb4a265
   RCT-Folly: 136e9161a833a162fe3e8b647098759aae227036
   RCTRequired: 0c0d97ba9f1e2b2b70e0522d65992a2993a714cd
   RCTTypeSafety: 5a484bd8f18408b8918a668ac8bd8b9f9138142b
@@ -692,8 +710,9 @@ SPEC CHECKSUMS:
   React-jsiexecutor: 0c8c5e8b2171be52295f59097923babf84d1cf66
   React-jsinspector: f8e6919523047a9bd1270ade75b4eca0108963b4
   React-logger: 16c56636d4209cc204d06c5ba347cee21b960012
+  react-native-orientation-locker: 851f6510d8046ea2f14aa169b1e01fcd309a94ba
   react-native-safe-area-context: f5549f36508b1b7497434baa0cd97d7e470920d4
-  react-native-video: c26780b224543c62d5e1b2a7244a5cd1b50e8253
+  react-native-video: 4c8d6b0f82b32a3f02a9fde0287704f455b7211d
   react-native-vlc-media-player: 0f9860bded57cd6764ac55b5c0e97347069cb40a
   React-perflogger: 355109dc9d6f34e35bc35dabb32310f8ed2d29a2
   React-RCTActionSheet: 9d1be4d43972f2aae4b31d9e53ffb030115fa445
@@ -707,6 +726,7 @@ SPEC CHECKSUMS:
   React-RCTText: 73a8151c2fc1c6a2b5329ddd569d39051fede43f
   React-runtimeexecutor: b2df3ae123833935b4b57a3e8638227624800f41
   ReactCommon: ebabc58ce77fb38274c1659471d6d46549ab69db
+  RNDeviceInfo: 5795b418ed3451ebcaf39384e6cf51f60cb931c9
   RNFastImage: 5c9c9fed9c076e521b3f509fe79e790418a544e8
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
   RNGestureHandler: 071d7a9ad81e8b83fe7663b303d132406a7d8f39

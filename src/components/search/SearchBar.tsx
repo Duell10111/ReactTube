@@ -10,6 +10,7 @@ export default function SearchBar({onSubmit}: Props) {
 
   return (
     <RNSearchBar
+      returnKeyType={"search"}
       onChangeText={setQuery}
       value={query}
       onSubmitEditing={() => {

@@ -1,7 +1,5 @@
-import React, {useCallback, useState} from "react";
-import {Gesture, GestureDetector} from "react-native-gesture-handler";
-import {Pressable, StyleProp, View, ViewStyle} from "react-native";
-import {runOnJS} from "react-native-reanimated";
+import React, {useState} from "react";
+import {Pressable, StyleProp, ViewStyle, useTVEventHandler} from "react-native";
 
 // TODO: Long Press not working always maybe use TVEvent instead?
 
@@ -22,42 +20,28 @@ export default function VideoTouchable({
 }: Props) {
   const [focus, setFocus] = useState(false);
 
-  const longPress = useCallback(() => onLongPress?.(), [onLongPress]);
-
-  const tap = Gesture.LongPress().onStart(() => {
-    runOnJS(longPress)();
+  useTVEventHandler(event => {
+    if (onLongPress && focus && event.eventType === "longSelect") {
+      onLongPress();
+    }
   });
 
-  // useTVEventHandler(event => {
-  //   if (onLongPress && focus && event.eventType === "longSelect") {
-  //     onLongPress();
-  //   } else {
-  //     console.log("Event: ", event);
-  //   }
-  // });
-
   return (
-    <GestureDetector gesture={tap}>
-      <Pressable
-        onPress={() => {
-          console.log("Press");
-          onPress && onPress();
-        }}
-        onLongPress={() => console.log("LongPress")}
-        onFocus={() => {
-          setFocus(true);
-          onFocus?.();
-        }}
-        onBlur={() => setFocus(false)}
-        onPressIn={() => console.log("PressIn")}
-        onPressOut={() => console.log("PressOut")}
-        style={[style, {opacity: focus ? 0.5 : 1}]}>
-        {children}
-      </Pressable>
-    </GestureDetector>
+    <Pressable
+      onPress={() => {
+        console.log("Press");
+        onPress?.();
+      }}
+      onLongPress={() => console.log("LongPress")}
+      onFocus={() => {
+        setFocus(true);
+        onFocus?.();
+      }}
+      onBlur={() => setFocus(false)}
+      onPressIn={() => console.log("PressIn")}
+      onPressOut={() => console.log("PressOut")}
+      style={[style, {opacity: focus ? 0.5 : 1}]}>
+      {children}
+    </Pressable>
   );
-}
-
-function FunctionalComponent(props) {
-  return <View collapsable={false}>{props.children}</View>;
 }

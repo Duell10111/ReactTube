@@ -3,16 +3,21 @@ import {useMemo} from "react";
 import {gridCalculator} from "../../extraction/ShelfExtraction";
 import {Helpers} from "../../utils/Youtube";
 
-export default function useGrid(content: Helpers.YTNode[]) {
+export default function useGrid(content: Helpers.YTNode[], column?: number) {
   const {width} = useWindowDimensions();
 
+  console.log("Width: ", width);
+
   const list = useMemo(() => {
-    const column = Math.floor(width / 500);
+    const columnCount = column ?? Math.max(Math.floor(width / 500), 1);
 
-    return gridCalculator(content, column);
-  }, [content, width]);
+    return gridCalculator(content, columnCount);
+  }, [content, width, column]);
 
-  console.log(list.map(v => listPrint(v)));
+  console.log(
+    "useGrid: ",
+    list.map(v => listPrint(v)),
+  );
 
   return list;
 }

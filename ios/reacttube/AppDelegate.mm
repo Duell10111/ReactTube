@@ -1,4 +1,5 @@
 #import "AppDelegate.h"
+#import "Orientation.h"
 
 #import <React/RCTBundleURLProvider.h>
 
@@ -32,5 +33,15 @@
 {
   return true;
 }
+
+// react-native-orientation
+
+#if !TARGET_OS_TV
+
+- (UIInterfaceOrientationMask)application:(UIApplication *)application supportedInterfaceOrientationsForWindow:(UIWindow *)window {
+  return [Orientation getOrientation];
+}
+
+#endif
 
 @end

@@ -1,25 +1,19 @@
-import React, {useMemo} from "react";
-import {StyleSheet, Text, View} from "react-native";
+import React, {useEffect, useRef} from "react";
+import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import PlayButton from "./PlayButton";
-import {getVideoDataOfFirstElement} from "../../../extraction/ElementData";
-import {Helpers} from "../../../utils/Youtube";
 import useNextVideo from "../../../hooks/ui/useNextVideo";
 import FastImage from "react-native-fast-image";
+import {YTVideoInfo} from "../../../extraction/Types";
 
 interface NextVideoProps {
-  nextVideos: Helpers.ObservedArray<Helpers.YTNode>;
+  nextVideo?: YTVideoInfo;
   onPress?: (id: string) => void;
 }
 
-export default function NextVideo({nextVideos, onPress}: NextVideoProps) {
-  const data = useMemo(
-    () => getVideoDataOfFirstElement(nextVideos),
-    [nextVideos],
-  );
-
+export default function NextVideo({nextVideo, onPress}: NextVideoProps) {
   const {countdown} = useNextVideo(() => {
     console.log("Next Video triggered");
-    data && onPress?.(data.id);
+    nextVideo && onPress?.(nextVideo.id);
   });
 
   console.log("count", countdown);
@@ -28,17 +22,15 @@ export default function NextVideo({nextVideos, onPress}: NextVideoProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.nextVideoText}>
-        {"Nächstes Video in " + countdown}
-      </Text>
-      <Text style={styles.videoTitle}>{data?.title}</Text>
+      <Text style={styles.nextVideoText}>{"Next Video in " + countdown}</Text>
+      <Text style={styles.videoTitle}>{nextVideo?.title}</Text>
       <FastImage
         style={styles.imageContainer}
-        source={{uri: data?.thumbnailImage?.url?.split("?")?.[0]}}
+        source={{uri: nextVideo?.thumbnailImage?.url}}
       />
       <PlayButton
         style={styles.playStyle}
-        onPress={() => data && onPress?.(data.id)}
+        onPress={() => nextVideo && onPress?.(nextVideo.id)}
       />
     </View>
   );

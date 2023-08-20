@@ -7,12 +7,14 @@ import NextVideo from "./endcard/NextVideo";
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackProp} from "../../navigation/types";
 import {parseObservedArray} from "../../extraction/ArrayExtraction";
+import useVideoElementData from "../../hooks/video/useVideoElementData";
 
 interface Props {
   video: YT.VideoInfo;
   visible: boolean;
   onCloseRequest: () => void;
   endCard?: boolean;
+  currentResolution?: string;
 }
 
 // TODO: Add autoplay for next video
@@ -22,6 +24,7 @@ export default function EndCard({
   onCloseRequest,
   video,
   endCard,
+  currentResolution,
 }: Props) {
   const navigation = useNavigation<NativeStackProp>();
 
@@ -31,11 +34,17 @@ export default function EndCard({
     [video.watch_next_feed],
   );
 
+  const nextVideoID = useMemo(
+    () => video.autoplay_video_endpoint?.payload.videoId as string | undefined,
+    [video],
+  );
+
+  const {videoElement} = useVideoElementData(nextVideoID);
+
   if (!video.watch_next_feed) {
     // TODO: Add warning or debug message
     return null;
   }
-  console.log("Channel URL: ", video.basic_info.channel_id);
 
   return (
     <Modal
@@ -46,7 +55,7 @@ export default function EndCard({
         <View style={styles.nextVideoContainer}>
           {endCard ? (
             <NextVideo
-              nextVideos={video.watch_next_feed}
+              nextVideo={videoElement}
               onPress={videoId => {
                 navigation.replace("VideoScreen", {videoId: videoId});
               }}
@@ -55,7 +64,13 @@ export default function EndCard({
         </View>
         <View style={styles.videoInfoContainer}>
           <View style={styles.channelContainer}>
-            <ChannelIcon channelId={video.basic_info.channel?.id ?? ""} />
+            <ChannelIcon
+              channelId={
+                video.basic_info.channel_id ??
+                video.basic_info.channel?.id ??
+                ""
+              }
+            />
             <Text style={[styles.text, styles.channelText]}>
               {video.basic_info.channel?.name ?? ""}
             </Text>
@@ -67,6 +82,11 @@ export default function EndCard({
             <Text style={[styles.text, styles.viewsText]}>
               {`${video.basic_info.view_count} Views`}
             </Text>
+            {currentResolution ? (
+              <Text style={[styles.text, styles.viewsText]}>
+                {`Current Resolution ${currentResolution}`}
+              </Text>
+            ) : null}
           </View>
         </View>
         <View style={styles.bottomContainer}>

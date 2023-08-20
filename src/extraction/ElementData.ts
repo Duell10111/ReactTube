@@ -1,49 +1,27 @@
-import {YTNodes, Helpers, Misc} from "../utils/Youtube";
+import {Helpers, YTNodes} from "../utils/Youtube";
 import Logger from "../utils/Logger";
-
-export interface Thumbnail {
-  url: string;
-  height: number;
-  width: number;
-}
+import {
+  ChannelData,
+  ElementData,
+  getAuthor,
+  PlaylistData,
+  VideoData,
+} from "./Types";
+import {getThumbnail} from "./Misc";
 
 // TODO: Add ChannelData
 
 // TODO: Split from ElementData in VideoData or PlaylistData
 
-export type ElementData = VideoData | PlaylistData;
-
-export interface VideoData {
-  originalNode: Helpers.YTNode;
-  type: "video" | "reel";
-  id: string;
-  thumbnailImage: Thumbnail;
-  title: string;
-  duration?: string;
-  short_views: string;
-  publishDate?: string;
-  author?: Author;
-  quality?: string;
-}
-
-export interface Author {
-  id: string;
-  name: string;
-  thumbnail: Thumbnail;
-}
-
-export interface PlaylistData {
-  originalNode: Helpers.YTNode;
-  type: "playlist";
-  id: string;
-  title: string;
-  thumbnailImage: Thumbnail;
-  author?: Author;
-  videoCount?: string;
-  videos?: string[];
-}
-
-const skippedTypes = [YTNodes.GridMovie, YTNodes.Movie];
+const skippedTypes = [
+  // Movies are skipped
+  YTNodes.GridMovie,
+  YTNodes.Movie,
+  // "CompactMovie", // No type available
+  // As Long As Mixed do not work
+  YTNodes.Mix,
+  YTNodes.CompactMix,
+];
 
 const LOGGER = Logger.extend("EXTRACTION");
 
@@ -62,7 +40,7 @@ export function getVideoDataOfFirstElement(
 
 export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
   if (!ytNode) {
-    LOGGER.warn("FALSE TYPE PROVIDED!");
+    // LOGGER.warn("FALSE TYPE PROVIDED!");
     return undefined;
   }
 
@@ -73,33 +51,59 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
 
   // TODO: Maybe split
   if (ytNode.is(YTNodes.Video, YTNodes.CompactVideo)) {
+    const duration = ytNode.duration.text;
     return {
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.best_thumbnail,
+      thumbnailImage: ytNode.best_thumbnail
+        ? getThumbnail(ytNode.best_thumbnail)
+        : undefined,
       short_views: ytNode.short_view_count.toString(),
       author: getAuthor(ytNode.author),
       publishDate: ytNode.published.text,
       type: "video",
-      duration: ytNode.duration.text,
+      duration: duration?.startsWith("N/A") ? undefined : duration,
+      livestream: ytNode.is_live,
+      originalNode: ytNode,
+    } as VideoData;
+  } else if (ytNode.is(YTNodes.GridVideo)) {
+    return {
+      id: ytNode.id,
+      title: ytNode.title.toString(),
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
+      short_views: ytNode.short_view_count.toString(),
+      author: ytNode.author ? getAuthor(ytNode.author) : undefined,
+      publishDate: ytNode.published.text,
+      type: "video",
+      duration: ytNode.duration?.text,
       originalNode: ytNode,
     } as VideoData;
   } else if (ytNode.is(YTNodes.ReelItem)) {
     return {
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       short_views: ytNode.views.toString(),
-      duration: "",
       type: "reel",
       originalNode: ytNode,
     } as VideoData;
-  } else if (ytNode.is(YTNodes.GridPlaylist)) {
+  } else if (ytNode.is(YTNodes.PlaylistVideo)) {
+    return {
+      type: "video",
+      originalNode: ytNode,
+      id: ytNode.id,
+      title: ytNode.title.toString(),
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
+      short_views: "",
+    } as VideoData;
+  }
+  // Playlist Data
+  else if (ytNode.is(YTNodes.GridPlaylist)) {
     return {
       type: "playlist",
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       author: ytNode.author ? getAuthor(ytNode.author) : undefined,
       originalNode: ytNode,
       videoCount: ytNode.video_count_short.text,
@@ -110,30 +114,71 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       originalNode: ytNode,
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       videoCount: ytNode.video_count_short.text,
     } as PlaylistData;
-  } else if (ytNode.is(YTNodes.PlaylistVideo)) {
+  } else if (ytNode.is(YTNodes.CompactPlaylist)) {
     return {
-      type: "video",
+      type: "playlist",
       originalNode: ytNode,
       id: ytNode.id,
       title: ytNode.title.toString(),
-      thumbnailImage: ytNode.thumbnails[0],
-      short_views: "",
-    } as VideoData;
-  } else if (ytNode.is(YTNodes.RichItem)) {
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
+      videoCount: ytNode.video_count_short.text,
+    } as PlaylistData;
+  }
+  // TODO: Mixes are currently not accessible via yt.js
+  // else if (ytNode.is(YTNodes.CompactMix)) {
+  //   LOGGER.warn("Compact MIX Content: ", JSON.stringify(ytNode));
+  //   const playlistId = ytNode.endpoint.payload?.playlistId;
+  //   if (!playlistId) {
+  //     LOGGER.warn("playlistId undefined");
+  //     return undefined;
+  //   }
+  //   return {
+  //     type: "playlist",
+  //     originalNode: ytNode,
+  //     id: playlistId,
+  //     title: "MIX - " + ytNode.title.toString(),
+  //     thumbnailImage: ytNode.thumbnails[0],
+  //     videoCount: ytNode.video_count_short.text,
+  //   } as PlaylistData;
+  // } else if (ytNode.is(YTNodes.Mix)) {
+  //   LOGGER.warn("MIX Content: ", JSON.stringify(ytNode));
+  //   const playlistId = ytNode.endpoint.payload?.playlistId;
+  //   if (!playlistId) {
+  //     LOGGER.warn("playlistId undefined");
+  //     return undefined;
+  //   }
+  //   return {
+  //     type: "playlist",
+  //     originalNode: ytNode,
+  //     id: playlistId,
+  //     title: "MIX - " + ytNode.title.toString(),
+  //     thumbnailImage: ytNode.thumbnails[0],
+  //     videoCount: ytNode.video_count_short.text,
+  //   } as PlaylistData;
+  // }
+  // Channel Data
+  else if (ytNode.is(YTNodes.GridChannel)) {
+    const author = getAuthor(ytNode.author);
+    return {
+      type: "channel",
+      originalNode: ytNode,
+      id: ytNode.id,
+      author: author,
+      title: author.name,
+      thumbnailImage: author.thumbnail,
+    } as ChannelData;
+  }
+  // Recursive Section
+  else if (ytNode.is(YTNodes.RichItem)) {
     // Recursive extraction
     return getVideoData(ytNode.content);
+  } else if (ytNode.is(YTNodes.ReelShelf)) {
+    console.log("ReelShelf Nav Endpoint: ", ytNode.endpoint);
+    console.log("ReelShelf: ", ytNode.items);
   } else {
     LOGGER.warn("getVideoData: Unknown type: ", ytNode.type);
   }
-}
-
-export function getAuthor(author: Misc.Author) {
-  return {
-    id: author.id,
-    name: author.name,
-    thumbnail: author.best_thumbnail,
-  } as Author;
 }

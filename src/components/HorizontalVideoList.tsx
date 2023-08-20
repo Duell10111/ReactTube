@@ -5,7 +5,8 @@ import VideoSegment from "./VideoSegment";
 import Logger from "../utils/Logger";
 import {keyExtractorItems} from "../utils/YTNodeKeyExtractor";
 import ChannelSegment from "./ChannelSegment";
-import {ElementData} from "../extraction/ElementData";
+
+import {ElementData} from "../extraction/Types";
 
 const LOGGER = Logger.extend("SEGMENT");
 
@@ -23,8 +24,13 @@ export default function HorizontalVideoList({
   const renderItem = useCallback(
     ({item}: {item: Helpers.YTNode | ElementData}) => {
       if (!(item instanceof Helpers.YTNode)) {
-        return <VideoSegment element={item} textStyle={textStyle} />;
+        if (item.type === "channel") {
+          return <ChannelSegment element={item.originalNode} />;
+        } else {
+          return <VideoSegment element={item} textStyle={textStyle} />;
+        }
       } else {
+        console.error("! Old Way Horizontal List");
         if (item.is(YTNodes.RichItem)) {
           return <VideoSegment element={item.content} textStyle={textStyle} />;
         } else if (item.is(YTNodes.Video)) {

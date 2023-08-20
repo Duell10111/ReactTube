@@ -1,24 +1,39 @@
 import {useYoutubeContext} from "../context/YoutubeContext";
 import {useEffect, useMemo, useState} from "react";
-import {YT} from "../utils/Youtube";
+import {YT, YTNodes} from "../utils/Youtube";
 import Logger from "../utils/Logger";
+import {useAppData} from "../context/AppDataContext";
+import {getElementDataFromVideoInfo} from "../extraction/YTElements";
 
 const LOGGER = Logger.extend("VIDEO");
 
-export default function useVideoDetails(videoId: string) {
+export default function useVideoDetails(
+  videoId: string | YTNodes.NavigationEndpoint,
+) {
   const youtube = useYoutubeContext();
   const [Video, setVideo] = useState<YT.VideoInfo>();
+  const {appSettings} = useAppData();
 
   useEffect(() => {
-    youtube?.getInfo(videoId).then(setVideo).catch(console.warn);
-  }, [videoId, youtube]);
+    youtube
+      ?.getInfo(videoId, appSettings.hlsEnabled ? "iOS" : undefined)
+      .then(setVideo)
+      .catch(console.warn);
+  }, [appSettings.hlsEnabled, videoId, youtube]);
 
-  const selectedVideo = useMemo(() => {
+  const YTVideoInfo = useMemo(() => {
+    return Video ? getElementDataFromVideoInfo(Video) : undefined;
+  }, [Video]);
+
+  // console.log("HLS: ", Video?.streaming_data?.hls_manifest_url);
+
+  const httpVideoURL = useMemo(() => {
     if (!youtube?.actions.session.player) {
       return undefined;
     }
     // TODO: Add fallback if no matching format found
     try {
+      console.log(Video?.streaming_data?.formats);
       let format = Video?.chooseFormat({
         type: "video+audio",
         quality: "best",
@@ -33,12 +48,17 @@ export default function useVideoDetails(videoId: string) {
       LOGGER.debug("Format: ", format?.quality_label);
       return format?.decipher(youtube.actions.session.player);
     } catch (e) {
-      LOGGER.warn(e);
+      LOGGER.warn("Error while matching formats: ", e);
     }
     return undefined;
   }, [Video, youtube]);
 
-  LOGGER.debug("Video: ", selectedVideo);
+  LOGGER.debug("Video: ", httpVideoURL);
 
-  return {Video, selectedVideo};
+  return {
+    Video,
+    YTVideoInfo,
+    hlsManifestUrl: Video?.streaming_data?.hls_manifest_url,
+    httpVideoURL,
+  };
 }

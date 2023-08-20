@@ -33,7 +33,7 @@ async function exportDashFile(videoInfo: YT.VideoInfo) {
   // TODO: Remove once dash works correctly
   if (true) {
     const dashContent = await videoInfo.toDash(undefined, undefined);
-    LOGGER.debug("Dash content: ", dashContent);
+    // LOGGER.debug("Dash content: ", dashContent);
     await RNFS.writeFile(filePath, dashContent, "utf8");
   }
   return filePath;

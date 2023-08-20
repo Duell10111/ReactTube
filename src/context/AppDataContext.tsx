@@ -6,6 +6,8 @@ const settingsKey = "appSettings";
 
 interface AppSettings {
   vlcEnabled?: boolean;
+  hlsEnabled?: boolean;
+  localHlsEnabled?: boolean;
 }
 
 interface AppDataContext {

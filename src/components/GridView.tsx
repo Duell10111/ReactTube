@@ -1,7 +1,6 @@
 import React, {useCallback} from "react";
 import {Helpers} from "../utils/Youtube";
-import {FlatList, StyleProp, View, ViewStyle} from "react-native";
-import PageSegment from "./PageSegment";
+import {FlatList, Platform, StyleProp, View, ViewStyle} from "react-native";
 import ShelfVideoSelectorProvider from "../context/ShelfVideoSelector";
 import VideoMenu from "./general/VideoMenu";
 import useGrid from "../hooks/home/useGrid";
@@ -11,6 +10,7 @@ import VideoSegment from "./VideoSegment";
 interface Props {
   style?: StyleProp<ViewStyle>;
   shelfItem: Helpers.YTNode[];
+  columns?: number;
   onEndReached?: () => void;
   onElementFocused?: () => void;
 }
@@ -19,9 +19,10 @@ export default function GridView({
   shelfItem,
   onEndReached,
   style,
+  columns,
   onElementFocused,
 }: Props) {
-  const sorted = useGrid(shelfItem);
+  const sorted = useGrid(shelfItem, columns);
 
   const renderItem = useCallback(({item}: {item: (typeof sorted)[number]}) => {
     if (Array.isArray(item)) {
@@ -38,7 +39,7 @@ export default function GridView({
         </View>
       );
     }
-    return <PageSectionList headerText={item.title} content={item.data} />;
+    return <PageSectionList headerText={item.title} content={item} />;
   }, []);
   const keyExtractor = useCallback(
     (item: (typeof sorted)[number], index: number) =>
@@ -57,7 +58,7 @@ export default function GridView({
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={{
-            padding: 20,
+            padding: Platform.isTV ? 20 : 0,
           }}
           onEndReachedThreshold={0.7}
           onEndReached={onEndReached}

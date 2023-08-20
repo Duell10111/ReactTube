@@ -1,5 +1,6 @@
 package com.reacttube;
 
+import org.wonday.orientation.OrientationActivityLifecycle;
 import android.app.Application;
 import com.facebook.react.PackageList;
 import com.facebook.react.ReactApplication;
@@ -57,6 +58,7 @@ public class MainApplication extends Application implements ReactApplication {
             // If you opted-in for the New Architecture, we load the native entry point for this app.
             DefaultNewArchitectureEntryPoint.load();
         }
+        registerActivityLifecycleCallbacks(OrientationActivityLifecycle.getInstance());
         ReactNativeFlipper.initializeFlipper(this, getReactNativeHost().getReactInstanceManager());
       }
 

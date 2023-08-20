@@ -10,6 +10,8 @@ import {ButtonGroup} from "@rneui/base";
 import _ from "lodash";
 import {useAppStyle} from "../../context/AppStyleContext";
 import GridView from "../GridView";
+import {extractSectionList} from "../../extraction/ShelfExtraction";
+import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -96,13 +98,21 @@ interface RowProps {
 
 function ChannelRow({channel, type}: RowProps) {
   const {data, nodes, fetchMore} = useChannelData(channel, type);
+  const columns = useGridColumnsPreferred(type === "Reels");
 
   // LOGGER.debug(data ? recursiveTypeLogger([data.page_contents]) : "");
 
   if (data?.page_contents && data.page_contents.is(YTNodes.SectionList)) {
-    return <SectionList node={data?.page_contents} />;
+    return <SectionList node={extractSectionList(data.page_contents)} />;
   } else if (Array.isArray(nodes)) {
-    return <GridView shelfItem={nodes} onEndReached={() => fetchMore()} />;
+    return (
+      <GridView
+        shelfItem={nodes}
+        onEndReached={() => fetchMore()}
+        // TODO: Optimize
+        columns={type === "Playlists" ? undefined : columns}
+      />
+    );
   } else {
     LOGGER.warn("Unsupported Channel Type: ", data?.page_contents);
   }

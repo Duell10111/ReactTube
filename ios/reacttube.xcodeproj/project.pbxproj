@@ -8,16 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		00E356F31AD99517003FC87E /* reacttubeTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* reacttubeTests.m */; };
+		04964AB88D4D263E64DBB2B1 /* libPods-reacttube-reacttubeTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 51AA2C4684D5E0B106FBA5F7 /* libPods-reacttube-reacttubeTests.a */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		269984920579226908D49904 /* libPods-reacttube.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8DC2855AB2CCC04BED0978AE /* libPods-reacttube.a */; };
 		2D02E4BC1E0B4A80006451C7 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		2D02E4BF1E0B4AB3006451C7 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		2DCD954D1E0B4F2C00145EB5 /* reacttubeTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* reacttubeTests.m */; };
-		41BF5F3596F87FEE707DDD11 /* libPods-reacttube-reacttubeTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F21F13455730034D850CD1C /* libPods-reacttube-reacttubeTests.a */; };
-		47EB63F3390701B2260096C6 /* libPods-reacttube-tvOS-reacttube-tvOSTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A0216F1136BF7C90703C880F /* libPods-reacttube-tvOS-reacttube-tvOSTests.a */; };
+		3B025671FBDCF12B5BD7E0DF /* libPods-reacttube.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BF73BDE9CEF19B552CCD3B79 /* libPods-reacttube.a */; };
+		4785EB4716A710B13D795C7F /* libPods-reacttube-tvOS-reacttube-tvOSTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 489E4262F01B068A7E31B8A7 /* libPods-reacttube-tvOS-reacttube-tvOSTests.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		EE57DEA5314790D63C074D03 /* libPods-reacttube-tvOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EA54FCF2086BA3B4678F8237 /* libPods-reacttube-tvOS.a */; };
+		E6B4924F8329DB4045079E36 /* libPods-reacttube-tvOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4C778F910296337228650B19 /* libPods-reacttube-tvOS.a */; };
 		F06CD0A92A6F0FA300FADC62 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		F06CD0AA2A6F0FA500FADC62 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 /* End PBXBuildFile section */
@@ -40,7 +40,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		008F07F21AC5B25A0029DE68 /* main.jsbundle */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = main.jsbundle; sourceTree = "<group>"; };
 		00E356EE1AD99517003FC87E /* reacttubeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = reacttubeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E356F11AD99517003FC87E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00E356F21AD99517003FC87E /* reacttubeTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = reacttubeTests.m; sourceTree = "<group>"; };
@@ -58,15 +57,17 @@
 		36771B2C8C43AC6099096637 /* Pods-reacttube-reacttubeTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-reacttube-reacttubeTests.debug.xcconfig"; path = "Target Support Files/Pods-reacttube-reacttubeTests/Pods-reacttube-reacttubeTests.debug.xcconfig"; sourceTree = "<group>"; };
 		388308430DF4BE056B0CEF13 /* Pods-reacttube-tvOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-reacttube-tvOS.release.xcconfig"; path = "Target Support Files/Pods-reacttube-tvOS/Pods-reacttube-tvOS.release.xcconfig"; sourceTree = "<group>"; };
 		3BDF8C4CCF278F944E8C6CBF /* Pods-reacttube-tvOS-reacttube-tvOSTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-reacttube-tvOS-reacttube-tvOSTests.release.xcconfig"; path = "Target Support Files/Pods-reacttube-tvOS-reacttube-tvOSTests/Pods-reacttube-tvOS-reacttube-tvOSTests.release.xcconfig"; sourceTree = "<group>"; };
-		4F21F13455730034D850CD1C /* libPods-reacttube-reacttubeTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-reacttube-reacttubeTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		489E4262F01B068A7E31B8A7 /* libPods-reacttube-tvOS-reacttube-tvOSTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-reacttube-tvOS-reacttube-tvOSTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C778F910296337228650B19 /* libPods-reacttube-tvOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-reacttube-tvOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		51AA2C4684D5E0B106FBA5F7 /* libPods-reacttube-reacttubeTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-reacttube-reacttubeTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = reacttube/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		8DC2855AB2CCC04BED0978AE /* libPods-reacttube.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-reacttube.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		A0216F1136BF7C90703C880F /* libPods-reacttube-tvOS-reacttube-tvOSTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-reacttube-tvOS-reacttube-tvOSTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF73BDE9CEF19B552CCD3B79 /* libPods-reacttube.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-reacttube.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CCE9A90FED9D09047497AB6D /* Pods-reacttube-tvOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-reacttube-tvOS.debug.xcconfig"; path = "Target Support Files/Pods-reacttube-tvOS/Pods-reacttube-tvOS.debug.xcconfig"; sourceTree = "<group>"; };
 		E8891750AE2DFBD87A5BDB74 /* Pods-reacttube-tvOS-reacttube-tvOSTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-reacttube-tvOS-reacttube-tvOSTests.debug.xcconfig"; path = "Target Support Files/Pods-reacttube-tvOS-reacttube-tvOSTests/Pods-reacttube-tvOS-reacttube-tvOSTests.debug.xcconfig"; sourceTree = "<group>"; };
-		EA54FCF2086BA3B4678F8237 /* libPods-reacttube-tvOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-reacttube-tvOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		ED2971642150620600B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS12.0.sdk/System/Library/Frameworks/JavaScriptCore.framework; sourceTree = DEVELOPER_DIR; };
+		F05EF5E72A8985B600A5A8BB /* reacttube-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "reacttube-Bridging-Header.h"; sourceTree = "<group>"; };
+		F05EF5E82A8985B600A5A8BB /* reacttube-tvOS-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "reacttube-tvOS-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,7 +75,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				41BF5F3596F87FEE707DDD11 /* libPods-reacttube-reacttubeTests.a in Frameworks */,
+				04964AB88D4D263E64DBB2B1 /* libPods-reacttube-reacttubeTests.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -82,7 +83,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				269984920579226908D49904 /* libPods-reacttube.a in Frameworks */,
+				3B025671FBDCF12B5BD7E0DF /* libPods-reacttube.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,7 +91,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EE57DEA5314790D63C074D03 /* libPods-reacttube-tvOS.a in Frameworks */,
+				E6B4924F8329DB4045079E36 /* libPods-reacttube-tvOS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -98,7 +99,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				47EB63F3390701B2260096C6 /* libPods-reacttube-tvOS-reacttube-tvOSTests.a in Frameworks */,
+				4785EB4716A710B13D795C7F /* libPods-reacttube-tvOS-reacttube-tvOSTests.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,13 +126,14 @@
 		13B07FAE1A68108700A75B9A /* reacttube */ = {
 			isa = PBXGroup;
 			children = (
-				008F07F21AC5B25A0029DE68 /* main.jsbundle */,
 				13B07FAF1A68108700A75B9A /* AppDelegate.h */,
 				13B07FB01A68108700A75B9A /* AppDelegate.mm */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB71A68108700A75B9A /* main.m */,
+				F05EF5E72A8985B600A5A8BB /* reacttube-Bridging-Header.h */,
+				F05EF5E82A8985B600A5A8BB /* reacttube-tvOS-Bridging-Header.h */,
 			);
 			name = reacttube;
 			sourceTree = "<group>";
@@ -141,10 +143,10 @@
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				ED2971642150620600B7C4FE /* JavaScriptCore.framework */,
-				8DC2855AB2CCC04BED0978AE /* libPods-reacttube.a */,
-				4F21F13455730034D850CD1C /* libPods-reacttube-reacttubeTests.a */,
-				EA54FCF2086BA3B4678F8237 /* libPods-reacttube-tvOS.a */,
-				A0216F1136BF7C90703C880F /* libPods-reacttube-tvOS-reacttube-tvOSTests.a */,
+				BF73BDE9CEF19B552CCD3B79 /* libPods-reacttube.a */,
+				51AA2C4684D5E0B106FBA5F7 /* libPods-reacttube-reacttubeTests.a */,
+				4C778F910296337228650B19 /* libPods-reacttube-tvOS.a */,
+				489E4262F01B068A7E31B8A7 /* libPods-reacttube-tvOS-reacttube-tvOSTests.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -299,10 +301,11 @@
 						TestTargetID = 13B07F861A680F5B00A75B9A;
 					};
 					13B07F861A680F5B00A75B9A = {
-						LastSwiftMigration = 1120;
+						LastSwiftMigration = 1430;
 					};
 					2D02E47A1E0B4A5D006451C7 = {
 						CreatedOnToolsVersion = 8.2.1;
+						LastSwiftMigration = 1430;
 						ProvisioningStyle = Automatic;
 					};
 					2D02E48F1E0B4A5D006451C7 = {
@@ -789,6 +792,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = reacttube;
+				SWIFT_OBJC_BRIDGING_HEADER = "reacttube-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -815,6 +819,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = reacttube;
+				SWIFT_OBJC_BRIDGING_HEADER = "reacttube-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -828,6 +833,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -849,6 +855,9 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.reacttube-tvOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
+				SWIFT_OBJC_BRIDGING_HEADER = "reacttube-tvOS-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 12.4;
 			};
@@ -861,6 +870,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = tvOSAppIcons;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -882,6 +892,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.reacttube-tvOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
+				SWIFT_OBJC_BRIDGING_HEADER = "reacttube-tvOS-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 12.4;
 			};

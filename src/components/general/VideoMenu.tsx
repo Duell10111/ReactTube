@@ -1,10 +1,13 @@
 import React, {useState} from "react";
-import {Modal, StyleSheet, Text, View} from "react-native";
+import {Modal, StyleSheet, View} from "react-native";
 import {ListItem} from "@rneui/base";
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackProp} from "../../navigation/types";
-import useVideoDetails from "../../hooks/useVideoDetails";
 import {useShelfVideoSelector} from "../../context/ShelfVideoSelector";
+import LOGGER from "../../utils/Logger";
+import useVideoElementData from "../../hooks/video/useVideoElementData";
+
+const Logger = LOGGER.extend("VIDEOMENU");
 
 interface Props {
   selectedVideoId?: string;
@@ -40,17 +43,22 @@ function VideoMenuContent({
   onCloseModal: () => void;
 }) {
   const navigation = useNavigation<NativeStackProp>();
-  const {Video} = useVideoDetails(videoId);
-  console.log("VideoInfo: ", JSON.stringify(Video?.basic_info, null, 4));
+  const {Video} = useVideoElementData(videoId);
+  // console.log("VideoInfo: ", JSON.stringify(Video?.basic_info, null, 4));
   return (
     <VideoMenuItem
       title={"To Channel"}
       onPress={() => {
-        if (Video?.basic_info.channel?.id) {
+        // Sometimes the information is propagated in a different location
+        const channelID =
+          Video?.basic_info.channel_id ?? Video?.basic_info.channel?.id;
+        if (channelID) {
           navigation.navigate("ChannelScreen", {
-            channelId: Video?.basic_info.channel?.id,
+            channelId: channelID,
           });
           onCloseModal();
+        } else {
+          Logger.warn("No channel data available!");
         }
       }}
     />
@@ -68,9 +76,10 @@ function VideoMenuItem({title, onPress}: ItemProps) {
     <ListItem
       onFocus={() => setFocus(true)}
       onBlur={() => setFocus(false)}
-      containerStyle={[{backgroundColor: "transparent"}]}
+      containerStyle={styles.listItemContainer}
       onPress={onPress}>
-      <ListItem.Title style={{flex: 1, color: focus ? "white" : "black"}}>
+      <ListItem.Title
+        style={[styles.listItemTitle, {color: focus ? "white" : "black"}]}>
         {title}
       </ListItem.Title>
       <ListItem.Chevron />
@@ -84,5 +93,11 @@ const styles = StyleSheet.create({
     width: "20%",
     height: "100%",
     alignSelf: "flex-end",
+  },
+  listItemContainer: {
+    backgroundColor: "transparent",
+  },
+  listItemTitle: {
+    flex: 1,
   },
 });

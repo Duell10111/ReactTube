@@ -19,8 +19,6 @@ export default function useChannelDetails(channelID: string) {
       .getChannel(channelID)
       .then(data => {
         setChannel(data);
-        // LOGGER.debug("Tab: ", JSON.stringify(data.current_tab, null, 4));
-        // data.getVideos().then(setChannel).catch(LOGGER.warn);
       })
       .catch(LOGGER.warn);
   }, [innerTube, channelID]);

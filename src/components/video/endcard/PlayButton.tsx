@@ -1,4 +1,4 @@
-import React from "react";
+import React, {forwardRef} from "react";
 import {
   StyleProp,
   StyleSheet,
@@ -7,21 +7,31 @@ import {
   ViewStyle,
 } from "react-native";
 import {Icon} from "@rneui/base";
+import TouchableField from "../../general/TouchableField";
 
 interface Props {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
 }
 
-export default function PlayButton({onPress, style}: Props) {
-  return (
-    <TouchableOpacity style={style} onPress={onPress}>
-      <View style={styles.container}>
-        <Icon name={"play"} type={"font-awesome-5"} size={20} />
-      </View>
-    </TouchableOpacity>
-  );
-}
+const PlayButton = forwardRef<TouchableOpacity, Props>(
+  ({onPress, style}, ref) => {
+    return (
+      <TouchableField
+        ref={ref}
+        style={style}
+        containerStyle={{width: "100%"}}
+        onPress={onPress}
+        hasTVPreferredFocus>
+        <View style={styles.container}>
+          <Icon name={"play"} type={"font-awesome-5"} size={20} />
+        </View>
+      </TouchableField>
+    );
+  },
+);
+
+export default PlayButton;
 
 const styles = StyleSheet.create({
   container: {

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import VideoComponent from "../components/VideoComponent";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
@@ -19,15 +19,31 @@ import {useFocusEffect} from "@react-navigation/native";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
+interface PlaybackInformation {
+  resolution: string;
+}
+
 // TODO: Fix if freeze if video does only provide audio!!
 // TODO: Add TV remote input for suggestions https://github.com/react-native-tvos/react-native-tvos/blob/tvos-v0.64.2/README.md
 
 export default function VideoScreen({route, navigation}: Props) {
   const {videoId} = route.params;
-  const {Video, selectedVideo} = useVideoDetails(videoId);
+  const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(videoId);
+  const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components
   const [ended, setEnded] = useState(false);
+
+  const {appSettings} = useAppData();
+
+  // TODO: Will be replaced once embed server is available on tvOS
+  const hlsUrl = useMemo(() => {
+    return appSettings.localHlsEnabled
+      ? `http://192.168.178.10:7500/video/${videoId}/master.m3u8`
+      : undefined;
+  }, [appSettings.localHlsEnabled, videoId]);
+
+  console.log(videoId);
 
   useEffect(() => {
     return navigation.addListener("blur", () => {
@@ -48,9 +64,15 @@ export default function VideoScreen({route, navigation}: Props) {
     TVEventControl.enableTVMenuKey();
   });
 
-  const {appSettings} = useAppData();
+  const videoUrl = useMemo(
+    () => hlsManifestUrl ?? httpVideoURL,
+    [hlsManifestUrl, httpVideoURL],
+  );
 
-  if (!Video) {
+  console.log("Video Url: ", videoUrl);
+  // console.log("Chapters: ", YTVideoInfo?.chapters);
+
+  if (!YTVideoInfo) {
     return (
       <View
         style={[
@@ -65,11 +87,12 @@ export default function VideoScreen({route, navigation}: Props) {
     );
   }
 
-  if (!selectedVideo) {
+  if (!videoUrl) {
     return (
       <ErrorComponent
         text={
-          Video.playability_status.reason ?? "Video source is not available"
+          YTVideoInfo.originalData.playability_status.reason ??
+          "Video source is not available"
         }
       />
     );
@@ -78,8 +101,9 @@ export default function VideoScreen({route, navigation}: Props) {
     <View style={[StyleSheet.absoluteFill]}>
       {appSettings.vlcEnabled ? (
         <VideoPlayerVLC
-          videoInfo={Video}
-          url={selectedVideo ?? ""}
+          videoInfo={YTVideoInfo.originalData}
+          url={videoUrl}
+          hlsUrl={hlsUrl}
           onEndReached={() => {
             setEnded(true);
             setShowEndCard(true);
@@ -88,21 +112,27 @@ export default function VideoScreen({route, navigation}: Props) {
         />
       ) : (
         <VideoComponent
-          url={selectedVideo ?? ""}
+          url={videoUrl}
+          hlsUrl={hlsUrl}
+          videoInfo={YTVideoInfo}
           onEndReached={() => {
             setEnded(true);
             setShowEndCard(true);
           }}
+          onPlaybackInfoUpdate={infos => {
+            setPlaybackInfos({resolution: infos.height.toString() + "p"});
+          }}
         />
       )}
       <EndCard
-        video={Video}
+        video={YTVideoInfo.originalData}
         visible={showEndCard}
         onCloseRequest={() => {
           console.log("Back pressed");
           setShowEndCard(false);
         }}
         endCard={ended}
+        currentResolution={playbackInfos?.resolution}
       />
     </View>
   );
