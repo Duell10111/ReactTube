@@ -1,6 +1,12 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
-import {ActivityIndicator, StyleSheet, Text, View} from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import VideoComponent from "../../components/VideoComponent";
 import useVideoDetails from "../../hooks/useVideoDetails";
 import React, {useMemo, useState} from "react";
@@ -16,6 +22,9 @@ import {
 } from "react-native-orientation-locker";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useIsFocused} from "@react-navigation/native";
+import DeviceInfo from "react-native-device-info";
+import GridView from "../../components/GridView";
+import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -35,8 +44,9 @@ export default function VideoScreen({route, navigation}: Props) {
     [hlsManifestUrl, httpVideoURL],
   );
 
-  const [fullscreen, setFullScreen] = useState(false);
+  const columns = useGridColumnsPreferred();
 
+  const [fullscreen, setFullScreen] = useState(false);
   const focus = useIsFocused();
 
   useOrientationChange(orientation => {
@@ -77,6 +87,26 @@ export default function VideoScreen({route, navigation}: Props) {
 
   console.log("Fullscreen: ", fullscreen);
 
+  const listHeader = () => (
+    <View style={styles.videoMetadataContainer}>
+      <Text style={[styles.titleStyle, {color: style.textColor}]}>
+        {YTVideoInfo.title}
+      </Text>
+      <Text style={[styles.subtitleStyle, {color: style.textColor}]}>
+        {YTVideoInfo.short_views}
+      </Text>
+      <View style={styles.channelContainer}>
+        <ChannelIcon
+          channelId={YTVideoInfo.channel_id!}
+          imageStyle={styles.channelStyle}
+        />
+        <Text style={styles.channelTextStyle}>
+          {YTVideoInfo.author?.name ?? ""}
+        </Text>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <OrientationLocker orientation={ALL_ORIENTATIONS_BUT_UPSIDE_DOWN} />
@@ -89,29 +119,22 @@ export default function VideoScreen({route, navigation}: Props) {
       </View>
       <View style={styles.nextVideosContainer}>
         {YTVideoInfo.originalData.watch_next_feed ? (
-          <VerticalVideoList
-            nodes={parseObservedArray(YTVideoInfo.originalData.watch_next_feed)}
-            ListHeaderComponent={
-              <View style={styles.videoMetadataContainer}>
-                <Text style={[styles.titleStyle, {color: style.textColor}]}>
-                  {YTVideoInfo.title}
-                </Text>
-                <Text style={[styles.subtitleStyle, {color: style.textColor}]}>
-                  {YTVideoInfo.short_views}
-                </Text>
-                <View style={styles.channelContainer}>
-                  <ChannelIcon
-                    channelId={YTVideoInfo.channel_id!}
-                    imageStyle={styles.channelStyle}
-                  />
-                  <Text style={styles.channelTextStyle}>
-                    {YTVideoInfo.author?.name ?? ""}
-                  </Text>
-                </View>
-              </View>
-            }
-            contentContainerStyle={{paddingBottom: inserts.bottom}}
-          />
+          DeviceInfo.isTablet() ? (
+            <GridView
+              shelfItem={YTVideoInfo.originalData.watch_next_feed}
+              ListHeaderComponent={listHeader}
+              contentContainerStyle={{paddingBottom: inserts.bottom}}
+              columns={columns}
+            />
+          ) : (
+            <VerticalVideoList
+              nodes={parseObservedArray(
+                YTVideoInfo.originalData.watch_next_feed,
+              )}
+              ListHeaderComponent={listHeader}
+              contentContainerStyle={{paddingBottom: inserts.bottom}}
+            />
+          )
         ) : null}
       </View>
     </View>
