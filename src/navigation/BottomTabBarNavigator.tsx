@@ -33,8 +33,12 @@ export default function BottomTabBarNavigator() {
         tabBarActiveTintColor: "tomato",
         tabBarInactiveTintColor: "gray",
       })}>
-      <Tab.Screen name="HomeFeed" component={HomeScreen} />
-      <Tab.Screen name="SearchScreen" component={SearchScreen} />
+      <Tab.Screen
+        name="HomeFeed"
+        component={HomeScreen}
+        options={{title: "Home"}}
+      />
+      {/*<Tab.Screen name="SearchScreen" component={SearchScreen} />*/}
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );

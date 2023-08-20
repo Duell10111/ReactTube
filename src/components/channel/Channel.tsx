@@ -1,5 +1,5 @@
 import React, {useMemo, useState} from "react";
-import {Platform, Text, TextProps, TouchableOpacity, View} from "react-native";
+import {Text, TextProps, TouchableOpacity, View} from "react-native";
 import {YT, YTNodes} from "../../utils/Youtube";
 import useChannelData, {
   ChannelContentTypes,
@@ -11,6 +11,7 @@ import _ from "lodash";
 import {useAppStyle} from "../../context/AppStyleContext";
 import GridView from "../GridView";
 import {extractSectionList} from "../../extraction/ShelfExtraction";
+import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -97,6 +98,7 @@ interface RowProps {
 
 function ChannelRow({channel, type}: RowProps) {
   const {data, nodes, fetchMore} = useChannelData(channel, type);
+  const columns = useGridColumnsPreferred(type === "Reels");
 
   // LOGGER.debug(data ? recursiveTypeLogger([data.page_contents]) : "");
 
@@ -108,7 +110,7 @@ function ChannelRow({channel, type}: RowProps) {
         shelfItem={nodes}
         onEndReached={() => fetchMore()}
         // TODO: Optimize
-        columns={type === "Reels" && !Platform.isTV ? 2 : undefined}
+        columns={type === "Playlists" ? undefined : columns}
       />
     );
   } else {

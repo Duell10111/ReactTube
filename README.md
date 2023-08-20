@@ -5,23 +5,25 @@ An ad free Youtube alternative developed in React-Native mainly for Apply TV, bu
 Main goals:
 
 - Youtube-experience without **ADs**
+- General Youtube client features
 
-**Currently still in development**, contributions welcome!
+**Currently, still in development**, contributions welcome!
 
 This project uses the [Youtube.js](https://github.com/LuanRT/YouTube.js) library to access the Youtube API.
 
 ## Features
 
-| Feature                                         | Available            |
-|-------------------------------------------------|----------------------|
-| Basic UI (including Channel and Playlist Views) | ✅                    |
-| Video Playback up until 720p                    | ✅                    |
-| 1080p playback up to 4K                         | ✅ (using HLS toggle) |
-| Youtube Login via QR Code                       | ✅                    |
-| History Page                                    | ✅                    |
-| Subscription Page                               | ⏳ WIP                |
-| Social Interactions (Like, Subscribe etc.)      | ❌                    |
-| Chapter-Information                             | ⏳                    |
+| Feature                                         | Available                     |
+|-------------------------------------------------|-------------------------------|
+| Basic UI (including Channel and Playlist Views) | ✅                             |
+| Video Playback up until 720p                    | ✅                             |
+| 1080p playback up to 4K                         | ✅ (using HLS toggle)          |
+| Youtube Login via QR Code                       | ✅                             |
+| History Page                                    | ✅                             |
+| Subscription Page                               | ⏳ WIP                         |
+| Social Interactions (Like, Subscribe etc.)      | ❌                             |
+| Chapter-Information                             | ✅ (works with non VLC Player) |
+| Basic Mobile Support                            | ✅                             |
 
 ### Building
 

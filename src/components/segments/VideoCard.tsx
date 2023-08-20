@@ -7,6 +7,7 @@ import VideoCardTV from "./tv/VideoCardTV";
 import VideoCardPhone from "./phone/VideoCardPhone";
 import {Author, Thumbnail} from "../../extraction/Types";
 import ReelCardPhone from "./phone/ReelCardPhone";
+import DeviceInfo from "react-native-device-info";
 
 const LOGGER = Logger.extend("VIDEOCARD");
 
@@ -78,5 +79,14 @@ export default function VideoCard({...data}: Props) {
     return <ReelCardPhone {...data} onPress={onPress} />;
   }
 
-  return <VideoCardPhone {...data} onPress={onPress} />;
+  return (
+    <VideoCardPhone
+      {...data}
+      onPress={onPress}
+      style={DeviceInfo.isTablet() ? {width: 375, padding: 10} : undefined}
+      imageContainerStyle={
+        DeviceInfo.isTablet() ? {borderRadius: 25} : undefined
+      }
+    />
+  );
 }

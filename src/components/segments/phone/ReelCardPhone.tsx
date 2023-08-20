@@ -5,7 +5,6 @@ import {
   Text,
   TextStyle,
   TouchableNativeFeedback,
-  useWindowDimensions,
   View,
   ViewStyle,
 } from "react-native";
@@ -35,7 +34,6 @@ export default function ReelCardPhone({
   ...data
 }: Props) {
   const {style: appStyle} = useAppStyle();
-  const {width} = useWindowDimensions();
 
   return (
     <View style={[styles.container, {width: 150}]}>

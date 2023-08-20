@@ -37,6 +37,7 @@ export default function RootStackNavigator() {
       <Stack.Screen
         name="VideoScreen"
         component={Platform.isTV ? VideoScreen : VideoScreenPhone}
+        options={{title: "Video"}}
       />
       <Stack.Screen name={"ChannelScreen"} component={ChannelScreen} />
       <Stack.Screen name={"PlaylistScreen"} component={PlaylistScreen} />

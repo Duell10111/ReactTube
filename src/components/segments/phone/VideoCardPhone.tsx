@@ -18,7 +18,7 @@ import {Author, Thumbnail} from "../../../extraction/Types";
 interface Props {
   textStyle?: StyleProp<TextStyle>;
   style?: StyleProp<ViewStyle>;
-  reel?: boolean;
+  imageContainerStyle?: StyleProp<ViewStyle>;
   onPress?: () => void;
   videoId: string;
   title: string;
@@ -34,28 +34,17 @@ interface Props {
 export default function VideoCardPhone({
   style,
   textStyle,
+  imageContainerStyle,
   onPress,
   ...data
 }: Props) {
   const {style: appStyle} = useAppStyle();
   const {width} = useWindowDimensions();
 
-  if (data.reel) {
-    console.log(data.thumbnail);
-  }
-
   return (
-    <View
-      style={[
-        styles.container,
-        data.reel ? {width: 150} : {minWidth: 150, maxWidth: width},
-      ]}>
+    <View style={[styles.container, {minWidth: 150, maxWidth: width}, style]}>
       <TouchableNativeFeedback onPress={onPress}>
-        <View
-          style={[
-            styles.segmentContainer,
-            data.reel ? {aspectRatio: 0.56, borderRadius: 25} : {},
-          ]}>
+        <View style={[styles.segmentContainer, imageContainerStyle]}>
           <FastImage
             style={styles.imageStyle}
             resizeMode={"cover"}

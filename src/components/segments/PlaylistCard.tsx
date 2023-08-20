@@ -5,6 +5,7 @@ import {NativeStackProp, RootRouteProp} from "../../navigation/types";
 import PlaylistCardTV from "./tv/PlaylistCardTV";
 import {Author, Thumbnail} from "../../extraction/Types";
 import PlaylistCardPhone from "./phone/PlaylistCardPhone";
+import DeviceInfo from "react-native-device-info";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;

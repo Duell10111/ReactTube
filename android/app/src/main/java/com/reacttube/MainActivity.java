@@ -1,5 +1,7 @@
 package com.reacttube;
 
+import android.content.Intent;
+import android.content.res.Configuration;
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint;
@@ -32,4 +34,14 @@ public class MainActivity extends ReactActivity {
             DefaultNewArchitectureEntryPoint.getConcurrentReactEnabled() // concurrentRootEnabled
     );
   }
+
+  // react-native-orientation-locker
+  @Override
+  public void onConfigurationChanged(Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    Intent intent = new Intent("onConfigurationChanged");
+    intent.putExtra("newConfig", newConfig);
+    this.sendBroadcast(intent);
+  }
+
 }

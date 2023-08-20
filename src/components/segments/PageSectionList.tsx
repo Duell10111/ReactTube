@@ -1,6 +1,6 @@
 import React from "react";
 import {Helpers} from "../../utils/Youtube";
-import {StyleSheet, Text, View} from "react-native";
+import {Platform, StyleSheet, Text, View} from "react-native";
 import HorizontalVideoList from "../HorizontalVideoList";
 import {useAppStyle} from "../../context/AppStyleContext";
 import {HorizontalData} from "../../extraction/ShelfExtraction";
@@ -19,7 +19,12 @@ export default function PageSectionList({headerText, content}: Props) {
 
   return (
     <View>
-      <Text style={[styles.textStyle, {color: style.textColor}]}>
+      <Text
+        style={[
+          styles.textStyle,
+          {color: style.textColor},
+          !Platform.isTV ? {fontSize: 20} : undefined,
+        ]}>
         {headerText}
       </Text>
       <HorizontalVideoList

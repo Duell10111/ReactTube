@@ -9,6 +9,12 @@ import VerticalVideoList from "../../components/VerticalVideoList";
 import {parseObservedArray} from "../../extraction/ArrayExtraction";
 import ChannelIcon from "../../components/video/ChannelIcon";
 import {useAppStyle} from "../../context/AppStyleContext";
+import {
+  ALL_ORIENTATIONS_BUT_UPSIDE_DOWN,
+  OrientationLocker,
+  useOrientationChange,
+} from "react-native-orientation-locker";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -17,6 +23,7 @@ export default function VideoScreen({route, navigation}: Props) {
   const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(videoId);
 
   const {style} = useAppStyle();
+  const inserts = useSafeAreaInsets();
 
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components
@@ -26,6 +33,14 @@ export default function VideoScreen({route, navigation}: Props) {
     () => hlsManifestUrl ?? httpVideoURL,
     [hlsManifestUrl, httpVideoURL],
   );
+
+  const [fullscreen, setFullScreen] = useState(false);
+
+  useOrientationChange(orientation => {
+    setFullScreen(
+      orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
+    );
+  });
 
   if (!YTVideoInfo) {
     return (
@@ -53,13 +68,16 @@ export default function VideoScreen({route, navigation}: Props) {
     );
   }
 
+  console.log("Fullscreen: ", fullscreen);
+
   return (
     <View style={styles.container}>
+      <OrientationLocker orientation={ALL_ORIENTATIONS_BUT_UPSIDE_DOWN} />
       <View style={styles.videoContainer}>
         <VideoComponent
           url={videoUrl}
           style={styles.videoComponent}
-          fullscreen={false}
+          fullscreen={fullscreen}
         />
       </View>
       <View style={styles.nextVideosContainer}>
@@ -85,6 +103,7 @@ export default function VideoScreen({route, navigation}: Props) {
                 </View>
               </View>
             }
+            contentContainerStyle={{paddingBottom: inserts.bottom}}
           />
         ) : null}
       </View>
@@ -94,6 +113,7 @@ export default function VideoScreen({route, navigation}: Props) {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     // backgroundColor: "blue",
   },
   contentContainer: {
@@ -101,7 +121,7 @@ const styles = StyleSheet.create({
   },
   videoContainer: {
     // backgroundColor: "red",
-    height: "30%",
+    height: "35%",
   },
   videoComponent: {
     flex: 1,
@@ -129,6 +149,7 @@ const styles = StyleSheet.create({
   },
   channelTextStyle: {},
   nextVideosContainer: {
+    flex: 1,
     // backgroundColor: "pink",
   },
 });

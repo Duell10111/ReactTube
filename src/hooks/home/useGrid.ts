@@ -6,6 +6,8 @@ import {Helpers} from "../../utils/Youtube";
 export default function useGrid(content: Helpers.YTNode[], column?: number) {
   const {width} = useWindowDimensions();
 
+  console.log("Width: ", width);
+
   const list = useMemo(() => {
     const columnCount = column ?? Math.max(Math.floor(width / 500), 1);
 
