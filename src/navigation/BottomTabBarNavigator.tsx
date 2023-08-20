@@ -1,9 +1,11 @@
 import React from "react";
 import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import HomeScreen from "../screens/HomeScreen";
 import SettingsScreen from "../screens/SettingsScreen";
-import SearchScreen from "../screens/SearchScreen";
+import useAccountData from "../hooks/account/useAccountData";
+import SubscriptionScreen from "../screens/SubscriptionScreen";
 
 export type RootBottomTabParamList = {
   HomeFeed: undefined;
@@ -15,19 +17,25 @@ export type RootBottomTabParamList = {
 const Tab = createBottomTabNavigator<RootBottomTabParamList>();
 
 export default function BottomTabBarNavigator() {
+  const {loginData} = useAccountData();
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
         tabBarIcon: ({focused, color, size}) => {
-          let iconName;
+          let iconName: string;
 
           if (route.name === "HomeFeed") {
             iconName = "home";
           } else if (route.name === "Settings") {
             iconName = focused ? "ios-list" : "ios-list-outline";
+          } else if (route.name === "Subscriptions") {
+            return (
+              <MaterialIcons name={"subscriptions"} size={size} color={color} />
+            );
           }
 
           // You can return any component that you like here!
+          // @ts-ignore
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "tomato",
@@ -38,7 +46,9 @@ export default function BottomTabBarNavigator() {
         component={HomeScreen}
         options={{title: "Home"}}
       />
-      {/*<Tab.Screen name="SearchScreen" component={SearchScreen} />*/}
+      {loginData.accounts.length > 0 ? (
+        <Tab.Screen name="Subscriptions" component={SubscriptionScreen} />
+      ) : null}
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );

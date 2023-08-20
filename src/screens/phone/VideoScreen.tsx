@@ -15,6 +15,7 @@ import {
   useOrientationChange,
 } from "react-native-orientation-locker";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {useIsFocused} from "@react-navigation/native";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -36,7 +37,13 @@ export default function VideoScreen({route, navigation}: Props) {
 
   const [fullscreen, setFullScreen] = useState(false);
 
+  const focus = useIsFocused();
+
   useOrientationChange(orientation => {
+    // Do not react if not focused
+    if (!focus) {
+      return;
+    }
     setFullScreen(
       orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
     );
