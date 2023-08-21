@@ -37,6 +37,23 @@ export default function VideoSegment({
           thumbnail={element.thumbnailImage}
           date={element.publishDate}
           livestream={element.livestream}
+          navEndpoint={element.navEndpoint}
+        />
+      );
+    } else if (element.type === "mix") {
+      return (
+        <VideoCard
+          style={style}
+          textStyle={textStyle}
+          videoId={element.id}
+          navEndpoint={element.navEndpoint}
+          title={element.title}
+          views={element.short_views}
+          duration={element.duration}
+          author={element.author}
+          thumbnail={element.thumbnailImage}
+          date={element.publishDate}
+          mix
         />
       );
     } else if (element.type === "playlist") {

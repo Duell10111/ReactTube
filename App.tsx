@@ -20,6 +20,7 @@ import BackgroundWrapper from "./src/utils/BackgroundWrapper";
 import AppDataContextProvider from "./src/context/AppDataContext";
 import AccountContextProvider from "./src/context/AccountContext";
 import {SafeAreaProvider} from "react-native-safe-area-context";
+import {GestureHandlerRootView} from "react-native-gesture-handler";
 
 // Polyfill for youtube.js
 Object.assign(global, {
@@ -31,22 +32,24 @@ const App = () => {
   const isDarkMode = useColorScheme() === "dark";
 
   return (
-    <AppStyleProvider>
-      <BackgroundWrapper>
-        <AppDataContextProvider>
-          <YoutubeContextProvider>
-            <AccountContextProvider>
-              <StatusBar
-                barStyle={isDarkMode ? "light-content" : "dark-content"}
-              />
-              <SafeAreaProvider>
-                <Navigation />
-              </SafeAreaProvider>
-            </AccountContextProvider>
-          </YoutubeContextProvider>
-        </AppDataContextProvider>
-      </BackgroundWrapper>
-    </AppStyleProvider>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <AppStyleProvider>
+        <BackgroundWrapper>
+          <AppDataContextProvider>
+            <YoutubeContextProvider>
+              <AccountContextProvider>
+                <StatusBar
+                  barStyle={isDarkMode ? "light-content" : "dark-content"}
+                />
+                <SafeAreaProvider>
+                  <Navigation />
+                </SafeAreaProvider>
+              </AccountContextProvider>
+            </YoutubeContextProvider>
+          </AppDataContextProvider>
+        </BackgroundWrapper>
+      </AppStyleProvider>
+    </GestureHandlerRootView>
   );
 };
 

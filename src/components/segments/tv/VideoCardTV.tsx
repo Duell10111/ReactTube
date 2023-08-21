@@ -27,6 +27,7 @@ interface Props {
   date?: string;
   disabled?: boolean;
   livestream?: boolean;
+  mix?: boolean;
 }
 
 export default function VideoCardTV({
@@ -63,6 +64,11 @@ export default function VideoCardTV({
           <View style={styles.liveContainer}>
             <Icon name={"record"} type={"material-community"} color={"red"} />
             <Text style={styles.liveStyle}>Live</Text>
+          </View>
+        ) : null}
+        {data.mix ? (
+          <View style={styles.bottomBorder}>
+            <Icon name={"playlist-play"} color={"white"} />
           </View>
         ) : null}
       </VideoTouchable>
@@ -129,5 +135,17 @@ const styles = StyleSheet.create({
   liveStyle: {
     fontSize: 20,
     color: "red",
+  },
+  bottomBorder: {
+    position: "absolute",
+    left: 0,
+    bottom: 0,
+    right: 0,
+    height: "20%",
+    backgroundColor: "#111111bb",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingHorizontal: 15,
   },
 });

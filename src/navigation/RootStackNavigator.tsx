@@ -11,10 +11,11 @@ import SettingsScreen from "../screens/SettingsScreen";
 import LoginScreen from "../screens/LoginScreen";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
 import HistoryScreen from "../screens/HistoryScreen";
+import {YTNodes} from "../utils/Youtube";
 
 export type RootStackParamList = {
   Home: undefined;
-  VideoScreen: {videoId: string};
+  VideoScreen: {videoId: string; navEndpoint?: YTNodes.NavigationEndpoint};
   ChannelScreen: {channelId: string};
   PlaylistScreen: {playlistId: string};
   Search: undefined;

@@ -29,6 +29,7 @@ interface Props {
   date?: string;
   disabled?: boolean;
   livestream?: boolean;
+  mix?: boolean;
 }
 
 export default function VideoCardPhone({
@@ -63,6 +64,11 @@ export default function VideoCardPhone({
               <Text style={styles.liveStyle}>Live</Text>
             </View>
           ) : null}
+          {data.mix ? (
+            <View style={styles.bottomBorder}>
+              <Icon name={"playlist-play"} color={"white"} />
+            </View>
+          ) : null}
         </View>
       </TouchableNativeFeedback>
       <View style={styles.metadataContainer}>
@@ -78,11 +84,9 @@ export default function VideoCardPhone({
             style={[styles.titleStyle, {color: appStyle.textColor}, textStyle]}>
             {data.title}
           </Text>
-          <Text
-            style={[
-              styles.subtitleStyle,
-              {color: appStyle.textColor},
-            ]}>{`${data.author?.name} - ${data.views}`}</Text>
+          <Text style={[styles.subtitleStyle, {color: appStyle.textColor}]}>
+            {data.author ? `${data.author?.name} - ${data.views}` : data.views}
+          </Text>
         </View>
       </View>
     </View>
@@ -149,5 +153,17 @@ const styles = StyleSheet.create({
   liveStyle: {
     fontSize: 15,
     color: "red",
+  },
+  bottomBorder: {
+    position: "absolute",
+    left: 0,
+    bottom: 0,
+    right: 0,
+    height: "20%",
+    backgroundColor: "#111111bb",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingHorizontal: 15,
   },
 });

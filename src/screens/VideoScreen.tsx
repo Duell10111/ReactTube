@@ -27,8 +27,12 @@ interface PlaybackInformation {
 // TODO: Add TV remote input for suggestions https://github.com/react-native-tvos/react-native-tvos/blob/tvos-v0.64.2/README.md
 
 export default function VideoScreen({route, navigation}: Props) {
-  const {videoId} = route.params;
-  const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(videoId);
+  const {videoId, navEndpoint} = route.params;
+  console.log("VideoID: ", videoId);
+  console.log("NavEndpoint: ", navEndpoint);
+  const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(
+    navEndpoint ?? videoId,
+  );
   const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components

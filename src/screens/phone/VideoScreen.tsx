@@ -1,15 +1,9 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
-import {
-  ActivityIndicator,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import {ActivityIndicator, StyleSheet, Text, View} from "react-native";
 import VideoComponent from "../../components/VideoComponent";
 import useVideoDetails from "../../hooks/useVideoDetails";
-import React, {useMemo, useState} from "react";
+import React, {useMemo, useRef, useState} from "react";
 import ErrorComponent from "../../components/general/ErrorComponent";
 import VerticalVideoList from "../../components/VerticalVideoList";
 import {parseObservedArray} from "../../extraction/ArrayExtraction";
@@ -25,12 +19,17 @@ import {useIsFocused} from "@react-navigation/native";
 import DeviceInfo from "react-native-device-info";
 import GridView from "../../components/GridView";
 import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
+import PlaylistBottomSheet from "../../components/video/playlistBottomSheet/PlaylistBottomSheet";
+import PlaylistBottomSheetContainer from "../../components/video/playlistBottomSheet/PlaylistBottomSheetContainer";
+import BottomSheet from "@gorhom/bottom-sheet";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
 export default function VideoScreen({route, navigation}: Props) {
-  const {videoId} = route.params;
-  const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(videoId);
+  const {videoId, navEndpoint} = route.params;
+  const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(
+    navEndpoint ?? videoId,
+  );
 
   const {style} = useAppStyle();
   const inserts = useSafeAreaInsets();
@@ -58,6 +57,8 @@ export default function VideoScreen({route, navigation}: Props) {
       orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
     );
   });
+
+  const sheetRef = useRef<BottomSheet>(null);
 
   if (!YTVideoInfo) {
     return (
@@ -135,6 +136,18 @@ export default function VideoScreen({route, navigation}: Props) {
               contentContainerStyle={{paddingBottom: inserts.bottom}}
             />
           )
+        ) : null}
+        {YTVideoInfo.playlist ? (
+          <PlaylistBottomSheetContainer
+            ytInfoPlaylist={YTVideoInfo.playlist}
+            onPress={() => sheetRef.current?.snapToIndex(0)}
+          />
+        ) : null}
+        {YTVideoInfo.playlist ? (
+          <PlaylistBottomSheet
+            ytInfoPlaylist={YTVideoInfo?.playlist}
+            ref={sheetRef}
+          />
         ) : null}
       </View>
     </View>

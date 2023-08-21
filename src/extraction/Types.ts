@@ -10,7 +10,7 @@ export type ElementData = VideoData | PlaylistData | ChannelData;
 
 export interface VideoData {
   originalNode: Helpers.YTNode;
-  type: "video" | "reel";
+  type: "video" | "reel" | "mix";
   id: string;
   navEndpoint?: YTNodes.NavigationEndpoint;
   thumbnailImage: Thumbnail;
@@ -65,6 +65,19 @@ export interface YTVideoInfo {
   author?: Author;
   chapters?: YTChapter[];
   channel_id?: string;
+  channel?: {
+    id: string;
+    name: string;
+    url: string;
+  };
+  playlist?: {
+    id: string;
+    title: string;
+    content: ElementData[];
+    author?: string | Author;
+    current_index: number;
+    is_infinite: boolean;
+  };
 }
 
 export interface YTChapter {

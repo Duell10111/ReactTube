@@ -18,9 +18,6 @@ const skippedTypes = [
   YTNodes.GridMovie,
   YTNodes.Movie,
   // "CompactMovie", // No type available
-  // As Long As Mixed do not work
-  YTNodes.Mix,
-  YTNodes.CompactMix,
 ];
 
 const LOGGER = Logger.extend("EXTRACTION");
@@ -96,6 +93,17 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       short_views: "",
     } as VideoData;
+  } else if (ytNode.is(YTNodes.PlaylistPanelVideo)) {
+    return {
+      type: "video",
+      originalNode: ytNode,
+      id: ytNode.video_id,
+      navEndpoint: ytNode.endpoint,
+      title: ytNode.title.toString(),
+      thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
+      duration: ytNode.duration.text,
+      short_views: "",
+    } as VideoData;
   }
   // Playlist Data
   else if (ytNode.is(YTNodes.GridPlaylist)) {
@@ -126,39 +134,19 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       videoCount: ytNode.video_count_short.text,
     } as PlaylistData;
+  } else if (ytNode.is(YTNodes.CompactMix, YTNodes.Mix)) {
+    LOGGER.warn("Compact MIX Content: ", JSON.stringify(ytNode));
+    return {
+      type: "mix",
+      originalNode: ytNode,
+      id: ytNode.id,
+      navEndpoint: ytNode.endpoint,
+      title: ytNode.title.toString(),
+      thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
+      videoCount: ytNode.video_count_short.text,
+      short_views: ytNode.video_count_short.text,
+    } as VideoData;
   }
-  // TODO: Mixes are currently not accessible via yt.js
-  // else if (ytNode.is(YTNodes.CompactMix)) {
-  //   LOGGER.warn("Compact MIX Content: ", JSON.stringify(ytNode));
-  //   const playlistId = ytNode.endpoint.payload?.playlistId;
-  //   if (!playlistId) {
-  //     LOGGER.warn("playlistId undefined");
-  //     return undefined;
-  //   }
-  //   return {
-  //     type: "playlist",
-  //     originalNode: ytNode,
-  //     id: playlistId,
-  //     title: "MIX - " + ytNode.title.toString(),
-  //     thumbnailImage: ytNode.thumbnails[0],
-  //     videoCount: ytNode.video_count_short.text,
-  //   } as PlaylistData;
-  // } else if (ytNode.is(YTNodes.Mix)) {
-  //   LOGGER.warn("MIX Content: ", JSON.stringify(ytNode));
-  //   const playlistId = ytNode.endpoint.payload?.playlistId;
-  //   if (!playlistId) {
-  //     LOGGER.warn("playlistId undefined");
-  //     return undefined;
-  //   }
-  //   return {
-  //     type: "playlist",
-  //     originalNode: ytNode,
-  //     id: playlistId,
-  //     title: "MIX - " + ytNode.title.toString(),
-  //     thumbnailImage: ytNode.thumbnails[0],
-  //     videoCount: ytNode.video_count_short.text,
-  //   } as PlaylistData;
-  // }
   // Channel Data
   else if (ytNode.is(YTNodes.GridChannel)) {
     const author = getAuthor(ytNode.author);

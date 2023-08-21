@@ -8,6 +8,7 @@ import VideoCardPhone from "./phone/VideoCardPhone";
 import {Author, Thumbnail} from "../../extraction/Types";
 import ReelCardPhone from "./phone/ReelCardPhone";
 import DeviceInfo from "react-native-device-info";
+import {YTNodes} from "youtubei.js";
 
 const LOGGER = Logger.extend("VIDEOCARD");
 
@@ -15,6 +16,7 @@ interface Props {
   textStyle?: StyleProp<TextStyle>;
   style?: StyleProp<ViewStyle>;
   videoId: string;
+  navEndpoint?: YTNodes.NavigationEndpoint;
   title: string;
   views: string;
   reel?: boolean;
@@ -24,6 +26,7 @@ interface Props {
   date?: string;
   disabled?: boolean;
   livestream?: boolean;
+  mix?: boolean;
 }
 
 export default function VideoCard({...data}: Props) {
@@ -36,9 +39,13 @@ export default function VideoCard({...data}: Props) {
     }
     LOGGER.debug("State: ", navigation.getState());
     LOGGER.debug("Route name: ", route.name);
+    LOGGER.debug("Nav Endpoint: ", data.navEndpoint);
     if (route.name === "VideoScreen") {
       LOGGER.debug("Replacing Video Screen");
-      navigation.replace("VideoScreen", {videoId: data.videoId});
+      navigation.replace("VideoScreen", {
+        videoId: data.videoId,
+        navEndpoint: data.navEndpoint,
+      });
     } else if (
       // @ts-ignore
       navigation.getState().routes.find(r => r.name === "VideoScreen")
@@ -51,7 +58,7 @@ export default function VideoCard({...data}: Props) {
           // @ts-ignore
           name: "VideoScreen",
           // @ts-ignore
-          params: {videoId: data.videoId},
+          params: {videoId: data.videoId, navEndpoint: data.navEndpoint},
         });
 
         return CommonActions.reset({
@@ -61,7 +68,10 @@ export default function VideoCard({...data}: Props) {
         });
       });
     } else {
-      navigation.navigate("VideoScreen", {videoId: data.videoId});
+      navigation.navigate("VideoScreen", {
+        videoId: data.videoId,
+        navEndpoint: data.navEndpoint,
+      });
     }
   };
 
