@@ -4,7 +4,10 @@ import {Button} from "@rneui/base";
 import {useAccountContext} from "../context/AccountContext";
 import QRCode from "react-native-qrcode-svg";
 import {useAppStyle} from "../context/AppStyleContext";
-import Clipboard from "@react-native-clipboard/clipboard";
+
+const Clipboard = !Platform.isTV
+  ? require("@react-native-clipboard/clipboard").default
+  : {};
 
 export default function LoginScreen() {
   const account = useAccountContext();
