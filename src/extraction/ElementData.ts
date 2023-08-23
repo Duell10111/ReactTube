@@ -89,9 +89,9 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       type: "video",
       originalNode: ytNode,
       id: ytNode.id,
+      navEndpoint: ytNode.endpoint,
       title: ytNode.title.toString(),
       thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
-      short_views: "",
     } as VideoData;
   } else if (ytNode.is(YTNodes.PlaylistPanelVideo)) {
     return {
@@ -102,7 +102,6 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       title: ytNode.title.toString(),
       thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
       duration: ytNode.duration.text,
-      short_views: "",
     } as VideoData;
   }
   // Playlist Data

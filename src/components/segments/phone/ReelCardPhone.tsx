@@ -18,7 +18,6 @@ interface Props {
   onPress?: () => void;
   videoId: string;
   title: string;
-  views: string;
   duration?: string;
   thumbnail?: Thumbnail;
   author?: Author;

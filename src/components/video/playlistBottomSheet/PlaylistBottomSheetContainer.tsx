@@ -33,7 +33,21 @@ export default function PlaylistBottomSheetContainer({
               color={style.textColor}
               style={styles.iconStyle}
             />
-            <Text style={{color: "white"}}>{ytInfoPlaylist?.title}</Text>
+            <View>
+              <Text style={{color: style.textColor}} numberOfLines={1}>
+                {ytInfoPlaylist?.title}
+              </Text>
+              {ytInfoPlaylist.content[ytInfoPlaylist.current_index + 1] ? (
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.nextVideoText,
+                    {color: style.textColor},
+                  ]}>{`Next Video: ${
+                  ytInfoPlaylist.content[ytInfoPlaylist.current_index + 1].title
+                }`}</Text>
+              ) : null}
+            </View>
           </View>
         </TouchableOpacity>
       </View>
@@ -43,13 +57,17 @@ export default function PlaylistBottomSheetContainer({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 25,
-    backgroundColor: "grey",
+    borderRadius: 12,
+    backgroundColor: "#444444dd",
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 5,
+    overflow: "hidden",
   },
   iconStyle: {
     marginHorizontal: 10,
+  },
+  nextVideoText: {
+    fontSize: 12,
   },
 });

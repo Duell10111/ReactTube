@@ -1,6 +1,5 @@
 import React, {useMemo} from "react";
-import {YT} from "../../utils/Youtube";
-import {Modal, StyleSheet, Text, View} from "react-native";
+import {Modal, ScrollView, StyleSheet, Text, View} from "react-native";
 import HorizontalVideoList from "../HorizontalVideoList";
 import ChannelIcon from "./ChannelIcon";
 import NextVideo from "./endcard/NextVideo";
@@ -8,9 +7,11 @@ import {useNavigation} from "@react-navigation/native";
 import {NativeStackProp} from "../../navigation/types";
 import {parseObservedArray} from "../../extraction/ArrayExtraction";
 import useVideoElementData from "../../hooks/video/useVideoElementData";
+import {YTVideoInfo} from "../../extraction/Types";
+import {Icon} from "@rneui/base";
 
 interface Props {
-  video: YT.VideoInfo;
+  video: YTVideoInfo;
   visible: boolean;
   onCloseRequest: () => void;
   endCard?: boolean;
@@ -30,18 +31,23 @@ export default function EndCard({
 
   const watchNextList = useMemo(
     () =>
-      video.watch_next_feed ? parseObservedArray(video.watch_next_feed) : [],
-    [video.watch_next_feed],
+      video.originalData.watch_next_feed
+        ? parseObservedArray(video.originalData.watch_next_feed)
+        : [],
+    [video.originalData.watch_next_feed],
   );
 
   const nextVideoID = useMemo(
-    () => video.autoplay_video_endpoint?.payload.videoId as string | undefined,
+    () =>
+      video.originalData.autoplay_video_endpoint?.payload.videoId as
+        | string
+        | undefined,
     [video],
   );
 
   const {videoElement} = useVideoElementData(nextVideoID);
 
-  if (!video.watch_next_feed) {
+  if (!video.originalData.watch_next_feed) {
     // TODO: Add warning or debug message
     return null;
   }
@@ -64,23 +70,15 @@ export default function EndCard({
         </View>
         <View style={styles.videoInfoContainer}>
           <View style={styles.channelContainer}>
-            <ChannelIcon
-              channelId={
-                video.basic_info.channel_id ??
-                video.basic_info.channel?.id ??
-                ""
-              }
-            />
+            <ChannelIcon channelId={video.channel_id ?? ""} />
             <Text style={[styles.text, styles.channelText]}>
-              {video.basic_info.channel?.name ?? ""}
+              {video.channel?.name ?? ""}
             </Text>
           </View>
           <View style={styles.videoContainer}>
-            <Text style={[styles.text, styles.videoTitle]}>
-              {video.basic_info.title}
-            </Text>
+            <Text style={[styles.text, styles.videoTitle]}>{video.title}</Text>
             <Text style={[styles.text, styles.viewsText]}>
-              {`${video.basic_info.view_count} Views`}
+              {`${video.short_views} Views`}
             </Text>
             {currentResolution ? (
               <Text style={[styles.text, styles.viewsText]}>
@@ -90,8 +88,27 @@ export default function EndCard({
           </View>
         </View>
         <View style={styles.bottomContainer}>
-          <Text style={styles.bottomText}>Related Videos</Text>
-          <HorizontalVideoList nodes={watchNextList} textStyle={styles.text} />
+          <ScrollView>
+            {video.playlist ? (
+              <>
+                <View style={styles.bottomPlaylistTextContainer}>
+                  <Icon name={"book"} color={"white"} />
+                  <Text style={styles.bottomPlaylistText}>
+                    {video.playlist.title}
+                  </Text>
+                </View>
+                <HorizontalVideoList
+                  nodes={video.playlist.content}
+                  textStyle={styles.text}
+                />
+              </>
+            ) : null}
+            <Text style={styles.bottomText}>Related Videos</Text>
+            <HorizontalVideoList
+              nodes={watchNextList}
+              textStyle={styles.text}
+            />
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -131,16 +148,26 @@ const styles = StyleSheet.create({
   nextVideoContainer: {
     flex: 1,
   },
+  bottomContainer: {
+    width: "100%",
+    minHeight: "40%",
+    maxHeight: "48%",
+    backgroundColor: "#111111cc",
+    justifyContent: "center",
+    paddingTop: 20,
+  },
   bottomText: {
     fontSize: 18,
     paddingStart: 20,
     color: "white",
   },
-  bottomContainer: {
-    width: "100%",
-    minHeight: "40%",
-    backgroundColor: "#111111cc",
-    justifyContent: "center",
-    paddingTop: 20,
+  bottomPlaylistTextContainer: {
+    flexDirection: "row",
+    paddingStart: 20,
+  },
+  bottomPlaylistText: {
+    fontSize: 18,
+    color: "white",
+    paddingStart: 10,
   },
 });

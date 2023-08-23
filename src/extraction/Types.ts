@@ -16,7 +16,7 @@ export interface VideoData {
   thumbnailImage: Thumbnail;
   title: string;
   duration?: string;
-  short_views: string;
+  short_views?: string;
   publishDate?: string;
   author?: Author;
   quality?: string;

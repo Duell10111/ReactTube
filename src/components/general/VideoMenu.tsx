@@ -9,10 +9,6 @@ import useVideoElementData from "../../hooks/video/useVideoElementData";
 
 const Logger = LOGGER.extend("VIDEOMENU");
 
-interface Props {
-  selectedVideoId?: string;
-}
-
 // TODO: Add focus feedback
 
 export default function VideoMenu() {

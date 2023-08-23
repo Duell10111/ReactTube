@@ -20,7 +20,7 @@ interface Props {
   onPress?: () => void;
   videoId: string;
   title: string;
-  views: string;
+  views?: string;
   duration?: string;
   thumbnailURL?: string;
   author?: Author;
@@ -80,9 +80,12 @@ export default function VideoCardTV({
           {data.author?.name}
         </Text>
       ) : null}
-      <Text style={[styles.viewsStyle, {color: appStyle.textColor}, textStyle]}>
-        {data.views}
-      </Text>
+      {data.views ? (
+        <Text
+          style={[styles.viewsStyle, {color: appStyle.textColor}, textStyle]}>
+          {data.views}
+        </Text>
+      ) : null}
       {data.date ? (
         <Text style={[{color: appStyle.textColor}, textStyle]}>
           {data.date}

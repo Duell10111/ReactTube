@@ -8750,10 +8750,10 @@ yocto-queue@^0.1.0:
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
 
-youtubei.js@6.0.0:
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-6.0.0.tgz#545b8744a826ef7bfdb21a7c930950e784a85659"
-  integrity sha512-GGQpSfBGlqcDav4UtMoUehJTuHjLOZBynLFJBSIRZVXFWRzPCIl/LF2GTOZnZJfutmi62VaXvjiz4pGvCJO5bg==
+youtubei.js@6.0.1:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-6.0.1.tgz#f5dc2b8654f6c8ba16dca1b5366c49fbf3427bd0"
+  integrity sha512-pa00QEou0Aqav+UWeULCs0BabDdqrpGABTv5zzH4StoYl7jLqudoTucPXzUOr+9bb4peiKT4Fcua6yXnDrp/1A==
   dependencies:
     jintr "^1.1.0"
     tslib "^2.5.0"

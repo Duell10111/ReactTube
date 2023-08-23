@@ -129,7 +129,7 @@ export default function VideoScreen({route, navigation}: Props) {
         />
       )}
       <EndCard
-        video={YTVideoInfo.originalData}
+        video={YTVideoInfo}
         visible={showEndCard}
         onCloseRequest={() => {
           console.log("Back pressed");

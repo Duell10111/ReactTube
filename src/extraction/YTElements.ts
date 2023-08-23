@@ -24,6 +24,7 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     short_views:
       videoInfo.primary_info?.short_view_count.text ??
       videoInfo.primary_info?.view_count.text,
+    publishDate: videoInfo.primary_info?.relative_date.text,
     chapters: chapters,
     channel_id:
       videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,

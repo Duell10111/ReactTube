@@ -18,7 +18,7 @@ interface Props {
   videoId: string;
   navEndpoint?: YTNodes.NavigationEndpoint;
   title: string;
-  views: string;
+  views?: string;
   reel?: boolean;
   duration?: string;
   thumbnail?: Thumbnail;
@@ -29,7 +29,7 @@ interface Props {
   mix?: boolean;
 }
 
-export default function VideoCard({...data}: Props) {
+export default function VideoCard({style, ...data}: Props) {
   const navigation = useNavigation<NativeStackProp>();
   const route = useRoute<RootRouteProp>();
 
@@ -93,7 +93,10 @@ export default function VideoCard({...data}: Props) {
     <VideoCardPhone
       {...data}
       onPress={onPress}
-      style={DeviceInfo.isTablet() ? {width: 375, padding: 10} : undefined}
+      style={[
+        style,
+        DeviceInfo.isTablet() ? {width: 375, padding: 10} : undefined,
+      ]}
       imageContainerStyle={
         DeviceInfo.isTablet() ? {borderRadius: 25} : undefined
       }

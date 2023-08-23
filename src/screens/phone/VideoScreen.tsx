@@ -93,16 +93,26 @@ export default function VideoScreen({route, navigation}: Props) {
       <Text style={[styles.titleStyle, {color: style.textColor}]}>
         {YTVideoInfo.title}
       </Text>
-      <Text style={[styles.subtitleStyle, {color: style.textColor}]}>
-        {YTVideoInfo.short_views}
-      </Text>
+      <View style={styles.subtitleContainer}>
+        <Text style={[styles.subtitleStyle, {color: style.textColor}]}>
+          {YTVideoInfo.short_views}
+        </Text>
+        <Text
+          style={[
+            styles.subtitleStyle,
+            styles.subtitleDate,
+            {color: style.textColor},
+          ]}>
+          {YTVideoInfo.publishDate}
+        </Text>
+      </View>
       <View style={styles.channelContainer}>
         <ChannelIcon
           channelId={YTVideoInfo.channel_id!}
           imageStyle={styles.channelStyle}
         />
-        <Text style={styles.channelTextStyle}>
-          {YTVideoInfo.author?.name ?? ""}
+        <Text style={[styles.channelTextStyle, {color: style.textColor}]}>
+          {YTVideoInfo.channel?.name ?? YTVideoInfo.author?.name}
         </Text>
       </View>
     </View>
@@ -178,19 +188,28 @@ const styles = StyleSheet.create({
   titleStyle: {
     fontSize: 15,
   },
+  subtitleContainer: {
+    flexDirection: "row",
+  },
   subtitleStyle: {
     fontSize: 13,
     marginTop: 5,
   },
+  subtitleDate: {
+    marginStart: 5,
+  },
   channelContainer: {
     flexDirection: "row",
     marginTop: 5,
+    alignItems: "center",
   },
   channelStyle: {
     width: 40,
     height: 40,
   },
-  channelTextStyle: {},
+  channelTextStyle: {
+    marginStart: 5,
+  },
   nextVideosContainer: {
     flex: 1,
     // backgroundColor: "pink",
