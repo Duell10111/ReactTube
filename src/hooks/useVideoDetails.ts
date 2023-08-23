@@ -1,5 +1,5 @@
 import {useYoutubeContext} from "../context/YoutubeContext";
-import {useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {YT, YTNodes} from "../utils/Youtube";
 import Logger from "../utils/Logger";
 import {useAppData} from "../context/AppDataContext";
@@ -14,12 +14,18 @@ export default function useVideoDetails(
   const [Video, setVideo] = useState<YT.VideoInfo>();
   const {appSettings} = useAppData();
 
-  useEffect(() => {
+  const fetchVideoData = useCallback(() => {
     youtube
       ?.getInfo(videoId, appSettings.hlsEnabled ? "iOS" : undefined)
       .then(setVideo)
       .catch(console.warn);
   }, [appSettings.hlsEnabled, videoId, youtube]);
+
+  useEffect(() => {
+    fetchVideoData();
+  }, [appSettings.hlsEnabled, videoId, youtube, fetchVideoData]);
+
+  console.log("Playlist Video: ", Video?.cards);
 
   const YTVideoInfo = useMemo(() => {
     return Video ? getElementDataFromVideoInfo(Video) : undefined;
@@ -55,10 +61,38 @@ export default function useVideoDetails(
 
   LOGGER.debug("Video: ", httpVideoURL);
 
+  const fetchNextVideoContinue = useCallback(() => {
+    if (Video) {
+      Video.getWatchNextContinuation().then(setVideo).catch(LOGGER.warn);
+    }
+  }, [Video]);
+
+  // Actions:
+
+  const like = useCallback(async () => {
+    await Video?.like();
+    fetchVideoData();
+  }, [Video, fetchVideoData]);
+
+  const dislike = useCallback(async () => {
+    await Video?.dislike();
+    fetchVideoData();
+  }, [Video, fetchVideoData]);
+
+  const removeRating = useCallback(async () => {
+    await Video?.removeRating();
+    fetchVideoData();
+  }, [Video, fetchVideoData]);
+
   return {
     Video,
     YTVideoInfo,
     hlsManifestUrl: Video?.streaming_data?.hls_manifest_url,
     httpVideoURL,
+    fetchNextVideoContinue,
+    //Actions
+    like,
+    dislike,
+    removeRating,
   };
 }

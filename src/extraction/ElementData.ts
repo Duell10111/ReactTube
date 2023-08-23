@@ -134,7 +134,6 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       videoCount: ytNode.video_count_short.text,
     } as PlaylistData;
   } else if (ytNode.is(YTNodes.CompactMix, YTNodes.Mix)) {
-    LOGGER.warn("Compact MIX Content: ", JSON.stringify(ytNode));
     return {
       type: "mix",
       originalNode: ytNode,

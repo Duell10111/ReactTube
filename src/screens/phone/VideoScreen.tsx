@@ -3,13 +3,13 @@ import {RootStackParamList} from "../../navigation/RootStackNavigator";
 import {ActivityIndicator, StyleSheet, Text, View} from "react-native";
 import VideoComponent from "../../components/VideoComponent";
 import useVideoDetails from "../../hooks/useVideoDetails";
-import React, {useMemo, useRef, useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import ErrorComponent from "../../components/general/ErrorComponent";
 import VerticalVideoList from "../../components/VerticalVideoList";
 import {parseObservedArray} from "../../extraction/ArrayExtraction";
 import ChannelIcon from "../../components/video/ChannelIcon";
 import {useAppStyle} from "../../context/AppStyleContext";
-import {
+import Orientation, {
   ALL_ORIENTATIONS_BUT_UPSIDE_DOWN,
   OrientationLocker,
   useOrientationChange,
@@ -46,7 +46,16 @@ export default function VideoScreen({route, navigation}: Props) {
   const columns = useGridColumnsPreferred();
 
   const [fullscreen, setFullScreen] = useState(false);
+  const [landscape, setLandscape] = useState(false);
   const focus = useIsFocused();
+
+  useEffect(() => {
+    Orientation.getOrientation(orientation => {
+      setLandscape(
+        orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
+      );
+    });
+  }, []);
 
   useOrientationChange(orientation => {
     // Do not react if not focused
@@ -56,9 +65,21 @@ export default function VideoScreen({route, navigation}: Props) {
     setFullScreen(
       orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
     );
+    setLandscape(
+      orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
+    );
   });
 
   const sheetRef = useRef<BottomSheet>(null);
+
+  console.log("Landscape: ", landscape);
+
+  const phoneLandscape = useMemo(
+    () => !DeviceInfo.isTablet() && landscape,
+    [landscape],
+  );
+
+  console.log("Phone Landscape: ", phoneLandscape);
 
   if (!YTVideoInfo) {
     return (
@@ -121,45 +142,54 @@ export default function VideoScreen({route, navigation}: Props) {
   return (
     <View style={styles.container}>
       <OrientationLocker orientation={ALL_ORIENTATIONS_BUT_UPSIDE_DOWN} />
-      <View style={styles.videoContainer}>
+      <View
+        style={[
+          phoneLandscape ? StyleSheet.absoluteFill : styles.videoContainer,
+        ]}>
         <VideoComponent
           url={videoUrl}
-          style={styles.videoComponent}
+          style={[
+            phoneLandscape
+              ? styles.videoComponentFullscreen
+              : styles.videoComponent,
+          ]}
           fullscreen={fullscreen}
         />
       </View>
-      <View style={styles.nextVideosContainer}>
-        {YTVideoInfo.originalData.watch_next_feed ? (
-          DeviceInfo.isTablet() ? (
-            <GridView
-              shelfItem={YTVideoInfo.originalData.watch_next_feed}
-              ListHeaderComponent={listHeader}
-              contentContainerStyle={{paddingBottom: inserts.bottom}}
-              columns={columns}
+      {!phoneLandscape ? (
+        <View style={styles.nextVideosContainer}>
+          {YTVideoInfo.originalData.watch_next_feed ? (
+            DeviceInfo.isTablet() ? (
+              <GridView
+                shelfItem={YTVideoInfo.originalData.watch_next_feed}
+                ListHeaderComponent={listHeader}
+                contentContainerStyle={{paddingBottom: inserts.bottom}}
+                columns={columns}
+              />
+            ) : (
+              <VerticalVideoList
+                nodes={parseObservedArray(
+                  YTVideoInfo.originalData.watch_next_feed,
+                )}
+                ListHeaderComponent={listHeader}
+                contentContainerStyle={{paddingBottom: inserts.bottom}}
+              />
+            )
+          ) : null}
+          {YTVideoInfo.playlist ? (
+            <PlaylistBottomSheetContainer
+              ytInfoPlaylist={YTVideoInfo.playlist}
+              onPress={() => sheetRef.current?.snapToIndex(0)}
             />
-          ) : (
-            <VerticalVideoList
-              nodes={parseObservedArray(
-                YTVideoInfo.originalData.watch_next_feed,
-              )}
-              ListHeaderComponent={listHeader}
-              contentContainerStyle={{paddingBottom: inserts.bottom}}
+          ) : null}
+          {YTVideoInfo.playlist ? (
+            <PlaylistBottomSheet
+              ytInfoPlaylist={YTVideoInfo?.playlist}
+              ref={sheetRef}
             />
-          )
-        ) : null}
-        {YTVideoInfo.playlist ? (
-          <PlaylistBottomSheetContainer
-            ytInfoPlaylist={YTVideoInfo.playlist}
-            onPress={() => sheetRef.current?.snapToIndex(0)}
-          />
-        ) : null}
-        {YTVideoInfo.playlist ? (
-          <PlaylistBottomSheet
-            ytInfoPlaylist={YTVideoInfo?.playlist}
-            ref={sheetRef}
-          />
-        ) : null}
-      </View>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -179,6 +209,11 @@ const styles = StyleSheet.create({
   videoComponent: {
     flex: 1,
     marginTop: 90, // TODO: Check for Android?
+  },
+  videoComponentFullscreen: {
+    height: "100%",
+    width: "100%",
+    marginTop: 30, // TODO: Check for Android?
   },
   videoMetadataContainer: {
     paddingHorizontal: 10,

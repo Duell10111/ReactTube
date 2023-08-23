@@ -8,6 +8,7 @@ import {
 } from "../utils/Youtube";
 import Logger from "../utils/Logger";
 import _ from "lodash";
+import {DeviceEventEmitter} from "react-native";
 
 const LOGGER = Logger.extend("HOOKS");
 
@@ -75,6 +76,14 @@ export default function useHomeScreen() {
     }
     setHomePage(nextContent);
   }, [homePage, content]);
+
+  // Listen for refresh events
+  useEffect(() => {
+    const listener = DeviceEventEmitter.addListener("HomeScreenRefresh", () =>
+      fetchHomeContent(),
+    );
+    return listener.remove();
+  }, [fetchHomeContent]);
 
   return {homePage, content: content, fetchMore, refresh: fetchHomeContent};
 }

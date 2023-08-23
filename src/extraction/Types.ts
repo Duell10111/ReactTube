@@ -88,6 +88,13 @@ export interface YTChapter {
   endDuration: number;
 }
 
+export interface YTChannel {
+  originalData: YT.Channel;
+  id: string;
+  title?: string;
+  description?: string;
+}
+
 export function getAuthor(author: Misc.Author) {
   return {
     id: author.id,

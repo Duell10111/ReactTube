@@ -1,5 +1,5 @@
 import {YT, YTNodes} from "../utils/Youtube";
-import {YTChapter, YTVideoInfo} from "./Types";
+import {YTChannel, YTChapter, YTVideoInfo} from "./Types";
 import {getThumbnail} from "./Misc";
 import _ from "lodash";
 import {getVideoData} from "./ElementData";
@@ -99,4 +99,15 @@ export function getChapterFromData(
     startDuration: chapter.time_range_start_millis / 1000,
     // Do not set endDuration as not known from single data
   } as YTChapter;
+}
+
+// YT.Channel
+
+export function getElementDataFromYTChannel(channel: YT.Channel) {
+  return {
+    originalData: channel,
+    id: channel.metadata.external_id,
+    title: channel.title,
+    description: channel.metadata.description,
+  } as YTChannel;
 }

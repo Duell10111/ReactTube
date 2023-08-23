@@ -157,16 +157,18 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   bottomText: {
-    fontSize: 18,
+    fontSize: 20,
     paddingStart: 20,
     color: "white",
+    paddingBottom: 15,
   },
   bottomPlaylistTextContainer: {
     flexDirection: "row",
     paddingStart: 20,
+    paddingBottom: 15,
   },
   bottomPlaylistText: {
-    fontSize: 18,
+    fontSize: 20,
     color: "white",
     paddingStart: 10,
   },
