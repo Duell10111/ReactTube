@@ -12,8 +12,11 @@ import LoginScreen from "../screens/LoginScreen";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
 import HistoryScreen from "../screens/HistoryScreen";
 import {YTNodes} from "../utils/Youtube";
+import LoadingScreen from "../screens/LoadlingScreen";
+import useAppInit from "../hooks/general/useAppInit";
 
 export type RootStackParamList = {
+  LoadingScreen: undefined;
   Home: undefined;
   VideoScreen: {videoId: string; navEndpoint?: YTNodes.NavigationEndpoint};
   ChannelScreen: {channelId: string};
@@ -28,32 +31,48 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootStackNavigator() {
+  const {init} = useAppInit();
+
   return (
     <Stack.Navigator screenOptions={Platform.isTV ? {headerShown: false} : {}}>
-      <Stack.Screen
-        name="Home"
-        component={HomeWrapperScreen}
-        options={!Platform.isTV ? {headerShown: false} : undefined}
-      />
-      <Stack.Screen
-        name="VideoScreen"
-        component={Platform.isTV ? VideoScreen : VideoScreenPhone}
-        options={{title: "Video"}}
-      />
-      <Stack.Screen name={"ChannelScreen"} component={ChannelScreen} />
-      <Stack.Screen
-        name={"PlaylistScreen"}
-        component={PlaylistScreen}
-        options={{title: "Playlist"}}
-      />
-      <Stack.Screen name={"Search"} component={SearchScreen} />
-      <Stack.Screen
-        name={"SubscriptionScreen"}
-        component={SubscriptionScreen}
-      />
-      <Stack.Screen name={"HistoryScreen"} component={HistoryScreen} />
-      <Stack.Screen name={"SettingsScreen"} component={SettingsScreen} />
-      <Stack.Screen name={"LoginScreen"} component={LoginScreen} />
+      {!init ? (
+        <Stack.Screen
+          name="LoadingScreen"
+          component={LoadingScreen}
+          options={{headerShown: false}}
+        />
+      ) : (
+        <>
+          <Stack.Screen
+            name="Home"
+            component={HomeWrapperScreen}
+            options={!Platform.isTV ? {headerShown: false} : undefined}
+          />
+          <Stack.Screen
+            name="VideoScreen"
+            component={Platform.isTV ? VideoScreen : VideoScreenPhone}
+            options={{title: "Video"}}
+          />
+          <Stack.Screen
+            name={"ChannelScreen"}
+            component={ChannelScreen}
+            options={{title: "Channel"}}
+          />
+          <Stack.Screen
+            name={"PlaylistScreen"}
+            component={PlaylistScreen}
+            options={{title: "Playlist"}}
+          />
+          <Stack.Screen name={"Search"} component={SearchScreen} />
+          <Stack.Screen
+            name={"SubscriptionScreen"}
+            component={SubscriptionScreen}
+          />
+          <Stack.Screen name={"HistoryScreen"} component={HistoryScreen} />
+          <Stack.Screen name={"SettingsScreen"} component={SettingsScreen} />
+          <Stack.Screen name={"LoginScreen"} component={LoginScreen} />
+        </>
+      )}
     </Stack.Navigator>
   );
 }
