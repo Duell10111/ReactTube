@@ -45,6 +45,7 @@ export default function VideoCard({style, ...data}: Props) {
       navigation.replace("VideoScreen", {
         videoId: data.videoId,
         navEndpoint: data.navEndpoint,
+        reel: data.reel,
       });
     } else if (
       // @ts-ignore
@@ -58,7 +59,11 @@ export default function VideoCard({style, ...data}: Props) {
           // @ts-ignore
           name: "VideoScreen",
           // @ts-ignore
-          params: {videoId: data.videoId, navEndpoint: data.navEndpoint},
+          params: {
+            videoId: data.videoId,
+            navEndpoint: data.navEndpoint,
+            reel: data.reel,
+          },
         });
 
         return CommonActions.reset({
@@ -71,6 +76,7 @@ export default function VideoCard({style, ...data}: Props) {
       navigation.navigate("VideoScreen", {
         videoId: data.videoId,
         navEndpoint: data.navEndpoint,
+        reel: data.reel,
       });
     }
   };

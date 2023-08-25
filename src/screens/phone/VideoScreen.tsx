@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   videoComponentFullscreen: {
     height: "100%",
     width: "100%",
-    marginTop: 30, // TODO: Check for Android?
+    marginTop: 30, // TODO: Check for Android? MAYBE Fixable with Screenoptions in Navigator
   },
   videoMetadataScrollContainer: {
     backgroundColor: "#111111", // Must be the same as below

@@ -1,7 +1,6 @@
 import React from "react";
 import {createNativeStackNavigator} from "@react-navigation/native-stack";
 import VideoScreen from "../screens/VideoScreen";
-import VideoScreenPhone from "../screens/phone/VideoScreen";
 import {Platform} from "react-native";
 import SearchScreen from "../screens/SearchScreen";
 import HomeWrapperScreen from "../screens/HomeWrapperScreen";
@@ -14,11 +13,16 @@ import HistoryScreen from "../screens/HistoryScreen";
 import {YTNodes} from "../utils/Youtube";
 import LoadingScreen from "../screens/LoadlingScreen";
 import useAppInit from "../hooks/general/useAppInit";
+import VideoScreenWrapper from "../screens/phone/VideoScreenWrapper";
 
 export type RootStackParamList = {
   LoadingScreen: undefined;
   Home: undefined;
-  VideoScreen: {videoId: string; navEndpoint?: YTNodes.NavigationEndpoint};
+  VideoScreen: {
+    videoId: string;
+    navEndpoint?: YTNodes.NavigationEndpoint;
+    reel?: boolean;
+  };
   ChannelScreen: {channelId: string};
   PlaylistScreen: {playlistId: string};
   Search: undefined;
@@ -50,7 +54,7 @@ export default function RootStackNavigator() {
           />
           <Stack.Screen
             name="VideoScreen"
-            component={Platform.isTV ? VideoScreen : VideoScreenPhone}
+            component={Platform.isTV ? VideoScreen : VideoScreenWrapper}
             options={{title: "Video"}}
           />
           <Stack.Screen
