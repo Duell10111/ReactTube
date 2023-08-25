@@ -18,7 +18,7 @@ export default function useVideoDetails(
     youtube
       ?.getInfo(videoId, appSettings.hlsEnabled ? "iOS" : undefined)
       .then(setVideo)
-      .catch(console.warn);
+      .catch(LOGGER.warn);
   }, [appSettings.hlsEnabled, videoId, youtube]);
 
   useEffect(() => {
@@ -30,8 +30,6 @@ export default function useVideoDetails(
   const YTVideoInfo = useMemo(() => {
     return Video ? getElementDataFromVideoInfo(Video) : undefined;
   }, [Video]);
-
-  // console.log("HLS: ", Video?.streaming_data?.hls_manifest_url);
 
   const httpVideoURL = useMemo(() => {
     if (!youtube?.actions.session.player) {
@@ -69,20 +67,50 @@ export default function useVideoDetails(
 
   // Actions:
 
+  const [actionVideoData, setActionVideoData] = useState<YT.VideoInfo>();
+  const [actionDataOverride, setActionDataOverride] = useState<ActionData>({});
+
+  const fetchActionsVideoData = useCallback(() => {
+    youtube
+      ?.getInfo(videoId, appSettings.hlsEnabled ? "iOS" : undefined)
+      .then(setActionVideoData)
+      .catch(LOGGER.warn);
+  }, [videoId, appSettings.hlsEnabled, youtube]);
+
+  const actionData = useMemo(() => {
+    const data = Video
+      ? getElementDataFromVideoInfo(actionVideoData ?? Video)
+      : undefined;
+    if (data && actionDataOverride?.like !== undefined) {
+      data.liked = actionDataOverride.like;
+    }
+    if (data && actionDataOverride?.dislike !== undefined) {
+      data.disliked = actionDataOverride.dislike;
+    }
+    return data;
+  }, [Video, actionVideoData, actionDataOverride]);
+
   const like = useCallback(async () => {
-    await Video?.like();
-    fetchVideoData();
-  }, [Video, fetchVideoData]);
+    setActionDataOverride({...actionDataOverride, like: true});
+    await actionData?.originalData?.like();
+    fetchActionsVideoData();
+  }, [actionData, actionDataOverride, fetchActionsVideoData]);
 
   const dislike = useCallback(async () => {
-    await Video?.dislike();
-    fetchVideoData();
-  }, [Video, fetchVideoData]);
+    setActionDataOverride({...actionDataOverride, dislike: true});
+    await actionData?.originalData?.dislike();
+    fetchActionsVideoData();
+  }, [actionData, actionDataOverride, fetchActionsVideoData]);
 
   const removeRating = useCallback(async () => {
-    await Video?.removeRating();
-    fetchVideoData();
-  }, [Video, fetchVideoData]);
+    setActionDataOverride({dislike: false, like: false});
+    await actionData?.originalData?.removeRating();
+    fetchActionsVideoData();
+  }, [actionData, fetchActionsVideoData]);
+
+  const addToWatchHistory = useCallback(async () => {
+    await actionData?.originalData.addToWatchHistory();
+  }, [actionData]);
 
   return {
     Video,
@@ -91,8 +119,15 @@ export default function useVideoDetails(
     httpVideoURL,
     fetchNextVideoContinue,
     //Actions
+    actionData,
     like,
     dislike,
     removeRating,
+    addToWatchHistory,
   };
+}
+
+interface ActionData {
+  like?: boolean;
+  dislike?: boolean;
 }

@@ -37,13 +37,16 @@ export default function EndCard({
     [video.originalData.watch_next_feed],
   );
 
-  const nextVideoID = useMemo(
-    () =>
-      video.originalData.autoplay_video_endpoint?.payload.videoId as
-        | string
-        | undefined,
-    [video],
-  );
+  // TODO: use playlist data if available?
+  const nextVideoID = useMemo(() => {
+    const videoEndpoint = video.originalData.autoplay_video_endpoint?.payload
+      .videoId as string | undefined;
+
+    return (
+      video.playlist?.content?.[video.playlist?.current_index + 1]?.id ??
+      videoEndpoint
+    );
+  }, [video]);
 
   const {videoElement} = useVideoElementData(nextVideoID);
 

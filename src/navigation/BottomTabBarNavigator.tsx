@@ -6,11 +6,13 @@ import HomeScreen from "../screens/HomeScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import useAccountData from "../hooks/account/useAccountData";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
+import LibraryScreen from "../screens/LibraryScreen";
 
 export type RootBottomTabParamList = {
   HomeFeed: undefined;
   SearchScreen: undefined;
   Subscriptions: undefined;
+  Library: undefined;
   Settings: undefined;
 };
 
@@ -32,6 +34,8 @@ export default function BottomTabBarNavigator() {
             return (
               <MaterialIcons name={"subscriptions"} size={size} color={color} />
             );
+          } else if (route.name === "Library") {
+            iconName = "ios-library-outline";
           }
 
           // You can return any component that you like here!
@@ -47,9 +51,16 @@ export default function BottomTabBarNavigator() {
         options={{title: "Home"}}
       />
       {loginData.accounts.length > 0 ? (
-        <Tab.Screen name="Subscriptions" component={SubscriptionScreen} />
+        <>
+          <Tab.Screen name="Subscriptions" component={SubscriptionScreen} />
+          <Tab.Screen name="Library" component={LibraryScreen} />
+        </>
       ) : null}
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen
+        name="Settings"
+        // @ts-ignore
+        component={SettingsScreen}
+      />
     </Tab.Navigator>
   );
 }

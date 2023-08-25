@@ -78,6 +78,8 @@ export interface YTVideoInfo {
     current_index: number;
     is_infinite: boolean;
   };
+  liked?: boolean;
+  disliked?: boolean;
 }
 
 export interface YTChapter {

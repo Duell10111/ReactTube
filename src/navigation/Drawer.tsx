@@ -1,12 +1,5 @@
-import React, {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useReducer,
-  useRef,
-  useState,
-} from "react";
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import React, {forwardRef, useCallback, useEffect, useState} from "react";
+import {StyleSheet, Text, TouchableOpacity} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -77,6 +70,11 @@ export default function Drawer({open, onOpen, onClose}: Props) {
         title={"History"}
         onFocus={() => onOpen()}
         onPress={() => navigation.navigate("HistoryScreen")}
+      />
+      <DrawerItem
+        title={"Library"}
+        onFocus={() => onOpen()}
+        onPress={() => navigation.navigate("LibraryScreen")}
       />
       <DrawerItem
         bottom

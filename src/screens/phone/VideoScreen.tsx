@@ -22,14 +22,21 @@ import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
 import PlaylistBottomSheet from "../../components/video/playlistBottomSheet/PlaylistBottomSheet";
 import PlaylistBottomSheetContainer from "../../components/video/playlistBottomSheet/PlaylistBottomSheetContainer";
 import BottomSheet from "@gorhom/bottom-sheet";
+import {Icon} from "@rneui/base";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
 export default function VideoScreen({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;
-  const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(
-    navEndpoint ?? videoId,
-  );
+  const {
+    YTVideoInfo,
+    httpVideoURL,
+    hlsManifestUrl,
+    actionData,
+    like,
+    dislike,
+    removeRating,
+  } = useVideoDetails(navEndpoint ?? videoId);
 
   const {style} = useAppStyle();
   const inserts = useSafeAreaInsets();
@@ -107,8 +114,6 @@ export default function VideoScreen({route, navigation}: Props) {
     );
   }
 
-  console.log("Fullscreen: ", fullscreen);
-
   const listHeader = () => (
     <View style={styles.videoMetadataContainer}>
       <Text style={[styles.titleStyle, {color: style.textColor}]}>
@@ -136,6 +141,26 @@ export default function VideoScreen({route, navigation}: Props) {
           {YTVideoInfo.channel?.name ?? YTVideoInfo.author?.name}
         </Text>
       </View>
+      <View style={styles.likeContainer}>
+        <Icon
+          name={"like2"}
+          type={"antdesign"}
+          color={actionData?.liked ? "blue" : undefined}
+          raised
+          reverse
+          size={15}
+          onPress={() => (actionData?.liked ? removeRating() : like())}
+        />
+        <Icon
+          name={"dislike2"}
+          type={"antdesign"}
+          color={actionData?.disliked ? "blue" : undefined}
+          raised
+          reverse
+          size={15}
+          onPress={() => (actionData?.disliked ? removeRating() : dislike())}
+        />
+      </View>
     </View>
   );
 
@@ -145,6 +170,7 @@ export default function VideoScreen({route, navigation}: Props) {
       <View
         style={[
           phoneLandscape ? StyleSheet.absoluteFill : styles.videoContainer,
+          DeviceInfo.isTablet() ? {height: "50%"} : undefined,
         ]}>
         <VideoComponent
           url={videoUrl}
@@ -197,13 +223,11 @@ export default function VideoScreen({route, navigation}: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: "blue",
   },
   contentContainer: {
     height: "100%",
   },
   videoContainer: {
-    // backgroundColor: "red",
     height: "35%",
   },
   videoComponent: {
@@ -245,8 +269,10 @@ const styles = StyleSheet.create({
   channelTextStyle: {
     marginStart: 5,
   },
+  likeContainer: {
+    flexDirection: "row",
+  },
   nextVideosContainer: {
     flex: 1,
-    // backgroundColor: "pink",
   },
 });

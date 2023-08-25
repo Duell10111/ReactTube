@@ -30,6 +30,8 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
       videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
     channel: videoInfo.basic_info.channel,
     playlist: parseVideoInfoPlaylist(videoInfo),
+    liked: videoInfo.basic_info.is_liked,
+    disliked: videoInfo.basic_info.is_disliked,
   } as YTVideoInfo;
 }
 

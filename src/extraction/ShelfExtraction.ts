@@ -121,7 +121,7 @@ export function parseHorizontalNode(
       originalNode: node,
       title: node.header ? extractHeader(node.header) : undefined,
     };
-  } else if (node.is(YTNodes.RichShelf)) {
+  } else if (node.is(YTNodes.RichShelf, YTNodes.ReelShelf)) {
     const {content, parsedData} = extractContent(Array.from(node.contents));
     return {
       data: content,
@@ -158,13 +158,14 @@ function extractContent(node: Helpers.YTNode | Helpers.YTNode[]) {
 }
 
 function extractListContent(node: Helpers.YTNode): Helpers.YTNode[] {
-  if (node.is(YTNodes.VerticalList)) {
-    return Array.from(node.contents.values());
-  } else if (node.is(YTNodes.HorizontalList)) {
+  if (
+    node.is(YTNodes.VerticalList, YTNodes.HorizontalList, YTNodes.ReelShelf)
+  ) {
     return Array.from(node.contents.values());
   } else if (node.is(YTNodes.Shelf)) {
     return node.content ? extractListContent(node.content) : [];
-  } else if (node.is(YTNodes.ReelShelf)) {
+  } else if (node.is(YTNodes.Grid)) {
+    // TODO: Replace by allowing to return multiple Horizontal Data's for nested Grids
     return Array.from(node.contents.values());
   } else {
     console.log("Unknown ListContent extraction type: ", node.type);
