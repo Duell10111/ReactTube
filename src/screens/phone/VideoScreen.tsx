@@ -1,6 +1,12 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
-import {ActivityIndicator, StyleSheet, Text, View} from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import VideoComponent from "../../components/VideoComponent";
 import useVideoDetails from "../../hooks/useVideoDetails";
 import React, {useEffect, useMemo, useRef, useState} from "react";
@@ -23,6 +29,7 @@ import PlaylistBottomSheet from "../../components/video/playlistBottomSheet/Play
 import PlaylistBottomSheetContainer from "../../components/video/playlistBottomSheet/PlaylistBottomSheetContainer";
 import BottomSheet from "@gorhom/bottom-sheet";
 import {Icon} from "@rneui/base";
+import {YTVideoInfo as YTVideoInfoType} from "../../extraction/Types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -39,7 +46,6 @@ export default function VideoScreen({route, navigation}: Props) {
   } = useVideoDetails(navEndpoint ?? videoId);
 
   const {style} = useAppStyle();
-  const inserts = useSafeAreaInsets();
 
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components
@@ -49,8 +55,6 @@ export default function VideoScreen({route, navigation}: Props) {
     () => hlsManifestUrl ?? httpVideoURL,
     [hlsManifestUrl, httpVideoURL],
   );
-
-  const columns = useGridColumnsPreferred();
 
   const [fullscreen, setFullScreen] = useState(false);
   const [landscape, setLandscape] = useState(false);
@@ -69,15 +73,15 @@ export default function VideoScreen({route, navigation}: Props) {
     if (!focus) {
       return;
     }
-    setFullScreen(
-      orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
-    );
+    if (!DeviceInfo.isTablet()) {
+      setFullScreen(
+        orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
+      );
+    }
     setLandscape(
       orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
     );
   });
-
-  const sheetRef = useRef<BottomSheet>(null);
 
   console.log("Landscape: ", landscape);
 
@@ -164,32 +168,88 @@ export default function VideoScreen({route, navigation}: Props) {
     </View>
   );
 
+  const tabletLandscape = DeviceInfo.isTablet() && landscape;
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        tabletLandscape ? styles.containerTabletLandscape : undefined,
+      ]}>
       <OrientationLocker orientation={ALL_ORIENTATIONS_BUT_UPSIDE_DOWN} />
       <View
-        style={[
-          phoneLandscape ? StyleSheet.absoluteFill : styles.videoContainer,
-          DeviceInfo.isTablet() ? {height: "50%"} : undefined,
-        ]}>
-        <VideoComponent
-          url={videoUrl}
+        style={
+          tabletLandscape
+            ? styles.tabletLandscapeLeftContainer
+            : styles.nonTabletLeftContainer
+        }>
+        <View
           style={[
-            phoneLandscape
-              ? styles.videoComponentFullscreen
-              : styles.videoComponent,
-          ]}
-          fullscreen={fullscreen}
-        />
+            phoneLandscape ? StyleSheet.absoluteFill : styles.videoContainer,
+            tabletLandscape
+              ? styles.videoContainerTabletLandscape
+              : styles.videoContainerTablet,
+          ]}>
+          <VideoComponent
+            url={videoUrl}
+            style={[
+              phoneLandscape
+                ? styles.videoComponentFullscreen
+                : [
+                    styles.videoComponent,
+                    !DeviceInfo.isTablet()
+                      ? styles.videoComponentPhone
+                      : undefined,
+                  ],
+            ]}
+            fullscreen={fullscreen}
+          />
+        </View>
+        {tabletLandscape ? <ScrollView>{listHeader()}</ScrollView> : null}
       </View>
+      <NextVideos
+        YTVideoInfo={YTVideoInfo}
+        phoneLandscape={phoneLandscape}
+        listHeader={tabletLandscape ? undefined : listHeader()}
+        tabletLandscape={tabletLandscape}
+      />
+    </View>
+  );
+}
+
+interface ChildProps {
+  YTVideoInfo: YTVideoInfoType;
+  phoneLandscape?: boolean;
+  tabletLandscape?: boolean;
+  listHeader?: React.ReactElement;
+}
+
+function NextVideos({
+  YTVideoInfo,
+  phoneLandscape,
+  listHeader,
+  tabletLandscape,
+}: ChildProps) {
+  const columns = useGridColumnsPreferred();
+  const sheetRef = useRef<BottomSheet>(null);
+  const inserts = useSafeAreaInsets();
+
+  return (
+    <>
       {!phoneLandscape ? (
-        <View style={styles.nextVideosContainer}>
+        <View
+          style={[
+            styles.nextVideosContainer,
+            tabletLandscape
+              ? styles.nextVideosContainerTabletLandscape
+              : undefined,
+          ]}>
           {YTVideoInfo.originalData.watch_next_feed ? (
-            DeviceInfo.isTablet() ? (
+            DeviceInfo.isTablet() && !tabletLandscape ? (
               <GridView
                 shelfItem={YTVideoInfo.originalData.watch_next_feed}
                 ListHeaderComponent={listHeader}
-                contentContainerStyle={{paddingBottom: inserts.bottom}}
+                // contentContainerStyle={{paddingBottom: inserts.bottom}}
                 columns={columns}
               />
             ) : (
@@ -216,7 +276,7 @@ export default function VideoScreen({route, navigation}: Props) {
           ) : null}
         </View>
       ) : null}
-    </View>
+    </>
   );
 }
 
@@ -224,20 +284,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  containerTabletLandscape: {
+    flexDirection: "row",
+  },
   contentContainer: {
     height: "100%",
+  },
+  tabletLandscapeLeftContainer: {
+    height: "100%",
+    width: "68%",
+  },
+  nonTabletLeftContainer: {
+    flex: 1,
   },
   videoContainer: {
     height: "35%",
   },
+  videoContainerTabletLandscape: {
+    height: "65%",
+    width: "100%",
+  },
+  videoContainerTablet: {
+    height: "100%",
+  },
   videoComponent: {
     flex: 1,
+    marginTop: 75, // TODO: Check for Android?
+  },
+  videoComponentPhone: {
     marginTop: 90, // TODO: Check for Android?
   },
   videoComponentFullscreen: {
     height: "100%",
     width: "100%",
     marginTop: 30, // TODO: Check for Android?
+  },
+  videoMetadataScrollContainer: {
+    backgroundColor: "#111111", // Must be the same as below
   },
   videoMetadataContainer: {
     paddingHorizontal: 10,
@@ -274,5 +357,8 @@ const styles = StyleSheet.create({
   },
   nextVideosContainer: {
     flex: 1,
+  },
+  nextVideosContainerTabletLandscape: {
+    marginTop: 70, // TODO: Check for Android?
   },
 });
