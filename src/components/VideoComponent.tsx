@@ -24,6 +24,10 @@ interface Props {
     width: number;
     height: number;
   }) => void;
+  // Reels controls
+  paused?: boolean;
+  controls?: boolean;
+  repeat?: boolean;
 }
 
 export default function VideoComponent({
@@ -32,6 +36,9 @@ export default function VideoComponent({
   videoInfo,
   fullscreen,
   style,
+  paused,
+  controls,
+  repeat,
   ...callbacks
 }: Props) {
   // const player = useRef<Video>();
@@ -67,9 +74,10 @@ export default function VideoComponent({
         style={
           (style as any) ?? [styles.fullScreen, StyleSheet.absoluteFillObject]
         }
-        controls
-        paused={!isFocused}
+        controls={controls !== undefined ? controls : true}
+        paused={paused !== undefined ? paused : !isFocused}
         fullscreen={fullscreen ?? true}
+        repeat={repeat}
         resizeMode={"contain"}
         // @ts-ignore Own version
         chapters={parsedChapters}

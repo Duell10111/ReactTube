@@ -20,13 +20,14 @@ interface Props {
   onPress?: () => void;
   videoId: string;
   title: string;
-  views: string;
+  views?: string;
   duration?: string;
   thumbnailURL?: string;
   author?: Author;
   date?: string;
   disabled?: boolean;
   livestream?: boolean;
+  mix?: boolean;
 }
 
 export default function VideoCardTV({
@@ -65,6 +66,11 @@ export default function VideoCardTV({
             <Text style={styles.liveStyle}>Live</Text>
           </View>
         ) : null}
+        {data.mix ? (
+          <View style={styles.bottomBorder}>
+            <Icon name={"playlist-play"} color={"white"} />
+          </View>
+        ) : null}
       </VideoTouchable>
       <Text style={[styles.titleStyle, {color: appStyle.textColor}, textStyle]}>
         {data.title}
@@ -74,9 +80,12 @@ export default function VideoCardTV({
           {data.author?.name}
         </Text>
       ) : null}
-      <Text style={[styles.viewsStyle, {color: appStyle.textColor}, textStyle]}>
-        {data.views}
-      </Text>
+      {data.views ? (
+        <Text
+          style={[styles.viewsStyle, {color: appStyle.textColor}, textStyle]}>
+          {data.views}
+        </Text>
+      ) : null}
       {data.date ? (
         <Text style={[{color: appStyle.textColor}, textStyle]}>
           {data.date}
@@ -129,5 +138,17 @@ const styles = StyleSheet.create({
   liveStyle: {
     fontSize: 20,
     color: "red",
+  },
+  bottomBorder: {
+    position: "absolute",
+    left: 0,
+    bottom: 0,
+    right: 0,
+    height: "20%",
+    backgroundColor: "#111111bb",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingHorizontal: 15,
   },
 });

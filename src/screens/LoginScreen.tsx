@@ -1,13 +1,24 @@
-import React from "react";
-import {StyleSheet, Text, View} from "react-native";
+import React, {useEffect} from "react";
+import {Linking, Platform, StyleSheet, Text, View} from "react-native";
 import {Button} from "@rneui/base";
 import {useAccountContext} from "../context/AccountContext";
 import QRCode from "react-native-qrcode-svg";
 import {useAppStyle} from "../context/AppStyleContext";
 
+const Clipboard = !Platform.isTV
+  ? require("@react-native-clipboard/clipboard").default
+  : {};
+
 export default function LoginScreen() {
   const account = useAccountContext();
   const {style, type} = useAppStyle();
+
+  useEffect(() => {
+    if (!Platform.isTV && account?.qrCode) {
+      Clipboard.setString(account.qrCode.user_code);
+      Linking.openURL(account?.qrCode.verification_url);
+    }
+  }, [account?.qrCode]);
 
   return (
     <View style={styles.container}>
@@ -15,7 +26,7 @@ export default function LoginScreen() {
         <View style={styles.loginContainer}>
           <QRCode
             value={account.qrCode.verification_url}
-            size={500}
+            size={Platform.isTV ? 500 : 250}
             backgroundColor={type === "dark" ? "black" : undefined}
             color={type === "dark" ? "white" : undefined}
           />

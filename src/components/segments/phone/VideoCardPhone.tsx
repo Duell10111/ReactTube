@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useMemo} from "react";
 import {
   StyleProp,
   StyleSheet,
@@ -14,6 +14,7 @@ import {Icon} from "@rneui/base";
 import {useAppStyle} from "../../../context/AppStyleContext";
 import ChannelIcon from "../../video/ChannelIcon";
 import {Author, Thumbnail} from "../../../extraction/Types";
+import _ from "lodash";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
@@ -22,13 +23,14 @@ interface Props {
   onPress?: () => void;
   videoId: string;
   title: string;
-  views: string;
+  views?: string;
   duration?: string;
   thumbnail?: Thumbnail;
   author?: Author;
   date?: string;
   disabled?: boolean;
   livestream?: boolean;
+  mix?: boolean;
 }
 
 export default function VideoCardPhone({
@@ -40,6 +42,12 @@ export default function VideoCardPhone({
 }: Props) {
   const {style: appStyle} = useAppStyle();
   const {width} = useWindowDimensions();
+
+  const subtitleContent = useMemo(() => {
+    return _.chain([data.author?.name, data.views, data.date])
+      .compact()
+      .value();
+  }, [data]);
 
   return (
     <View style={[styles.container, {minWidth: 150, maxWidth: width}, style]}>
@@ -63,6 +71,11 @@ export default function VideoCardPhone({
               <Text style={styles.liveStyle}>Live</Text>
             </View>
           ) : null}
+          {data.mix ? (
+            <View style={styles.bottomBorder}>
+              <Icon name={"playlist-play"} color={"white"} />
+            </View>
+          ) : null}
         </View>
       </TouchableNativeFeedback>
       <View style={styles.metadataContainer}>
@@ -78,11 +91,11 @@ export default function VideoCardPhone({
             style={[styles.titleStyle, {color: appStyle.textColor}, textStyle]}>
             {data.title}
           </Text>
-          <Text
-            style={[
-              styles.subtitleStyle,
-              {color: appStyle.textColor},
-            ]}>{`${data.author?.name} - ${data.views}`}</Text>
+          {subtitleContent.length > 0 ? (
+            <Text style={[styles.subtitleStyle, {color: appStyle.textColor}]}>
+              {subtitleContent.join(" · ")}
+            </Text>
+          ) : null}
         </View>
       </View>
     </View>
@@ -145,9 +158,22 @@ const styles = StyleSheet.create({
     padding: 5,
     fontSize: 20,
     flexDirection: "row",
+    alignItems: "center",
   },
   liveStyle: {
     fontSize: 15,
     color: "red",
+  },
+  bottomBorder: {
+    position: "absolute",
+    left: 0,
+    bottom: 0,
+    right: 0,
+    height: "20%",
+    backgroundColor: "#111111bb",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingHorizontal: 15,
   },
 });

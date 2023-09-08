@@ -1,13 +1,20 @@
 import React, {useCallback} from "react";
 import {Helpers} from "../utils/Youtube";
-import {FlatList, Platform, StyleProp, View, ViewStyle} from "react-native";
+import {
+  FlatList,
+  FlatListProps,
+  Platform,
+  StyleProp,
+  View,
+  ViewStyle,
+} from "react-native";
 import ShelfVideoSelectorProvider from "../context/ShelfVideoSelector";
 import VideoMenu from "./general/VideoMenu";
 import useGrid from "../hooks/home/useGrid";
 import PageSectionList from "./segments/PageSectionList";
 import VideoSegment from "./VideoSegment";
 
-interface Props {
+interface Props extends Omit<FlatListProps<any>, "renderItem" | "data"> {
   style?: StyleProp<ViewStyle>;
   shelfItem: Helpers.YTNode[];
   columns?: number;
@@ -21,6 +28,7 @@ export default function GridView({
   style,
   columns,
   onElementFocused,
+  ...props
 }: Props) {
   const sorted = useGrid(shelfItem, columns);
 
@@ -53,6 +61,7 @@ export default function GridView({
     <ShelfVideoSelectorProvider onElementFocused={onElementFocused}>
       <>
         <FlatList
+          {...props}
           style={style}
           data={sorted}
           renderItem={renderItem}

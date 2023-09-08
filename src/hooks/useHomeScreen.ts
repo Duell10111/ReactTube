@@ -8,6 +8,7 @@ import {
 } from "../utils/Youtube";
 import Logger from "../utils/Logger";
 import _ from "lodash";
+import {DeviceEventEmitter} from "react-native";
 
 const LOGGER = Logger.extend("HOOKS");
 
@@ -18,7 +19,7 @@ export default function useHomeScreen() {
 
   console.log("MEMO: ", homePage?.memo.size);
 
-  useEffect(() => {
+  const fetchHomeContent = useCallback(() => {
     if (youtube) {
       youtube
         .getHomeFeed()
@@ -43,27 +44,13 @@ export default function useHomeScreen() {
   }, [youtube]);
 
   useEffect(() => {
+    fetchHomeContent();
+  }, [youtube]);
+
+  useEffect(() => {
     if (youtube?.session.logged_in) {
       // Refetch once
-      youtube
-        .getHomeFeed()
-        .then(value => {
-          LOGGER.debug("Fetched HomeFeed");
-          // console.log("Value: ", JSON.stringify(value, null, 2));
-          setHomePage(value);
-          if (value.contents.is(YTNodes.RichGrid)) {
-            setContent(value.contents.contents);
-          }
-          console.log("Page Content: ", value.page_contents.type);
-          console.log(
-            "Page Content Size:",
-            value.page_contents.as(YTNodes.RichGrid).contents.length,
-          );
-        })
-        .catch(reason => {
-          // console.log(JSON.stringify(reason));
-          console.warn(reason);
-        });
+      fetchHomeContent();
     }
   }, [youtube?.session.logged_in]);
 
@@ -90,7 +77,13 @@ export default function useHomeScreen() {
     setHomePage(nextContent);
   }, [homePage, content]);
 
-  console.log(content.length);
+  // Listen for refresh events
+  useEffect(() => {
+    const listener = DeviceEventEmitter.addListener("HomeScreenRefresh", () =>
+      fetchHomeContent(),
+    );
+    return listener.remove();
+  }, [fetchHomeContent]);
 
-  return {homePage, content: content, fetchMore};
+  return {homePage, content: content, fetchMore, refresh: fetchHomeContent};
 }

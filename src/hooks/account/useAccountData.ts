@@ -35,8 +35,9 @@ export default function useAccountData() {
     },
   );
   const [qrCode, setQRCodeData] = useState<LoginData>();
-  const [success, setSuccess] = useState();
+  const [success, setSuccess] = useState(false);
   // TODO: Add success reaction?
+  const [loginSuccess, setLoginSuccess] = useState(false);
 
   const youtube = useYoutubeContext();
 
@@ -75,6 +76,7 @@ export default function useAccountData() {
         accounts: [account],
       });
       setQRCodeData(undefined);
+      setSuccess(true);
     });
 
     // 'update-credentials' is fired when the access token expires, if you do not save the updated credentials any subsequent request will fail
@@ -110,7 +112,10 @@ export default function useAccountData() {
           refresh_token: credentials.refresh_token,
           access_token: credentials.access_token,
         })
-        .then(() => LOGGER.info("Successfully logged in"))
+        .then(() => {
+          LOGGER.info("Successfully logged in");
+          setLoginSuccess(true);
+        })
         .catch(LOGGER.warn);
     }
   }, [youtube, settings]);
@@ -144,5 +149,12 @@ export default function useAccountData() {
     LOGGER.debug("Logout triggered");
   };
 
-  return {login, logout, qrCode, loginData: settings, clearAllData: clearAll};
+  return {
+    login,
+    logout,
+    qrCode,
+    loginData: settings,
+    clearAllData: clearAll,
+    loginSuccess,
+  };
 }

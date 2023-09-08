@@ -27,18 +27,13 @@ export default function PlaylistScreen({route}: Props) {
 
   return (
     <View style={{margin: Platform.isTV ? 20 : 0, flex: 1}}>
-      <Text style={[{fontSize: 25, color: style.textColor}]}>
+      <Text
+        style={[{fontSize: Platform.isTV ? 25 : 20, color: style.textColor}]}>
         {playlist.info.title}
       </Text>
-      <Text style={{fontSize: 20, color: style.textColor}}>
+      <Text style={{fontSize: Platform.isTV ? 20 : 15, color: style.textColor}}>
         {playlist.info.last_updated}
       </Text>
-      {/*{playlist.page_contents.is(YTNodes.SectionList) ? (*/}
-      {/*  <SectionList*/}
-      {/*    node={playlist.page_contents}*/}
-      {/*    onEndReached={() => LOGGER.debug("End reached")}*/}
-      {/*  />*/}
-      {/*) : null}*/}
       <GridView shelfItem={data} onEndReached={() => fetchMore()} />
     </View>
   );

@@ -10,13 +10,13 @@ export type ElementData = VideoData | PlaylistData | ChannelData;
 
 export interface VideoData {
   originalNode: Helpers.YTNode;
-  type: "video" | "reel";
+  type: "video" | "reel" | "mix";
   id: string;
   navEndpoint?: YTNodes.NavigationEndpoint;
   thumbnailImage: Thumbnail;
   title: string;
   duration?: string;
-  short_views: string;
+  short_views?: string;
   publishDate?: string;
   author?: Author;
   quality?: string;
@@ -65,6 +65,21 @@ export interface YTVideoInfo {
   author?: Author;
   chapters?: YTChapter[];
   channel_id?: string;
+  channel?: {
+    id: string;
+    name: string;
+    url: string;
+  };
+  playlist?: {
+    id: string;
+    title: string;
+    content: ElementData[];
+    author?: string | Author;
+    current_index: number;
+    is_infinite: boolean;
+  };
+  liked?: boolean;
+  disliked?: boolean;
 }
 
 export interface YTChapter {
@@ -73,6 +88,13 @@ export interface YTChapter {
   thumbnailImage: Thumbnail;
   startDuration: number;
   endDuration: number;
+}
+
+export interface YTChannel {
+  originalData: YT.Channel;
+  id: string;
+  title?: string;
+  description?: string;
 }
 
 export function getAuthor(author: Misc.Author) {

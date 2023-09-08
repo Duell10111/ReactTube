@@ -9,7 +9,6 @@ interface Props {
 
 export default function PageSegment({segment}: Props) {
   if (!(segment instanceof Helpers.YTNode)) {
-    console.log("Title: ", segment.title);
     return <PageSectionList content={segment} headerText={segment.title} />;
   } else {
     console.error("Page Segment: OLD WAY!");
