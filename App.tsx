@@ -39,7 +39,8 @@ const App = () => {
             <YoutubeContextProvider>
               <AccountContextProvider>
                 <StatusBar
-                  barStyle={isDarkMode ? "light-content" : "dark-content"}
+                  // TODO: Currently only dark-mode exists
+                  barStyle={isDarkMode ? "light-content" : "light-content"}
                 />
                 <SafeAreaProvider>
                   <Navigation />
