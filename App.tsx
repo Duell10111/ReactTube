@@ -12,7 +12,7 @@ import React from "react";
 import {StatusBar, useColorScheme} from "react-native";
 import {btoa, atob} from "react-native-quick-base64";
 
-import "react-native/tvos-types.d";
+// import "react-native/tvos-types.d";
 import Navigation from "./src/navigation/Navigation";
 import YoutubeContextProvider from "./src/context/YoutubeContext";
 import AppStyleProvider from "./src/context/AppStyleContext";
@@ -39,7 +39,8 @@ const App = () => {
             <YoutubeContextProvider>
               <AccountContextProvider>
                 <StatusBar
-                  barStyle={isDarkMode ? "light-content" : "dark-content"}
+                  // TODO: Currently only dark-mode exists
+                  barStyle={isDarkMode ? "light-content" : "light-content"}
                 />
                 <SafeAreaProvider>
                   <Navigation />
