@@ -22,6 +22,7 @@ export type RootStackParamList = {
     videoId: string;
     navEndpoint?: YTNodes.NavigationEndpoint;
     reel?: boolean;
+    watchNextIds?: string[];
   };
   ChannelScreen: {channelId: string};
   PlaylistScreen: {playlistId: string};

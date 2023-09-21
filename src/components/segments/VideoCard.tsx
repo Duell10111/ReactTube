@@ -27,6 +27,7 @@ interface Props {
   disabled?: boolean;
   livestream?: boolean;
   mix?: boolean;
+  watchNextIds?: string[];
 }
 
 export default function VideoCard({style, ...data}: Props) {
@@ -46,6 +47,7 @@ export default function VideoCard({style, ...data}: Props) {
         videoId: data.videoId,
         navEndpoint: data.navEndpoint,
         reel: data.reel,
+        watchNextIds: data.watchNextIds,
       });
     } else if (
       // @ts-ignore
@@ -63,6 +65,7 @@ export default function VideoCard({style, ...data}: Props) {
             videoId: data.videoId,
             navEndpoint: data.navEndpoint,
             reel: data.reel,
+            watchNextIds: data.watchNextIds,
           },
         });
 
@@ -77,6 +80,7 @@ export default function VideoCard({style, ...data}: Props) {
         videoId: data.videoId,
         navEndpoint: data.navEndpoint,
         reel: data.reel,
+        watchNextIds: data.watchNextIds,
       });
     }
   };

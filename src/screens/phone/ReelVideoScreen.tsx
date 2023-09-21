@@ -7,38 +7,77 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import {NativeStackScreenProps} from "@react-navigation/native-stack";
+import {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from "@react-navigation/native-stack";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
 import Carousel from "react-native-reanimated-carousel";
 import useVideoDetails from "../../hooks/useVideoDetails";
-import React, {createContext, useContext, useMemo, useState} from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {YTNodes} from "youtubei.js";
 import VideoComponent from "../../components/VideoComponent";
 import ErrorComponent from "../../components/general/ErrorComponent";
 import {parseObservedArray} from "../../extraction/ArrayExtraction";
+import {useNavigation} from "@react-navigation/native";
+import ChannelIcon from "../../components/video/ChannelIcon";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {Gesture, GestureDetector} from "react-native-gesture-handler";
+import Animated, {runOnJS} from "react-native-reanimated";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
+type NProp = NativeStackNavigationProp<RootStackParamList, "VideoScreen">;
 
 export default function ReelVideoScreen({route}: Props) {
-  const {videoId, navEndpoint} = route.params;
-  const {YTVideoInfo} = useVideoDetails(navEndpoint ?? videoId);
+  const {videoId, navEndpoint, watchNextIds} = route.params;
+  const {YTVideoInfo, fetchNextVideoContinue} = useVideoDetails(
+    navEndpoint ?? videoId,
+  );
+  const navigation = useNavigation<NProp>();
 
   const {width, height} = useWindowDimensions();
+
+  console.log("WatchNextIds: ", watchNextIds);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerTransparent: true,
+      headerTitle: "",
+    });
+  }, []);
 
   const playlistData = useMemo(() => {
     if (YTVideoInfo) {
       // TODO: Does not contain the reel feed :/
-      const watchNext = YTVideoInfo.originalData.watch_next_feed
+      const watchNextFeed = YTVideoInfo.originalData.watch_next_feed
         ? parseObservedArray(YTVideoInfo.originalData.watch_next_feed)
-            // .filter(i => i.type === "reel")
+            .filter(i => i.type === "reel")
             .map(data => data.id)
         : [];
+      if (watchNextIds) {
+        const currentIndex = watchNextIds.indexOf(YTVideoInfo.id);
+        watchNextIds.splice(0, currentIndex + 1);
+      }
+      const watchNext = watchNextFeed;
       return [YTVideoInfo.id, ...watchNext];
     }
     return undefined;
   }, [YTVideoInfo]);
 
   const [context, setContext] = useState<number>(0);
+
+  useEffect(() => {
+    if (playlistData && context >= playlistData.length - 1) {
+      console.log("Fetch next Videos");
+      fetchNextVideoContinue();
+    }
+  }, [context, playlistData, fetchNextVideoContinue]);
 
   if (!playlistData) {
     return (
@@ -92,6 +131,10 @@ function VideoItem({videoId, index}: ItemProps) {
     removeRating,
   } = useVideoDetails(videoId);
 
+  const {bottom} = useSafeAreaInsets();
+
+  const [paused, setPaused] = useState(false);
+
   const videoUrl = useMemo(
     () => hlsManifestUrl ?? httpVideoURL,
     [hlsManifestUrl, httpVideoURL],
@@ -125,18 +168,37 @@ function VideoItem({videoId, index}: ItemProps) {
     );
   }
 
-  // TODO: Add Gesture handler for pause handling
+  const gesture = Gesture.Tap().onStart(event => {
+    runOnJS(setPaused)(!paused);
+  });
+
+  // TODO: Add animation for pause
   return (
-    <View style={styles.videoContainer}>
-      <VideoComponent
-        url={videoUrl}
-        style={[styles.videoComponentFullscreen]}
-        fullscreen={false}
-        paused={selected !== index}
-        controls={false}
-        repeat={true}
-      />
-    </View>
+    <GestureDetector gesture={gesture}>
+      <Animated.View style={styles.videoContainer}>
+        <VideoComponent
+          url={videoUrl}
+          style={[styles.videoComponentFullscreen]}
+          fullscreen={false}
+          paused={paused || selected !== index}
+          controls={false}
+          repeat={true}
+          resizeMode={"cover"}
+        />
+        <View style={[styles.videoInfoContainer, {marginBottom: bottom}]}>
+          <View style={styles.videoChannelContainer}>
+            <ChannelIcon
+              channelId={YTVideoInfo.channel_id ?? ""}
+              imageStyle={styles.videoChannelIcon}
+            />
+            <Text style={styles.videoChannelTitle}>
+              {YTVideoInfo.channel?.name}
+            </Text>
+          </View>
+          <Text style={styles.videoTitle}>{YTVideoInfo.title}</Text>
+        </View>
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
@@ -144,12 +206,39 @@ const styles = StyleSheet.create({
   videoContainer: {
     flex: 1,
     borderWidth: 1,
-    backgroundColor: "red",
+    // backgroundColor: "red",
   },
   videoComponentFullscreen: {
     height: "100%",
     width: "100%",
     // marginTop: 30, // TODO: Check for Android?
+  },
+  videoInfoContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "10%",
+    // backgroundColor: "#11111199",
+    paddingHorizontal: 10,
+  },
+  videoChannelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  videoChannelTitle: {
+    color: "white",
+    fontSize: 17,
+    marginStart: 5,
+  },
+  videoTitle: {
+    color: "white",
+    fontSize: 15,
+  },
+  videoChannelIcon: {
+    width: 35,
+    height: 35,
   },
 });
 

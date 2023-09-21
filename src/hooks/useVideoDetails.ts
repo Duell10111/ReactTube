@@ -25,7 +25,9 @@ export default function useVideoDetails(
     fetchVideoData();
   }, [appSettings.hlsEnabled, videoId, youtube, fetchVideoData]);
 
-  console.log("Playlist Video: ", Video?.cards);
+  // console.log("Playlist Video: ", Video?.cards);
+
+  console.log("WatchnextVideos: ", Video?.watch_next_feed);
 
   const YTVideoInfo = useMemo(() => {
     return Video ? getElementDataFromVideoInfo(Video) : undefined;

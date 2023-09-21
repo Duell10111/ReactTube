@@ -1,5 +1,5 @@
 import React, {useMemo, useState} from "react";
-import Video from "react-native-video";
+import Video, {VideoProperties} from "react-native-video";
 import {
   ActivityIndicator,
   StyleProp,
@@ -28,6 +28,7 @@ interface Props {
   paused?: boolean;
   controls?: boolean;
   repeat?: boolean;
+  resizeMode?: VideoProperties["resizeMode"];
 }
 
 export default function VideoComponent({
@@ -39,6 +40,7 @@ export default function VideoComponent({
   paused,
   controls,
   repeat,
+  resizeMode,
   ...callbacks
 }: Props) {
   // const player = useRef<Video>();
@@ -78,7 +80,7 @@ export default function VideoComponent({
         paused={paused !== undefined ? paused : !isFocused}
         fullscreen={fullscreen ?? true}
         repeat={repeat}
-        resizeMode={"contain"}
+        resizeMode={resizeMode ?? "contain"}
         // @ts-ignore Own version
         chapters={parsedChapters}
         // Event listener

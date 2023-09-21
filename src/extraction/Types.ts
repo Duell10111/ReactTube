@@ -21,6 +21,7 @@ export interface VideoData {
   author?: Author;
   quality?: string;
   livestream?: boolean;
+  watchNextIDs?: string[];
 }
 
 export interface Author {
