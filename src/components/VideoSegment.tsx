@@ -38,7 +38,6 @@ export default function VideoSegment({
           date={element.publishDate}
           livestream={element.livestream}
           navEndpoint={element.navEndpoint}
-          watchNextIds={element.watchNextIDs}
         />
       );
     } else if (element.type === "mix") {

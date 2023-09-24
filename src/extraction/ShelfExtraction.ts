@@ -151,14 +151,6 @@ export function parseHorizontalNode(
 function extractContent(node: Helpers.YTNode | Helpers.YTNode[]) {
   const content = Array.isArray(node) ? node : extractListContent(node);
   const parsedData = _.chain(content).map(getVideoData).compact().value();
-
-  const ids = parsedData.map(data => data.id);
-  parsedData.forEach(data => {
-    if (data.type === "reel") {
-      data.watchNextIDs = ids;
-    }
-  });
-
   return {
     content,
     parsedData,
