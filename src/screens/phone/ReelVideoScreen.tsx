@@ -24,26 +24,26 @@ import React, {
 import {YTNodes} from "youtubei.js";
 import VideoComponent from "../../components/VideoComponent";
 import ErrorComponent from "../../components/general/ErrorComponent";
-import {parseObservedArray} from "../../extraction/ArrayExtraction";
 import {useNavigation} from "@react-navigation/native";
 import ChannelIcon from "../../components/video/ChannelIcon";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import Animated, {runOnJS} from "react-native-reanimated";
+import {useReelPlaylist} from "../../hooks/video/useReelPlaylist";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 type NProp = NativeStackNavigationProp<RootStackParamList, "VideoScreen">;
 
 export default function ReelVideoScreen({route}: Props) {
-  const {videoId, navEndpoint, watchNextIds} = route.params;
-  const {YTVideoInfo, fetchNextVideoContinue} = useVideoDetails(
-    navEndpoint ?? videoId,
-  );
+  const {videoId, navEndpoint} = route.params;
+  const {YTVideoInfo} = useVideoDetails(navEndpoint ?? videoId);
   const navigation = useNavigation<NProp>();
 
   const {width, height} = useWindowDimensions();
 
-  console.log("WatchNextIds: ", watchNextIds);
+  const {elements, fetchMore} = useReelPlaylist(YTVideoInfo?.id);
+
+  console.log("WatchNextIds: ", elements);
 
   useEffect(() => {
     navigation.setOptions({
@@ -53,31 +53,20 @@ export default function ReelVideoScreen({route}: Props) {
   }, []);
 
   const playlistData = useMemo(() => {
-    if (YTVideoInfo) {
-      // TODO: Does not contain the reel feed :/
-      const watchNextFeed = YTVideoInfo.originalData.watch_next_feed
-        ? parseObservedArray(YTVideoInfo.originalData.watch_next_feed)
-            .filter(i => i.type === "reel")
-            .map(data => data.id)
-        : [];
-      if (watchNextIds) {
-        const currentIndex = watchNextIds.indexOf(YTVideoInfo.id);
-        watchNextIds.splice(0, currentIndex + 1);
-      }
-      const watchNext = watchNextFeed;
-      return [YTVideoInfo.id, ...watchNext];
+    if (elements && YTVideoInfo) {
+      return [YTVideoInfo.id, ...elements];
     }
     return undefined;
-  }, [YTVideoInfo]);
+  }, [YTVideoInfo, elements]);
 
   const [context, setContext] = useState<number>(0);
 
   useEffect(() => {
     if (playlistData && context >= playlistData.length - 1) {
       console.log("Fetch next Videos");
-      fetchNextVideoContinue();
+      fetchMore();
     }
-  }, [context, playlistData, fetchNextVideoContinue]);
+  }, [context, playlistData, fetchMore]);
 
   if (!playlistData) {
     return (
@@ -103,6 +92,7 @@ export default function ReelVideoScreen({route}: Props) {
         height={height}
         data={playlistData}
         scrollAnimationDuration={1000}
+        windowSize={5}
         onSnapToItem={index => {
           setContext(index);
           console.log("current index:", index);

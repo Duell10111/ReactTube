@@ -7484,9 +7484,10 @@ react-native-vector-icons@^9.2.0:
     prop-types "^15.7.2"
     yargs "^16.1.1"
 
-"react-native-video@github:Duell10111/react-native-video#tvos-custom-playback-exerpience":
-  version "6.0.0-alpha.7"
-  resolved "https://codeload.github.com/Duell10111/react-native-video/tar.gz/777192221adb94dc344cf2cb28dfdb04bdf868f5"
+react-native-video@6.0.0-alpha.8:
+  version "6.0.0-alpha.8"
+  resolved "https://registry.yarnpkg.com/react-native-video/-/react-native-video-6.0.0-alpha.8.tgz#9981c84dbef81cfe861bb80d0cdc4551335b6443"
+  integrity sha512-PLv9eUtgReblotIS2KKWIA7UCtDsJcrcqYmYOgyozhwSMdEoGL5aAdhdu0X6PXRDCHJNdXSDYL01Wj7VY0eLvA==
   dependencies:
     deprecated-react-native-prop-types "^2.2.0"
     keymirror "^0.1.1"
@@ -8782,10 +8783,8 @@ yocto-queue@^0.1.0:
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
 
-youtubei.js@6.4.0:
+"youtubei.js@file:../../YouTube.js":
   version "6.4.0"
-  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-6.4.0.tgz#8e18f8a87f5315391cf1722e15510d0a3a6b4b0b"
-  integrity sha512-c3Hj+9JmMchVWusVOubHDNrvKybzai1vWzZsVIZ9oxt74W0zaP78S0pPW21i/RnVBx29rAA2+ojs56b/REP/1A==
   dependencies:
     jintr "^1.1.0"
     tslib "^2.5.0"
