@@ -2,6 +2,7 @@ import React, {useMemo, useState} from "react";
 import Video, {VideoProperties} from "react-native-video";
 import {
   ActivityIndicator,
+  Platform,
   StyleProp,
   StyleSheet,
   ViewStyle,
@@ -83,6 +84,8 @@ export default function VideoComponent({
         resizeMode={resizeMode ?? "contain"}
         // @ts-ignore Own version
         chapters={parsedChapters}
+        playInBackground={Platform.isTV ? undefined : true}
+        ignoreSilentSwitch={"ignore"}
         // Event listener
         onLoad={(data: any) => {
           LOGGER.debug("Video Loading...", JSON.stringify(data, null, 4));
