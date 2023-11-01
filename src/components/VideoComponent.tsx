@@ -54,7 +54,14 @@ export default function VideoComponent({
 
   // As changing url causes duplicate errors
   if (failbackURL) {
-    return <VideoComponent url={url} style={style} {...callbacks} />;
+    return (
+      <VideoComponent
+        url={url}
+        style={style}
+        videoInfo={videoInfo}
+        {...callbacks}
+      />
+    );
   }
 
   return (

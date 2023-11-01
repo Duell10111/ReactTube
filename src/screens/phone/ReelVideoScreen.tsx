@@ -169,6 +169,7 @@ function VideoItem({videoId, index}: ItemProps) {
         <VideoComponent
           url={videoUrl}
           style={[styles.videoComponentFullscreen]}
+          videoInfo={YTVideoInfo}
           fullscreen={false}
           paused={paused || selected !== index}
           controls={false}

@@ -101,7 +101,7 @@ export default function VideoCard({style, ...data}: Props) {
       onPress={onPress}
       style={[
         style,
-        DeviceInfo.isTablet() ? {width: 375, padding: 10} : undefined,
+        DeviceInfo.isTablet() ? {maxWidth: 375, padding: 10} : undefined,
       ]}
       imageContainerStyle={
         DeviceInfo.isTablet() ? {borderRadius: 25} : undefined

@@ -9,7 +9,7 @@ export default function useGridColumnsPreferred(reels?: boolean) {
     if (Platform.isTV) {
       return undefined;
     } else if (DeviceInfo.isTablet()) {
-      return Math.floor(width / (reels ? 175 : 375));
+      return Math.max(Math.floor(width / (reels ? 175 : 375)), 2);
     } else if (!DeviceInfo.isTablet() && reels) {
       // Phone grids only on reels
       return Math.floor(width / 175);
