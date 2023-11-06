@@ -80,6 +80,7 @@ export default function VideoComponent({
           title: videoInfo?.title,
           subtitle: videoInfo?.author?.name,
           description: videoInfo?.description,
+          customImageUri: videoInfo?.thumbnailImage?.url,
         }}
         style={
           (style as any) ?? [styles.fullScreen, StyleSheet.absoluteFillObject]
@@ -89,9 +90,10 @@ export default function VideoComponent({
         fullscreen={fullscreen ?? true}
         repeat={repeat}
         resizeMode={resizeMode ?? "contain"}
-        // @ts-ignore Own version
         chapters={parsedChapters}
         playInBackground={Platform.isTV ? undefined : true}
+        pictureInPicture={true}
+        // @ts-ignore type error?
         ignoreSilentSwitch={"ignore"}
         // Event listener
         onLoad={(data: any) => {
