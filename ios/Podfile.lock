@@ -380,10 +380,10 @@ PODS:
     - RCTTypeSafety
     - React-Core
     - ReactCommon/turbomodule/core
-  - react-native-video (6.0.0-alpha.9):
+  - react-native-video (6.0.0-beta.0):
     - React-Core
-    - react-native-video/Video (= 6.0.0-alpha.9)
-  - react-native-video/Video (6.0.0-alpha.9):
+    - react-native-video/Video (= 6.0.0-beta.0)
+  - react-native-video/Video (6.0.0-beta.0):
     - PromisesSwift
     - React-Core
   - react-native-vlc-media-player (1.0.38):
@@ -800,7 +800,7 @@ SPEC CHECKSUMS:
   React-logger: 4e06921a036c47431527b3eb41ffd0993347f9ee
   react-native-orientation-locker: 851f6510d8046ea2f14aa169b1e01fcd309a94ba
   react-native-safe-area-context: f5549f36508b1b7497434baa0cd97d7e470920d4
-  react-native-video: 3f353064d26413114d218fe984fc9c0bc99dd120
+  react-native-video: e9e6fe3ab11d515bd79abd5d81e07db538943c56
   react-native-vlc-media-player: 0f9860bded57cd6764ac55b5c0e97347069cb40a
   React-NativeModulesApple: 2a4fc8e3ee23c830601afc611cb5fd6b38fd703d
   React-perflogger: f80b296bb12a333ba36fac0c443f29efa22fa711
