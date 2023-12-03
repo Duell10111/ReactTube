@@ -30,6 +30,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import Animated, {runOnJS} from "react-native-reanimated";
 import {useReelPlaylist} from "../../hooks/video/useReelPlaylist";
+import PlayPauseAnimation from "../../components/video/phone/PlayPauseAnimation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 type NProp = NativeStackNavigationProp<RootStackParamList, "VideoScreen">;
@@ -158,7 +159,7 @@ function VideoItem({videoId, index}: ItemProps) {
     );
   }
 
-  const gesture = Gesture.Tap().onStart(event => {
+  const gesture = Gesture.Tap().onStart(() => {
     runOnJS(setPaused)(!paused);
   });
 
@@ -175,6 +176,10 @@ function VideoItem({videoId, index}: ItemProps) {
           controls={false}
           repeat={true}
           resizeMode={"cover"}
+        />
+        <PlayPauseAnimation
+          playing={!paused}
+          style={styles.pauseContainerStyle}
         />
         <View style={[styles.videoInfoContainer, {marginBottom: bottom + 3}]}>
           <View style={styles.videoChannelContainer}>
@@ -230,6 +235,13 @@ const styles = StyleSheet.create({
   videoChannelIcon: {
     width: 35,
     height: 35,
+  },
+  pauseContainerStyle: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 });
 
