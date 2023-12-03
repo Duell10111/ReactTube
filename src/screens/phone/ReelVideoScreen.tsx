@@ -176,7 +176,7 @@ function VideoItem({videoId, index}: ItemProps) {
           repeat={true}
           resizeMode={"cover"}
         />
-        <View style={[styles.videoInfoContainer, {marginBottom: bottom}]}>
+        <View style={[styles.videoInfoContainer, {marginBottom: bottom + 3}]}>
           <View style={styles.videoChannelContainer}>
             <ChannelIcon
               channelId={YTVideoInfo.channel_id ?? ""}
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: "10%",
+    minHeight: "10%",
     // backgroundColor: "#11111199",
     paddingHorizontal: 10,
   },
