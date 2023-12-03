@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   TextStyle,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from "react-native";
@@ -38,9 +39,15 @@ export default function VideoCardTV({
 }: Props) {
   const {setSelectedVideo, onElementFocused} = useShelfVideoSelector();
   const {style: appStyle} = useAppStyle();
+  const {width} = useWindowDimensions();
 
   return (
-    <View style={[styles.viewContainer, style]}>
+    <View
+      style={[
+        styles.viewContainer,
+        {minWidth: 150, maxWidth: width / 4},
+        style,
+      ]}>
       <VideoTouchable
         // onFocus={() => console.log("Focus")}
         style={styles.segmentContainer}
@@ -97,15 +104,14 @@ export default function VideoCardTV({
 
 const styles = StyleSheet.create({
   viewContainer: {
-    width: 500,
-    height: 400,
     marginHorizontal: 20,
+    flex: 0,
   },
   segmentContainer: {
     backgroundColor: "#aaaaaa",
     borderRadius: 25,
     overflow: "hidden",
-    height: "70%",
+    aspectRatio: 1.7,
   },
   imageStyle: {
     width: "100%",

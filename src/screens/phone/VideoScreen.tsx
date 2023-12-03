@@ -202,6 +202,7 @@ export default function VideoScreen({route, navigation}: Props) {
                       : undefined,
                   ],
             ]}
+            videoInfo={YTVideoInfo}
             fullscreen={fullscreen}
           />
         </View>

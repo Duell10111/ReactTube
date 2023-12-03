@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import {Platform, TVEventControl} from "react-native";
 import useHomeScreen from "../hooks/useHomeScreen";
 import Logger from "../utils/Logger";
@@ -14,11 +14,22 @@ import useGridColumnsPreferred from "../hooks/home/useGridColumnsPreferred";
 const LOGGER = Logger.extend("HOME");
 
 export default function HomeScreen() {
-  const {content, fetchMore} = useHomeScreen();
+  const [fetchDate, setFetchDate] = useState(Date.now());
+  const {content, fetchMore, refresh} = useHomeScreen();
 
   const {onScreenFocused} = useDrawerContext();
 
   const navigation = useNavigation();
+
+  useFocusEffect(() => {
+    if (Math.abs(Date.now() - fetchDate) > 43200000) {
+      LOGGER.debug("Triggering refresh home content");
+      refresh();
+      setFetchDate(Date.now());
+    } else {
+      LOGGER.debug("Last fetch has been recently. Skipping refresh");
+    }
+  });
 
   useEffect(() => {
     if (!Platform.isTV) {

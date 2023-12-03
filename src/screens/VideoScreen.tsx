@@ -47,8 +47,6 @@ export default function VideoScreen({route, navigation}: Props) {
       : undefined;
   }, [appSettings.localHlsEnabled, videoId]);
 
-  console.log(videoId);
-
   useEffect(() => {
     return navigation.addListener("blur", () => {
       setShowEndCard(false);
@@ -72,9 +70,6 @@ export default function VideoScreen({route, navigation}: Props) {
     () => hlsManifestUrl ?? httpVideoURL,
     [hlsManifestUrl, httpVideoURL],
   );
-
-  console.log("Video Url: ", videoUrl);
-  // console.log("Chapters: ", YTVideoInfo?.chapters);
 
   if (!YTVideoInfo) {
     return (

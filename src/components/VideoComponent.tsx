@@ -1,7 +1,8 @@
 import React, {useMemo, useState} from "react";
-import Video from "react-native-video";
+import Video, {VideoProperties} from "react-native-video";
 import {
   ActivityIndicator,
+  Platform,
   StyleProp,
   StyleSheet,
   ViewStyle,
@@ -28,6 +29,7 @@ interface Props {
   paused?: boolean;
   controls?: boolean;
   repeat?: boolean;
+  resizeMode?: VideoProperties["resizeMode"];
 }
 
 export default function VideoComponent({
@@ -39,6 +41,7 @@ export default function VideoComponent({
   paused,
   controls,
   repeat,
+  resizeMode,
   ...callbacks
 }: Props) {
   // const player = useRef<Video>();
@@ -51,7 +54,14 @@ export default function VideoComponent({
 
   // As changing url causes duplicate errors
   if (failbackURL) {
-    return <VideoComponent url={url} style={style} {...callbacks} />;
+    return (
+      <VideoComponent
+        url={url}
+        style={style}
+        videoInfo={videoInfo}
+        {...callbacks}
+      />
+    );
   }
 
   return (
@@ -70,6 +80,7 @@ export default function VideoComponent({
           title: videoInfo?.title,
           subtitle: videoInfo?.author?.name,
           description: videoInfo?.description,
+          customImageUri: videoInfo?.thumbnailImage?.url,
         }}
         style={
           (style as any) ?? [styles.fullScreen, StyleSheet.absoluteFillObject]
@@ -78,9 +89,12 @@ export default function VideoComponent({
         paused={paused !== undefined ? paused : !isFocused}
         fullscreen={fullscreen ?? true}
         repeat={repeat}
-        resizeMode={"contain"}
-        // @ts-ignore Own version
+        resizeMode={resizeMode ?? "contain"}
         chapters={parsedChapters}
+        playInBackground={Platform.isTV ? undefined : true}
+        pictureInPicture={true}
+        // @ts-ignore type error?
+        ignoreSilentSwitch={"ignore"}
         // Event listener
         onLoad={(data: any) => {
           LOGGER.debug("Video Loading...", JSON.stringify(data, null, 4));
