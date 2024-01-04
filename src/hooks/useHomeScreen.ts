@@ -37,8 +37,7 @@ export default function useHomeScreen() {
           );
         })
         .catch(reason => {
-          // console.log(JSON.stringify(reason));
-          console.warn(reason);
+          LOGGER.warn("Error fetching HomeFeed: ", reason);
         });
     }
   }, [youtube]);
