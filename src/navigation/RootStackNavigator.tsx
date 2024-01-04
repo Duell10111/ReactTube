@@ -67,7 +67,15 @@ export default function RootStackNavigator() {
             component={PlaylistScreen}
             options={{title: "Playlist"}}
           />
-          <Stack.Screen name={"Search"} component={SearchScreen} />
+          <Stack.Screen
+            name={"Search"}
+            component={SearchScreen}
+            options={{
+              headerSearchBarOptions: {
+                placeholder: "Suche",
+              },
+            }}
+          />
           <Stack.Screen
             name={"SubscriptionScreen"}
             component={SubscriptionScreen}
