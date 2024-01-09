@@ -2616,6 +2616,11 @@
   resolved "https://registry.yarnpkg.com/@types/json-schema/-/json-schema-7.0.11.tgz#d421b6c527a3037f7c84433fd2c4229e016863d3"
   integrity sha512-wOuvG1SN4Us4rez+tylwwwCV1psiNVOkJeM3AUWUNWg/jDQY2+HE/444y5gc+jBmRqASOm2Oeh5c1axHobwRKQ==
 
+"@types/lodash@^4.14.202":
+  version "4.14.202"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.202.tgz#f09dbd2fb082d507178b2f2a5c7e74bd72ff98f8"
+  integrity sha512-OvlIYQK9tNneDlS0VN54LLd5uiPCBOp7gS5Z0f1mjoJYBrtStzgmJBxONW3U6OZqdtNzZPmn9BS/7WI7BFFcFQ==
+
 "@types/luxon@^3.3.0":
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/@types/luxon/-/luxon-3.3.0.tgz#a61043a62c0a72696c73a0a305c544c96501e006"
@@ -8484,10 +8489,10 @@ yocto-queue@^0.1.0:
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
 
-youtubei.js@8.1.0:
-  version "8.1.0"
-  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-8.1.0.tgz#318abb086803b2204b77d436bd8748ce855e5a7b"
-  integrity sha512-KxyeRF5JI7b/z2y4Q0Jb1+WlWxF3VModBVhkBhatzyALAW/OUavh/tAJBU55pmKlfEvnBjwCiGZrX7zb7BHnlQ==
+youtubei.js@8.2.0:
+  version "8.2.0"
+  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-8.2.0.tgz#5b173f41fbe6240bb44cb733ce2c1f24e0b072ca"
+  integrity sha512-i/F4PEURSQmSYCQCo4dWKxOCZXhqkgAuGzNG2RUCtGSmlMX8TvwNewVD/JBjH/czdNmh9SJ00onNZMMxHbt+YA==
   dependencies:
     jintr "^1.1.0"
     tslib "^2.5.0"
