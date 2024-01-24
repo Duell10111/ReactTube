@@ -11,7 +11,7 @@ import LoginScreen from "../screens/LoginScreen";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
 import HistoryScreen from "../screens/HistoryScreen";
 import {YTNodes} from "../utils/Youtube";
-import LoadingScreen from "../screens/LoadlingScreen";
+import LoadingScreen from "../screens/LoadingScreen";
 import useAppInit from "../hooks/general/useAppInit";
 import VideoScreenWrapper from "../screens/phone/VideoScreenWrapper";
 
