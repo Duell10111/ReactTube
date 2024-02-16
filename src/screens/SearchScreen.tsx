@@ -16,7 +16,6 @@ export default function SearchScreen() {
 
   return (
     <>
-      <SearchBar onSubmit={text => search(text).catch(console.warn)} />
       <View style={{flex: 1}}>
         <GridView
           columns={columns}
