@@ -11,6 +11,7 @@ interface Props {
   node: Helpers.YTNode;
 }
 
+// TODO: Remove
 export default function PageSection({node}: Props) {
   if (node.is(YTNodes.RichShelf)) {
     return (

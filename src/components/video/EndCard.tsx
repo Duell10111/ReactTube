@@ -81,8 +81,13 @@ export default function EndCard({
           <View style={styles.videoContainer}>
             <Text style={[styles.text, styles.videoTitle]}>{video.title}</Text>
             <Text style={[styles.text, styles.viewsText]}>
-              {`${video.short_views} Views`}
+              {`${video.short_views}`}
             </Text>
+            {video.publishDate ? (
+              <Text style={[styles.text, styles.viewsText]}>
+                {`${video.publishDate}`}
+              </Text>
+            ) : null}
             {currentResolution ? (
               <Text style={[styles.text, styles.viewsText]}>
                 {`Current Resolution ${currentResolution}`}
@@ -154,7 +159,7 @@ const styles = StyleSheet.create({
   bottomContainer: {
     width: "100%",
     minHeight: "40%",
-    maxHeight: "48%",
+    maxHeight: "50%",
     backgroundColor: "#111111cc",
     justifyContent: "center",
     paddingTop: 20,

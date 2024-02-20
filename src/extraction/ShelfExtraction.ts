@@ -143,6 +143,16 @@ export function parseHorizontalNode(
       originalNode: node,
       title: node.title.text,
     };
+  } else if (node.is(YTNodes.FeedNudge)) {
+    //TODO: Add nudge type to horizontal type?
+    return {
+      data: [],
+      parsedData: [],
+      loadMore: () => {},
+      id: node.title.text ?? "feed_nudge",
+      title: node.title.text,
+      originalNode: node,
+    };
   } else {
     console.warn("ShelfExtraction: Unknown horizontal type: ", node.type);
   }
