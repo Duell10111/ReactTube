@@ -1,6 +1,6 @@
 module.exports = {
   root: true,
-  extends: '@react-native',
+  extends: "universe/native",
   parser: "@typescript-eslint/parser",
   plugins: ["@typescript-eslint"],
   overrides: [

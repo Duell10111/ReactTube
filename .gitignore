@@ -70,3 +70,7 @@ buck-out/
 
 # testing
 /coverage
+
+# Expo generated files
+/android
+/ios

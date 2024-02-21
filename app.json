@@ -1,4 +1,38 @@
 {
-  "name": "reacttube",
-  "displayName": "reacttube"
+  "expo": {
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android/ic_launcher_foreground.png",
+        "backgroundImage": "./assets/images/android/ic_launcher_background.png",
+        "monochromeImage": "./assets/images/android/ic_launcher_monochrome.png"
+      },
+      "package": "com.duell10111.reacttube"
+    },
+    "ios": {
+      "icon": "./assets/images/ios_icon.png",
+      "bundleIdentifier": "com.duell10111.reacttube"
+    },
+    "plugins": [
+      [
+        "@react-native-tvos/config-tv",
+        {
+          "isTV": true,
+          "showVerboseWarnings": false,
+          "tvosDeploymentTarget": "13.4",
+          "removeFlipperOnAndroid": true,
+          "androidTVBanner": "./assets/images/tv/tv_banner.png",
+          "appleTVImages": {
+            "icon": "./assets/images/tv/app_store_icon.png",
+            "iconSmall": "./assets/images/tv/app_store_icon_400.png",
+            "topShelf": "./assets/images/tv/app_store_icon_topshelf.png",
+            "topShelf2x": "./assets/images/tv/app_store_icon_topshelf.png",
+            "topShelfWide": "./assets/images/tv/app_store_icon_topshelf.png",
+            "topShelfWide2x": "./assets/images/tv/app_store_icon_topshelf.png"
+          }
+        }
+      ]
+    ],
+    "name": "reacttube",
+    "slug": "reacttube"
+  }
 }
