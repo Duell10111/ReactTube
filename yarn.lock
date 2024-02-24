@@ -1891,6 +1891,11 @@
     ieee754 "^1.2.1"
     react-native-quick-base64 "^2.0.5"
 
+"@duell10111/rn-search-bar@^1.0.0-beta.3":
+  version "1.0.0-beta.3"
+  resolved "https://registry.yarnpkg.com/@duell10111/rn-search-bar/-/rn-search-bar-1.0.0-beta.3.tgz#663aa5006df80f46b46e0d7655b1f5cb7fc0acf4"
+  integrity sha512-eF8GwhQGh9Uz/2I7wdNXjm/eYfCrOeMwvrSFH8zyZwqfGlsya3jm1V8bLhbAmeowIf5VmRM4JTOc+PgHSjbXog==
+
 "@egjs/hammerjs@^2.0.17":
   version "2.0.17"
   resolved "https://registry.yarnpkg.com/@egjs/hammerjs/-/hammerjs-2.0.17.tgz#5dc02af75a6a06e4c2db0202cae38c9263895124"
