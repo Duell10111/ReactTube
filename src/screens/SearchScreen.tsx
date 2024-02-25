@@ -54,8 +54,12 @@ export default function SearchScreen() {
           placeholder: "Search",
           onChangeText: event => setSearchText(event.nativeEvent.text),
           onBlur: () => performSearch(),
-          onSearchButtonPress: event => performSearch(event.nativeEvent.text),
+          onSearchButtonPress: event => {
+            performSearch(event.nativeEvent.text);
+          },
           onClose: () => performSearch(),
+          textColor: "white",
+          headerIconColor: "white",
           hideWhenScrolling: false,
         },
       });
@@ -64,20 +68,24 @@ export default function SearchScreen() {
 
   return (
     <View style={{flex: 1}}>
-      <RnNativeSearchBarView
-        style={{width: "100%", height: "100%", backgroundColor: "#555555"}}
-        placeholder="Search"
-        onSearchTextChanged={event => performSearch(event.nativeEvent.text)}
-        onSearchButtonClicked={event => performSearch(event.nativeEvent.text)}
-        onSearchTextEditEndedEvent={() => console.log("SearchTextEdit Ended!")}>
-        <View style={{flex: 1}}>
-          <GridView
-            columns={columns}
-            shelfItem={searchResult}
-            onEndReached={() => fetchMore().catch(console.warn)}
-          />
-        </View>
-      </RnNativeSearchBarView>
+      {Platform.isTV ? (
+        <RnNativeSearchBarView
+          style={{width: "100%", height: "100%", backgroundColor: "#555555"}}
+          placeholder="Search"
+          onSearchTextChanged={event => performSearch(event.nativeEvent.text)}
+          onSearchButtonClicked={event => performSearch(event.nativeEvent.text)}
+          onSearchTextEditEndedEvent={() =>
+            console.log("SearchTextEdit Ended!")
+          }>
+          <View style={{flex: 1}}>
+            <GridView
+              columns={columns}
+              shelfItem={searchResult}
+              onEndReached={() => fetchMore().catch(console.warn)}
+            />
+          </View>
+        </RnNativeSearchBarView>
+      ) : null}
       {!Platform.isTV ? (
         <View style={{flex: 1}}>
           <GridView
