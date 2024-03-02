@@ -1,6 +1,8 @@
 import {useEffect, useRef, useState} from "react";
 import {useTVEventHandler} from "react-native";
 
+// TODO: Save Handler as ref variable?
+
 const countdownStart = 5;
 
 export default function useNextVideo(goToNextVideo: () => void) {
@@ -13,6 +15,7 @@ export default function useNextVideo(goToNextVideo: () => void) {
   }, []);
 
   useTVEventHandler(event => {
+    // Currently brocken since update to 0.73
     switch (event.eventType) {
       case "up":
       case "down":
@@ -43,5 +46,6 @@ export default function useNextVideo(goToNextVideo: () => void) {
 
   return {
     countdown,
+    stopCountdown: () => (stopRef.current = true),
   };
 }

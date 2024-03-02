@@ -1,9 +1,10 @@
 import React, {useEffect, useRef} from "react";
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import PlayButton from "./PlayButton";
-import useNextVideo from "../../../hooks/ui/useNextVideo";
 import FastImage from "react-native-fast-image";
+
+import PlayButton from "./PlayButton";
 import {YTVideoInfo} from "../../../extraction/Types";
+import useNextVideo from "../../../hooks/ui/useNextVideo";
 
 interface NextVideoProps {
   nextVideo?: YTVideoInfo;
@@ -11,7 +12,7 @@ interface NextVideoProps {
 }
 
 export default function NextVideo({nextVideo, onPress}: NextVideoProps) {
-  const {countdown} = useNextVideo(() => {
+  const {countdown, stopCountdown} = useNextVideo(() => {
     console.log("Next Video triggered");
     nextVideo && onPress?.(nextVideo.id);
   });
@@ -31,6 +32,7 @@ export default function NextVideo({nextVideo, onPress}: NextVideoProps) {
       <PlayButton
         style={styles.playStyle}
         onPress={() => nextVideo && onPress?.(nextVideo.id)}
+        onBlur={() => stopCountdown()}
       />
     </View>
   );

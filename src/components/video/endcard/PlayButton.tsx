@@ -1,30 +1,33 @@
+import {Icon} from "@rneui/base";
 import React, {forwardRef} from "react";
 import {
   StyleProp,
   StyleSheet,
   TouchableOpacity,
+  TouchableOpacityProps,
   View,
   ViewStyle,
 } from "react-native";
-import {Icon} from "@rneui/base";
+
 import TouchableField from "../../general/TouchableField";
 
-interface Props {
+interface Props extends TouchableOpacityProps {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
 }
 
 const PlayButton = forwardRef<TouchableOpacity, Props>(
-  ({onPress, style}, ref) => {
+  ({onPress, style, ...props}, ref) => {
     return (
       <TouchableField
         ref={ref}
         style={style}
         containerStyle={{width: "100%"}}
         onPress={onPress}
-        hasTVPreferredFocus>
+        hasTVPreferredFocus
+        {...props}>
         <View style={styles.container}>
-          <Icon name={"play"} type={"font-awesome-5"} size={20} />
+          <Icon name="play" type="font-awesome-5" size={20} />
         </View>
       </TouchableField>
     );

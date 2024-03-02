@@ -1,12 +1,12 @@
-import React from "react";
+import {MaterialIcons, Ionicons} from "@expo/vector-icons";
 import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
-import Ionicons from "react-native-vector-icons/Ionicons";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import HomeScreen from "../screens/HomeScreen";
-import SettingsScreen from "../screens/SettingsScreen";
+import React from "react";
+
 import useAccountData from "../hooks/account/useAccountData";
-import SubscriptionScreen from "../screens/SubscriptionScreen";
+import HomeScreen from "../screens/HomeScreen";
 import LibraryScreen from "../screens/LibraryScreen";
+import SettingsScreen from "../screens/SettingsScreen";
+import SubscriptionScreen from "../screens/SubscriptionScreen";
 
 export type RootBottomTabParamList = {
   HomeFeed: undefined;
@@ -29,13 +29,13 @@ export default function BottomTabBarNavigator() {
           if (route.name === "HomeFeed") {
             iconName = "home";
           } else if (route.name === "Settings") {
-            iconName = focused ? "ios-list" : "ios-list-outline";
+            iconName = focused ? "list" : "list-outline";
           } else if (route.name === "Subscriptions") {
             return (
-              <MaterialIcons name={"subscriptions"} size={size} color={color} />
+              <MaterialIcons name="subscriptions" size={size} color={color} />
             );
           } else if (route.name === "Library") {
-            iconName = "ios-library-outline";
+            iconName = "library-outline";
           }
 
           // You can return any component that you like here!
