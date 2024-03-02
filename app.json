@@ -10,7 +10,10 @@
     },
     "ios": {
       "icon": "./assets/images/ios_icon.png",
-      "bundleIdentifier": "com.duell10111.reacttube"
+      "bundleIdentifier": "com.duell10111.reacttube",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
     },
     "plugins": [
       [

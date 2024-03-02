@@ -53,13 +53,12 @@ export default function SearchScreen() {
         headerSearchBarOptions: {
           placeholder: "Search",
           onChangeText: event => setSearchText(event.nativeEvent.text),
-          onBlur: () => performSearch(),
           onSearchButtonPress: event => {
             performSearch(event.nativeEvent.text);
           },
-          onClose: () => performSearch(),
           textColor: "white",
           headerIconColor: "white",
+          hintTextColor: "white",
           hideWhenScrolling: false,
         },
       });
@@ -71,7 +70,7 @@ export default function SearchScreen() {
       {Platform.isTV ? (
         <RnNativeSearchBarView
           style={{width: "100%", height: "100%", backgroundColor: "#555555"}}
-          placeholder="Search"
+          placeholder={"Search"}
           onSearchTextChanged={event => performSearch(event.nativeEvent.text)}
           onSearchButtonClicked={event => performSearch(event.nativeEvent.text)}
           onSearchTextEditEndedEvent={() =>
@@ -89,6 +88,7 @@ export default function SearchScreen() {
       {!Platform.isTV ? (
         <View style={{flex: 1}}>
           <GridView
+            style={{marginTop: 100}} // TODO: Maybe adapt for Android?
             columns={columns}
             shelfItem={searchResult}
             onEndReached={() => fetchMore().catch(console.warn)}
