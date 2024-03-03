@@ -1,19 +1,20 @@
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackNavigationProp} from "@react-navigation/native-stack";
 import _ from "lodash";
-import React, {useCallback, useLayoutEffect, useState} from "react";
+import React, {useCallback, useEffect, useLayoutEffect, useState} from "react";
 import {Platform, StyleSheet, View} from "react-native";
 import {RnNativeSearchBarView} from "rn-native-search-bar";
 
 import GridView from "../components/GridView";
-import SearchBar from "../components/search/SearchBar";
 import useGridColumnsPreferred from "../hooks/home/useGridColumnsPreferred";
 import useSearchScreen from "../hooks/useSearchScreen";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
 
 export default function SearchScreen() {
-  const {search, searchResult, fetchMore} = useSearchScreen();
+  const {search, searchResult, fetchMore, searchSuggestions} =
+    useSearchScreen();
   const [searchText, setSearchText] = useState("");
+  const [hints, setHints] = useState<string[]>([]);
 
   const columns = useGridColumnsPreferred();
 
@@ -46,6 +47,14 @@ export default function SearchScreen() {
   };
 
   console.log("Searchtext: ", searchText);
+  console.log("Hints: ", hints);
+
+  if (Platform.isTV) {
+    useEffect(() => {
+      console.log("Trigger Search Suggestions!");
+      searchSuggestions(searchText).then(setHints);
+    }, [searchText]);
+  }
 
   if (!Platform.isTV) {
     useLayoutEffect(() => {
@@ -71,11 +80,13 @@ export default function SearchScreen() {
         <RnNativeSearchBarView
           style={{width: "100%", height: "100%", backgroundColor: "#555555"}}
           placeholder={"Search"}
+          searchHints={hints}
           onSearchTextChanged={event => performSearch(event.nativeEvent.text)}
           onSearchButtonClicked={event => performSearch(event.nativeEvent.text)}
-          onSearchTextEditEndedEvent={() =>
-            console.log("SearchTextEdit Ended!")
-          }>
+          onSearchTextEditEndedEvent={event => {
+            console.log("SearchTextEdit Ended!");
+            performSearch(event.nativeEvent.text);
+          }}>
           <View style={{flex: 1}}>
             <GridView
               columns={columns}

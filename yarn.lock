@@ -8496,10 +8496,10 @@ ripemd160@^2.0.0, ripemd160@^2.0.1:
     hash-base "^3.0.0"
     inherits "^2.0.1"
 
-rn-native-search-bar@^1.0.0-beta.7:
-  version "1.0.0-beta.7"
-  resolved "https://registry.yarnpkg.com/rn-native-search-bar/-/rn-native-search-bar-1.0.0-beta.7.tgz#59b12a3936b728fe029f150eeeae6ff76d63e6b2"
-  integrity sha512-AlyewGroJzEGtKbmIweuq+quWaFfb95OAsGIbaW4nNVktvgTkme8BaCFXKJVtRCy+8F5YvWfDYXQZK0rtMqQjQ==
+rn-native-search-bar@^1.0.0-beta.9:
+  version "1.0.0-beta.9"
+  resolved "https://registry.yarnpkg.com/rn-native-search-bar/-/rn-native-search-bar-1.0.0-beta.9.tgz#445778827f16b6b4de8757b0d7d403f121881078"
+  integrity sha512-zAArvYUjw5duC7arNWBKbh3YvwQEu6dGcmm75zihJTJlaQ/nTrcV/ttwFs6QFOqntS4VPY7oZZQGu7RB9+3dXg==
 
 run-parallel@^1.1.9:
   version "1.2.0"
