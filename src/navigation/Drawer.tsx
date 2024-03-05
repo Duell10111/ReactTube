@@ -1,13 +1,17 @@
+import {useNavigation} from "@react-navigation/native";
+import {Icon} from "@rneui/base";
 import React, {forwardRef, useCallback, useEffect, useState} from "react";
-import {StyleSheet, Text, TouchableOpacity} from "react-native";
+import {StyleSheet, TouchableOpacity, View} from "react-native";
 import Animated, {
+  FadeIn,
+  FadeOut,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import {useAppStyle} from "../context/AppStyleContext";
-import {useNavigation} from "@react-navigation/native";
+
 import {NativeStackProp} from "./types";
+import {useAppStyle} from "../context/AppStyleContext";
 
 interface Props {
   open: boolean;
@@ -50,37 +54,52 @@ export default function Drawer({open, onOpen, onClose}: Props) {
         onFocus={() => onOpen()}
         start
         onPress={navigationWrapper(() => navigation.navigate("HomeFeed"))}
+        open={open}
+        iconTitle={"home"}
       />
       <DrawerItem
         title={"Search"}
         onFocus={() => onOpen()}
         onPress={() => navigation.navigate("Search")}
+        open={open}
+        iconTitle={"search"}
       />
       <DrawerItem
         title={"Login"}
         onFocus={() => onOpen()}
         onPress={() => navigation.navigate("LoginScreen")}
+        open={open}
+        iconTitle={"login"}
       />
       <DrawerItem
         title={"Subscriptions"}
         onFocus={() => onOpen()}
         onPress={() => navigation.navigate("SubscriptionScreen")}
+        open={open}
+        iconTitle={"subscriptions"}
       />
       <DrawerItem
         title={"History"}
         onFocus={() => onOpen()}
         onPress={() => navigation.navigate("HistoryScreen")}
+        open={open}
+        iconTitle={"history"}
       />
       <DrawerItem
         title={"Library"}
         onFocus={() => onOpen()}
         onPress={() => navigation.navigate("LibraryScreen")}
+        open={open}
+        iconTitle={"library"}
+        iconType={"ionicon"}
       />
       <DrawerItem
         bottom
         title={"Settings"}
         onFocus={() => onOpen()}
         onPress={() => navigation.navigate("SettingsScreen")}
+        open={open}
+        iconTitle={"settings"}
       />
     </Animated.View>
   );
@@ -89,7 +108,7 @@ export default function Drawer({open, onOpen, onClose}: Props) {
 const styles = StyleSheet.create({
   container: {
     justifyContent: "center",
-    alignItems: "center",
+    paddingStart: 40,
     backgroundColor: "#333333",
   },
 });
@@ -101,12 +120,25 @@ interface ItemProps {
   onPress?: () => void;
   start?: boolean;
   bottom?: boolean;
+  iconTitle?: string;
+  iconType?: string;
+  open: boolean;
 }
 
 const DrawerItem = forwardRef<TouchableOpacity, ItemProps>(
-  ({title, onFocus, onBlur, onPress, start, bottom}, ref) => {
+  (
+    {title, onFocus, onBlur, onPress, start, bottom, iconTitle, iconType, open},
+    ref,
+  ) => {
     const {style} = useAppStyle();
     const [focus, setFocus] = useState(false);
+
+    const textStyle = useAnimatedStyle(() => {
+      return {
+        opacity: withTiming(open ? 1 : 0),
+      };
+    });
+
     return (
       <TouchableOpacity
         style={[
@@ -124,13 +156,20 @@ const DrawerItem = forwardRef<TouchableOpacity, ItemProps>(
           setFocus(false);
           onBlur?.();
         }}>
-        <Text
-          style={[
-            itemStyles.text,
-            {color: style.textColor, opacity: focus ? 0.5 : 1},
-          ]}>
-          {title}
-        </Text>
+        <View style={itemStyles.viewContainer}>
+          {iconTitle ? (
+            <Icon name={iconTitle} type={iconType} color={"white"} size={30} />
+          ) : null}
+          {open ? (
+            <Animated.Text
+              entering={FadeIn}
+              exiting={FadeOut}
+              numberOfLines={1}
+              style={[itemStyles.text, {color: style.textColor}, textStyle]}>
+              {title}
+            </Animated.Text>
+          ) : null}
+        </View>
       </TouchableOpacity>
     );
   },
@@ -141,7 +180,12 @@ const itemStyles = StyleSheet.create({
     padding: 20,
     flex: 0,
   },
+  viewContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   text: {
     fontSize: 15,
+    paddingStart: 15,
   },
 });
