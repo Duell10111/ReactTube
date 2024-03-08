@@ -1,8 +1,9 @@
-import {YT, YTNodes} from "../utils/Youtube";
-import {YTChannel, YTChapter, YTVideoInfo} from "./Types";
-import {getThumbnail} from "./Misc";
 import _ from "lodash";
+
 import {getVideoData} from "./ElementData";
+import {getThumbnail} from "./Misc";
+import {YTChannel, YTChapter, YTVideoInfo} from "./Types";
+import {YT, YTNodes} from "../utils/Youtube";
 
 export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
   const thumbnail = videoInfo.basic_info.thumbnail
@@ -13,6 +14,8 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
 
   const chapters = extractChaptersFromVideoInfo(videoInfo);
 
+  // TODO: Check?
+  // @ts-ignore
   return {
     originalData: videoInfo,
     id: videoInfo.basic_info.id,
@@ -25,7 +28,7 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
       videoInfo.primary_info?.short_view_count.text ??
       videoInfo.primary_info?.view_count.text,
     publishDate: videoInfo.primary_info?.relative_date.text,
-    chapters: chapters,
+    chapters,
     channel_id:
       videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
     channel: videoInfo.basic_info.channel,
@@ -52,7 +55,7 @@ function parseVideoInfoPlaylist(videoInfo: YT.VideoInfo) {
       current_index: videoInfo.playlist.current_index,
       is_infinite: videoInfo.playlist.is_infinite,
       // author: videoInfo.playlist.author,
-      content: content,
+      content,
     } as YTVideoInfo["playlist"];
   }
 }

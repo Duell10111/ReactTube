@@ -1,14 +1,15 @@
 // React-Native Platform Support
-import {ReadableStream} from "web-streams-polyfill";
-import {ICache} from "youtubei.js/dist/src/types/Cache.js";
-import {Platform} from "youtubei.js/dist/src/utils/Utils.js";
 import crypto from "crypto-browserify";
-import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
-import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
-import evaluate from "./jinterMetro";
-import uuid from "react-native-uuid";
-
 import RNFS from "react-native-fs";
+import uuid from "react-native-uuid";
+import {ReadableStream} from "web-streams-polyfill";
+import Innertube from "youtubei.js/dist/src/platform/lib";
+import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
+import {ICache} from "youtubei.js/dist/src/types/Cache.js";
+import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
+import {Platform} from "youtubei.js/dist/src/utils/Utils.js";
+
+import evaluate from "./jinterMetro";
 
 // const meta_url = import.meta.url;
 // const is_cjs = !meta_url;
@@ -104,7 +105,7 @@ Platform.load({
     repo_url: "",
   },
   server: true,
-  Cache: Cache,
+  Cache,
   sha1Hash: async (data: string) => {
     return crypto.createHash("sha1").update(data).digest("hex");
   },
@@ -118,10 +119,10 @@ Platform.load({
   Headers: Headers as unknown as typeof globalThis.Headers,
   FormData: FormData as unknown as typeof globalThis.FormData,
   File: {} as unknown as typeof globalThis.File,
-  ReadableStream: ReadableStream,
-  CustomEvent: CustomEvent,
+  ReadableStream,
+  // @ts-ignore
+  CustomEvent,
 });
 
 export * from "youtubei.js/dist/src/platform/lib";
-import Innertube from "youtubei.js/dist/src/platform/lib";
 export default Innertube;

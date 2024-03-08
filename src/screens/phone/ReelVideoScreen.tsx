@@ -1,19 +1,10 @@
 // TODO: Add Reel Video Screen
 
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import {useNavigation} from "@react-navigation/native";
 import {
   NativeStackNavigationProp,
   NativeStackScreenProps,
 } from "@react-navigation/native-stack";
-import {RootStackParamList} from "../../navigation/RootStackNavigator";
-import Carousel from "react-native-reanimated-carousel";
-import useVideoDetails from "../../hooks/useVideoDetails";
 import React, {
   createContext,
   useContext,
@@ -21,16 +12,27 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import {YTNodes} from "youtubei.js";
-import VideoComponent from "../../components/VideoComponent";
-import ErrorComponent from "../../components/general/ErrorComponent";
-import {useNavigation} from "@react-navigation/native";
-import ChannelIcon from "../../components/video/ChannelIcon";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import Animated, {runOnJS} from "react-native-reanimated";
-import {useReelPlaylist} from "../../hooks/video/useReelPlaylist";
+import Carousel from "react-native-reanimated-carousel";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {ResizeMode} from "react-native-video";
+import {YTNodes} from "youtubei.js";
+
+import VideoComponent from "../../components/VideoComponent";
+import ErrorComponent from "../../components/general/ErrorComponent";
+import ChannelIcon from "../../components/video/ChannelIcon";
 import PlayPauseAnimation from "../../components/video/phone/PlayPauseAnimation";
+import useVideoDetails from "../../hooks/useVideoDetails";
+import {useReelPlaylist} from "../../hooks/video/useReelPlaylist";
+import {RootStackParamList} from "../../navigation/RootStackNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 type NProp = NativeStackNavigationProp<RootStackParamList, "VideoScreen">;
@@ -174,8 +176,8 @@ function VideoItem({videoId, index}: ItemProps) {
           fullscreen={false}
           paused={paused || selected !== index}
           controls={false}
-          repeat={true}
-          resizeMode={"cover"}
+          repeat
+          resizeMode={ResizeMode.COVER}
         />
         <PlayPauseAnimation
           playing={!paused}

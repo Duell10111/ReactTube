@@ -1,6 +1,3 @@
-import {useCallback, useEffect, useState} from "react";
-import {Feed} from "youtubei.js";
-
 import {useFeedData} from "./general/useFeedData";
 import {useYoutubeContext} from "../context/YoutubeContext";
 import Logger from "../utils/Logger";
