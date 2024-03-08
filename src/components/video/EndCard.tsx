@@ -111,7 +111,7 @@ export default function EndCard({
                 />
               </>
             ) : null}
-            <Text style={styles.bottomText}>Related Videos</Text>
+            <Text style={styles.bottomText}>{"Related Videos"}</Text>
             <HorizontalVideoList
               nodes={watchNextList}
               textStyle={styles.text}

@@ -41,19 +41,19 @@ export default function RootStackNavigator() {
     <Stack.Navigator screenOptions={Platform.isTV ? {headerShown: false} : {}}>
       {!init ? (
         <Stack.Screen
-          name="LoadingScreen"
+          name={"LoadingScreen"}
           component={LoadingScreen}
           options={{headerShown: false}}
         />
       ) : (
         <>
           <Stack.Screen
-            name="Home"
+            name={"Home"}
             component={HomeWrapperScreen}
             options={!Platform.isTV ? {headerShown: false} : undefined}
           />
           <Stack.Screen
-            name="VideoScreen"
+            name={"VideoScreen"}
             component={Platform.isTV ? VideoScreen : VideoScreenWrapper}
             options={{title: "Video"}}
           />

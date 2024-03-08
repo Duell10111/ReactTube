@@ -40,11 +40,11 @@ export default function SettingsScreen({}: Props) {
 
   return (
     <View style={styles.containerStyle}>
-      <Text>Settings</Text>
+      <Text>{"Settings"}</Text>
       <CheckBox
         style={styles.checkBoxStyle}
         center
-        title="VLC"
+        title={"VLC"}
         checked={appSettings.vlcEnabled ?? false}
         onPress={() => {
           console.log("Press");
@@ -55,7 +55,7 @@ export default function SettingsScreen({}: Props) {
       <CheckBox
         style={styles.checkBoxStyle}
         center
-        title="HLS Enabled (if available)"
+        title={"HLS Enabled (if available)"}
         checked={appSettings.hlsEnabled ?? true}
         onPress={() => {
           updateSettings({hlsEnabled: !(appSettings.hlsEnabled ?? true)});
@@ -65,7 +65,7 @@ export default function SettingsScreen({}: Props) {
       <CheckBox
         style={styles.checkBoxStyle}
         center
-        title="Local HLS Enabled"
+        title={"Local HLS Enabled"}
         checked={appSettings.localHlsEnabled ?? false}
         onPress={() => {
           updateSettings({

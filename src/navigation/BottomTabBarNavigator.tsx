@@ -32,7 +32,7 @@ export default function BottomTabBarNavigator() {
             iconName = focused ? "list" : "list-outline";
           } else if (route.name === "Subscriptions") {
             return (
-              <MaterialIcons name="subscriptions" size={size} color={color} />
+              <MaterialIcons name={"subscriptions"} size={size} color={color} />
             );
           } else if (route.name === "Library") {
             iconName = "library-outline";
@@ -46,18 +46,18 @@ export default function BottomTabBarNavigator() {
         tabBarInactiveTintColor: "gray",
       })}>
       <Tab.Screen
-        name="HomeFeed"
+        name={"HomeFeed"}
         component={HomeScreen}
         options={{title: "Home"}}
       />
       {loginData.accounts.length > 0 ? (
         <>
-          <Tab.Screen name="Subscriptions" component={SubscriptionScreen} />
-          <Tab.Screen name="Library" component={LibraryScreen} />
+          <Tab.Screen name={"Subscriptions"} component={SubscriptionScreen} />
+          <Tab.Screen name={"Library"} component={LibraryScreen} />
         </>
       ) : null}
       <Tab.Screen
-        name="Settings"
+        name={"Settings"}
         // @ts-ignore
         component={SettingsScreen}
       />

@@ -8,7 +8,7 @@ export default function SubscriptionScreen() {
 
   return (
     <View>
-      <Text>Subscription</Text>
+      <Text>{"Subscription"}</Text>
       <GridView
         shelfItem={content}
         onEndReached={() => fetchMore().catch(console.warn)}

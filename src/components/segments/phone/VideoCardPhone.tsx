@@ -68,7 +68,7 @@ export default function VideoCardPhone({
           {data.livestream ? (
             <View style={styles.liveContainer}>
               <Icon name={"record"} type={"material-community"} color={"red"} />
-              <Text style={styles.liveStyle}>Live</Text>
+              <Text style={styles.liveStyle}>{"Live"}</Text>
             </View>
           ) : null}
           {data.mix ? (

@@ -8,7 +8,7 @@ export default function HistoryScreen() {
 
   return (
     <View>
-      <Text>History</Text>
+      <Text>{"History"}</Text>
       <GridView
         shelfItem={content}
         onEndReached={() => fetchMore().catch(console.warn)}

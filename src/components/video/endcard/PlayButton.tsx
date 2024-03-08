@@ -27,7 +27,7 @@ const PlayButton = forwardRef<TouchableOpacity, Props>(
         hasTVPreferredFocus
         {...props}>
         <View style={styles.container}>
-          <Icon name="play" type="font-awesome-5" size={20} />
+          <Icon name={"play"} type={"font-awesome-5"} size={20} />
         </View>
       </TouchableField>
     );

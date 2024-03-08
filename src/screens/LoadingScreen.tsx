@@ -10,7 +10,7 @@ export default function LoadingScreen() {
         source={require("../../assets/icon-512-maskable.png")}
       />
       <Text style={[styles.text, Platform.isTV ? styles.textTV : undefined]}>
-        ReactTube
+        {"ReactTube"}
       </Text>
     </View>
   );

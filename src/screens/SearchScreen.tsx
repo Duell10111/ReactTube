@@ -50,6 +50,7 @@ export default function SearchScreen() {
   console.log("Hints: ", hints);
 
   if (Platform.isTV) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       console.log("Trigger Search Suggestions!");
       searchSuggestions(searchText).then(setHints);
@@ -57,6 +58,7 @@ export default function SearchScreen() {
   }
 
   if (!Platform.isTV) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     useLayoutEffect(() => {
       navigation.setOptions({
         headerSearchBarOptions: {

@@ -27,14 +27,14 @@ export default function Channel({channel}: Props) {
       _.compact([
         {
           element: ({isSelected}: {isSelected?: boolean}) => (
-            <ChannelBtnText isSelected={isSelected}>Home</ChannelBtnText>
+            <ChannelBtnText isSelected={isSelected}>{"Home"}</ChannelBtnText>
           ),
           key: "Home" as ChannelContentTypes,
         },
         channel.has_videos
           ? {
               element: ({isSelected}: {isSelected?: boolean}) => (
-                <ChannelBtnText isSelected={isSelected}>Videos</ChannelBtnText>
+                <ChannelBtnText isSelected={isSelected}>{"Videos"}</ChannelBtnText>
               ),
               key: "Videos" as ChannelContentTypes,
             }
@@ -42,7 +42,7 @@ export default function Channel({channel}: Props) {
         channel.has_shorts
           ? {
               element: ({isSelected}: {isSelected?: boolean}) => (
-                <ChannelBtnText isSelected={isSelected}>Reels</ChannelBtnText>
+                <ChannelBtnText isSelected={isSelected}>{"Reels"}</ChannelBtnText>
               ),
               key: "Reels" as ChannelContentTypes,
             }
@@ -51,7 +51,7 @@ export default function Channel({channel}: Props) {
           ? {
               element: ({isSelected}: {isSelected?: boolean}) => (
                 <ChannelBtnText isSelected={isSelected}>
-                  Playlists
+                  {"Playlists"}
                 </ChannelBtnText>
               ),
               key: "Playlists" as ChannelContentTypes,
@@ -119,7 +119,7 @@ function ChannelRow({channel, type}: RowProps) {
 
   return (
     <View>
-      <Text>Unsupported Channel Type</Text>
+      <Text>{"Unsupported Channel Type"}</Text>
     </View>
   );
 }
