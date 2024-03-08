@@ -1,7 +1,12 @@
 import {useNavigation} from "@react-navigation/native";
 import {Icon} from "@rneui/base";
 import React, {forwardRef, useCallback, useEffect, useState} from "react";
-import {StyleSheet, TouchableOpacity, View} from "react-native";
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  TVFocusGuideView,
+} from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -48,60 +53,62 @@ export default function Drawer({open, onOpen, onClose}: Props) {
   );
 
   return (
-    <Animated.View style={[styles.container, style]}>
-      <DrawerItem
-        title={"Home"}
-        onFocus={() => onOpen()}
-        start
-        onPress={navigationWrapper(() => navigation.navigate("HomeFeed"))}
-        open={open}
-        iconTitle={"home"}
-      />
-      <DrawerItem
-        title={"Search"}
-        onFocus={() => onOpen()}
-        onPress={() => navigation.navigate("Search")}
-        open={open}
-        iconTitle={"search"}
-      />
-      <DrawerItem
-        title={"Login"}
-        onFocus={() => onOpen()}
-        onPress={() => navigation.navigate("LoginScreen")}
-        open={open}
-        iconTitle={"login"}
-      />
-      <DrawerItem
-        title={"Subscriptions"}
-        onFocus={() => onOpen()}
-        onPress={() => navigation.navigate("SubscriptionScreen")}
-        open={open}
-        iconTitle={"subscriptions"}
-      />
-      <DrawerItem
-        title={"History"}
-        onFocus={() => onOpen()}
-        onPress={() => navigation.navigate("HistoryScreen")}
-        open={open}
-        iconTitle={"history"}
-      />
-      <DrawerItem
-        title={"Library"}
-        onFocus={() => onOpen()}
-        onPress={() => navigation.navigate("LibraryScreen")}
-        open={open}
-        iconTitle={"library"}
-        iconType={"ionicon"}
-      />
-      <DrawerItem
-        bottom
-        title={"Settings"}
-        onFocus={() => onOpen()}
-        onPress={() => navigation.navigate("SettingsScreen")}
-        open={open}
-        iconTitle={"settings"}
-      />
-    </Animated.View>
+    <TVFocusGuideView autoFocus>
+      <Animated.View style={[styles.container, style]}>
+        <DrawerItem
+          title={"Home"}
+          onFocus={() => onOpen()}
+          start
+          onPress={navigationWrapper(() => navigation.navigate("HomeFeed"))}
+          open={open}
+          iconTitle={"home"}
+        />
+        <DrawerItem
+          title={"Search"}
+          onFocus={() => onOpen()}
+          onPress={() => navigation.navigate("Search")}
+          open={open}
+          iconTitle={"search"}
+        />
+        <DrawerItem
+          title={"Login"}
+          onFocus={() => onOpen()}
+          onPress={() => navigation.navigate("LoginScreen")}
+          open={open}
+          iconTitle={"login"}
+        />
+        <DrawerItem
+          title={"Subscriptions"}
+          onFocus={() => onOpen()}
+          onPress={() => navigation.navigate("SubscriptionScreen")}
+          open={open}
+          iconTitle={"subscriptions"}
+        />
+        <DrawerItem
+          title={"History"}
+          onFocus={() => onOpen()}
+          onPress={() => navigation.navigate("HistoryScreen")}
+          open={open}
+          iconTitle={"history"}
+        />
+        <DrawerItem
+          title={"Library"}
+          onFocus={() => onOpen()}
+          onPress={() => navigation.navigate("LibraryScreen")}
+          open={open}
+          iconTitle={"library"}
+          iconType={"ionicon"}
+        />
+        <DrawerItem
+          bottom
+          title={"Settings"}
+          onFocus={() => onOpen()}
+          onPress={() => navigation.navigate("SettingsScreen")}
+          open={open}
+          iconTitle={"settings"}
+        />
+      </Animated.View>
+    </TVFocusGuideView>
   );
 }
 
