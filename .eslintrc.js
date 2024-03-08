@@ -1,6 +1,6 @@
 module.exports = {
   root: true,
-  extends: '@react-native',
+  extends: "universe/native",
   parser: "@typescript-eslint/parser",
   plugins: ["@typescript-eslint"],
   overrides: [
@@ -10,6 +10,7 @@ module.exports = {
         "@typescript-eslint/no-shadow": ["error"],
         "no-shadow": "off",
         "no-undef": "off",
+        "react/jsx-curly-brace-presence": ["error", "always"],
       },
     },
     {

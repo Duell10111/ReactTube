@@ -51,7 +51,7 @@ export default function PlaylistCardTV({
         </View>
         {videoCount ? (
           <View style={styles.countContainer}>
-            <Text style={styles.countStyle}>{videoCount} Videos</Text>
+            <Text style={styles.countStyle}>{videoCount}{" Videos"}</Text>
           </View>
         ) : null}
       </VideoTouchable>

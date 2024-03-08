@@ -1,5 +1,5 @@
-import React, {useMemo, useState} from "react";
-import Video, {VideoProperties} from "react-native-video";
+import {useIsFocused} from "@react-navigation/native";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -7,9 +7,10 @@ import {
   StyleSheet,
   ViewStyle,
 } from "react-native";
-import Logger from "../utils/Logger";
-import {useIsFocused} from "@react-navigation/native";
+import Video, {ResizeMode, VideoRef} from "react-native-video";
+
 import {YTChapter, YTVideoInfo} from "../extraction/Types";
+import Logger from "../utils/Logger";
 
 const LOGGER = Logger.extend("VIDEO");
 
@@ -29,7 +30,7 @@ interface Props {
   paused?: boolean;
   controls?: boolean;
   repeat?: boolean;
-  resizeMode?: VideoProperties["resizeMode"];
+  resizeMode?: ResizeMode;
 }
 
 export default function VideoComponent({
@@ -44,13 +45,21 @@ export default function VideoComponent({
   resizeMode,
   ...callbacks
 }: Props) {
-  // const player = useRef<Video>();
+  const playerRef = useRef<VideoRef>();
   const isFocused = useIsFocused();
   const [failbackURL, setFailbackUrl] = useState(false);
 
   const parsedChapters = useMemo(() => {
     return videoInfo?.chapters?.map(mapChapters) ?? [];
   }, [videoInfo?.chapters]);
+
+  useEffect(() => {
+    if (fullscreen) {
+      playerRef.current.presentFullscreenPlayer();
+    } else {
+      playerRef.current.dismissFullscreenPlayer();
+    }
+  }, [fullscreen]);
 
   // As changing url causes duplicate errors
   if (failbackURL) {
@@ -68,6 +77,7 @@ export default function VideoComponent({
     <>
       <ActivityIndicator style={styles.activityIndicator} size={"large"} />
       <Video
+        ref={playerRef}
         source={{
           // uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
           // uri: "https://sample.vodobox.net/skate_phantom_flex_4k/skate_phantom_flex_4k.m3u8",
@@ -89,10 +99,10 @@ export default function VideoComponent({
         paused={paused !== undefined ? paused : !isFocused}
         fullscreen={fullscreen ?? true}
         repeat={repeat}
-        resizeMode={resizeMode ?? "contain"}
+        resizeMode={resizeMode ?? ResizeMode.CONTAIN}
         chapters={parsedChapters}
         playInBackground={Platform.isTV ? undefined : true}
-        pictureInPicture={true}
+        pictureInPicture
         // @ts-ignore type error?
         ignoreSilentSwitch={"ignore"}
         // Event listener

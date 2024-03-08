@@ -1,12 +1,6 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * Generated with the TypeScript template
- * https://github.com/react-native-community/react-native-template-typescript
- *
- * @format
- */
+import "react-native-url-polyfill/auto";
+import "event-target-polyfill";
+import "fast-text-encoding";
 
 import React from "react";
 import {StatusBar, useColorScheme} from "react-native";

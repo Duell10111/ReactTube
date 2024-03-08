@@ -1,9 +1,10 @@
-import {useYoutubeContext} from "../context/YoutubeContext";
-import {useCallback, useEffect, useReducer, useState} from "react";
-import {YT} from "../utils/Youtube";
-import {Helpers} from "youtubei.js";
-import Logger from "../utils/Logger";
 import _ from "lodash";
+import {useCallback, useEffect, useReducer, useState} from "react";
+import {Helpers} from "youtubei.js";
+
+import {useYoutubeContext} from "../context/YoutubeContext";
+import Logger from "../utils/Logger";
+import {YT} from "../utils/Youtube";
 
 const LOGGER = Logger.extend("SEARCH");
 
@@ -26,6 +27,11 @@ export default function useSearchScreen() {
   const search = useCallback(
     async (query: string) => {
       if (!innerTube) {
+        return;
+      }
+      // Clear results on empty query
+      if (query.length == 0) {
+        dispatch(undefined);
         return;
       }
       const result = await innerTube.search(query);
@@ -59,6 +65,9 @@ export default function useSearchScreen() {
   const searchSuggestions = useCallback(
     async (query: string) => {
       if (!innerTube) {
+        return [];
+      }
+      if (query.length == 0) {
         return [];
       }
       return await innerTube.getSearchSuggestions(query);

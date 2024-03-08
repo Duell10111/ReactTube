@@ -1,7 +1,8 @@
-import {useYoutubeContext} from "../context/YoutubeContext";
 import {useCallback, useEffect, useState} from "react";
 import {Feed} from "youtubei.js";
+
 import {useFeedData} from "./general/useFeedData";
+import {useYoutubeContext} from "../context/YoutubeContext";
 import Logger from "../utils/Logger";
 
 const LOGGER = Logger.extend("SUBS");
@@ -17,8 +18,8 @@ export default function useSubscriptions() {
   //     })
   //     .catch(console.warn);
   // }, []);
-  const {content, contentFetched, fetchMore, setFeed, feed} = useFeedData(
-    youtube => youtube.getSubscriptionsFeed(),
+  const {content, contentFetched, fetchMore, setFeed, feed} = useFeedData(y =>
+    y.getSubscriptionsFeed(),
   );
 
   // useEffect(() => {

@@ -1,9 +1,10 @@
-import {useYoutubeContext} from "../context/YoutubeContext";
 import {useCallback, useEffect, useMemo, useState} from "react";
-import {YT, YTNodes} from "../utils/Youtube";
-import Logger from "../utils/Logger";
+
 import {useAppData} from "../context/AppDataContext";
+import {useYoutubeContext} from "../context/YoutubeContext";
 import {getElementDataFromVideoInfo} from "../extraction/YTElements";
+import Logger from "../utils/Logger";
+import {YT, YTNodes} from "../utils/Youtube";
 
 const LOGGER = Logger.extend("VIDEO");
 
@@ -62,6 +63,29 @@ export default function useVideoDetails(
       Video.getWatchNextContinuation().then(setVideo).catch(LOGGER.warn);
     }
   }, [Video]);
+
+  // Trigger refresh if streaming data expired
+  const targetTimestamp = Video?.streaming_data.expires?.getDate?.();
+  useEffect(() => {
+    if (!targetTimestamp) {
+      return;
+    }
+    // Berechnen Sie, wie lange gewartet werden muss, bis der Effekt ausgelöst wird
+    const now = Date.now();
+    const delay = targetTimestamp - now;
+
+    if (delay > 0) {
+      // Setzen Sie einen Timer, um den Effekt nach der berechneten Verzögerung auszulösen
+      const timer = setTimeout(() => {
+        // Refresh Video Data
+        fetchVideoData();
+        LOGGER.info("Refresh expired streaming data!");
+      }, delay);
+
+      // Bereinigungsfunktion, um den Timer zu löschen
+      return () => clearTimeout(timer);
+    }
+  }, [targetTimestamp]);
 
   // Actions:
 

@@ -37,7 +37,7 @@ export default function LoginScreen() {
       ) : (
         <View style={styles.loginContainer}>
           <Text style={[styles.codeText, {color: style.textColor}]}>
-            Please init login first
+            {"Please init login first"}
           </Text>
         </View>
       )}

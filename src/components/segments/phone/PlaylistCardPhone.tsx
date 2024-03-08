@@ -53,7 +53,7 @@ export default function PlaylistCardPhone({
           </View>
           {data.videoCount ? (
             <View style={styles.countContainer}>
-              <Text style={styles.countStyle}>{data.videoCount} Videos</Text>
+              <Text style={styles.countStyle}>{data.videoCount}{" Videos"}</Text>
             </View>
           ) : null}
         </View>
