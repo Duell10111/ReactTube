@@ -8,6 +8,7 @@ type Props = {
   onLongPress?: () => void;
   onPress?: () => void;
   onFocus?: () => void;
+  onBlur?: () => void;
   children: React.ReactNode;
 };
 
@@ -15,6 +16,7 @@ export default function VideoTouchable({
   onLongPress,
   onPress,
   onFocus,
+  onBlur,
   children,
   style,
 }: Props) {
@@ -37,7 +39,10 @@ export default function VideoTouchable({
         setFocus(true);
         onFocus?.();
       }}
-      onBlur={() => setFocus(false)}
+      onBlur={() => {
+        setFocus(false);
+        onBlur?.();
+      }}
       onPressIn={() => console.log("PressIn")}
       onPressOut={() => console.log("PressOut")}
       style={[style, {opacity: focus ? 0.5 : 1}]}>
