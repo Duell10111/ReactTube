@@ -1,15 +1,17 @@
+import {useFocusEffect, useNavigation} from "@react-navigation/native";
+import {Icon} from "@rneui/base";
 import React, {useEffect, useState} from "react";
 import {Platform, TVEventControl} from "react-native";
-import useHomeScreen from "../hooks/useHomeScreen";
-import Logger from "../utils/Logger";
-import LoadingComponent from "../components/general/LoadingComponent";
-import {useDrawerContext} from "../navigation/DrawerContext";
-import GridView from "../components/GridView";
-import {useFocusEffect, useNavigation} from "@react-navigation/native";
-import {OrientationLocker} from "react-native-orientation-locker";
-import {Icon} from "@rneui/base";
 import DeviceInfo from "react-native-device-info";
+import {OrientationLocker} from "react-native-orientation-locker";
+
+import GridView from "../components/GridView";
+import LoadingComponent from "../components/general/LoadingComponent";
 import useGridColumnsPreferred from "../hooks/home/useGridColumnsPreferred";
+import useHomeScreen from "../hooks/useHomeScreen";
+import {useDrawerContext} from "../navigation/DrawerContext";
+import {RootNavProp} from "../navigation/RootStackNavigator";
+import Logger from "../utils/Logger";
 
 const LOGGER = Logger.extend("HOME");
 
@@ -19,7 +21,7 @@ export default function HomeScreen() {
 
   const {onScreenFocused} = useDrawerContext();
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<RootNavProp>();
 
   useFocusEffect(() => {
     if (Math.abs(Date.now() - fetchDate) > 43200000) {

@@ -1,9 +1,9 @@
 // React-Native Platform Support
+/* eslint-disable object-shorthand */
 import crypto from "crypto-browserify";
 import RNFS from "react-native-fs";
 import uuid from "react-native-uuid";
 import {ReadableStream} from "web-streams-polyfill";
-import Innertube from "youtubei.js/dist/src/platform/lib";
 import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
 import {ICache} from "youtubei.js/dist/src/types/Cache.js";
 import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
@@ -105,7 +105,7 @@ Platform.load({
     repo_url: "",
   },
   server: true,
-  Cache,
+  Cache: Cache,
   sha1Hash: async (data: string) => {
     return crypto.createHash("sha1").update(data).digest("hex");
   },
@@ -119,10 +119,12 @@ Platform.load({
   Headers: Headers as unknown as typeof globalThis.Headers,
   FormData: FormData as unknown as typeof globalThis.FormData,
   File: {} as unknown as typeof globalThis.File,
-  ReadableStream,
+  ReadableStream: ReadableStream,
   // @ts-ignore
-  CustomEvent,
+  CustomEvent: CustomEvent,
 });
 
 export * from "youtubei.js/dist/src/platform/lib";
+// eslint-disable-next-line import/order
+import Innertube from "youtubei.js/dist/src/platform/lib";
 export default Innertube;
