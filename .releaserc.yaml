@@ -1,6 +1,5 @@
 branches:
-  - name: main
-    prerelease: true # Currently only release beta releases
+  - main
   - next
   - tests
   - name: beta
@@ -9,8 +8,64 @@ branches:
     prerelease: true
 
 plugins:
-  - "@semantic-release/commit-analyzer"
-  - '@semantic-release/release-notes-generator'
+  - - "@semantic-release/commit-analyzer"
+    - releaseRules:
+        - type: build
+          release: patch
+        - type: ci
+          release: patch
+        - type: chore
+          release: patch
+        - type: docs
+          release: patch
+        - type: refactor
+          release: patch
+        - type: style
+          release: patch
+        - type: test
+          release: patch
+        - type: feat
+          release: minor
+        - type: fix
+          release: patch
+        - type: perf
+          release: patch
+        - type: breaking
+          release: major
+  - - '@semantic-release/release-notes-generator'
+    - preset: "conventionalcommits"
+      presetConfig:
+        types:
+          - type: breaking
+            section: ":exclamation: BREAKING"
+            hidden: false
+          - type: feat
+            section: ":sparkles: Features"
+            hidden: false
+          - type: fix
+            section: ":bug: Fixes"
+            hidden: false
+          - type: docs
+            section: ":memo: Documentation"
+            hidden: false
+          - type: ci
+            section: ":repeat: CI"
+            hidden: false
+          - type: style
+            section: ":barber: Style"
+            hidden: false
+          - type: refactor
+            section: ":zap: Refactor"
+            hidden: false
+          - type: perf
+            section: ":fast_forward: Performance"
+            hidden: false
+          - type: test
+            section: ":white_check_mark: Testes"
+            hidden: false
+          - type: chore
+            section: "Minor changes"
+            hidden: false
   - '@semantic-release/npm'
   - - '@semantic-release/changelog'
     - changelogFile: "CHANGELOG.md"
@@ -20,5 +75,3 @@ plugins:
   - '@semantic-release/github'
 
 npmPublish: false
-
-preset: 'angular'

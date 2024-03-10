@@ -23,7 +23,7 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Add Semantic Release Dependencies
-        run: npm install -g @semantic-release/changelog @semantic-release/git semantic-release
+        run: npm install -g @semantic-release/changelog @semantic-release/git conventional-changelog-conventionalcommits semantic-release
 
       - name: Semantic Release (Versioning)
         run: semantic-release --dry-run
@@ -42,7 +42,7 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Add Semantic Release Dependencies
-        run: npm install -g @semantic-release/changelog @semantic-release/git semantic-release
+        run: npm install -g @semantic-release/changelog @semantic-release/git conventional-changelog-conventionalcommits semantic-release
 
       - name: Publish to NPM
         run: semantic-release
