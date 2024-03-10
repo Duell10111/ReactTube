@@ -1,7 +1,8 @@
 branches:
   - main
   - next
-  - tests
+  - name: tests
+    prerelease: true
   - name: beta
     prerelease: true
   - name: alpha
