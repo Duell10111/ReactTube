@@ -2,6 +2,7 @@ branches:
   - name: main
     prerelease: true # Currently only release beta releases
   - next
+  - tests
   - name: beta
     prerelease: true
   - name: alpha
@@ -37,6 +38,5 @@ plugins:
   - '@semantic-release/github'
 
 npmPublish: false
-tarballDir: false
 
 preset: 'angular'
