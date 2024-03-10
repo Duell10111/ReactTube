@@ -1,16 +1,17 @@
 import React, {useCallback} from "react";
-import {FlatList, StyleProp, TextStyle} from "react-native";
-import {Helpers, YTNodes} from "../utils/Youtube";
+import {FlatList, StyleProp, TextStyle, ViewStyle} from "react-native";
+
+import ChannelSegment from "./ChannelSegment";
 import VideoSegment from "./VideoSegment";
+import {ElementData} from "../extraction/Types";
 import Logger from "../utils/Logger";
 import {keyExtractorItems} from "../utils/YTNodeKeyExtractor";
-import ChannelSegment from "./ChannelSegment";
-
-import {ElementData} from "../extraction/Types";
+import {Helpers, YTNodes} from "../utils/Youtube";
 
 const LOGGER = Logger.extend("SEGMENT");
 
 interface Props {
+  containerStyle?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   nodes: (Helpers.YTNode | ElementData)[];
   onEndReached?: () => void;
@@ -20,6 +21,7 @@ export default function HorizontalVideoList({
   nodes,
   textStyle,
   onEndReached,
+  containerStyle,
 }: Props) {
   const renderItem = useCallback(
     ({item}: {item: Helpers.YTNode | ElementData}) => {
@@ -60,6 +62,7 @@ export default function HorizontalVideoList({
 
   return (
     <FlatList
+      contentContainerStyle={containerStyle}
       horizontal
       data={nodes}
       renderItem={renderItem}

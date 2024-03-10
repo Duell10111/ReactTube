@@ -1,6 +1,5 @@
-import React from "react";
-import {useShelfVideoSelector} from "../../../context/ShelfVideoSelector";
-import {useAppStyle} from "../../../context/AppStyleContext";
+import {Icon} from "@rneui/base";
+import React, {useState} from "react";
 import {
   StyleProp,
   StyleSheet,
@@ -10,10 +9,12 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import VideoTouchable from "../../general/VideoTouchable";
 import FastImage from "react-native-fast-image";
-import {Icon} from "@rneui/base";
+
+import {useAppStyle} from "../../../context/AppStyleContext";
+import {useShelfVideoSelector} from "../../../context/ShelfVideoSelector";
 import {Author} from "../../../extraction/Types";
+import VideoTouchable from "../../general/VideoTouchable";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
@@ -40,6 +41,7 @@ export default function VideoCardTV({
   const {setSelectedVideo, onElementFocused} = useShelfVideoSelector();
   const {style: appStyle} = useAppStyle();
   const {width} = useWindowDimensions();
+  const [focus, setFocus] = useState(false);
 
   return (
     <View
@@ -49,10 +51,16 @@ export default function VideoCardTV({
         style,
       ]}>
       <VideoTouchable
-        // onFocus={() => console.log("Focus")}
-        style={styles.segmentContainer}
+        style={[
+          styles.segmentContainer,
+          focus ? {borderWidth: 2, borderColor: "white"} : {},
+        ]}
         onPress={onPress}
-        onFocus={onElementFocused}
+        onFocus={() => {
+          onElementFocused?.();
+          setFocus(true);
+        }}
+        onBlur={() => setFocus(false)}
         onLongPress={() => {
           setSelectedVideo(data.videoId);
         }}>

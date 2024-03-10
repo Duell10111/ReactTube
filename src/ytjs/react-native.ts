@@ -1,14 +1,15 @@
 // React-Native Platform Support
-import {ReadableStream} from "web-streams-polyfill";
-import {ICache} from "youtubei.js/dist/src/types/Cache.js";
-import {Platform} from "youtubei.js/dist/src/utils/Utils.js";
+/* eslint-disable object-shorthand */
 import crypto from "crypto-browserify";
-import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
-import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
-import evaluate from "./jinterMetro";
-import uuid from "react-native-uuid";
-
 import RNFS from "react-native-fs";
+import uuid from "react-native-uuid";
+import {ReadableStream} from "web-streams-polyfill";
+import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
+import {ICache} from "youtubei.js/dist/src/types/Cache.js";
+import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
+import {Platform} from "youtubei.js/dist/src/utils/Utils.js";
+
+import evaluate from "./jinterMetro";
 
 // const meta_url = import.meta.url;
 // const is_cjs = !meta_url;
@@ -119,9 +120,11 @@ Platform.load({
   FormData: FormData as unknown as typeof globalThis.FormData,
   File: {} as unknown as typeof globalThis.File,
   ReadableStream: ReadableStream,
+  // @ts-ignore
   CustomEvent: CustomEvent,
 });
 
 export * from "youtubei.js/dist/src/platform/lib";
+// eslint-disable-next-line import/order
 import Innertube from "youtubei.js/dist/src/platform/lib";
 export default Innertube;

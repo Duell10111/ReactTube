@@ -1,19 +1,23 @@
+import {
+  createNativeStackNavigator,
+  NativeStackNavigationProp,
+} from "@react-navigation/native-stack";
 import React from "react";
-import {createNativeStackNavigator} from "@react-navigation/native-stack";
-import VideoScreen from "../screens/VideoScreen";
 import {Platform} from "react-native";
-import SearchScreen from "../screens/SearchScreen";
-import HomeWrapperScreen from "../screens/HomeWrapperScreen";
-import ChannelScreen from "../screens/ChannelScreen";
-import PlaylistScreen from "../screens/PlaylistScreen";
-import SettingsScreen from "../screens/SettingsScreen";
-import LoginScreen from "../screens/LoginScreen";
-import SubscriptionScreen from "../screens/SubscriptionScreen";
-import HistoryScreen from "../screens/HistoryScreen";
-import {YTNodes} from "../utils/Youtube";
-import LoadingScreen from "../screens/LoadingScreen";
+
 import useAppInit from "../hooks/general/useAppInit";
+import ChannelScreen from "../screens/ChannelScreen";
+import HistoryScreen from "../screens/HistoryScreen";
+import HomeWrapperScreen from "../screens/HomeWrapperScreen";
+import LoadingScreen from "../screens/LoadingScreen";
+import LoginScreen from "../screens/LoginScreen";
+import PlaylistScreen from "../screens/PlaylistScreen";
+import SearchScreen from "../screens/SearchScreen";
+import SettingsScreen from "../screens/SettingsScreen";
+import SubscriptionScreen from "../screens/SubscriptionScreen";
+import VideoScreen from "../screens/VideoScreen";
 import VideoScreenWrapper from "../screens/phone/VideoScreenWrapper";
+import {YTNodes} from "../utils/Youtube";
 
 export type RootStackParamList = {
   LoadingScreen: undefined;
@@ -31,6 +35,8 @@ export type RootStackParamList = {
   SettingsScreen: undefined;
   LoginScreen: undefined;
 };
+
+export type RootNavProp = NativeStackNavigationProp<RootStackParamList>;
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

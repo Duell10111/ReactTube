@@ -2,7 +2,7 @@ import {useNavigation} from "@react-navigation/native";
 import {NativeStackNavigationProp} from "@react-navigation/native-stack";
 import _ from "lodash";
 import React, {useCallback, useEffect, useLayoutEffect, useState} from "react";
-import {Platform, StyleSheet, View} from "react-native";
+import {Platform, StyleSheet, TVEventControl, View} from "react-native";
 import {RnNativeSearchBarView} from "rn-native-search-bar";
 
 import GridView from "../components/GridView";
@@ -75,6 +75,11 @@ export default function SearchScreen() {
       });
     }, [navigation]);
   }
+
+  useEffect(() => {
+    TVEventControl.disableGestureHandlersCancelTouches();
+    return () => TVEventControl.enableGestureHandlersCancelTouches();
+  }, []);
 
   return (
     <View style={{flex: 1}}>

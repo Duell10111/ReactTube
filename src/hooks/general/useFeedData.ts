@@ -1,17 +1,22 @@
 import {useCallback, useEffect, useState} from "react";
-import {Helpers, YTNodes, Feed, Innertube} from "../../utils/Youtube";
-import {IBrowseResponse} from "youtubei.js/dist/src/parser/types";
-import Logger from "../../utils/Logger";
-import _ from "lodash";
+
 import {useYoutubeContext} from "../../context/YoutubeContext";
+import Logger from "../../utils/Logger";
+import {
+  Helpers,
+  YTNodes,
+  Mixins,
+  Innertube,
+  IBrowseResponse,
+} from "../../utils/Youtube";
 
 const LOGGER = Logger.extend("FEED");
 
 export function useFeedData(
-  firstFeed: (youtube: Innertube) => Promise<Feed<IBrowseResponse>>,
+  firstFeed: (youtube: Innertube) => Promise<Mixins.Feed<IBrowseResponse>>,
 ) {
   const youtube = useYoutubeContext();
-  const [feed, setFeed] = useState<Feed<IBrowseResponse>>();
+  const [feed, setFeed] = useState<Mixins.Feed<IBrowseResponse>>();
   const [content, setContent] = useState<Helpers.YTNode[]>([]);
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import React, {createContext, useCallback, useContext, useState} from "react";
 import {Platform, Settings} from "react-native";
+
 import useAccountData from "../hooks/account/useAccountData";
 
 const settingsKey = "appSettings";
@@ -16,6 +17,7 @@ interface AppDataContext {
   account: ReturnType<typeof useAccountData>;
 }
 
+// @ts-ignore
 const defaultContext: AppDataContext = {
   appSettings: {},
   updateSettings: () => {},
@@ -73,8 +75,8 @@ export default function AppDataContextProvider({children}: Props) {
 
   const value: AppDataContext = {
     appSettings: settings,
-    updateSettings: updateSettings,
-    account: account,
+    updateSettings,
+    account,
   };
 
   return <context.Provider children={children} value={value} />;

@@ -33,7 +33,9 @@ You maybe have to create a **free Apple account** for building on real iOS/tvOS 
 
 For more information look into:
 
-- [Running on device - React Native](https://reactnative.dev/docs/running-on-device)
+- [Running on device - Expo](https://docs.expo.dev/build/internal-distribution/)
+
+- [Running on TV - Expo](https://docs.expo.dev/guides/building-for-tv/#build-for-apple-tv)
 
 - [GitHub - react-native-tvos/react-native-tvos: React Native repo with additions for Apple TV and Android TV support.](https://github.com/react-native-tvos/react-native-tvos)
 
