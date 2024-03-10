@@ -5,7 +5,6 @@ on:
     branches:
       - beta
       - main
-      - tests
   workflow_dispatch:  # Ermöglicht manuelle Auslöser
 
 jobs:
