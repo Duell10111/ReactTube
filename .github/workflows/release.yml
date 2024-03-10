@@ -22,8 +22,11 @@ jobs:
         with:
           node-version-file: .nvmrc
 
+      - name: Add Semantic Release Dependencies
+        run: npm install -g @semantic-release/changelog @semantic-release/git semantic-release
+
       - name: Semantic Release (Versioning)
-        run: npm install -g @semantic-release/changelog && npx semantic-release --dry-run
+        run: semantic-release --dry-run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -39,9 +42,9 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Add Semantic Release Dependencies
-        run: npm install -g @semantic-release/changelog
+        run: npm install -g @semantic-release/changelog @semantic-release/git semantic-release
 
       - name: Publish to NPM
-        run: npx semantic-release
+        run: semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
