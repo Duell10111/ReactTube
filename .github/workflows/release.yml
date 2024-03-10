@@ -5,6 +5,7 @@ on:
     branches:
       - beta
       - main
+      - tests
   workflow_dispatch:  # Ermöglicht manuelle Auslöser
 
 jobs:
@@ -21,6 +22,9 @@ jobs:
         with:
           node-version-file: .nvmrc
 
+      - name: Add Semantic Release Dependencies
+        run: npm install -g @semantic-release/changelog
+
       - name: Semantic Release (Versioning)
         run: npx semantic-release --dry-run
         env:
@@ -36,6 +40,9 @@ jobs:
 
       - name: Setup
         uses: ./.github/actions/setup
+
+      - name: Add Semantic Release Dependencies
+        run: npm install -g @semantic-release/changelog
 
       - name: Publish to NPM
         run: npx semantic-release
