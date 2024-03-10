@@ -1,6 +1,5 @@
 branches:
-  - name: main
-    prerelease: true # Currently only release beta releases
+  - main
   - next
   - name: beta
     prerelease: true
@@ -32,15 +31,46 @@ plugins:
           release: patch
         - type: breaking
           release: major
-  - '@semantic-release/release-notes-generator'
+  - - '@semantic-release/release-notes-generator'
+    - preset: "conventionalcommits"
+      presetConfig:
+        types:
+          - type: breaking
+            section: ":exclamation: BREAKING"
+            hidden: false
+          - type: feat
+            section: ":sparkles: Features"
+            hidden: false
+          - type: fix
+            section: ":bug: Fixes"
+            hidden: false
+          - type: docs
+            section: ":memo: Documentation"
+            hidden: false
+          - type: ci
+            section: ":repeat: CI"
+            hidden: false
+          - type: style
+            section: ":barber: Style"
+            hidden: false
+          - type: refactor
+            section: ":zap: Refactor"
+            hidden: false
+          - type: perf
+            section: ":fast_forward: Performance"
+            hidden: false
+          - type: test
+            section: ":white_check_mark: Testes"
+            hidden: false
+          - type: chore
+            section: "Minor changes"
+            hidden: false
+  - '@semantic-release/npm'
   - - '@semantic-release/changelog'
     - changelogFile: "CHANGELOG.md"
   - - "@semantic-release/git"
-    - assets: ["CHANGELOG.md", "package.json"]
-  - '@semantic-release/npm'
+    - assets: [ "CHANGELOG.md", "package.json" ]
+      message: "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
   - '@semantic-release/github'
 
 npmPublish: false
-tarballDir: false
-
-preset: 'angular'
