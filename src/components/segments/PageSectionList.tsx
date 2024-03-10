@@ -1,9 +1,10 @@
 import React from "react";
-import {Helpers} from "../../utils/Youtube";
 import {Platform, StyleSheet, Text, View} from "react-native";
-import HorizontalVideoList from "../HorizontalVideoList";
+
 import {useAppStyle} from "../../context/AppStyleContext";
 import {HorizontalData} from "../../extraction/ShelfExtraction";
+import {Helpers} from "../../utils/Youtube";
+import HorizontalVideoList from "../HorizontalVideoList";
 
 interface Props {
   headerText?: string;
@@ -18,7 +19,8 @@ export default function PageSectionList({headerText, content}: Props) {
   }
 
   return (
-    <View>
+    <View style={styles.containerStyle}>
+      <View style={styles.border} />
       <Text
         style={[
           styles.textStyle,
@@ -28,14 +30,25 @@ export default function PageSectionList({headerText, content}: Props) {
         {headerText}
       </Text>
       <HorizontalVideoList
+        containerStyle={{marginBottom: 20}}
         nodes={Array.isArray(content) ? content : content.parsedData}
       />
+      <View style={styles.border} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  containerStyle: {
+    marginVertical: 50,
+  },
   textStyle: {
     fontSize: 25,
+    paddingBottom: 10,
+  },
+  border: {
+    width: "100%",
+    height: 1,
+    backgroundColor: "#888888",
   },
 });

@@ -10,13 +10,13 @@ interface PlayerType {
 }
 
 const playerTypes: {[key: string]: PlayerType} = {
-  vlc: {
-    key: "vlc",
-    label: "VLC",
-  },
   native: {
     key: "native",
     label: "Native",
+  },
+  vlc: {
+    key: "vlc",
+    label: "VLC",
   },
 };
 
