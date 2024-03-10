@@ -33,7 +33,22 @@ plugins:
           release: patch
         - type: breaking
           release: major
-  - '@semantic-release/release-notes-generator'
+  - - '@semantic-release/release-notes-generator'
+    - writerOpts:
+        commitGroupsSort: [
+          "breaking",
+          "feat",
+          "fix",
+          "revert",
+          "refactor",
+          "perf",
+          "docs",
+          "style",
+          "build",
+          "chore",
+          "upgrade",
+          "ci"
+        ]
   - '@semantic-release/npm'
   - '@semantic-release/github'
 
