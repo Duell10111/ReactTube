@@ -1,26 +1,29 @@
+import {CompositeScreenProps} from "@react-navigation/native";
+import {NativeStackScreenProps} from "@react-navigation/native-stack";
+import {CheckBox, Icon} from "@rneui/base";
 import React, {useEffect} from "react";
-import {RootStackParamList} from "../navigation/RootStackNavigator";
-import {DrawerScreenProps} from "@react-navigation/drawer";
-import {
-  DeviceEventEmitter,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import {Button, CheckBox, Icon} from "@rneui/base";
+import {Platform, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+
+import SettingsItem, {
+  SettingsButton,
+} from "../components/settings/SettingsItem";
+import SettingsSection from "../components/settings/SettingsSection";
+import {parseLanguage} from "../components/settings/screens/LanguageSelector";
+import {parsePlayerResolution} from "../components/settings/screens/PlayerResolutionSelector";
+import {parsePlayerType} from "../components/settings/screens/PlayerSelector";
 import {useAppData} from "../context/AppDataContext";
 import useAccountData from "../hooks/account/useAccountData";
-import {useNavigation} from "@react-navigation/native";
+import {RootStackParamList} from "../navigation/RootStackNavigator";
+import {SettingsStackParamList} from "../navigation/SettingsNavigator";
 
-type Props = DrawerScreenProps<RootStackParamList, "SettingsScreen">;
+type Props = CompositeScreenProps<
+  NativeStackScreenProps<SettingsStackParamList, "Root">,
+  NativeStackScreenProps<RootStackParamList, "SettingsScreen">
+>;
 
-export default function SettingsScreen({}: Props) {
+export default function SettingsScreen({navigation}: Props) {
   const {appSettings, updateSettings} = useAppData();
   const {logout, clearAllData} = useAccountData();
-
-  const navigation = useNavigation();
 
   useEffect(() => {
     if (!Platform.isTV) {
@@ -28,7 +31,6 @@ export default function SettingsScreen({}: Props) {
         headerRight: () => (
           <Icon
             name={"login"}
-            // @ts-ignore
             onPress={() => navigation.navigate("LoginScreen")}
             color={"white"}
             style={{marginEnd: 10}}
@@ -74,12 +76,31 @@ export default function SettingsScreen({}: Props) {
         }}
         Component={TouchableOpacity}
       />
-      <Button title={"Logout"} onPress={() => logout()} />
-      <Button title={"Clear all"} onPress={() => clearAllData()} />
-      <Button
-        title={"Refresh Home Screen"}
-        onPress={() => DeviceEventEmitter.emit("HomeScreenRefresh")}
-      />
+      <SettingsSection>
+        <SettingsItem
+          icon={"globe"}
+          iconBackground={"#fe9400"}
+          label={"Language"}
+          value={parseLanguage(appSettings).label}
+          onPress={() => navigation.navigate("LanguageSelector")}
+        />
+        <SettingsItem
+          icon={"globe"}
+          iconBackground={"blue"}
+          label={"Video player"}
+          value={parsePlayerType(appSettings).label}
+          onPress={() => navigation.navigate("PlayerSelector")}
+        />
+        <SettingsItem
+          icon={"globe"}
+          iconBackground={"#f5d132"}
+          label={"Video resolution variant"}
+          value={parsePlayerResolution(appSettings).label}
+          onPress={() => navigation.navigate("PlayerResolutionSelector")}
+        />
+        <SettingsButton label={"Clear all"} onPress={() => clearAllData()} />
+        <SettingsButton label={"Logout"} onPress={() => logout()} />
+      </SettingsSection>
     </View>
   );
 }

@@ -5,6 +5,7 @@ import {
 import React from "react";
 import {Platform} from "react-native";
 
+import SettingsNavigator from "./SettingsNavigator";
 import useAppInit from "../hooks/general/useAppInit";
 import ChannelScreen from "../screens/ChannelScreen";
 import HistoryScreen from "../screens/HistoryScreen";
@@ -13,7 +14,6 @@ import LoadingScreen from "../screens/LoadingScreen";
 import LoginScreen from "../screens/LoginScreen";
 import PlaylistScreen from "../screens/PlaylistScreen";
 import SearchScreen from "../screens/SearchScreen";
-import SettingsScreen from "../screens/SettingsScreen";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
 import VideoScreen from "../screens/VideoScreen";
 import VideoScreenWrapper from "../screens/phone/VideoScreenWrapper";
@@ -79,7 +79,7 @@ export default function RootStackNavigator() {
             component={SubscriptionScreen}
           />
           <Stack.Screen name={"HistoryScreen"} component={HistoryScreen} />
-          <Stack.Screen name={"SettingsScreen"} component={SettingsScreen} />
+          <Stack.Screen name={"SettingsScreen"} component={SettingsNavigator} />
           <Stack.Screen name={"LoginScreen"} component={LoginScreen} />
         </>
       )}

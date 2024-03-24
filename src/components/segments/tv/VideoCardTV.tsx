@@ -51,10 +51,7 @@ export default function VideoCardTV({
         style,
       ]}>
       <VideoTouchable
-        style={[
-          styles.segmentContainer,
-          focus ? {borderWidth: 2, borderColor: "white"} : {},
-        ]}
+        style={[styles.segmentContainer, focus ? {borderColor: "white"} : {}]}
         onPress={onPress}
         onFocus={() => {
           onElementFocused?.();
@@ -120,6 +117,8 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     overflow: "hidden",
     aspectRatio: 1.7,
+    borderWidth: 5,
+    borderColor: "black",
   },
   imageStyle: {
     width: "100%",

@@ -1,5 +1,4 @@
 import React, {useCallback} from "react";
-import {Helpers} from "../utils/Youtube";
 import {
   FlatList,
   FlatListProps,
@@ -8,11 +7,13 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import ShelfVideoSelectorProvider from "../context/ShelfVideoSelector";
-import VideoMenu from "./general/VideoMenu";
-import useGrid from "../hooks/home/useGrid";
-import PageSectionList from "./segments/PageSectionList";
+
 import VideoSegment from "./VideoSegment";
+import VideoMenu from "./general/VideoMenu";
+import PageSectionList from "./segments/PageSectionList";
+import ShelfVideoSelectorProvider from "../context/ShelfVideoSelector";
+import useGrid from "../hooks/home/useGrid";
+import {Helpers} from "../utils/Youtube";
 
 interface Props extends Omit<FlatListProps<any>, "renderItem" | "data"> {
   style?: StyleProp<ViewStyle>;
@@ -38,8 +39,8 @@ export default function GridView({
         <View
           style={{
             flexDirection: "row",
-            justifyContent: "center",
-            alignItems: "center",
+            justifyContent: "space-around",
+            alignItems: "flex-start",
           }}>
           {item.map((v, index) => (
             <VideoSegment key={`${v.id}-${index}`} element={v} />

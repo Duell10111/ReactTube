@@ -1,10 +1,17 @@
 import {useEffect, useState} from "react";
+
+import {parseLanguage} from "../components/settings/screens/LanguageSelector";
+import {useAppData} from "../context/AppDataContext";
 import {Innertube} from "../utils/Youtube";
 
 const visitorDataKey = "visitorDataYT";
 
 export default function useYoutube() {
   const [youtube, setYoutube] = useState<Innertube>();
+  const {appSettings} = useAppData();
+  const language = parseLanguage(appSettings);
+
+  console.log("Settings: ", appSettings);
 
   useEffect(() => {
     // let visitorData = Settings.get(visitorDataKey);
@@ -16,11 +23,11 @@ export default function useYoutube() {
     // }
 
     Innertube.create({
-      lang: "de",
+      lang: language.key,
     })
       .then(setYoutube)
       .catch(console.warn);
-  }, []);
+  }, [language]);
 
   // useEffect(() => {
   //   // TODO: Check if visitorData is wanted

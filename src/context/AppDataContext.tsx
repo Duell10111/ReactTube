@@ -5,10 +5,11 @@ import useAccountData from "../hooks/account/useAccountData";
 
 const settingsKey = "appSettings";
 
-interface AppSettings {
+export interface AppSettings {
   vlcEnabled?: boolean;
   hlsEnabled?: boolean;
   localHlsEnabled?: boolean;
+  languageSelected?: string;
 }
 
 interface AppDataContext {
