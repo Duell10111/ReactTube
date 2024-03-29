@@ -1,7 +1,6 @@
-import React, {useEffect, useMemo, useState} from "react";
-import VideoComponent from "../components/VideoComponent";
+import {useFocusEffect} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {RootStackParamList} from "../navigation/RootStackNavigator";
+import React, {useEffect, useMemo, useState} from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -9,13 +8,17 @@ import {
   useTVEventHandler,
   TVEventControl,
 } from "react-native";
-import useVideoDetails from "../hooks/useVideoDetails";
-import EndCard from "../components/video/EndCard";
-import LOGGER from "../utils/Logger";
-import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
-import {useAppData} from "../context/AppDataContext";
+
+import VideoComponent from "../components/VideoComponent";
 import ErrorComponent from "../components/general/ErrorComponent";
-import {useFocusEffect} from "@react-navigation/native";
+import EndCard from "../components/video/EndCard";
+import VideoPlayerNative from "../components/video/VideoPlayerNative";
+import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
+import VideoPlayer from "../components/video/videoPlayer/VideoPlayer";
+import {useAppData} from "../context/AppDataContext";
+import useVideoDetails from "../hooks/useVideoDetails";
+import {RootStackParamList} from "../navigation/RootStackNavigator";
+import LOGGER from "../utils/Logger";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -108,6 +111,18 @@ export default function VideoScreen({route, navigation}: Props) {
             setShowEndCard(true);
           }}
           disableControls={showEndCard}
+        />
+      ) : appSettings.ownOverlayEnabled ? (
+        <VideoPlayer
+          VideoComponent={VideoPlayerNative}
+          VideoComponentProps={{
+            url: videoUrl,
+            hlsUrl,
+            videoInfo: YTVideoInfo.originalData,
+            onPlaybackInfoUpdate: infos => {
+              setPlaybackInfos({resolution: infos.height.toString() + "p"});
+            },
+          }}
         />
       ) : (
         <VideoComponent

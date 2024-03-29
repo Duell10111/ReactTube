@@ -14,6 +14,10 @@ const playerTypes: {[key: string]: PlayerType} = {
     key: "native",
     label: "Native",
   },
+  nativeOverlay: {
+    key: "nativeOverlay",
+    label: "Native Overlay",
+  },
   vlc: {
     key: "vlc",
     label: "VLC",
@@ -31,9 +35,12 @@ export default function PlayerTypeSelectorScreen() {
           key={v.key}
           label={v.label}
           selected={player.key === v.key}
-          onPress={() =>
-            updateSettings({vlcEnabled: !(appSettings.vlcEnabled ?? false)})
-          }
+          onPress={() => {
+            updateSettings({
+              vlcEnabled: !(v.key === "nativeOverlay" || v.key === "native"),
+              ownOverlayEnabled: v.key === "nativeOverlay",
+            });
+          }}
         />
       ))}
     </SettingsSection>
@@ -50,6 +57,8 @@ const styles = StyleSheet.create({
 export function parsePlayerType(appSettings: AppSettings) {
   if (appSettings.vlcEnabled) {
     return playerTypes["vlc"];
+  } else if (appSettings.ownOverlayEnabled) {
+    return playerTypes["nativeOverlay"];
   } else {
     return playerTypes["native"];
   }

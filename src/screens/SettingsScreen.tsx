@@ -43,39 +43,6 @@ export default function SettingsScreen({navigation}: Props) {
   return (
     <View style={styles.containerStyle}>
       <Text>{"Settings"}</Text>
-      <CheckBox
-        style={styles.checkBoxStyle}
-        center
-        title={"VLC"}
-        checked={appSettings.vlcEnabled ?? false}
-        onPress={() => {
-          console.log("Press");
-          updateSettings({vlcEnabled: !(appSettings.vlcEnabled ?? false)});
-        }}
-        Component={TouchableOpacity}
-      />
-      <CheckBox
-        style={styles.checkBoxStyle}
-        center
-        title={"HLS Enabled (if available)"}
-        checked={appSettings.hlsEnabled ?? true}
-        onPress={() => {
-          updateSettings({hlsEnabled: !(appSettings.hlsEnabled ?? true)});
-        }}
-        Component={TouchableOpacity}
-      />
-      <CheckBox
-        style={styles.checkBoxStyle}
-        center
-        title={"Local HLS Enabled"}
-        checked={appSettings.localHlsEnabled ?? false}
-        onPress={() => {
-          updateSettings({
-            localHlsEnabled: !(appSettings.localHlsEnabled ?? false),
-          });
-        }}
-        Component={TouchableOpacity}
-      />
       <SettingsSection>
         <SettingsItem
           icon={"globe"}
