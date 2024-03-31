@@ -1,5 +1,6 @@
 import {useFocusEffect} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
+import {Icon} from "@rneui/base";
 import React, {useEffect, useMemo, useState} from "react";
 import {
   ActivityIndicator,
@@ -7,8 +8,11 @@ import {
   View,
   useTVEventHandler,
   TVEventControl,
+  ScrollView,
+  Text,
 } from "react-native";
 
+import HorizontalVideoList from "../components/HorizontalVideoList";
 import VideoComponent from "../components/VideoComponent";
 import ErrorComponent from "../components/general/ErrorComponent";
 import EndCard from "../components/video/EndCard";
@@ -16,6 +20,8 @@ import VideoPlayerNative from "../components/video/VideoPlayerNative";
 import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
 import VideoPlayer from "../components/video/videoPlayer/VideoPlayer";
 import {useAppData} from "../context/AppDataContext";
+import {parseObservedArray} from "../extraction/ArrayExtraction";
+import useChannelDetails from "../hooks/useChannelDetails";
 import useVideoDetails from "../hooks/useVideoDetails";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
 import LOGGER from "../utils/Logger";
@@ -74,6 +80,14 @@ export default function VideoScreen({route, navigation}: Props) {
     [hlsManifestUrl, httpVideoURL],
   );
 
+  const watchNextList = useMemo(
+    () =>
+      YTVideoInfo?.originalData?.watch_next_feed
+        ? parseObservedArray(YTVideoInfo.originalData.watch_next_feed)
+        : [],
+    [YTVideoInfo?.originalData?.watch_next_feed],
+  );
+
   if (!YTVideoInfo) {
     return (
       <View
@@ -99,6 +113,7 @@ export default function VideoScreen({route, navigation}: Props) {
       />
     );
   }
+
   return (
     <View style={[StyleSheet.absoluteFill]}>
       {appSettings.vlcEnabled ? (
@@ -123,6 +138,36 @@ export default function VideoScreen({route, navigation}: Props) {
               setPlaybackInfos({resolution: infos.height.toString() + "p"});
             },
           }}
+          metadata={{
+            title: YTVideoInfo.title,
+            author: YTVideoInfo.channel.name,
+            authorUrl: YTVideoInfo.channel.url,
+            views: YTVideoInfo.short_views,
+            videoDate: YTVideoInfo.publishDate,
+          }}
+          bottomContainer={
+            <View>
+              {YTVideoInfo.playlist ? (
+                <>
+                  <View style={styles.bottomPlaylistTextContainer}>
+                    <Icon name={"book"} color={"white"} />
+                    <Text style={styles.bottomPlaylistText}>
+                      {YTVideoInfo.playlist.title}
+                    </Text>
+                  </View>
+                  <HorizontalVideoList
+                    nodes={YTVideoInfo.playlist.content}
+                    textStyle={styles.text}
+                  />
+                </>
+              ) : null}
+              <Text style={styles.bottomText}>{"Related Videos"}</Text>
+              <HorizontalVideoList
+                nodes={watchNextList}
+                textStyle={styles.text}
+              />
+            </View>
+          }
         />
       ) : (
         <VideoComponent
@@ -151,3 +196,62 @@ export default function VideoScreen({route, navigation}: Props) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  touchContainer: {
+    backgroundColor: "#11111199",
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  videoInfoContainer: {
+    backgroundColor: "#111111cc",
+    paddingStart: 20,
+    flexDirection: "row",
+  },
+  channelContainer: {
+    alignItems: "center",
+  },
+  channelText: {
+    fontSize: 17,
+  },
+  videoContainer: {
+    marginStart: 10,
+    justifyContent: "center",
+  },
+  videoTitle: {
+    fontSize: 25,
+  },
+  viewsText: {
+    alignSelf: "flex-start",
+  },
+  text: {
+    color: "white",
+  },
+  nextVideoContainer: {
+    flex: 1,
+  },
+  bottomContainer: {
+    width: "100%",
+    minHeight: "40%",
+    maxHeight: "50%",
+    backgroundColor: "#111111cc",
+    justifyContent: "center",
+    paddingTop: 20,
+  },
+  bottomText: {
+    fontSize: 20,
+    paddingStart: 20,
+    color: "white",
+    paddingBottom: 15,
+  },
+  bottomPlaylistTextContainer: {
+    flexDirection: "row",
+    paddingStart: 20,
+    paddingBottom: 15,
+  },
+  bottomPlaylistText: {
+    fontSize: 20,
+    color: "white",
+    paddingStart: 10,
+  },
+});

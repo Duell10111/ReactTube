@@ -1,11 +1,11 @@
 import React from "react";
-import {Helpers} from "../utils/Youtube";
 import {Platform, StyleProp, TextStyle, ViewStyle} from "react-native";
-import Logger from "../utils/Logger";
-import VideoCard from "./segments/VideoCard";
-import PlaylistCard from "./segments/PlaylistCard";
 
+import PlaylistCard from "./segments/PlaylistCard";
+import VideoCard from "./segments/VideoCard";
 import {ElementData} from "../extraction/Types";
+import Logger from "../utils/Logger";
+import {Helpers} from "../utils/Youtube";
 
 const LOGGER = Logger.extend("SEGMENT");
 

@@ -8,19 +8,26 @@ import React, {
   useState,
 } from "react";
 import {View} from "react-native";
-import Animated from "react-native-reanimated";
 import Video, {
   OnLoadData,
   OnPlaybackData,
   OnProgressData,
   OnSeekData,
   OnVideoErrorData,
-  VideoRef,
 } from "react-native-video";
 
 import BottomControls from "./BottomControls";
 import {useControlTimeout} from "./hooks/useControlTimeout";
+import useTVSeekControl from "./hooks/useTVSeekControl";
 import {usePanResponders} from "./usePanResponders";
+
+export interface VideoMetadata {
+  title: string;
+  author: string;
+  authorUrl: string;
+  views: string;
+  videoDate: string;
+}
 
 // TODO: Use own types
 export interface VideoComponentType<T> {
@@ -35,17 +42,28 @@ export interface VideoComponentType<T> {
   props: T;
 }
 
+export interface VideoComponentRefType {
+  seek: (seconds: number) => void;
+}
+
 interface VideoPlayerRefs {}
 
 interface VideoPlayerProps<T> {
-  VideoComponent: typeof React.Component<VideoComponentType<T>>;
+  VideoComponent: typeof React.Component<
+    VideoComponentType<T>,
+    VideoComponentRefType
+  >;
   VideoComponentProps: T;
+  bottomContainer?: React.ReactNode;
+  metadata: VideoMetadata;
+  // Callbacks
+  onAuthorClick?: () => void;
 }
 
 const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
-  ({VideoComponent, ...props}, ref) => {
+  ({VideoComponent, bottomContainer, ...props}, ref) => {
     const mounted = useRef(false);
-    const _videoRef = useRef<VideoRef>(null);
+    const _videoRef = useRef<VideoComponentRefType>(null);
     const controlTimeout = useRef<ReturnType<typeof setTimeout>>(
       setTimeout(() => {}),
     ).current;
@@ -59,6 +77,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     const [seekerOffset, setSeekerOffset] = useState(0);
     const [seekerWidth, setSeekerWidth] = useState(0);
     const [seeking, setSeeking] = useState(false);
+    const [seekerFocus, setSeekerFocus] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
 
     const [showControls, setShowControls] = useState(true);
@@ -102,7 +121,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     }
 
     function _onProgress(data: OnProgressData) {
-      console.log("Progress: ", data);
+      // console.log("Progress: ", data);
       if (!seeking) {
         setCurrentTime(data.currentTime);
 
@@ -165,6 +184,19 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         alwaysShowControls: false,
       });
 
+    useTVSeekControl({
+      duration,
+      currentTime,
+      setSeekerPosition,
+      seekerWidth: seekerFillWidth,
+      seeking,
+      clearControlTimeout: () => {},
+      enabled: seekerFocus,
+      seekerPosition,
+      setSeeking,
+      seek: _videoRef?.current?.seek,
+    });
+
     const {seekPanResponder} = usePanResponders({
       duration,
       seekerOffset,
@@ -172,20 +204,20 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       seekerWidth,
       seeking,
       seekerPosition,
-      seek: _videoRef?.current?.seek, // TODO: Adapt
+      seek: _videoRef?.current?.seek,
       clearControlTimeout,
       setSeekerPosition,
       setSeeking,
       // setControlTimeout,
-      onEnd: () => {}, // TODO: Adapt
+      onEnd: _onEnd,
       horizontal: false, // TODO: Adapt
       inverted: false, // TODO: Adapt
     });
 
-    console.log("CurrTime: ", currentTime);
-    console.log("Duration: ", duration);
-    console.log("Seeker Position: ", seekerPosition);
-    console.log("Seeker Width: ", seekerWidth);
+    // console.log("CurrTime: ", currentTime);
+    // console.log("Duration: ", duration);
+    // console.log("Seeker Position: ", seekerPosition);
+    // console.log("Seeker Width: ", seekerWidth);
 
     useEffect(() => {
       if (!seeking && currentTime && duration) {
@@ -203,22 +235,28 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         <VideoComponent
           onLoad={_onLoad}
           onProgress={_onProgress}
-          paused={false}
+          paused={seeking}
           onEnd={_onEnd}
           onSeek={_onSeek}
+          onError={() => {}}
           props={props.VideoComponentProps}
+          // @ts-ignore
+          ref={_videoRef}
         />
         <>
           <BottomControls
             resetControlTimeout={resetControlTimeout}
             seekerFillWidth={seekerFillWidth}
             setSeekerWidth={setSeekerWidth}
+            setSeekerFocus={setSeekerFocus}
             seekerPosition={seekerPosition}
             panHandlers={seekPanResponder}
             showTimeRemaining
             duration={duration}
             currentTime={currentTime}
             showDuration
+            bottomContainer={bottomContainer}
+            metadata={props.metadata}
           />
         </>
       </View>

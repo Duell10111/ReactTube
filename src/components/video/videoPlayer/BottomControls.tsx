@@ -1,16 +1,22 @@
-import {Dispatch, SetStateAction} from "react";
+import React, {Dispatch, SetStateAction} from "react";
 import {
   GestureResponderHandlers,
   ImageBackground,
   StyleSheet,
+  TVFocusGuideView,
+  View,
 } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, {useAnimatedRef} from "react-native-reanimated";
 import {SafeAreaView} from "react-native-safe-area-context";
 
+import BottomContainer from "./BottomContainer";
+import MetadataContainer from "./MetadataContainer";
 import {NullControl} from "./NullControl";
 import Seekbar from "./Seekbar";
 import {Timer} from "./Timer";
 import {Title} from "./Title";
+import {VideoMetadata} from "./VideoPlayer";
+import useAnimatedBottomControls from "./hooks/useAnimatedBottomControls";
 import {calculateTime} from "./utils";
 
 interface BottomControlsProps {
@@ -20,6 +26,7 @@ interface BottomControlsProps {
   seekerFillWidth: number;
   seekerPosition: number;
   setSeekerWidth: Dispatch<SetStateAction<number>>;
+  setSeekerFocus: Dispatch<SetStateAction<boolean>>;
   toggleTimer: () => void;
   showControls: boolean;
   showDuration: boolean;
@@ -28,6 +35,13 @@ interface BottomControlsProps {
   showTimeRemaining: boolean;
   currentTime: number;
   duration: number;
+
+  // Container
+  bottomContainer: React.ReactNode;
+
+  // Metadata
+  metadata: VideoMetadata;
+  onAuthorClick: () => void;
 }
 
 export default function BottomControls({
@@ -36,6 +50,7 @@ export default function BottomControls({
   seekerFillWidth,
   seekerPosition,
   setSeekerWidth,
+  setSeekerFocus,
   resetControlTimeout,
   toggleTimer,
   showControls,
@@ -45,7 +60,16 @@ export default function BottomControls({
   paused,
   currentTime,
   duration,
+  bottomContainer,
+  metadata,
 }: BottomControlsProps) {
+  const {
+    bottomContainerStyle,
+    topContainerStyle,
+    showBottomContainer,
+    scrollHandler,
+  } = useAnimatedBottomControls();
+
   const timerControl = false ? (
     <NullControl />
   ) : (
@@ -72,6 +96,15 @@ export default function BottomControls({
       seekColor={seekColor}
       seekerPanHandlers={panHandlers}
       setSeekerWidth={setSeekerWidth}
+      onFocus={() => {
+        console.log("Seekder focus");
+        showBottomContainer.value = false;
+        setSeekerFocus(true);
+      }}
+      onBlur={() => {
+        console.log("Seekbar blur");
+        setSeekerFocus(false);
+      }}
     />
   );
 
@@ -82,18 +115,32 @@ export default function BottomControls({
         // animations.controlsOpacity,
         // animations.bottomControl,
       ]}>
-      <ImageBackground
-        source={require("../../../../assets/videoPlayer/bottom-vignette.png")}
-        style={[styles.column]}
-        imageStyle={[styles.vignette]}>
-        {/*<SafeAreaView style={[styles.row, _styles.bottomControlGroup]}>*/}
-        {/*  {timerControl}*/}
-        {/*  /!*<Title title={title} />*!/*/}
-        {/*</SafeAreaView>*/}
-        <SafeAreaView style={styles.seekBarContainer}>
-          {seekbarControl}
-        </SafeAreaView>
-      </ImageBackground>
+      <Animated.View style={topContainerStyle}>
+        <View>
+          <MetadataContainer metadata={metadata} />
+        </View>
+        <ImageBackground
+          source={require("../../../../assets/videoPlayer/bottom-vignette.png")}
+          style={[styles.column]}
+          imageStyle={[styles.vignette]}>
+          {/*<SafeAreaView style={[styles.row, _styles.bottomControlGroup]}>*/}
+          {/*  {timerControl}*/}
+          {/*  /!*<Title title={title} />*!/*/}
+          {/*</SafeAreaView>*/}
+          <SafeAreaView style={styles.seekBarContainer}>
+            <TVFocusGuideView autoFocus>{seekbarControl}</TVFocusGuideView>
+          </SafeAreaView>
+        </ImageBackground>
+      </Animated.View>
+      <Animated.View style={bottomContainerStyle}>
+        <BottomContainer
+          onFocus={() => {
+            console.log("Bottom Focus");
+            showBottomContainer.value = true;
+          }}>
+          {bottomContainer}
+        </BottomContainer>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -102,7 +149,9 @@ const _styles = StyleSheet.create({
   bottom: {
     alignItems: "stretch",
     flex: 2,
+    height: "40%",
     justifyContent: "flex-end",
+    // backgroundColor: "red",
   },
   bottomControlGroup: {
     alignSelf: "stretch",

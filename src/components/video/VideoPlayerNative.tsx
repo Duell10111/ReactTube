@@ -1,13 +1,36 @@
+import {forwardRef, useImperativeHandle, useRef} from "react";
 import {StyleSheet} from "react-native";
-import Video from "react-native-video";
+import Video, {VideoRef} from "react-native-video";
 
-import {VideoComponentType} from "./videoPlayer/VideoPlayer";
+import {
+  VideoComponentRefType,
+  VideoComponentType,
+} from "./videoPlayer/VideoPlayer";
 
-export default function VideoPlayerNative(props: VideoComponentType<object>) {
+const VideoPlayerNative = forwardRef<
+  VideoComponentRefType,
+  VideoComponentType<any>
+>((props, ref) => {
+  // @ts-ignore
   const videoInfo = props.props.videoInfo;
+
+  const videoRef = useRef<VideoRef>();
+
+  useImperativeHandle(
+    ref,
+    () => {
+      return {
+        seek: seconds => {
+          videoRef.current?.seek?.(seconds);
+        },
+      };
+    },
+    [],
+  );
 
   return (
     <Video
+      ref={videoRef}
       style={styles.fullScreen}
       source={{
         // uri: "https://sample.vodobox.net/skate_phantom_flex_4k/skate_phantom_flex_4k.m3u8",
@@ -26,9 +49,12 @@ export default function VideoPlayerNative(props: VideoComponentType<object>) {
       onEnd={props.onEnd}
       controls={false}
       muted
+      repeat
     />
   );
-}
+});
+
+export default VideoPlayerNative;
 
 const styles = StyleSheet.create({
   fullScreen: {

@@ -1,5 +1,11 @@
 import {Dispatch, SetStateAction} from "react";
-import {GestureResponderHandlers, StyleSheet, View} from "react-native";
+import {
+  GestureResponderHandlers,
+  StyleSheet,
+  TouchableHighlight,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface SeekbarProps {
   seekerFillWidth: number;
@@ -7,6 +13,8 @@ interface SeekbarProps {
   seekColor: string;
   seekerPanHandlers: GestureResponderHandlers;
   setSeekerWidth: Dispatch<SetStateAction<number>>;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export default function Seekbar({
@@ -15,6 +23,8 @@ export default function Seekbar({
   seekerPosition,
   seekerPanHandlers,
   setSeekerWidth,
+  onFocus,
+  onBlur,
 }: SeekbarProps) {
   return (
     <View style={styles.container} collapsable={false} {...seekerPanHandlers}>
@@ -36,10 +46,12 @@ export default function Seekbar({
       <View
         style={[styles.handle, {left: seekerPosition}]}
         pointerEvents={"none"}>
-        <View
-          style={[styles.circle, {backgroundColor: seekColor || "#FFF"}]}
-          pointerEvents={"none"}
-        />
+        <TouchableOpacity onFocus={onFocus} onBlur={onBlur}>
+          <View
+            style={[styles.circle, {backgroundColor: seekColor || "#FFF"}]}
+            pointerEvents={"none"}
+          />
+        </TouchableOpacity>
       </View>
     </View>
   );
