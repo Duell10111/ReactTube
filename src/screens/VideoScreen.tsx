@@ -1,7 +1,7 @@
 import {useFocusEffect} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {Icon} from "@rneui/base";
-import React, {useEffect, useMemo, useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -62,11 +62,21 @@ export default function VideoScreen({route, navigation}: Props) {
     });
   }, [navigation]);
 
+  const longClickCount = useRef(0);
   useTVEventHandler(event => {
     LOGGER.debug("TV Event: ", event.eventType);
     if (event.eventType === "longDown" || event.eventType === "longSelect") {
-      setEnded(false);
-      setShowEndCard(true);
+      longClickCount.current = longClickCount.current + 1;
+      // Workaround as Modal Close Events are not correctly reported by RN TVOS
+      if (longClickCount.current % 2 === 0) {
+        longClickCount.current = 0;
+        if (showEndCard) {
+          setShowEndCard(false);
+        } else {
+          setEnded(false);
+          setShowEndCard(true);
+        }
+      }
     }
   });
 

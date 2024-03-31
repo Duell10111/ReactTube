@@ -36,6 +36,7 @@
       ]
     ],
     "name": "reacttube",
-    "slug": "reacttube"
+    "slug": "reacttube",
+    "userInterfaceStyle": "automatic"
   }
 }
