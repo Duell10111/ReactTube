@@ -21,6 +21,7 @@ export const useControlTimeout = ({
   const [_clearTimeout, setClearTimeout] = useState<boolean>();
 
   const setControlTimeout = () => {
+    console.log("SET Control Timeout");
     _setControlTimeout(prevState => !prevState);
   };
 

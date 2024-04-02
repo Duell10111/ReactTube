@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {View} from "react-native";
+import {useTVEventHandler, View} from "react-native";
 import Video, {
   OnLoadData,
   OnPlaybackData,
@@ -17,6 +17,7 @@ import Video, {
 } from "react-native-video";
 
 import BottomControls from "./BottomControls";
+import {useAnimations} from "./hooks/useAnimations";
 import {useControlTimeout} from "./hooks/useControlTimeout";
 import useTVSeekControl from "./hooks/useTVSeekControl";
 import {usePanResponders} from "./usePanResponders";
@@ -62,6 +63,8 @@ interface VideoPlayerProps<T> {
 
 const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
   ({VideoComponent, bottomContainer, ...props}, ref) => {
+    const animations = useAnimations(450);
+
     const mounted = useRef(false);
     const _videoRef = useRef<VideoComponentRefType>(null);
     const controlTimeout = useRef<ReturnType<typeof setTimeout>>(
@@ -157,6 +160,41 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       // }
     };
 
+    useEffect(() => {
+      if (showControls && !loading) {
+        animations.showControlAnimation();
+        setControlTimeout();
+        // typeof events.onShowControls === 'function' && events.onShowControls();
+      } else {
+        animations.hideControlAnimation();
+        clearControlTimeout();
+        // typeof events.onHideControls === 'function' && events.onHideControls();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showControls, loading]);
+
+    useTVEventHandler(event => {
+      switch (event.eventType) {
+        case "select":
+        case "up":
+        case "down":
+        case "right":
+        case "left":
+        // TODO: Special treatment for long-buttons (Pause timeout until seconds event)
+        case "longLeft":
+        case "longRight":
+          if (!showControls) {
+            setShowControls(true);
+            resetControlTimeout();
+            setControlTimeout();
+          } else {
+            resetControlTimeout();
+            setControlTimeout();
+          }
+          break;
+      }
+    });
+
     // const events = {
     //   onError: onError || _onError,
     //   onBack: (onBack || _onBack(navigator)) as () => void,
@@ -195,6 +233,8 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       seekerPosition,
       setSeeking,
       seek: _videoRef?.current?.seek,
+      pause: _paused,
+      setPause: setPaused,
     });
 
     const {seekPanResponder} = usePanResponders({
@@ -213,6 +253,15 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       horizontal: false, // TODO: Adapt
       inverted: false, // TODO: Adapt
     });
+
+    useEffect(() => {
+      mounted.current = true;
+      return () => {
+        mounted.current = false;
+        clearControlTimeout();
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // console.log("CurrTime: ", currentTime);
     // console.log("Duration: ", duration);
@@ -235,7 +284,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         <VideoComponent
           onLoad={_onLoad}
           onProgress={_onProgress}
-          paused={seeking}
+          paused={seeking || _paused}
           onEnd={_onEnd}
           onSeek={_onSeek}
           onError={() => {}}
@@ -245,18 +294,20 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         />
         <>
           <BottomControls
+            animations={animations}
             resetControlTimeout={resetControlTimeout}
             seekerFillWidth={seekerFillWidth}
             setSeekerWidth={setSeekerWidth}
             setSeekerFocus={setSeekerFocus}
             seekerPosition={seekerPosition}
             panHandlers={seekPanResponder}
-            showTimeRemaining
+            showTimeRemaining={false}
             duration={duration}
             currentTime={currentTime}
             showDuration
             bottomContainer={bottomContainer}
             metadata={props.metadata}
+            showControls={showControls}
           />
         </>
       </View>

@@ -1,4 +1,4 @@
-import React, {Dispatch, SetStateAction} from "react";
+import React, {Dispatch, SetStateAction, useEffect} from "react";
 import {
   GestureResponderHandlers,
   ImageBackground,
@@ -6,7 +6,7 @@ import {
   TVFocusGuideView,
   View,
 } from "react-native";
-import Animated, {useAnimatedRef} from "react-native-reanimated";
+import Animated, {withDelay, withTiming} from "react-native-reanimated";
 import {SafeAreaView} from "react-native-safe-area-context";
 
 import BottomContainer from "./BottomContainer";
@@ -17,9 +17,11 @@ import {Timer} from "./Timer";
 import {Title} from "./Title";
 import {VideoMetadata} from "./VideoPlayer";
 import useAnimatedBottomControls from "./hooks/useAnimatedBottomControls";
+import {useAnimations} from "./hooks/useAnimations";
 import {calculateTime} from "./utils";
 
 interface BottomControlsProps {
+  animations: ReturnType<typeof useAnimations>;
   panHandlers: GestureResponderHandlers;
   seekColor: string;
   resetControlTimeout: () => void;
@@ -45,6 +47,7 @@ interface BottomControlsProps {
 }
 
 export default function BottomControls({
+  animations,
   panHandlers,
   seekColor,
   seekerFillWidth,
@@ -63,12 +66,15 @@ export default function BottomControls({
   bottomContainer,
   metadata,
 }: BottomControlsProps) {
-  const {
-    bottomContainerStyle,
-    topContainerStyle,
-    showBottomContainer,
-    scrollHandler,
-  } = useAnimatedBottomControls();
+  const {bottomContainerStyle, topContainerStyle, showBottomContainer} =
+    useAnimatedBottomControls();
+
+  useEffect(() => {
+    if (!showControls) {
+      // Use timeout to first fade out before reset
+      setTimeout(() => (showBottomContainer.value = false), 200);
+    }
+  }, [showControls]);
 
   const timerControl = false ? (
     <NullControl />
@@ -112,8 +118,8 @@ export default function BottomControls({
     <Animated.View
       style={[
         _styles.bottom,
-        // animations.controlsOpacity,
-        // animations.bottomControl,
+        animations.controlsOpacity,
+        animations.bottomControl,
       ]}>
       <Animated.View style={topContainerStyle}>
         <View>
@@ -128,6 +134,7 @@ export default function BottomControls({
           {/*  /!*<Title title={title} />*!/*/}
           {/*</SafeAreaView>*/}
           <SafeAreaView style={styles.seekBarContainer}>
+            {timerControl}
             <TVFocusGuideView autoFocus>{seekbarControl}</TVFocusGuideView>
           </SafeAreaView>
         </ImageBackground>

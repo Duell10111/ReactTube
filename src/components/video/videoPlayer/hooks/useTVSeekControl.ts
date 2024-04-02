@@ -12,6 +12,8 @@ interface TVSeekControlProps {
   clearControlTimeout: () => void;
   setSeekerPosition: (position: number) => void;
   setSeeking: Dispatch<SetStateAction<boolean>>;
+  pause: boolean;
+  setPause: Dispatch<SetStateAction<boolean>>;
 }
 
 export default function useTVSeekControl({
@@ -23,13 +25,13 @@ export default function useTVSeekControl({
   seekerPosition,
   seekerWidth,
   setSeekerPosition,
+  pause,
+  setPause,
   enabled,
 }: TVSeekControlProps) {
   const longPressInterval = useRef<NodeJS.Timer>();
   const seekerPos = useRef<number>();
   const [pressStartTime, setPressStartTime] = useState(null);
-
-  console.log("Seeker Position: ", seekerPosition);
 
   useEffect(() => {
     return () => {
@@ -85,6 +87,9 @@ export default function useTVSeekControl({
   };
 
   useTVEventHandler(event => {
+    if (event.eventType === "playPause") {
+      setPause(!pause);
+    }
     if (!enabled) {
       longPressInterval.current && clearInterval(longPressInterval.current);
       return;

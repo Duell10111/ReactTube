@@ -150,8 +150,8 @@ export default function VideoScreen({route, navigation}: Props) {
           }}
           metadata={{
             title: YTVideoInfo.title,
-            author: YTVideoInfo.channel.name,
-            authorUrl: YTVideoInfo.channel.url,
+            author: YTVideoInfo.channel?.name,
+            authorUrl: YTVideoInfo.channel?.url,
             views: YTVideoInfo.short_views,
             videoDate: YTVideoInfo.publishDate,
           }}

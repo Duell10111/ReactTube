@@ -1,6 +1,6 @@
 import {forwardRef, useImperativeHandle, useRef} from "react";
 import {StyleSheet} from "react-native";
-import Video, {VideoRef} from "react-native-video";
+import Video, {ResizeMode, VideoRef} from "react-native-video";
 
 import {
   VideoComponentRefType,
@@ -48,7 +48,8 @@ const VideoPlayerNative = forwardRef<
       onProgress={props.onProgress}
       onEnd={props.onEnd}
       controls={false}
-      muted
+      resizeMode={ResizeMode.CONTAIN}
+      // muted
       repeat
     />
   );

@@ -1,5 +1,5 @@
 import React, {ReactNode} from "react";
-import {StyleSheet, Text} from "react-native";
+import {StyleSheet, Text, View} from "react-native";
 
 import {Control} from "./Control";
 
@@ -17,13 +17,9 @@ export const Timer = ({
   showControls,
 }: TimerProps) => {
   return (
-    <Control
-      callback={toggleTimer}
-      resetControlTimeout={resetControlTimeout}
-      style={styles.timer}
-      disabled={!showControls}>
+    <View style={styles.timer}>
       <Text style={styles.timerText}>{children}</Text>
-    </Control>
+    </View>
   );
 };
 
