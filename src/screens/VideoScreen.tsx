@@ -16,6 +16,7 @@ import HorizontalVideoList from "../components/HorizontalVideoList";
 import VideoComponent from "../components/VideoComponent";
 import ErrorComponent from "../components/general/ErrorComponent";
 import EndCard from "../components/video/EndCard";
+import VideoEndCard from "../components/video/VideoEndCard";
 import VideoPlayerNative from "../components/video/VideoPlayerNative";
 import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
 import VideoPlayer from "../components/video/videoPlayer/VideoPlayer";
@@ -62,9 +63,15 @@ export default function VideoScreen({route, navigation}: Props) {
     });
   }, [navigation]);
 
+  // TODO: Add Endcard as additional Modal on top of VideoPlayer?
+
   const longClickCount = useRef(0);
   useTVEventHandler(event => {
     LOGGER.debug("TV Event: ", event.eventType);
+    // Skip on own overlay enabled!
+    if (appSettings.ownOverlayEnabled) {
+      return;
+    }
     if (event.eventType === "longDown" || event.eventType === "longSelect") {
       longClickCount.current = longClickCount.current + 1;
       // Workaround as Modal Close Events are not correctly reported by RN TVOS
@@ -155,6 +162,10 @@ export default function VideoScreen({route, navigation}: Props) {
             views: YTVideoInfo.short_views,
             videoDate: YTVideoInfo.publishDate,
           }}
+          onEnd={() => {
+            setEnded(true);
+            setShowEndCard(true);
+          }}
           bottomContainer={
             <View>
               {YTVideoInfo.playlist ? (
@@ -177,6 +188,11 @@ export default function VideoScreen({route, navigation}: Props) {
                 textStyle={styles.text}
               />
             </View>
+          }
+          endCardContainer={
+            YTVideoInfo.endscreen ? (
+              <VideoEndCard endcard={YTVideoInfo.endscreen} />
+            ) : null
           }
         />
       ) : (

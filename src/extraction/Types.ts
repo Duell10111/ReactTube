@@ -80,6 +80,7 @@ export interface YTVideoInfo {
   };
   liked?: boolean;
   disliked?: boolean;
+  endscreen?: YTEndscreen;
 }
 
 export interface YTChapter {
@@ -95,6 +96,27 @@ export interface YTChannel {
   id: string;
   title?: string;
   description?: string;
+}
+
+export interface YTEndscreen {
+  originalData: YTNodes.Endscreen;
+  startDuration: number;
+  elements: YTEndscreenElement[];
+}
+
+export interface YTEndscreenElement {
+  originalData: YTNodes.EndscreenElement;
+  id: string;
+  style: "VIDEO" | "PLAYLIST" | "CHANNEL";
+  startDuration: number;
+  endDuration: number;
+  title?: string;
+  left: number;
+  top: number;
+  width: number;
+  aspect_ratio: number;
+  navEndpoint: YTNodes.NavigationEndpoint;
+  thumbnailImage: Thumbnail;
 }
 
 export function getAuthor(author: Misc.Author) {

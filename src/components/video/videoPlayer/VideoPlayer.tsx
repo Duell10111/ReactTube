@@ -8,7 +8,7 @@ import React, {
   useState,
 } from "react";
 import {useTVEventHandler, View} from "react-native";
-import Video, {
+import {
   OnLoadData,
   OnPlaybackData,
   OnProgressData,
@@ -17,6 +17,7 @@ import Video, {
 } from "react-native-video";
 
 import BottomControls from "./BottomControls";
+import EndCardContainer from "./EndCardContainer";
 import {useAnimations} from "./hooks/useAnimations";
 import {useControlTimeout} from "./hooks/useControlTimeout";
 import useTVSeekControl from "./hooks/useTVSeekControl";
@@ -57,12 +58,17 @@ interface VideoPlayerProps<T> {
   VideoComponentProps: T;
   bottomContainer?: React.ReactNode;
   metadata: VideoMetadata;
+  endCardContainer: React.ReactNode;
   // Callbacks
   onAuthorClick?: () => void;
+  onEnd?: () => void;
 }
 
 const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
-  ({VideoComponent, bottomContainer, ...props}, ref) => {
+  (
+    {VideoComponent, bottomContainer, endCardContainer, onEnd, ...props},
+    ref,
+  ) => {
     const animations = useAnimations(450);
 
     const mounted = useRef(false);
@@ -84,6 +90,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     const [currentTime, setCurrentTime] = useState(0);
 
     const [showControls, setShowControls] = useState(true);
+    const [showEndcard, setShowEndcard] = useState(false);
 
     const [loading, setLoading] = useState(true);
     const [duration, setDuration] = useState(0);
@@ -154,14 +161,14 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         //     setShowControls(!props.repeat);
         //   }
       }
-      //
-      // if (typeof onEnd === "function") {
-      //   onEnd();
-      // }
+
+      if (typeof onEnd === "function") {
+        onEnd();
+      }
     };
 
     useEffect(() => {
-      if (showControls && !loading) {
+      if (showControls && !loading && !showEndcard) {
         animations.showControlAnimation();
         setControlTimeout();
         // typeof events.onShowControls === 'function' && events.onShowControls();
@@ -171,7 +178,13 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         // typeof events.onHideControls === 'function' && events.onHideControls();
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showControls, loading]);
+    }, [showControls, loading, showEndcard]);
+
+    useEffect(() => {
+      animations.showEndCard.value = showEndcard;
+    }, [showEndcard]);
+
+    //TODO: Add support for back event to dismiss EndCard/Controls
 
     useTVEventHandler(event => {
       switch (event.eventType) {
@@ -183,6 +196,9 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         // TODO: Special treatment for long-buttons (Pause timeout until seconds event)
         case "longLeft":
         case "longRight":
+          if (showEndcard) {
+            return;
+          }
           if (!showControls) {
             setShowControls(true);
             resetControlTimeout();
@@ -192,8 +208,17 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
             setControlTimeout();
           }
           break;
+        case "longUp":
+          setShowEndcard(true);
+          break;
+        case "longDown":
+          setShowEndcard(false);
+          break;
       }
     });
+
+    console.log("Endcard: ", showEndcard);
+    console.log("Endcard Ani ", animations.showEndCard.value);
 
     // const events = {
     //   onError: onError || _onError,
@@ -292,6 +317,11 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           // @ts-ignore
           ref={_videoRef}
         />
+        {endCardContainer ? (
+          <EndCardContainer showEndCard={animations.showEndCard}>
+            {endCardContainer}
+          </EndCardContainer>
+        ) : null}
         <>
           <BottomControls
             animations={animations}

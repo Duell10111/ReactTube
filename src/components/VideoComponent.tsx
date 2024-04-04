@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ViewStyle,
 } from "react-native";
-import Video, {ResizeMode, VideoRef} from "react-native-video";
+import Video, {OnProgressData, ResizeMode, VideoRef} from "react-native-video";
 
 import {YTChapter, YTVideoInfo} from "../extraction/Types";
 import Logger from "../utils/Logger";
@@ -31,6 +31,7 @@ interface Props {
   controls?: boolean;
   repeat?: boolean;
   resizeMode?: ResizeMode;
+  onProgress?: (data: OnProgressData) => void;
 }
 
 export default function VideoComponent({
@@ -113,6 +114,7 @@ export default function VideoComponent({
             height: data?.naturalSize?.height,
           });
         }}
+        onProgress={callbacks.onProgress}
         onLoadStart={() => LOGGER.debug("Video Start Loading...")}
         onError={(error: any) => {
           LOGGER.warn(error);

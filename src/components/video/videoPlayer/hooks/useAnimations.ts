@@ -8,6 +8,7 @@ export const useAnimations = (controlAnimationTiming: number) => {
   const bottomControlMarginBottom = useSharedValue(0);
   const opacity = useSharedValue(1);
   const topControlMarginTop = useSharedValue(0);
+  const showEndCard = useSharedValue(false);
 
   const bottomControl = useAnimatedStyle(() => {
     return {
@@ -51,6 +52,7 @@ export const useAnimations = (controlAnimationTiming: number) => {
     opacity.value = withTiming(1, {
       duration: controlAnimationTiming,
     });
+    showEndCard.value = false;
   };
 
   const animations = {
@@ -60,6 +62,7 @@ export const useAnimations = (controlAnimationTiming: number) => {
     hideControlAnimation,
     showControlAnimation,
     AnimatedView: Animated.View,
+    showEndCard,
   };
 
   return animations;

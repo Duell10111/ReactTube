@@ -2,7 +2,13 @@ import _ from "lodash";
 
 import {getVideoData} from "./ElementData";
 import {getThumbnail} from "./Misc";
-import {YTChannel, YTChapter, YTVideoInfo} from "./Types";
+import {
+  YTChannel,
+  YTChapter,
+  YTEndscreen,
+  YTEndscreenElement,
+  YTVideoInfo,
+} from "./Types";
 import {YT, YTNodes} from "../utils/Youtube";
 
 export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
@@ -35,7 +41,42 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     playlist: parseVideoInfoPlaylist(videoInfo),
     liked: videoInfo.basic_info.is_liked,
     disliked: videoInfo.basic_info.is_disliked,
+    endscreen: parseEndScreen(videoInfo.endscreen),
   } as YTVideoInfo;
+}
+
+function parseEndScreen(endScreen: YTNodes.Endscreen) {
+  if (!endScreen) {
+    return undefined;
+  }
+  return {
+    originalData: endScreen,
+    startDuration: parseInt(endScreen.start_ms, 10) / 1000,
+    elements: endScreen.elements.map(parseEndScreenElements),
+  } as YTEndscreen;
+}
+
+function parseEndScreenElements(element: YTNodes.EndscreenElement) {
+  console.log("EndScreen: ", JSON.stringify(element));
+
+  const thumbnail = element.image
+    .map(getThumbnail)
+    .find(thumb => !thumb.url.endsWith("webp")); // Do not use webp for iOS!;
+
+  return {
+    originalData: element,
+    id: element.id,
+    startDuration: element.start_ms / 1000,
+    endDuration: element.end_ms / 1000,
+    aspect_ratio: element.aspect_ratio,
+    width: element.width,
+    left: element.left,
+    top: element.top,
+    title: element.title.text,
+    navEndpoint: element.endpoint,
+    style: element.style,
+    thumbnailImage: thumbnail,
+  } as YTEndscreenElement;
 }
 
 function parseVideoInfoPlaylist(videoInfo: YT.VideoInfo) {
