@@ -43,6 +43,7 @@ interface BottomControlsProps {
 
   // Metadata
   metadata: VideoMetadata;
+  resolution?: string;
   onAuthorClick: () => void;
 }
 
@@ -65,6 +66,7 @@ export default function BottomControls({
   duration,
   bottomContainer,
   metadata,
+  resolution,
 }: BottomControlsProps) {
   const {bottomContainerStyle, topContainerStyle, showBottomContainer} =
     useAnimatedBottomControls();
@@ -123,7 +125,7 @@ export default function BottomControls({
       ]}>
       <Animated.View style={topContainerStyle}>
         <View>
-          <MetadataContainer metadata={metadata} />
+          <MetadataContainer metadata={metadata} resolution={resolution} />
         </View>
         <ImageBackground
           source={require("../../../../assets/videoPlayer/bottom-vignette.png")}

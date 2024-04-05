@@ -101,6 +101,8 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     const [loading, setLoading] = useState(true);
     const [duration, setDuration] = useState(0);
 
+    const [resolution, setResolution] = useState<string>();
+
     const constrainToSeekerMinMax = useCallback(
       (val = 0) => {
         if (val <= 0) {
@@ -131,6 +133,8 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         setControlTimeout();
       }
 
+      setResolution(`${data.naturalSize.height}p`);
+
       // if (typeof onLoad === 'function') {
       //   onLoad(data);
       // }
@@ -145,6 +149,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         //   onProgress(data);
         // }
       }
+      // setResolution()
     }
 
     const _onSeek = (data: OnSeekData) => {
@@ -355,6 +360,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
             showDuration
             bottomContainer={bottomContainer}
             metadata={props.metadata}
+            resolution={resolution}
             showControls={showControls}
           />
         </>

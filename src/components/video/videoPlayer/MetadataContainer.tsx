@@ -4,9 +4,13 @@ import {VideoMetadata} from "./VideoPlayer";
 
 interface MetadataContainerProps {
   metadata: VideoMetadata;
+  resolution?: string;
 }
 
-export default function MetadataContainer({metadata}: MetadataContainerProps) {
+export default function MetadataContainer({
+  metadata,
+  resolution,
+}: MetadataContainerProps) {
   return (
     <View style={styles.container}>
       <View style={styles.titleMetadata}>
@@ -16,7 +20,7 @@ export default function MetadataContainer({metadata}: MetadataContainerProps) {
         <Text
           style={
             styles.author
-          }>{`${metadata.author} ○ ${metadata.views} ○ ${metadata.videoDate}`}</Text>
+          }>{`${metadata.author} ○ ${metadata.views} ○ ${metadata.videoDate}${resolution ? ` ○ ${resolution}` : ""}`}</Text>
       </View>
 
       {/*TODO: Add Author,Pro and Contra Section*/}
