@@ -7,7 +7,12 @@ import {
   StyleSheet,
   ViewStyle,
 } from "react-native";
-import Video, {OnProgressData, ResizeMode, VideoRef} from "react-native-video";
+import Video, {
+  Chapters,
+  OnProgressData,
+  ResizeMode,
+  VideoRef,
+} from "react-native-video";
 
 import {YTChapter, YTVideoInfo} from "../extraction/Types";
 import Logger from "../utils/Logger";
@@ -154,5 +159,5 @@ function mapChapters(chapter: YTChapter) {
     title: chapter.title,
     startTime: chapter.startDuration,
     endTime: chapter.endDuration,
-  };
+  } as Chapters;
 }

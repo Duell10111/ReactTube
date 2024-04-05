@@ -1,9 +1,8 @@
 import React, {
-  ComponentPropsWithoutRef,
-  ComponentPropsWithRef,
   forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
 } from "react";
@@ -22,6 +21,7 @@ import {useAnimations} from "./hooks/useAnimations";
 import {useControlTimeout} from "./hooks/useControlTimeout";
 import useTVSeekControl from "./hooks/useTVSeekControl";
 import {usePanResponders} from "./usePanResponders";
+import {useSponsorBlock} from "../../../utils/SponsorBlockProvider";
 
 export interface VideoMetadata {
   title: string;
@@ -48,7 +48,9 @@ export interface VideoComponentRefType {
   seek: (seconds: number) => void;
 }
 
-interface VideoPlayerRefs {}
+export interface VideoPlayerRefs {
+  seek: (seconds: number) => void;
+}
 
 interface VideoPlayerProps<T> {
   VideoComponent: typeof React.Component<
@@ -62,6 +64,10 @@ interface VideoPlayerProps<T> {
   // Callbacks
   onAuthorClick?: () => void;
   onEnd?: () => void;
+
+  // Custom Props
+  // Used by Sponsor block only
+  videoID: string;
 }
 
 const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
@@ -217,8 +223,8 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       }
     });
 
-    console.log("Endcard: ", showEndcard);
-    console.log("Endcard Ani ", animations.showEndCard.value);
+    // console.log("Endcard: ", showEndcard);
+    // console.log("Endcard Ani ", animations.showEndCard.value);
 
     // const events = {
     //   onError: onError || _onError,
@@ -302,6 +308,18 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentTime, duration, seekerWidth, setSeekerPosition]);
+
+    useImperativeHandle(
+      ref,
+      () => {
+        return {
+          seek: seconds => _videoRef.current?.seek(seconds),
+        };
+      },
+      [],
+    );
+
+    useSponsorBlock(props.videoID, currentTime, _videoRef.current?.seek);
 
     return (
       // TODO: Adapt style?

@@ -27,10 +27,10 @@ export default function VideoEndCard({
   const {showEndCard, containerStyle} = useAnimation();
   const [show, setShow] = useState(false);
 
-  console.log("Start Duration: ", endcard.startDuration);
-  console.log("Current Time: ", currentTime);
-  console.log("Show Endcard", showEndCard.value);
-  console.log("Show", show);
+  // console.log("Start Duration: ", endcard.startDuration);
+  // console.log("Current Time: ", currentTime);
+  // console.log("Show Endcard", showEndCard.value);
+  // console.log("Show", show);
 
   useEffect(() => {
     if (currentTime && endcard.startDuration <= currentTime) {

@@ -19,7 +19,9 @@ import EndCard from "../components/video/EndCard";
 import VideoEndCard from "../components/video/VideoEndCard";
 import VideoPlayerNative from "../components/video/VideoPlayerNative";
 import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
-import VideoPlayer from "../components/video/videoPlayer/VideoPlayer";
+import VideoPlayer, {
+  VideoPlayerRefs,
+} from "../components/video/videoPlayer/VideoPlayer";
 import {useAppData} from "../context/AppDataContext";
 import {parseObservedArray} from "../extraction/ArrayExtraction";
 import useChannelDetails from "../hooks/useChannelDetails";
@@ -105,6 +107,8 @@ export default function VideoScreen({route, navigation}: Props) {
     [YTVideoInfo?.originalData?.watch_next_feed],
   );
 
+  const videoPlayerRef = useRef<VideoPlayerRefs>();
+
   if (!YTVideoInfo) {
     return (
       <View
@@ -146,6 +150,7 @@ export default function VideoScreen({route, navigation}: Props) {
         />
       ) : appSettings.ownOverlayEnabled ? (
         <VideoPlayer
+          ref={videoPlayerRef}
           VideoComponent={VideoPlayerNative}
           VideoComponentProps={{
             url: videoUrl,
@@ -157,11 +162,12 @@ export default function VideoScreen({route, navigation}: Props) {
           }}
           metadata={{
             title: YTVideoInfo.title,
-            author: YTVideoInfo.channel?.name,
-            authorUrl: YTVideoInfo.channel?.url,
+            author: YTVideoInfo.author?.name,
+            authorUrl: YTVideoInfo.author?.id,
             views: YTVideoInfo.short_views,
             videoDate: YTVideoInfo.publishDate,
           }}
+          videoID={YTVideoInfo.id}
           onEnd={() => {
             setEnded(true);
             setShowEndCard(true);

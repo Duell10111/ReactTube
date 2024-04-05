@@ -42,6 +42,8 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     liked: videoInfo.basic_info.is_liked,
     disliked: videoInfo.basic_info.is_disliked,
     endscreen: parseEndScreen(videoInfo.endscreen),
+    // TODO: Adapt author to only contain name
+    author: {name: videoInfo.basic_info.author},
   } as YTVideoInfo;
 }
 

@@ -50,7 +50,7 @@ const VideoPlayerNative = forwardRef<
       controls={false}
       resizeMode={ResizeMode.CONTAIN}
       // muted
-      repeat
+      // repeat
     />
   );
 });
