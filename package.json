@@ -16,6 +16,7 @@
     "event-target-polyfill": "^0.0.3",
     "events": "^3.3.0",
     "expo": "^50.0.6",
+    "expo-build-properties": "~0.11.1",
     "expo-splash-screen": "~0.26.3",
     "expo-status-bar": "~1.11.1",
     "fast-text-encoding": "^1.0.6",
@@ -43,7 +44,7 @@
     "react-native-vector-icons": "^9.2.0",
     "react-native-video": "6.0.0-rc.0",
     "react-native-vlc-media-player": "^1.0.61",
-    "rn-native-search-bar": "^1.0.0-beta.9",
+    "rn-native-search-bar": "^1.0.0-beta.10",
     "stream-browserify": "^3.0.0",
     "web-streams-polyfill": "^3.2.1",
     "youtubei.js": "9.4.0"
