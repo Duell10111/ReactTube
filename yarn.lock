@@ -2649,10 +2649,10 @@
   dependencies:
     getenv "^1.0.0"
 
-"@react-native-tvos/virtualized-lists@0.73.6-1":
-  version "0.73.6-1"
-  resolved "https://registry.yarnpkg.com/@react-native-tvos/virtualized-lists/-/virtualized-lists-0.73.6-1.tgz#895576d640abd4ce3f19b389e2012e770bf40a4d"
-  integrity sha512-QHgv+ig6y2zcymNKNgHbXUFta+hxnKJYgVlWlqY+Yh0N1xKEe63zn/2Oivrz2BESrLr7nfAiCzrO6RUtTFCJXw==
+"@react-native-tvos/virtualized-lists@0.73.6-3":
+  version "0.73.6-3"
+  resolved "https://registry.yarnpkg.com/@react-native-tvos/virtualized-lists/-/virtualized-lists-0.73.6-3.tgz#43242732dff09cb0defd4fe5f04414edd359ad26"
+  integrity sha512-CvZh4qiJWYEP4KOUMwmqPjy8Wg4jcnCSecrutDIBqR8Hg4BXmoX4gv5L1EZD99kxau1mNXIG52YzCPhXmMWjIw==
   dependencies:
     invariant "^2.2.4"
     nullthrows "^1.1.1"
@@ -8147,10 +8147,10 @@ react-native-vector-icons@^9.2.0:
     prop-types "^15.7.2"
     yargs "^16.1.1"
 
-react-native-video@6.0.0-beta.6:
-  version "6.0.0-beta.6"
-  resolved "https://registry.yarnpkg.com/react-native-video/-/react-native-video-6.0.0-beta.6.tgz#6529f44b779d85f3fa1ac6a70dc81716701ee792"
-  integrity sha512-uVfDfZ8N7mL1wdeN7/6GTSYhVXk3k2LLBlKaSJznwxtLx+yDxfGuNNRsYzkjHyvtz9XUswy+16pdHPaebV4hHA==
+react-native-video@6.0.0-rc.0:
+  version "6.0.0-rc.0"
+  resolved "https://registry.yarnpkg.com/react-native-video/-/react-native-video-6.0.0-rc.0.tgz#b21f2776178b099d44a008c604ed0cd83e9b3daa"
+  integrity sha512-X8x3dJZYAhYR7dpg8RciHJXawhVkqrhwFWMrHGagFV6+pRLVfkErOShf4jzPt9i/fIBJjdKtFgeJY2jgqnCjgA==
 
 react-native-vlc-media-player@^1.0.61:
   version "1.0.61"
@@ -8160,16 +8160,16 @@ react-native-vlc-media-player@^1.0.61:
     react-native-slider "^0.11.0"
     react-native-vector-icons "^9.2.0"
 
-"react-native@npm:react-native-tvos@^0.73.6-1":
-  version "0.73.6-1"
-  resolved "https://registry.yarnpkg.com/react-native-tvos/-/react-native-tvos-0.73.6-1.tgz#0594ebfe0ad5db366243fc6b33d8427b9813dff0"
-  integrity sha512-FI7j4OObG+R8SJO+wZ1/cn9sozqyavPjJz/N0nonOfcjKf4JgtmGpnDFEksXAWGsmzIDFLbErcXHbKeZRYSaEg==
+"react-native@npm:react-native-tvos@^0.73.6-3":
+  version "0.73.6-3"
+  resolved "https://registry.yarnpkg.com/react-native-tvos/-/react-native-tvos-0.73.6-3.tgz#8b50ea844e2c856d443f21152d67f539269d786c"
+  integrity sha512-EyGEOfyYiDwKvefKzm9Dth9Lm4tWRyyBqJfV6qRecvUYGJdkruaBNrouAlPoLGmDte9MVCXvdv9UoNbvHfo9Jg==
   dependencies:
     "@jest/create-cache-key-function" "^29.6.3"
     "@react-native-community/cli" "12.3.6"
     "@react-native-community/cli-platform-android" "12.3.6"
     "@react-native-community/cli-platform-ios" "12.3.6"
-    "@react-native-tvos/virtualized-lists" "0.73.6-1"
+    "@react-native-tvos/virtualized-lists" "0.73.6-3"
     "@react-native/assets-registry" "0.73.1"
     "@react-native/codegen" "0.73.3"
     "@react-native/community-cli-plugin" "0.73.17"
@@ -9816,10 +9816,10 @@ yocto-queue@^0.1.0:
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
 
-youtubei.js@9.1.0:
-  version "9.1.0"
-  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-9.1.0.tgz#bcf154c9fa21d3c8c1d00a5e10360d0a065c660e"
-  integrity sha512-C5GBJ4LgnS6vGAUkdIdQNOFFb5EZ1p3xBvUELNXmIG3Idr6vxWrKNBNy8ClZT3SuDVXaAJqDgF9b5jvY8lNKcg==
+youtubei.js@9.4.0:
+  version "9.4.0"
+  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-9.4.0.tgz#ccccaf4a295b96e3e17134a66730bbc82461594b"
+  integrity sha512-8plCOZD2WabqWSEgZU3RjzigIIeR7sF028EERJENYrC9xO/6awpLMZfeoE1gNrNEbKcA+bzbMvonqlvBdxGdKg==
   dependencies:
     jintr "^1.1.0"
     tslib "^2.5.0"
