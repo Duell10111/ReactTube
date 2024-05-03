@@ -1,8 +1,8 @@
 import {CompositeScreenProps} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {CheckBox, Icon} from "@rneui/base";
-import React, {useEffect} from "react";
-import {Platform, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {Icon} from "@rneui/base";
+import React, {useCallback, useEffect} from "react";
+import {Platform, StyleSheet, Text, View} from "react-native";
 
 import SettingsItem, {
   SettingsButton,
@@ -22,7 +22,7 @@ type Props = CompositeScreenProps<
 >;
 
 export default function SettingsScreen({navigation}: Props) {
-  const {appSettings, updateSettings} = useAppData();
+  const {appSettings} = useAppData();
   const {logout, clearAllData} = useAccountData();
 
   useEffect(() => {
@@ -40,30 +40,41 @@ export default function SettingsScreen({navigation}: Props) {
     }
   }, [navigation]);
 
+  const navigate = useCallback<(typeof navigation)["navigate"]>(
+    (args: any) => {
+      if (Platform.isTV) {
+        return navigation.navigate(args);
+      } else {
+        // @ts-ignore
+        return navigation.navigate("SettingsScreen", {screen: args});
+      }
+    },
+    [navigation],
+  );
+
   return (
     <View style={styles.containerStyle}>
-      <Text>{"Settings"}</Text>
-      <SettingsSection>
+      <SettingsSection sectionTitle={"General"}>
         <SettingsItem
           icon={"globe"}
           iconBackground={"#fe9400"}
           label={"Language"}
           value={parseLanguage(appSettings).label}
-          onPress={() => navigation.navigate("LanguageSelector")}
+          onPress={() => navigate("LanguageSelector")}
         />
         <SettingsItem
           icon={"globe"}
           iconBackground={"blue"}
           label={"Video player"}
           value={parsePlayerType(appSettings).label}
-          onPress={() => navigation.navigate("PlayerSelector")}
+          onPress={() => navigate("PlayerSelector")}
         />
         <SettingsItem
           icon={"globe"}
           iconBackground={"#f5d132"}
           label={"Video resolution variant"}
           value={parsePlayerResolution(appSettings).label}
-          onPress={() => navigation.navigate("PlayerResolutionSelector")}
+          onPress={() => navigate("PlayerResolutionSelector")}
         />
         <SettingsButton label={"Clear all"} onPress={() => clearAllData()} />
         <SettingsButton label={"Logout"} onPress={() => logout()} />

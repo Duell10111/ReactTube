@@ -17,7 +17,7 @@ const Stack = createNativeStackNavigator<SettingsStackParamList>();
 
 export default function SettingsNavigator() {
   return (
-    <Stack.Navigator screenOptions={{headerShown: !Platform.isTV}}>
+    <Stack.Navigator screenOptions={{headerShown: false}}>
       <Stack.Screen name={"Root"} component={SettingsScreen} />
       <Stack.Screen
         name={"LanguageSelector"}
