@@ -1,12 +1,12 @@
 import React, {Dispatch, SetStateAction, useEffect} from "react";
 import {
-  GestureResponderHandlers,
   ImageBackground,
+  PanResponderInstance,
   StyleSheet,
   TVFocusGuideView,
   View,
 } from "react-native";
-import Animated, {withDelay, withTiming} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import {SafeAreaView} from "react-native-safe-area-context";
 
 import BottomContainer from "./BottomContainer";
@@ -22,7 +22,7 @@ import {calculateTime} from "./utils";
 
 interface BottomControlsProps {
   animations: ReturnType<typeof useAnimations>;
-  panHandlers: GestureResponderHandlers;
+  panHandlers: PanResponderInstance;
   seekColor: string;
   resetControlTimeout: () => void;
   seekerFillWidth: number;

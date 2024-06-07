@@ -9,7 +9,6 @@ import React, {
 import {useTVEventHandler, View} from "react-native";
 import {
   OnLoadData,
-  OnPlaybackData,
   OnProgressData,
   OnSeekData,
   OnVideoErrorData,
@@ -346,6 +345,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           </EndCardContainer>
         ) : null}
         <>
+          {/* @ts-ignore Ignore missing props for the moment */}
           <BottomControls
             animations={animations}
             resetControlTimeout={resetControlTimeout}

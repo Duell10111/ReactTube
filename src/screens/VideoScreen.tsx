@@ -151,6 +151,7 @@ export default function VideoScreen({route, navigation}: Props) {
       ) : appSettings.ownOverlayEnabled ? (
         <VideoPlayer
           ref={videoPlayerRef}
+          // @ts-ignore
           VideoComponent={VideoPlayerNative}
           VideoComponentProps={{
             url: videoUrl,

@@ -1,6 +1,7 @@
 import {Dispatch, SetStateAction} from "react";
 import {
   GestureResponderHandlers,
+  PanResponderInstance,
   StyleSheet,
   TouchableHighlight,
   TouchableOpacity,
@@ -11,7 +12,7 @@ interface SeekbarProps {
   seekerFillWidth: number;
   seekerPosition: number;
   seekColor: string;
-  seekerPanHandlers: GestureResponderHandlers;
+  seekerPanHandlers: PanResponderInstance;
   setSeekerWidth: Dispatch<SetStateAction<number>>;
   onFocus?: () => void;
   onBlur?: () => void;
