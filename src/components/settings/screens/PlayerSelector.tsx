@@ -16,7 +16,7 @@ const playerTypes: {[key: string]: PlayerType} = {
   },
   nativeOverlay: {
     key: "nativeOverlay",
-    label: "Native Overlay",
+    label: "Native Overlay (Alpha)",
   },
   vlc: {
     key: "vlc",
