@@ -2642,17 +2642,17 @@
     prompts "^2.4.2"
     semver "^7.5.2"
 
-"@react-native-tvos/config-tv@~0.0.5":
+"@react-native-tvos/config-tv@0.0.6":
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/@react-native-tvos/config-tv/-/config-tv-0.0.6.tgz#edce6008820895cb2455c9729184cf4297d9fd08"
   integrity sha512-xBt2G8LA9of/rrHdfJFIPTeCdEg+sR2XLW+pT1FxtXkW5ifVkua95upO83HmbdfNeZeDoAmjjhEQ4kCZOXmsDQ==
   dependencies:
     getenv "^1.0.0"
 
-"@react-native-tvos/virtualized-lists@0.73.6-3":
-  version "0.73.6-3"
-  resolved "https://registry.yarnpkg.com/@react-native-tvos/virtualized-lists/-/virtualized-lists-0.73.6-3.tgz#43242732dff09cb0defd4fe5f04414edd359ad26"
-  integrity sha512-CvZh4qiJWYEP4KOUMwmqPjy8Wg4jcnCSecrutDIBqR8Hg4BXmoX4gv5L1EZD99kxau1mNXIG52YzCPhXmMWjIw==
+"@react-native-tvos/virtualized-lists@0.73.7-1":
+  version "0.73.7-1"
+  resolved "https://registry.yarnpkg.com/@react-native-tvos/virtualized-lists/-/virtualized-lists-0.73.7-1.tgz#4d01e94ecb82c66c97ba16e9d32e5cef4ea833ef"
+  integrity sha512-RFFM2UxF3kIM5QCUtLIMoXYv76q8UeOcwK7OUoUMktg3GLQtMx3J50veljVRgUHMPVFUrdPrup820T6ygbhQ6w==
   dependencies:
     invariant "^2.2.4"
     nullthrows "^1.1.1"
@@ -2959,12 +2959,12 @@
   resolved "https://registry.yarnpkg.com/@types/json5/-/json5-0.0.29.tgz#ee28707ae94e11d2b827bcbe5270bcea7f3e71ee"
   integrity sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==
 
-"@types/lodash@^4.14.202":
-  version "4.14.202"
-  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.202.tgz#f09dbd2fb082d507178b2f2a5c7e74bd72ff98f8"
-  integrity sha512-OvlIYQK9tNneDlS0VN54LLd5uiPCBOp7gS5Z0f1mjoJYBrtStzgmJBxONW3U6OZqdtNzZPmn9BS/7WI7BFFcFQ==
+"@types/lodash@^4.17.4":
+  version "4.17.4"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.17.4.tgz#0303b64958ee070059e3a7184048a55159fe20b7"
+  integrity sha512-wYCP26ZLxaT3R39kiN2+HcJ4kTd3U1waI/cY7ivWYqFP6pW3ZNpvi6Wd6PHZx7T/t8z0vlkXMg3QYLa7DZ/IJQ==
 
-"@types/luxon@^3.3.0":
+"@types/luxon@^3.4.2":
   version "3.4.2"
   resolved "https://registry.yarnpkg.com/@types/luxon/-/luxon-3.4.2.tgz#e4fc7214a420173cea47739c33cdf10874694db7"
   integrity sha512-TifLZlFudklWlMBfhubvgqTXRzLDI5pCbGa4P8a3wPyUQSW+1xQ5eDsreP9DWHX3tjq1ke96uYG/nwundroWcA==
@@ -6776,7 +6776,7 @@ lru-cache@^6.0.0:
   dependencies:
     yallist "^4.0.0"
 
-luxon@^3.3.0:
+luxon@^3.4.4:
   version "3.4.4"
   resolved "https://registry.yarnpkg.com/luxon/-/luxon-3.4.4.tgz#cf20dc27dc532ba41a169c43fdcc0063601577af"
   integrity sha512-zobTr7akeGHnv7eBOXcRgMeCP6+uyYsczwmeRCauvpvaAltgNyTbLH/+VaEAPUeWBT+1GuNmz4wC/6jtQzbbVA==
@@ -8170,10 +8170,10 @@ react-native-vector-icons@^9.2.0:
     prop-types "^15.7.2"
     yargs "^16.1.1"
 
-react-native-video@6.0.0-rc.0:
-  version "6.0.0-rc.0"
-  resolved "https://registry.yarnpkg.com/react-native-video/-/react-native-video-6.0.0-rc.0.tgz#b21f2776178b099d44a008c604ed0cd83e9b3daa"
-  integrity sha512-X8x3dJZYAhYR7dpg8RciHJXawhVkqrhwFWMrHGagFV6+pRLVfkErOShf4jzPt9i/fIBJjdKtFgeJY2jgqnCjgA==
+react-native-video@6.2.0:
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/react-native-video/-/react-native-video-6.2.0.tgz#4a22dd836ee3992383992cd9fb561d52fc69d2ec"
+  integrity sha512-7TWKGBkKrwR9V+SI6NB9YWWDZbto3fpT/02s8RnrFEac0h5aEJYe6NqTmz3TcFmIRSNepg2UsEvWGKNpWn4sCA==
 
 react-native-vlc-media-player@^1.0.61:
   version "1.0.61"
@@ -8183,16 +8183,16 @@ react-native-vlc-media-player@^1.0.61:
     react-native-slider "^0.11.0"
     react-native-vector-icons "^9.2.0"
 
-"react-native@npm:react-native-tvos@^0.73.6-3":
-  version "0.73.6-3"
-  resolved "https://registry.yarnpkg.com/react-native-tvos/-/react-native-tvos-0.73.6-3.tgz#8b50ea844e2c856d443f21152d67f539269d786c"
-  integrity sha512-EyGEOfyYiDwKvefKzm9Dth9Lm4tWRyyBqJfV6qRecvUYGJdkruaBNrouAlPoLGmDte9MVCXvdv9UoNbvHfo9Jg==
+"react-native@npm:react-native-tvos@^0.73.7-1":
+  version "0.73.7-1"
+  resolved "https://registry.yarnpkg.com/react-native-tvos/-/react-native-tvos-0.73.7-1.tgz#737172bb74eb2b773441754b8f0a8123f3bbb27e"
+  integrity sha512-CJ5CBffybkTmZdSFca8Q3GWbOq2gTxQ7kgX7PK8Q+EJYbAyF9/N2zi1UBEso1cWqUsKEfOTEyRbILFAxCZ1s8Q==
   dependencies:
     "@jest/create-cache-key-function" "^29.6.3"
     "@react-native-community/cli" "12.3.6"
     "@react-native-community/cli-platform-android" "12.3.6"
     "@react-native-community/cli-platform-ios" "12.3.6"
-    "@react-native-tvos/virtualized-lists" "0.73.6-3"
+    "@react-native-tvos/virtualized-lists" "0.73.7-1"
     "@react-native/assets-registry" "0.73.1"
     "@react-native/codegen" "0.73.3"
     "@react-native/community-cli-plugin" "0.73.17"

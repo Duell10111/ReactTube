@@ -92,11 +92,12 @@ export default function VideoComponent({
           // type: "mpd",
           // uri: `http://localhost:7500/video/${videoId}/master.m3u8`,
           uri: hlsUrl ?? url,
-          // @ts-ignore Own version
-          title: videoInfo?.title,
-          subtitle: videoInfo?.author?.name,
-          description: videoInfo?.description,
-          customImageUri: videoInfo?.thumbnailImage?.url,
+          metadata: {
+            title: videoInfo?.title,
+            subtitle: videoInfo?.author?.name,
+            description: videoInfo?.description,
+            imageUri: videoInfo?.thumbnailImage?.url,
+          },
         }}
         style={
           (style as any) ?? [styles.fullScreen, StyleSheet.absoluteFillObject]
