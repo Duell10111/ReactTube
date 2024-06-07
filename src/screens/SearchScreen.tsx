@@ -46,8 +46,8 @@ export default function SearchScreen() {
     }
   };
 
-  console.log("Searchtext: ", searchText);
-  console.log("Hints: ", hints);
+  // console.log("Searchtext: ", searchText);
+  // console.log("Hints: ", hints);
 
   if (Platform.isTV) {
     // eslint-disable-next-line react-hooks/rules-of-hooks

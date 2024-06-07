@@ -1,21 +1,33 @@
-import React, {useEffect, useMemo, useState} from "react";
-import VideoComponent from "../components/VideoComponent";
+import {useFocusEffect} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {RootStackParamList} from "../navigation/RootStackNavigator";
+import {Icon} from "@rneui/base";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import {
   ActivityIndicator,
   StyleSheet,
   View,
   useTVEventHandler,
   TVEventControl,
+  ScrollView,
+  Text,
 } from "react-native";
-import useVideoDetails from "../hooks/useVideoDetails";
-import EndCard from "../components/video/EndCard";
-import LOGGER from "../utils/Logger";
-import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
-import {useAppData} from "../context/AppDataContext";
+
+import HorizontalVideoList from "../components/HorizontalVideoList";
+import VideoComponent from "../components/VideoComponent";
 import ErrorComponent from "../components/general/ErrorComponent";
-import {useFocusEffect} from "@react-navigation/native";
+import EndCard from "../components/video/EndCard";
+import VideoEndCard from "../components/video/VideoEndCard";
+import VideoPlayerNative from "../components/video/VideoPlayerNative";
+import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
+import VideoPlayer, {
+  VideoPlayerRefs,
+} from "../components/video/videoPlayer/VideoPlayer";
+import {useAppData} from "../context/AppDataContext";
+import {parseObservedArray} from "../extraction/ArrayExtraction";
+import useChannelDetails from "../hooks/useChannelDetails";
+import useVideoDetails from "../hooks/useVideoDetails";
+import {RootStackParamList} from "../navigation/RootStackNavigator";
+import LOGGER from "../utils/Logger";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -53,11 +65,27 @@ export default function VideoScreen({route, navigation}: Props) {
     });
   }, [navigation]);
 
+  // TODO: Add Endcard as additional Modal on top of VideoPlayer?
+
+  const longClickCount = useRef(0);
   useTVEventHandler(event => {
     LOGGER.debug("TV Event: ", event.eventType);
+    // Skip on own overlay enabled!
+    if (appSettings.ownOverlayEnabled) {
+      return;
+    }
     if (event.eventType === "longDown" || event.eventType === "longSelect") {
-      setEnded(false);
-      setShowEndCard(true);
+      longClickCount.current = longClickCount.current + 1;
+      // Workaround as Modal Close Events are not correctly reported by RN TVOS
+      if (longClickCount.current % 2 === 0) {
+        longClickCount.current = 0;
+        if (showEndCard) {
+          setShowEndCard(false);
+        } else {
+          setEnded(false);
+          setShowEndCard(true);
+        }
+      }
     }
   });
 
@@ -70,6 +98,16 @@ export default function VideoScreen({route, navigation}: Props) {
     () => hlsManifestUrl ?? httpVideoURL,
     [hlsManifestUrl, httpVideoURL],
   );
+
+  const watchNextList = useMemo(
+    () =>
+      YTVideoInfo?.originalData?.watch_next_feed
+        ? parseObservedArray(YTVideoInfo.originalData.watch_next_feed)
+        : [],
+    [YTVideoInfo?.originalData?.watch_next_feed],
+  );
+
+  const videoPlayerRef = useRef<VideoPlayerRefs>();
 
   if (!YTVideoInfo) {
     return (
@@ -96,6 +134,7 @@ export default function VideoScreen({route, navigation}: Props) {
       />
     );
   }
+
   return (
     <View style={[StyleSheet.absoluteFill]}>
       {appSettings.vlcEnabled ? (
@@ -108,6 +147,60 @@ export default function VideoScreen({route, navigation}: Props) {
             setShowEndCard(true);
           }}
           disableControls={showEndCard}
+        />
+      ) : appSettings.ownOverlayEnabled ? (
+        <VideoPlayer
+          ref={videoPlayerRef}
+          // @ts-ignore
+          VideoComponent={VideoPlayerNative}
+          VideoComponentProps={{
+            url: videoUrl,
+            hlsUrl,
+            videoInfo: YTVideoInfo.originalData,
+            onPlaybackInfoUpdate: infos => {
+              setPlaybackInfos({resolution: infos.height.toString() + "p"});
+            },
+          }}
+          metadata={{
+            title: YTVideoInfo.title,
+            author: YTVideoInfo.author?.name,
+            authorUrl: YTVideoInfo.author?.id,
+            views: YTVideoInfo.short_views,
+            videoDate: YTVideoInfo.publishDate,
+          }}
+          videoID={YTVideoInfo.id}
+          onEnd={() => {
+            setEnded(true);
+            setShowEndCard(true);
+          }}
+          bottomContainer={
+            <View>
+              {YTVideoInfo.playlist ? (
+                <>
+                  <View style={styles.bottomPlaylistTextContainer}>
+                    <Icon name={"book"} color={"white"} />
+                    <Text style={styles.bottomPlaylistText}>
+                      {YTVideoInfo.playlist.title}
+                    </Text>
+                  </View>
+                  <HorizontalVideoList
+                    nodes={YTVideoInfo.playlist.content}
+                    textStyle={styles.text}
+                  />
+                </>
+              ) : null}
+              <Text style={styles.bottomText}>{"Related Videos"}</Text>
+              <HorizontalVideoList
+                nodes={watchNextList}
+                textStyle={styles.text}
+              />
+            </View>
+          }
+          endCardContainer={
+            YTVideoInfo.endscreen ? (
+              <VideoEndCard endcard={YTVideoInfo.endscreen} />
+            ) : null
+          }
         />
       ) : (
         <VideoComponent
@@ -136,3 +229,62 @@ export default function VideoScreen({route, navigation}: Props) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  touchContainer: {
+    backgroundColor: "#11111199",
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  videoInfoContainer: {
+    backgroundColor: "#111111cc",
+    paddingStart: 20,
+    flexDirection: "row",
+  },
+  channelContainer: {
+    alignItems: "center",
+  },
+  channelText: {
+    fontSize: 17,
+  },
+  videoContainer: {
+    marginStart: 10,
+    justifyContent: "center",
+  },
+  videoTitle: {
+    fontSize: 25,
+  },
+  viewsText: {
+    alignSelf: "flex-start",
+  },
+  text: {
+    color: "white",
+  },
+  nextVideoContainer: {
+    flex: 1,
+  },
+  bottomContainer: {
+    width: "100%",
+    minHeight: "40%",
+    maxHeight: "50%",
+    backgroundColor: "#111111cc",
+    justifyContent: "center",
+    paddingTop: 20,
+  },
+  bottomText: {
+    fontSize: 20,
+    paddingStart: 20,
+    color: "white",
+    paddingBottom: 15,
+  },
+  bottomPlaylistTextContainer: {
+    flexDirection: "row",
+    paddingStart: 20,
+    paddingBottom: 15,
+  },
+  bottomPlaylistText: {
+    fontSize: 20,
+    color: "white",
+    paddingStart: 10,
+  },
+});

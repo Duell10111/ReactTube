@@ -7,6 +7,7 @@ const settingsKey = "appSettings";
 
 export interface AppSettings {
   vlcEnabled?: boolean;
+  ownOverlayEnabled?: boolean;
   hlsEnabled?: boolean;
   localHlsEnabled?: boolean;
   languageSelected?: string;

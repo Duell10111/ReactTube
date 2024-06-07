@@ -79,7 +79,12 @@ export default function RootStackNavigator() {
             component={SubscriptionScreen}
           />
           <Stack.Screen name={"HistoryScreen"} component={HistoryScreen} />
-          <Stack.Screen name={"SettingsScreen"} component={SettingsNavigator} />
+          <Stack.Screen
+            name={"SettingsScreen"}
+            component={SettingsNavigator}
+            // Hotfix for ugly title set title per Screen manually on Phones/Tablets?
+            options={{headerTitle: "Settings"}}
+          />
           <Stack.Screen name={"LoginScreen"} component={LoginScreen} />
         </>
       )}
