@@ -7,12 +7,14 @@ import HomeScreen from "../screens/HomeScreen";
 import LibraryScreen from "../screens/LibraryScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
+import {DownloadScreen} from "../screens/phone/DownloadScreen";
 
 export type RootBottomTabParamList = {
   HomeFeed: undefined;
   SearchScreen: undefined;
   Subscriptions: undefined;
   Library: undefined;
+  Download: undefined;
   Settings: undefined;
 };
 
@@ -56,6 +58,7 @@ export default function BottomTabBarNavigator() {
           <Tab.Screen name={"Library"} component={LibraryScreen} />
         </>
       ) : null}
+      <Tab.Screen name={"Download"} component={DownloadScreen} />
       <Tab.Screen
         name={"Settings"}
         // @ts-ignore

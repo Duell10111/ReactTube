@@ -22,4 +22,12 @@ if (process.env?.EXPO_TV === '1') {
 }
  */
 
+config.resolver.sourceExts.unshift(
+  ...config.resolver.sourceExts.map(e => `tv.${e}`),
+);
+
+config.resolver.sourceExts.push("sql");
+
+console.log(config.resolver.sourceExts);
+
 module.exports = config;

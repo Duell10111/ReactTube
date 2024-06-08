@@ -1,5 +1,8 @@
+import BottomSheet from "@gorhom/bottom-sheet";
+import {useIsFocused} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {RootStackParamList} from "../../navigation/RootStackNavigator";
+import {Icon} from "@rneui/base";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -7,29 +10,28 @@ import {
   Text,
   View,
 } from "react-native";
-import VideoComponent from "../../components/VideoComponent";
-import useVideoDetails from "../../hooks/useVideoDetails";
-import React, {useEffect, useMemo, useRef, useState} from "react";
-import ErrorComponent from "../../components/general/ErrorComponent";
-import VerticalVideoList from "../../components/VerticalVideoList";
-import {parseObservedArray} from "../../extraction/ArrayExtraction";
-import ChannelIcon from "../../components/video/ChannelIcon";
-import {useAppStyle} from "../../context/AppStyleContext";
+import DeviceInfo from "react-native-device-info";
 import Orientation, {
   ALL_ORIENTATIONS_BUT_UPSIDE_DOWN,
   OrientationLocker,
   useOrientationChange,
 } from "react-native-orientation-locker";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {useIsFocused} from "@react-navigation/native";
-import DeviceInfo from "react-native-device-info";
+
 import GridView from "../../components/GridView";
-import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
+import VerticalVideoList from "../../components/VerticalVideoList";
+import VideoComponent from "../../components/VideoComponent";
+import ErrorComponent from "../../components/general/ErrorComponent";
+import ChannelIcon from "../../components/video/ChannelIcon";
 import PlaylistBottomSheet from "../../components/video/playlistBottomSheet/PlaylistBottomSheet";
 import PlaylistBottomSheetContainer from "../../components/video/playlistBottomSheet/PlaylistBottomSheetContainer";
-import BottomSheet from "@gorhom/bottom-sheet";
-import {Icon} from "@rneui/base";
+import {useAppStyle} from "../../context/AppStyleContext";
+import {useDownloaderContext} from "../../context/DownloaderContext";
+import {parseObservedArray} from "../../extraction/ArrayExtraction";
 import {YTVideoInfo as YTVideoInfoType} from "../../extraction/Types";
+import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
+import useVideoDetails from "../../hooks/useVideoDetails";
+import {RootStackParamList} from "../../navigation/RootStackNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -47,9 +49,7 @@ export default function VideoScreen({route, navigation}: Props) {
 
   const {style} = useAppStyle();
 
-  const [showEndCard, setShowEndCard] = useState(false);
-  // TODO: Workaround maybe replace with two components
-  const [ended, setEnded] = useState(false);
+  const {download} = useDownloaderContext();
 
   const videoUrl = useMemo(
     () => hlsManifestUrl ?? httpVideoURL,
@@ -163,6 +163,15 @@ export default function VideoScreen({route, navigation}: Props) {
           reverse
           size={15}
           onPress={() => (actionData?.disliked ? removeRating() : dislike())}
+        />
+        <Icon
+          name={"download"}
+          type={"antdesign"}
+          // color={actionData?.disliked ? "blue" : undefined}
+          raised
+          reverse
+          size={15}
+          onPress={() => download(actionData.id)}
         />
       </View>
     </View>
