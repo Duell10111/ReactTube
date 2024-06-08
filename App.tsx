@@ -14,6 +14,7 @@ import {SafeAreaProvider} from "react-native-safe-area-context";
 import AccountContextProvider from "./src/context/AccountContext";
 import AppDataContextProvider from "./src/context/AppDataContext";
 import AppStyleProvider from "./src/context/AppStyleContext";
+import {DownloaderContext} from "./src/context/DownloaderContext";
 import YoutubeContextProvider from "./src/context/YoutubeContext";
 import Navigation from "./src/navigation/Navigation";
 import BackgroundWrapper from "./src/utils/BackgroundWrapper";
@@ -34,14 +35,16 @@ const App = () => {
           <AppDataContextProvider>
             <YoutubeContextProvider>
               <AccountContextProvider>
-                <StatusBar
-                  // TODO: Currently only dark-mode exists
-                  barStyle={isDarkMode ? "light-content" : "light-content"}
-                />
-                <SafeAreaProvider>
-                  <Navigation />
-                  <FlashMessage position={"top"} />
-                </SafeAreaProvider>
+                <DownloaderContext>
+                  <StatusBar
+                    // TODO: Currently only dark-mode exists
+                    barStyle={isDarkMode ? "light-content" : "light-content"}
+                  />
+                  <SafeAreaProvider>
+                    <Navigation />
+                    <FlashMessage position={"top"} />
+                  </SafeAreaProvider>
+                </DownloaderContext>
               </AccountContextProvider>
             </YoutubeContextProvider>
           </AppDataContextProvider>
