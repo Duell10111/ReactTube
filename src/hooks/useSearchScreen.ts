@@ -30,7 +30,7 @@ export default function useSearchScreen() {
         return;
       }
       // Clear results on empty query
-      if (query.length == 0) {
+      if (query.length === 0) {
         dispatch(undefined);
         return;
       }
@@ -39,7 +39,7 @@ export default function useSearchScreen() {
         dispatch(undefined);
         dispatch(result.results);
       } else {
-        LOGGER.debug("Np results available");
+        LOGGER.debug("No results available");
       }
       setSearchData(result);
     },
