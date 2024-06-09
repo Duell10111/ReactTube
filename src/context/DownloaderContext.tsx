@@ -1,9 +1,13 @@
-import {createContext, ReactNode, useContext} from "react";
+import {createContext, MutableRefObject, ReactNode, useContext} from "react";
 import {Platform} from "react-native";
 
-import useDownloadProcessor from "../hooks/downloader/useDownloadProcessor";
+import {useMigration} from "../downloader/DownloadDatabaseOperations";
+import useDownloadProcessor, {
+  DownloadRef,
+} from "../hooks/downloader/useDownloadProcessor";
 
 interface DownloaderContextValue {
+  currentDownloads: MutableRefObject<DownloadRef>;
   download: (id: string) => void;
 }
 
@@ -19,9 +23,19 @@ export function DownloaderContext({children}: DownloaderContextProps) {
   }
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const {download} = useDownloadProcessor();
+  const {downloadRefs, download} = useDownloadProcessor();
 
-  return <downloaderContext.Provider value={{download}} children={children} />;
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const {success, error} = useMigration();
+  console.log("Success: ", success);
+  console.log("Error: ", error);
+
+  return (
+    <downloaderContext.Provider
+      value={{download, currentDownloads: downloadRefs}}
+      children={children}
+    />
+  );
 }
 
 export function useDownloaderContext() {
