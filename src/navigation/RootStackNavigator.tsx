@@ -16,6 +16,8 @@ import PlaylistScreen from "../screens/PlaylistScreen";
 import SearchScreen from "../screens/SearchScreen";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
 import VideoScreen from "../screens/VideoScreen";
+import {ActiveDownloadScreen} from "../screens/phone/ActiveDownloadScreen";
+import {DownloadPlayer} from "../screens/phone/DownloadPlayer";
 import VideoScreenWrapper from "../screens/phone/VideoScreenWrapper";
 import {YTNodes} from "../utils/Youtube";
 
@@ -34,6 +36,9 @@ export type RootStackParamList = {
   HistoryScreen: undefined;
   SettingsScreen: undefined;
   LoginScreen: undefined;
+  // Downloads
+  ActiveDownloadScreen: undefined;
+  DownloadPlayer: {id: string};
 };
 
 export type RootNavProp = NativeStackNavigationProp<RootStackParamList>;
@@ -86,6 +91,17 @@ export default function RootStackNavigator() {
             options={{headerTitle: "Settings"}}
           />
           <Stack.Screen name={"LoginScreen"} component={LoginScreen} />
+          {/* Download Screens*/}
+          <Stack.Screen
+            name={"ActiveDownloadScreen"}
+            component={ActiveDownloadScreen}
+            options={{headerTitle: "Active Downloads"}}
+          />
+          <Stack.Screen
+            name={"DownloadPlayer"}
+            component={DownloadPlayer}
+            options={{headerTitle: "Download Player"}}
+          />
         </>
       )}
     </Stack.Navigator>

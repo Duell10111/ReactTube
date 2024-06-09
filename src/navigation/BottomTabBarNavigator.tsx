@@ -38,6 +38,8 @@ export default function BottomTabBarNavigator() {
             );
           } else if (route.name === "Library") {
             iconName = "library-outline";
+          } else if (route.name === "Download") {
+            iconName = "download";
           }
 
           // You can return any component that you like here!
@@ -58,7 +60,11 @@ export default function BottomTabBarNavigator() {
           <Tab.Screen name={"Library"} component={LibraryScreen} />
         </>
       ) : null}
-      <Tab.Screen name={"Download"} component={DownloadScreen} />
+      <Tab.Screen
+        name={"Download"}
+        component={DownloadScreen}
+        options={{title: "Downloads"}}
+      />
       <Tab.Screen
         name={"Settings"}
         // @ts-ignore
