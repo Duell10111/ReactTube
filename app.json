@@ -36,6 +36,27 @@
             "topShelfWide2x": "./assets/images/tv/app_store_icon_topshelf.png"
           }
         }
+      ],
+      [
+        "widget-watchos-expo-plugin",
+        {
+          "targets": [
+            {
+              "type": "watch",
+              "name": "watch",
+              "bundleId": "com.duell10111.reacttube.watch",
+              "displayName": "reacttube",
+              "companionAppBundleId": "com.duell10111.reacttube",
+              "sourceDir": "watch",
+              "sourceFiles": ["watchApp.swift", "DBData.swift", "SessionSync.swift", "MusikPlayer.swift"],
+              "entitlementsFile": "watch.entitlements",
+              "frameworks": ["SwiftUI.framework"],
+              "buildConfigOverrides": {
+                "WATCHOS_DEPLOYMENT_TARGET": "10.0"
+              }
+            }
+          ]
+        }
       ]
     ],
     "name": "reacttube",
