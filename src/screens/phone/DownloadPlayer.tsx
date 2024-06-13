@@ -5,6 +5,7 @@ import {StyleSheet, View} from "react-native";
 
 import Button from "../../components/general/Button";
 import {useVideo} from "../../downloader/DownloadDatabaseOperations";
+import {getAbsoluteVideoURL} from "../../hooks/downloader/useDownloadProcessor";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DownloadPlayer">;
@@ -16,7 +17,7 @@ export function DownloadPlayer({route}: Props) {
   async function playSound() {
     console.log("Loading Sound");
     const {sound} = await Audio.Sound.createAsync({
-      uri: video.fileUrl,
+      uri: getAbsoluteVideoURL(video.fileUrl),
     });
     setSound(sound);
 

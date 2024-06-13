@@ -1,7 +1,8 @@
-import {sqliteTable, text, integer, uniqueIndex} from "drizzle-orm/sqlite-core";
+import {sqliteTable, text, integer} from "drizzle-orm/sqlite-core";
 
 export const videos = sqliteTable("video", {
   id: text("id").primaryKey(),
+  duration: integer("duration"),
   name: text("name"),
   fileUrl: text("fileUrl").notNull(),
   playlistId: text("playlist_id").references(() => playlists.id),

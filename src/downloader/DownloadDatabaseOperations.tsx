@@ -2,7 +2,6 @@ import {eq} from "drizzle-orm";
 import {drizzle, useLiveQuery} from "drizzle-orm/expo-sqlite";
 import {useMigrations} from "drizzle-orm/expo-sqlite/migrator";
 import {openDatabaseSync} from "expo-sqlite/next";
-import {values} from "lodash";
 import {useEffect, useState} from "react";
 
 import migrations from "./drizzle/migrations";
@@ -73,12 +72,29 @@ export function usePlaylistVideos(id: string) {
 export async function insertVideo(
   id: string,
   name: string,
+  duration: number,
   dirURL: string,
   playlistID?: string,
 ) {
   await db
     .insert(schema.videos)
-    .values({id, name, fileUrl: dirURL, playlistId: playlistID})
+    .values({
+      id,
+      name,
+      fileUrl: dirURL,
+      playlistId: playlistID,
+      duration,
+    })
+    .onConflictDoUpdate({
+      target: schema.videos.id,
+      set: {
+        id,
+        name,
+        fileUrl: dirURL,
+        playlistId: playlistID,
+        duration,
+      },
+    })
     .execute();
 
   console.log("Inserted video");

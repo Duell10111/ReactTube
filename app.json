@@ -48,7 +48,8 @@
               "displayName": "reacttube",
               "companionAppBundleId": "com.duell10111.reacttube",
               "sourceDir": "watch",
-              "sourceFiles": ["watchApp.swift", "DBData.swift", "SessionSync.swift", "MusikPlayer.swift"],
+              "sourceFiles": ["watchApp.swift", "DBData.swift", "DBUtils.swift", "SessionSync.swift",
+                "PlaylistView.swift", "MusicPlayerView.swift", "DataController.swift"],
               "entitlementsFile": "watch.entitlements",
               "frameworks": ["SwiftUI.framework"],
               "buildConfigOverrides": {
