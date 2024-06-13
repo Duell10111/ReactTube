@@ -5,10 +5,12 @@ import {useMigration} from "../downloader/DownloadDatabaseOperations";
 import useDownloadProcessor, {
   DownloadRef,
 } from "../hooks/downloader/useDownloadProcessor";
+import useWatchSync from "../hooks/watchSync/useWatchSync.ios";
 
 interface DownloaderContextValue {
   currentDownloads: MutableRefObject<DownloadRef>;
   download: (id: string) => void;
+  uploadToWatch: (id: string) => void;
 }
 
 const downloaderContext = createContext<DownloaderContextValue>({});
@@ -30,9 +32,12 @@ export function DownloaderContext({children}: DownloaderContextProps) {
   console.log("Success: ", success);
   console.log("Error: ", error);
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const {upload} = useWatchSync();
+
   return (
     <downloaderContext.Provider
-      value={{download, currentDownloads: downloadRefs}}
+      value={{download, currentDownloads: downloadRefs, uploadToWatch: upload}}
       children={children}
     />
   );

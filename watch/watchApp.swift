@@ -1,9 +1,11 @@
 import SwiftUI
-
+import SwiftData
 
 struct ContentView: View {
     var body: some View {
-        MusikPlayer()
+      NavigationStack {
+        MusicPlayerView()
+      }
     }
 }
 
@@ -13,8 +15,7 @@ struct watchApp: App {
     let session = SessionSyncStruct.shared
     var body: some Scene {
         WindowGroup {
-          ContentView()
-//            .modelContainer(DataController.shared.container)
+          ContentView().modelContainer(DataController.shared.container)
         }
     }
 }

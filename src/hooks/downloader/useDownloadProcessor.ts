@@ -1,5 +1,5 @@
 import * as FileSystem from "expo-file-system";
-import {useRef, useState} from "react";
+import {useRef} from "react";
 
 import {useYoutubeContext} from "../../context/YoutubeContext";
 import {insertVideo} from "../../downloader/DownloadDatabaseOperations";
@@ -8,7 +8,7 @@ import Logger from "../../utils/Logger";
 
 const downloadDir = FileSystem.documentDirectory + "downloads/";
 
-const videoDir = downloadDir + "videos/";
+export const videoDir = downloadDir + "videos/";
 
 const LOGGER = Logger.extend("DOWNLOADER");
 
@@ -42,9 +42,15 @@ export default function useDownloadProcessor() {
         );
       }).then(value => {
         downloadRefs.current[id] = value;
+        LOGGER.debug(`FileURL: ${value.fileURL}`);
         value.download.downloadAsync().then(async result => {
           LOGGER.debug(`Video downloaded to ${result.uri}`);
-          await insertVideo(id, info.title, result.uri);
+          await insertVideo(
+            id,
+            info.title,
+            format.approx_duration_ms,
+            value.fileURL,
+          );
           LOGGER.debug("Insert downloaded video");
           delete downloadRefs.current[id];
         });
@@ -53,6 +59,10 @@ export default function useDownloadProcessor() {
   };
 
   return {downloadRefs, download};
+}
+
+export function getAbsoluteVideoURL(url: string) {
+  return videoDir + url;
 }
 
 async function ensureDirExists(directory = downloadDir) {
@@ -92,7 +102,7 @@ async function downloadVideo(
   return {
     id,
     download,
-    fileURL,
+    fileURL: fileURL.split(videoDir)[1],
     process: 0,
   } as DownloadObject;
 }
