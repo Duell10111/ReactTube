@@ -1,5 +1,4 @@
-import {Helpers, YTNodes} from "../utils/Youtube";
-import Logger from "../utils/Logger";
+import {getThumbnail} from "./Misc";
 import {
   ChannelData,
   ElementData,
@@ -7,7 +6,8 @@ import {
   PlaylistData,
   VideoData,
 } from "./Types";
-import {getThumbnail} from "./Misc";
+import Logger from "../utils/Logger";
+import {Helpers, YTNodes} from "../utils/Youtube";
 
 // TODO: Add ChannelData
 
@@ -103,6 +103,16 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
       duration: ytNode.duration.text,
     } as VideoData;
+  } else if (ytNode.is(YTNodes.MusicResponsiveListItem)) {
+    return {
+      type: "video",
+      originalNode: ytNode,
+      id: ytNode.id,
+      navEndpoint: ytNode.endpoint,
+      title: ytNode.title.toString(),
+      thumbnailImage: getThumbnail(ytNode.thumbnail.contents[0]),
+      duration: ytNode.duration.text,
+    } as VideoData;
   }
   // Playlist Data
   else if (ytNode.is(YTNodes.GridPlaylist)) {
@@ -152,7 +162,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       type: "channel",
       originalNode: ytNode,
       id: ytNode.id,
-      author: author,
+      author,
       title: author.name,
       thumbnailImage: author.thumbnail,
     } as ChannelData;

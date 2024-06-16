@@ -13,11 +13,7 @@ struct MusicPlayerView: View {
     @State private var player: AVQueuePlayer?
     @State private var currentTrackIndex = 0
     @State private var playerItems: [AVPlayerItem] = []
-    @State private var playlist: [URL] = [
-        URL(string: "https://file-examples.com/storage/fe3cb26995666504a8d6180/2017/11/file_example_MP3_700KB.mp3")!,
-        URL(string: "https://file-examples.com/storage/fe3cb26995666504a8d6180/2017/11/file_example_MP3_700KB.mp3")!,
-        URL(string: "https://file-examples.com/storage/fe3cb26995666504a8d6180/2017/11/file_example_MP3_700KB.mp3")!
-    ]
+    var playlist: [Video] = []
     @State private var currentTitle: String = "Unknown Title"
     @State private var currentCover: UIImage? = nil
 
@@ -74,21 +70,34 @@ struct MusicPlayerView: View {
                 }.frame(width: 50, height: 50)
             }
         }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                  NavigationLink(destination: PlaylistView(playlist: $playlist, currentTrackIndex: $currentTrackIndex)) {
-                    
-                      Label("Playlist", systemImage: "music.note.list")
-                    }
-                }
-            }
+//            .toolbar {
+//                ToolbarItem(placement: .topBarTrailing) {
+//                  NavigationLink(destination: PlaylistView(playlist: $playlist, currentTrackIndex: $currentTrackIndex)) {
+//                    
+//                      Label("Playlist", systemImage: "music.note.list")
+//                    }
+//                }
+//            }
         .onAppear {
             self.setupPlayer()
         }
     }
 
     func setupPlayer() {
-        playerItems = playlist.map { AVPlayerItem(url: $0) }
+        // Set up AVAudioSession for background audio playback
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Failed to set up AVAudioSession: \(error)")
+        }
+      
+        playerItems = playlist.compactMap { p in
+          if let sURL = p.streamURL, let uri = URL(string: sURL) {
+            return AVPlayerItem(url: uri)
+          }
+          return nil
+        }
         player = AVQueuePlayer(items: [playerItems[currentTrackIndex]])
 
         NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: nil, queue: .main) { notification in

@@ -8,7 +8,50 @@
 import Foundation
 import SwiftData
 
-func addDownloadData(_ modelContext: ModelContext, id: String, title: String?, downloaded: Bool? = nil, fileURL: String? = nil) {
+func getDocumentsDirectory() -> URL {
+    let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+    let documentsDirectory = paths[0]
+    return documentsDirectory
+}
+
+func getDownloadDirectory() -> URL {
+  let downloadsDir = getDocumentsDirectory().appending(path: "downloads")
+  return downloadsDir
+}
+
+func getDownloadVideoDirectory(id: String) -> URL {
+  let downloadsDir = getDownloadDirectory().appending(path: id)
+  return downloadsDir
+}
+
+func createDirectoryIfNotExisting(path: URL) -> Bool {
+  do {
+    try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
+    return true
+  } catch {
+    print("Error creating directory at \(path) - \(error)") 
+  }
+  return false
+}
+
+func saveDownloadFile(id: String, filePath: URL) -> Bool {
+  let downloadDir = getDownloadVideoDirectory(id: id)
+  let created = createDirectoryIfNotExisting(path: downloadDir)
+  
+  let destinationURL = downloadDir.appending(path: "/audio\(filePath.pathExtension)")
+  
+  if created {
+    do {
+      try FileManager.default.moveItem(at: filePath, to: destinationURL)
+      return true
+    } catch {
+      print("Error moving download from \(filePath) to \(destinationURL) - \(error)")
+    }
+  }
+  return false
+}
+
+func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, downloaded: Bool? = nil, duration: Int? = nil, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil) {
   
   do {
     let descriptor = FetchDescriptor<Video>(
@@ -16,20 +59,115 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String?, d
         )
     let contents = try modelContext.fetch(descriptor)
     
-    if(!contents.isEmpty) {
-      
-    } else {
-      let video = Video(id: id, title: title, downloaded: downloaded ?? false)
-      
-      if let fURL = fileURL {
-        video.fileURL = fURL
-      }
-      
+    let existingEntry = !contents.isEmpty
+    
+    let video = contents.first ?? Video(id: id, title: title, downloaded: downloaded ?? false)
+    
+    if let d = downloaded {
+      video.downloaded = d
+    }
+    if let fURL = fileURL {
+      video.fileURL = fURL
+    }
+//    if let d = duration {
+//      video.
+//    }
+    if let vUntil = validUntil, let sURL = streamURL {
+      video.validUntil = vUntil
+      video.streamURL = streamURL
+    }
+    
+    if let cURL = coverURL {
+      video.coverURL = cURL
+    }
+    
+    if !existingEntry {
       modelContext.insert(video)
+    }
+    
+    // Check if playlist needs video
+    
+    let playlistDescriptor = FetchDescriptor<Playlist>(
+      predicate: #Predicate { $0.videoIDs.contains(where: { s in
+        s == id
+      }) }
+    )
+    
+    let playlists = try modelContext.fetch(playlistDescriptor)
+    
+    playlists.forEach { playlist in
+      if !playlist.videos.contains(where: { v in
+        v.id == id
+      }) {
+        playlist.videos.append(video)
+      }
     }
     
     
   } catch {
     print("Error inserting Download Data: \(error)")
+  }
+}
+
+func addPlaylistData(_ modelContext: ModelContext, id: String, title: String? = nil, videoIds: [String]?, coverURL: String? = nil) {
+  
+  do {
+    let descriptor = FetchDescriptor<Playlist>(
+          predicate: #Predicate { $0.id == id }
+        )
+    let contents = try modelContext.fetch(descriptor)
+    
+    let existingEntry = !contents.isEmpty
+    
+    let playlist = contents.first ?? Playlist(id: id, title: title)
+    
+    if let ids = videoIds {
+      let descriptor = FetchDescriptor<Video>(
+        predicate: #Predicate { ids.contains($0.id) }
+          )
+      let videos = try modelContext.fetch(descriptor)
+      
+      print("VideoIds found for playlist: ", videos)
+      
+      playlist.videoIDs = ids
+      playlist.videos = videos
+    }
+    
+    if let cURL = coverURL {
+      playlist.coverURL = cURL
+    }
+    
+    if !existingEntry {
+      modelContext.insert(playlist)
+    }
+  } catch {
+    print("Error inserting Download Data: \(error)")
+  }
+}
+
+func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
+  if backupFile.videos.isEmpty {
+    print("No Videos available")
+    return
+  }
+  let newFormatter = ISO8601DateFormatter()
+  newFormatter.formatOptions = [
+    .withInternetDateTime,
+    .withFullDate,
+    .withFractionalSeconds
+  ]
+  // TODO: Delete all files as well?
+  clearDatabase(modelContext: modelContext)
+  backupFile.videos.forEach { video in
+    let v = Video(id: video.id, title: video.title, downloaded: false)
+    modelContext.insert(v)
+  }
+}
+
+func clearDatabase(modelContext: ModelContext) {
+  do {
+      try modelContext.delete(model: Video.self)
+  } catch {
+      print("Failed to clear all Video and Playlist data.")
   }
 }

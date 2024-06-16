@@ -3,10 +3,12 @@ import _ from "lodash";
 import {getVideoData} from "./ElementData";
 import {getThumbnail} from "./Misc";
 import {
+  getAuthor,
   YTChannel,
   YTChapter,
   YTEndscreen,
   YTEndscreenElement,
+  YTPlaylist,
   YTVideoInfo,
 } from "./Types";
 import {YT, YTNodes} from "../utils/Youtube";
@@ -158,4 +160,15 @@ export function getElementDataFromYTChannel(channel: YT.Channel) {
     title: channel.title,
     description: channel.metadata.description,
   } as YTChannel;
+}
+
+// YT.Playlist
+
+export function getElementDataFromYTPlaylist(playlist: YT.Playlist) {
+  return {
+    originalData: playlist,
+    title: playlist.info.title,
+    thumbnailImage: getThumbnail(playlist.info.thumbnails[0]),
+    author: getAuthor(playlist.info.author),
+  } as YTPlaylist;
 }

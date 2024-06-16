@@ -1,0 +1,77 @@
+//
+//  MusikPlayer.swift
+//  watch
+//
+//  Created by Konstantin Späth on 13.06.24.
+//
+
+import SwiftUI
+
+struct MusikPlayer: View {
+    @EnvironmentObject var musicManager: MusicPlayerManager
+    private var currentCover: URL? = URL(string: "https://i.ytimg.com/vi/0nsawcTwebQ/maxresdefault.jpg")
+  
+    var body: some View {
+        VStack {
+          if let cover = musicManager.currentCover {
+              AsyncImage(url: cover) { image in
+                image
+                  .resizable()
+                  .scaledToFit()
+              } placeholder: {
+                  Color.gray
+              }
+                  .frame(width: 100, height: 100)
+                  .cornerRadius(8)
+                  .padding()
+          } else {
+              Image(systemName: "music.note")
+                  .resizable()
+                  .scaledToFit()
+                  .frame(width: 100, height: 100)
+                  .cornerRadius(8)
+                  .padding()
+          }
+
+          Text(musicManager.currentTitle)
+            .font(.footnote)
+            .padding()
+
+          HStack {
+              Button(action: {
+                  musicManager.previousTrack()
+              }) {
+                  Image(systemName: "backward.fill")
+                      .resizable()
+                      .frame(width: 30, height: 30)
+              }.frame(width: 50, height: 50)
+
+              Button(action: {
+                  if musicManager.isPlaying {
+                      musicManager.pauseMusic()
+                  } else {
+                      musicManager.playMusic()
+                  }
+              }) {
+                Image(systemName: musicManager.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                      .resizable()
+                      .frame(width: 50, height: 50)
+              }
+              .frame(width: 50, height: 50)
+
+              Button(action: {
+                  musicManager.nextTrack()
+              }) {
+                  Image(systemName: "forward.fill")
+                      .resizable()
+                      .frame(width: 30, height: 30)
+              }.frame(width: 50, height: 50)
+          }
+      }
+    }
+}
+
+#Preview {
+  MusikPlayer()
+    .environmentObject(MusicPlayerManager.shared)
+}

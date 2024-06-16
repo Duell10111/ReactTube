@@ -6,12 +6,15 @@ import {
 import {getFileTransfers} from "@duell10111/react-native-watch-connectivity/build/files";
 import {useEffect} from "react";
 
+import {handleWatchMessage} from "./WatchYoutubeAPI";
+import {useYoutubeContext} from "../../context/YoutubeContext";
 import {useVideos} from "../../downloader/DownloadDatabaseOperations";
 import LOGGER from "../../utils/Logger";
 import {getAbsoluteVideoURL} from "../downloader/useDownloadProcessor";
 
 export default function useWatchSync() {
   const videos = useVideos();
+  const innertube = useYoutubeContext();
 
   useEffect(() => {
     return watchEvents.addListener("message", (messageFromWatch, reply) => {
@@ -26,10 +29,28 @@ export default function useWatchSync() {
       ) {
         console.log("Received download message from watch: ", messageFromWatch);
         sendDownloadToWatch(messageFromWatch.id, videos).catch(console.warn);
+      } else if (
+        messageFromWatch.type === "youtubeAPI" &&
+        messageFromWatch.payload
+      ) {
+        console.log(
+          "Received youtubeAPI message from watch: ",
+          messageFromWatch,
+        );
+        handleWatchMessage(innertube, messageFromWatch.payload)
+          .catch(console.warn)
+          .then(response => {
+            const ytResponse = {
+              type: "youtubeAPI",
+              payload: response,
+            };
+            LOGGER.debug("Sending WATCH YT API response: ", ytResponse);
+            sendMessage(ytResponse);
+          });
       }
       // reply({text: 'Thanks watch!'})
     });
-  }, []);
+  }, [innertube]);
 
   const upload = (id: string) => {
     sendDownloadDataToWatch(id, videos).catch(console.warn);
