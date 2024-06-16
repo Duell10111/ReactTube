@@ -75,16 +75,31 @@ extension SessionSync: WCSessionDelegate {
         Task {
           await self.receiveFileUploadData(session, message: message)
         }
+      } else if type == "youtubeAPI", let payload = message["payload"] as? [String: Any] {
+        processYoutubeAPIMessage(session, message: payload)
       }
     }
   }
 
   func session(_ session: WCSession, didReceive file: WCSessionFile) {
     // TODO: Do sth?
+    print("WCSession didReceive File fileURL:\(file.fileURL)")
   }
 
   func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: (any Error)?) {
     print("WCSession didFinish FileTranfer fileURL:\(fileTransfer.file.fileURL)")
+    
+    if let id = fileTransfer.file.metadata?["id"] as? String {
+      let success = saveDownloadFile(id: id, filePath: fileTransfer.file.fileURL)
+      if success {
+        Task {
+          await self.receiveFileUpload(session, id: id)
+        }
+      }
+      // Add Data before receiving file
+    } else {
+      print("File Upload missing metadata")
+    }
 
     // Update fileURL for Download URL use metadata
     // Use fileTransfer.file.metadata id to update DB and set downloaded flag
@@ -109,28 +124,37 @@ extension SessionSync: WCSessionDelegate {
 
   @MainActor
   func overrideDatabaseCommand(_ session: WCSession, message: [String: Any]) {
-//    if let jsonData = message["data"] as? String, let data = jsonData.data(using: .utf8) {
-//      let decoder = JSONDecoder()
-//      do {
-//        let backupFile = try decoder.decode(JSONBackupFile.self, from: data)
-//        overrideDatabase(modelContext: DataController.shared.container.mainContext, backupFile: backupFile)
-//      } catch {
-//        print("Exception in override Database \(error)")
-//      }
-//
-//    } else {
-//      print("Json Decode issues")
-//    }
+    if let jsonData = message["data"] as? String, let data = jsonData.data(using: .utf8) {
+      let decoder = JSONDecoder()
+      do {
+        let backupFile = try decoder.decode(JSONBackupFile.self, from: data)
+        overrideDatabase(modelContext: DataController.shared.container.mainContext, backupFile: backupFile)
+      } catch {
+        print("Exception in override Database \(error)")
+      }
+
+    } else {
+      print("Json Decode issues")
+    }
   }
 
   @MainActor
   func receiveFileUploadData(_ session: WCSession, message: [String: Any]) {
     if let id = message["id"] as? String, let title = message["title"] as? String, let duration = message["duration"] as? Int {
+      print("Received File Upload Data: id: \(id)")
       addDownloadData(DataController.shared.container.mainContext, id: id, title: title)
       // Add Data before receiving file
+      
+      // TODO: Request download if not already downloaded?
+      session.sendMessage(["type": "requestDownload", "id": id], replyHandler: nil)
     } else {
       print("File Upload data incomplete")
     }
+  }
+  
+  @MainActor
+  func receiveFileUpload(_ session: WCSession, id: String) {
+    addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true)
   }
 
 }
@@ -158,15 +182,13 @@ struct DBFileContent : Codable {
 // swiftlint:disable identifier_name
 struct JSONBackupFile: Codable {
   var version: Int
-  var diary: [JSONDiary]
-  var diaryEntry: [JSONDiaryEntry];
+  var videos: [JSONVideo]
 }
 
-struct JSONDiary: Codable  {
- var _id: String;
- var main: Bool?;
- var name: String?;
- var diaryEntries: [String];
+struct JSONVideo: Codable  {
+ var id: String;
+ var title: String?;
+ var duration: Int;
 }
 
 struct JSONDiaryEntry: Codable  {

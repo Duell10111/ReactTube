@@ -119,6 +119,13 @@ export interface YTEndscreenElement {
   thumbnailImage: Thumbnail;
 }
 
+export interface YTPlaylist {
+  originalData: YT.Playlist;
+  title: string;
+  thumbnailImage: Thumbnail;
+  author?: Author;
+}
+
 export function getAuthor(author: Misc.Author) {
   return {
     id: author.id,
