@@ -34,21 +34,34 @@ func createDirectoryIfNotExisting(path: URL) -> Bool {
   return false
 }
 
-func saveDownloadFile(id: String, filePath: URL) -> Bool {
+func saveDownloadFile(id: String, filePath: URL, fileExtension: String? = nil) -> String? {
   let downloadDir = getDownloadVideoDirectory(id: id)
   let created = createDirectoryIfNotExisting(path: downloadDir)
   
-  let destinationURL = downloadDir.appending(path: "/audio\(filePath.pathExtension)")
+  let destinationURL = downloadDir.appending(path: "/audio.\(fileExtension ?? filePath.pathExtension)")
   
   if created {
     do {
-      try FileManager.default.moveItem(at: filePath, to: destinationURL)
-      return true
+      if FileManager.default.fileExists(atPath: destinationURL.absoluteString) {
+        try FileManager.default.replaceItemAt(destinationURL, withItemAt: filePath)
+      } else {
+        try FileManager.default.moveItem(at: filePath, to: destinationURL)
+      }
+      return removeURLPrefix(url: destinationURL.absoluteString, prefix: getDownloadDirectory().absoluteString)
     } catch {
       print("Error moving download from \(filePath) to \(destinationURL) - \(error)")
     }
   }
-  return false
+  return nil
+}
+
+func removeURLPrefix(url: String, prefix: String) -> String {
+  if let range = url.range(of: prefix) {
+    var newURLString = url
+    newURLString.removeSubrange(range)
+    return newURLString
+  }
+  return url
 }
 
 func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, downloaded: Bool? = nil, duration: Int? = nil, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil) {
@@ -88,12 +101,15 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
     // Check if playlist needs video
     
     let playlistDescriptor = FetchDescriptor<Playlist>(
-      predicate: #Predicate { $0.videoIDs.contains(where: { s in
-        s == id
-      }) }
+//      predicate: #Predicate { $0.videoIDs.contains(id) }
     )
     
-    let playlists = try modelContext.fetch(playlistDescriptor)
+    // Slow workarround as swiftdata is a bitch
+    let allPlaylists = try modelContext.fetch(playlistDescriptor)
+    
+    let playlists = allPlaylists.filter { p in
+      p.videoIDs.contains(id)
+    }
     
     playlists.forEach { playlist in
       if !playlist.videos.contains(where: { v in

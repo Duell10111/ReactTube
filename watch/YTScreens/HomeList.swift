@@ -16,8 +16,25 @@ struct HomeList: View {
     var body: some View {
       List {
         ForEach(items, id: \.id) { video in
-          Button(video.title ?? "No title") {
-            musicPlayerManager.updatePlaylist(newPlaylist: [video])
+          VStack {
+            Button {
+              musicPlayerManager.updatePlaylist(newPlaylist: [video])
+            } label: {
+              VStack {
+                Text(video.title ?? "Empty title")
+                if video.downloaded {
+                  Text("Downloaded")
+                }
+              }
+            }
+            .swipeActions {
+              Button {
+                DownloadManager.shared.downloadVideo(video: video)
+              } label: {
+                Label("Download", systemImage: "arrow.down")
+              }
+              .tint(.blue)
+            }
           }
         }
         Section("Playlists") {

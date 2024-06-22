@@ -43,12 +43,28 @@ class MusicPlayerManager: ObservableObject {
       }
     
       playerItems = playlist.compactMap { p in
-        if let sURL = p.streamURL, let uri = URL(string: sURL) {
+        print("FileURL: \(p.fileURL)")
+        if let localFile = p.fileURL {
+          let uri = getDownloadDirectory().appending(path: localFile)
+          print("Local uri: \(uri)")
           let item = AVPlayerItem(url: uri)
+          print("Local version")
+          return item
+        } else if let sURL = p.streamURL, let uri = URL(string: sURL) {
+          print("Remote uri: \(sURL)")
+          let item = AVPlayerItem(url: uri)
+          
+          // Set end for local files?
+//          item.forwardPlaybackEndTime =
           return item
         }
         return nil
       }
+      if playerItems.isEmpty {
+        print("Skipping setup of Queue for empty playlist")
+        return
+      }
+    
       player = AVQueuePlayer(items: playerItems)
 
       NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: nil, queue: .main) { notification in

@@ -90,10 +90,10 @@ extension SessionSync: WCSessionDelegate {
     print("WCSession didFinish FileTranfer fileURL:\(fileTransfer.file.fileURL)")
     
     if let id = fileTransfer.file.metadata?["id"] as? String {
-      let success = saveDownloadFile(id: id, filePath: fileTransfer.file.fileURL)
-      if success {
+      let file = saveDownloadFile(id: id, filePath: fileTransfer.file.fileURL)
+      if let f = file {
         Task {
-          await self.receiveFileUpload(session, id: id)
+          await self.receiveFileUpload(session, id: id, fileURL: f)
         }
       }
       // Add Data before receiving file
@@ -153,8 +153,8 @@ extension SessionSync: WCSessionDelegate {
   }
   
   @MainActor
-  func receiveFileUpload(_ session: WCSession, id: String) {
-    addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true)
+  func receiveFileUpload(_ session: WCSession, id: String, fileURL: String) {
+    addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true, fileURL: fileURL)
   }
 
 }
