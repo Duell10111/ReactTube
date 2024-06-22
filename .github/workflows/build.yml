@@ -4,6 +4,8 @@ on:
     branches:
       - main
       - github-build
+  release:
+    types: [ published ]
 
 jobs:
   build_ios_without_signing_tvos:
@@ -11,7 +13,34 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+      - name: Prebuild iOS
+        env:
+          EXPO_TV: 1
+        run: npx expo prebuild -p ios --clean
+      - name: Build Expo IPA
+        run: |
+          cd ios
+          xcodebuild -scheme reacttube -workspace reacttube.xcworkspace -configuration release archive -archivePath reacttube.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+          ../scripts/xcarchive_to_ipa.sh reacttube.xcarchive
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: tvos_ipa
+          path: ios/*.ipa
+      - name: Upload IPA to Release
+        if: ${{ github.event_name == 'release' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ios/*.ipa
+  build_ios_without_signing_phone:
+    name: Build Expo (iOS) Without Signing
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Setup
         uses: ./.github/actions/setup
       - name: Prebuild iOS
@@ -22,7 +51,12 @@ jobs:
           xcodebuild -scheme reacttube -workspace reacttube.xcworkspace -configuration release archive -archivePath reacttube.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
           ../scripts/xcarchive_to_ipa.sh reacttube.xcarchive
       - name: Upload IPA
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ios_ipa
           path: ios/*.ipa
+      - name: Upload IPA to Release
+        if: ${{ github.event_name == 'release' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ios/*.ipa
