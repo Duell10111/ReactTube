@@ -8,6 +8,7 @@
 import Foundation
 import AVFoundation
 import SwiftUI
+import MediaPlayer
 
 class MusicPlayerManager: ObservableObject {
     static let shared = MusicPlayerManager()
@@ -24,6 +25,7 @@ class MusicPlayerManager: ObservableObject {
     
     private init() {
 //      self.setupPlayer()
+      configutreRemoteCommand()
     }
   
   func updatePlaylist(newPlaylist: [Video]) {
@@ -74,12 +76,12 @@ class MusicPlayerManager: ObservableObject {
       updateTrackInfo()
   }
 
-  func playMusic() {
+  @objc func playMusic() {
       player?.play()
       isPlaying = true
   }
 
-  func pauseMusic() {
+  @objc func pauseMusic() {
       player?.pause()
       isPlaying = false
   }
@@ -134,26 +136,25 @@ class MusicPlayerManager: ObservableObject {
       } else {
         self.currentCover = nil
       }
-      
-      
-//      asset.loadValuesAsynchronously(forKeys: ["commonMetadata"]) {
-//          var title: String = "Unknown Title"
-//          var coverImage: UIImage? = nil
-//          
-//          for metadataItem in asset.commonMetadata {
-//              if metadataItem.commonKey?.rawValue == "title" {
-//                  title = metadataItem.stringValue ?? "Unknown Title"
-//              } else if metadataItem.commonKey?.rawValue == "artwork",
-//                        let data = metadataItem.dataValue,
-//                        let image = UIImage(data: data) {
-//                  coverImage = image
-//              }
-//          }
-//          
-//          DispatchQueue.main.async {
-//              self.currentTitle = currentPlaylistItem.title
-//              self.currentCover = coverImage
-//          }
-//      }
+    
+    let info:[String:Any] = [MPMediaItemPropertyTitle : self.currentTitle, MPNowPlayingInfoPropertyDefaultPlaybackRate : NSNumber(value: 1), MPMediaItemPropertyPlaybackDuration : CMTimeGetSeconds(CMTime())]
+    
+    MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+  }
+  
+  func configutreRemoteCommand() {
+    let commandCenter = MPRemoteCommandCenter.shared()
+
+    commandCenter.previousTrackCommand.isEnabled = false;
+    commandCenter.nextTrackCommand.isEnabled = false
+    
+    commandCenter.skipBackwardCommand.isEnabled = false
+    commandCenter.skipForwardCommand.isEnabled = false
+    
+    commandCenter.playCommand.isEnabled = false
+//    commandCenter.playCommand.addTarget(self, action: #selector(self.playMusic))
+//    
+    commandCenter.pauseCommand.isEnabled = false
+//    commandCenter.pauseCommand.addTarget(self, action: #selector(self.pauseMusic))
   }
 }
