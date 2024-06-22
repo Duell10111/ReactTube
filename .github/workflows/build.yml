@@ -1,0 +1,28 @@
+name: Build
+on:
+  push:
+    branches:
+      - main
+      - github-build
+
+jobs:
+  build_ios_without_signing_tvos:
+    name: Build Expo (iOS) Without Signing
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup
+        uses: ./.github/actions/setup
+      - name: Prebuild iOS
+        run: npx expo prebuild -p ios --clean
+      - name: Build Expo IPA
+        run: |
+          cd ios
+          xcodebuild -scheme reacttube -workspace reacttube.xcworkspace -configuration release archive -archivePath reacttube.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+          ../scripts/xcarchive_to_ipa.sh reacttube.xcarchive
+      - name: Upload IPA
+        uses: actions/upload-artifact@v2
+        with:
+          name: ios_ipa
+          path: ios/*.ipa
