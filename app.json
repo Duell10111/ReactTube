@@ -50,7 +50,8 @@
               "sourceDir": "watch",
               "sourceFiles": ["watchApp.swift", "DBData.swift", "DBUtils.swift", "SessionSync.swift",
                 "PlaylistView.swift", "MusicPlayerView.swift", "DataController.swift", "MusicPlayerManager.swift",
-                "MusikPlayer.swift", "Types.swift", "YoutubeAPI.swift", "YTScreens/HomeList.swift"],
+                "MusikPlayer.swift", "Types.swift", "YoutubeAPI.swift", "YTScreens/HomeList.swift",
+                "DownloadManager.swift"],
               "entitlementsFile": "watch.entitlements",
               "frameworks": ["SwiftUI.framework"],
               "buildConfigOverrides": {

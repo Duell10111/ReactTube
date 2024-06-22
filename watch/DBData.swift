@@ -31,7 +31,7 @@ final class Playlist {
     @Attribute(.unique) var id: String
     var title: String?
     var coverURL: String?
-    var videoIDs = [String]()
+    var videoIDs: [String] = []
     var videos = [Video]()
 
   init(id: String, date: Date? = nil, title: String? = nil) {
