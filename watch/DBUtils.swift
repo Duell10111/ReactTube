@@ -180,9 +180,27 @@ func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
   }
 }
 
+func clearDownloads(modelContext: ModelContext) {
+  do {
+    try FileManager.default.removeItem(at: getDownloadDirectory())
+    
+    let batchSize = 1000
+    let descriptor = FetchDescriptor<Video>()
+    let videos = try modelContext.fetch(descriptor)
+    
+    for video in videos {
+      video.downloaded = false
+      video.fileURL = nil
+    }
+  } catch {
+    print("Failed to clear all Downloads data.")
+  }
+}
+
 func clearDatabase(modelContext: ModelContext) {
   do {
       try modelContext.delete(model: Video.self)
+      try FileManager.default.removeItem(at: getDownloadDirectory())
   } catch {
       print("Failed to clear all Video and Playlist data.")
   }
