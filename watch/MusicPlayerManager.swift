@@ -24,8 +24,8 @@ class MusicPlayerManager: ObservableObject {
     private var playlist: [Video] = []
     
     private init() {
-//      self.setupPlayer()
       configutreRemoteCommand()
+      setupNowPlaying()
     }
   
   func updatePlaylist(newPlaylist: [Video]) {
@@ -38,8 +38,9 @@ class MusicPlayerManager: ObservableObject {
   private func setupPlayer() {
       // Set up AVAudioSession for background audio playback
       do {
-          try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-          try AVAudioSession.sharedInstance().setActive(true)
+          // .longFormAudio needed to play audio when screnn is off?
+          try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, policy: .longFormAudio)
+//          try AVAudioSession.sharedInstance().setActive(true)
       } catch {
           print("Failed to set up AVAudioSession: \(error)")
       }
@@ -51,13 +52,13 @@ class MusicPlayerManager: ObservableObject {
           print("Local uri: \(uri)")
           let item = AVPlayerItem(url: uri)
           print("Local version")
+          // Set end for local files?
+//          item.forwardPlaybackEndTime =
           return item
         } else if let sURL = p.streamURL, let uri = URL(string: sURL) {
           print("Remote uri: \(sURL)")
           let item = AVPlayerItem(url: uri)
           
-          // Set end for local files?
-//          item.forwardPlaybackEndTime =
           return item
         }
         return nil
@@ -77,16 +78,44 @@ class MusicPlayerManager: ObservableObject {
   }
 
   @objc func playMusic() {
+      if player?.items().isEmpty ?? true {
+        print("Skip play for empty playlist")
+        return
+      }
+      do {
+          try AVAudioSession.sharedInstance().setActive(true)
+      } catch {
+          print("Failed to start AVAudioSession: \(error)")
+      }
       player?.play()
       isPlaying = true
+      updateTrackInfo()
+      updateNowPlaying()
   }
 
   @objc func pauseMusic() {
+      if player?.items().isEmpty ?? true {
+        print("Skip pause for empty playlist")
+        return
+      }
+      
+      do {
+          try AVAudioSession.sharedInstance().setActive(false)
+      } catch {
+          print("Failed to start AVAudioSession: \(error)")
+      }
       player?.pause()
       isPlaying = false
+      updateTrackInfo()
+      updateNowPlaying()
   }
 
   func nextTrack() {
+      if player?.items().isEmpty ?? true {
+        print("Skip next Track for empty playlist")
+        return
+      }
+      
       currentTrackIndex = (currentTrackIndex + 1) % playerItems.count
       player?.advanceToNextItem()
       if currentTrackIndex < playerItems.count - 1 {
@@ -100,6 +129,11 @@ class MusicPlayerManager: ObservableObject {
   }
 
   func previousTrack() {
+      if player?.items().isEmpty ?? true {
+        print("Skip prev Track for empty playlist")
+        return
+      }
+    
       currentTrackIndex = (currentTrackIndex - 1 + playerItems.count) % playerItems.count
       let previousItem = playerItems[currentTrackIndex]
       player?.pause()
@@ -137,9 +171,32 @@ class MusicPlayerManager: ObservableObject {
         self.currentCover = nil
       }
     
-    let info:[String:Any] = [MPMediaItemPropertyTitle : self.currentTitle, MPNowPlayingInfoPropertyDefaultPlaybackRate : NSNumber(value: 1), MPMediaItemPropertyPlaybackDuration : CMTimeGetSeconds(CMTime())]
+    var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String : Any]()
+    nowPlayingInfo[MPMediaItemPropertyTitle] = self.currentTitle
     
-    MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    print("Updated now playing info")
+  }
+  
+  func setupNowPlaying() {
+    var nowPlayingInfo = [String : Any]()
+    nowPlayingInfo[MPMediaItemPropertyTitle] = "Test"
+
+    if let image = UIImage(named: "Default_albumart") {
+        nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: image.size) { size in
+            return image
+        }
+    }
+//    nowPlayingInfo[MPNowPlayingInfoPropertyIsLiveStream] = true
+    
+    MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+  }
+  
+  func updateNowPlaying() {
+    var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String : Any]()
+    nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1 : 0
+    
+    MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
   }
   
   func configutreRemoteCommand() {
@@ -151,10 +208,18 @@ class MusicPlayerManager: ObservableObject {
     commandCenter.skipBackwardCommand.isEnabled = false
     commandCenter.skipForwardCommand.isEnabled = false
     
-    commandCenter.playCommand.isEnabled = false
+    commandCenter.playCommand.isEnabled = true
+    commandCenter.playCommand.addTarget {event in
+      self.playMusic()
+      return .success
+    }
 //    commandCenter.playCommand.addTarget(self, action: #selector(self.playMusic))
 //    
-    commandCenter.pauseCommand.isEnabled = false
+    commandCenter.pauseCommand.isEnabled = true
 //    commandCenter.pauseCommand.addTarget(self, action: #selector(self.pauseMusic))
+    commandCenter.pauseCommand.addTarget {event in
+      self.pauseMusic()
+      return .success
+    }
   }
 }

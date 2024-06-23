@@ -23,7 +23,9 @@ struct HomeList: View {
               VStack {
                 Text(video.title ?? "Empty title")
                 if video.downloaded {
-                  Text("Downloaded")
+                  HStack {
+                    Label("Downloaded", systemImage: "arrow.down.circle")
+                  }
                 }
               }
             }
@@ -52,6 +54,9 @@ struct HomeList: View {
         }
         NavigationLink("Musik") {
           MusikPlayer()
+        }
+        NavigationLink("Settings") {
+          SettingsScreen()
         }
       }.toolbar {
           ToolbarItem(placement: .topBarTrailing) {
