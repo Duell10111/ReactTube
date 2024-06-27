@@ -18,10 +18,18 @@ struct HomeList: View {
         ForEach(items, id: \.id) { video in
           VStack {
             Button {
+//              checkVideosForExpiration([video])
               musicPlayerManager.updatePlaylist(newPlaylist: [video])
             } label: {
               VStack {
-                Text(video.title ?? "Empty title")
+                HStack {
+                  Text(video.title ?? "Empty title")
+                  if let validUntil = video.validUntil, validUntil < Date() && video.downloaded != true {
+                    Spacer()
+                    Image(systemName: "clock.badge.exclamationmark")
+                      .foregroundColor(.red)
+                  }
+                }
                 if video.downloaded {
                   HStack {
                     Label("Downloaded", systemImage: "arrow.down.circle")
@@ -42,6 +50,7 @@ struct HomeList: View {
         Section("Playlists") {
           ForEach(playlists, id: \.id) { playlist in
             Button(playlist.title ?? "No title") {
+//              checkVideosForExpiration(playlist.videos)
               musicPlayerManager.updatePlaylist(newPlaylist: playlist.videos)
             }
           }

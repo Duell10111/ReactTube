@@ -13,14 +13,17 @@ import MediaPlayer
 class MusicPlayerManager: ObservableObject {
     static let shared = MusicPlayerManager()
     
-    @State private var currentTrackIndex = 0
+    @Published var currentTrackIndex = 0
 
     @Published var isPlaying: Bool = false
     @Published var currentTitle: String = "Unknown Title"
     @Published var currentCover: URL? = nil
+  
+    @Published var isStalled: Bool = false
     
     private var player: AVQueuePlayer?
     private var playerItems: [AVPlayerItem] = []
+    @Published var playerPlaylistItems: [Video] = []
     private var playlist: [Video] = []
     
     private init() {
@@ -29,8 +32,12 @@ class MusicPlayerManager: ObservableObject {
     }
   
   func updatePlaylist(newPlaylist: [Video]) {
+    // TODO: Check if playlist already present?
     playlist = newPlaylist
+    
+    // TODO: Put into setupPlayer?
     player?.pause()
+    isPlaying = false
     currentTrackIndex = 0
     setupPlayer()
   }
@@ -45,7 +52,7 @@ class MusicPlayerManager: ObservableObject {
           print("Failed to set up AVAudioSession: \(error)")
       }
     
-      playerItems = playlist.compactMap { p in
+      let pItems = playlist.compactMap { p in
         print("FileURL: \(p.fileURL)")
         if let localFile = p.fileURL {
           let uri = getDownloadDirectory().appending(path: localFile)
@@ -54,50 +61,95 @@ class MusicPlayerManager: ObservableObject {
           print("Local version")
           // Set end for local files?
 //          item.forwardPlaybackEndTime =
-          return item
+          return (p, item)
         } else if let sURL = p.streamURL, let uri = URL(string: sURL) {
           print("Remote uri: \(sURL)")
           let item = AVPlayerItem(url: uri)
           
-          return item
+          return (p, item)
         }
         return nil
       }
-      if playerItems.isEmpty {
+      
+    
+      if pItems.isEmpty {
         print("Skipping setup of Queue for empty playlist")
         return
       }
     
+      let (videoItems, playerItems) = unzip(pItems)
+      self.playerItems = playerItems
+      self.playerPlaylistItems = videoItems
+    
       player = AVQueuePlayer(items: playerItems)
+    
+      // Setup Notifications
 
       NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: nil, queue: .main) { notification in
           self.nextTrack()
       }
     
+      NotificationCenter.default.addObserver(forName: AVPlayerItem.failedToPlayToEndTimeNotification, object: nil, queue: .main) { notification in
+        print("Failed to play to End Time: \(notification.debugDescription)")
+      }
+    
+      NotificationCenter.default.addObserver(forName: AVPlayerItem.playbackStalledNotification, object: nil, queue: .main) { notification in
+        print("Playback stalled: \(notification.debugDescription)")
+      }
+    
+      
+    
       updateTrackInfo()
   }
 
   @objc func playMusic() {
-      if player?.items().isEmpty ?? true {
+      if playerItems.isEmpty {
         print("Skip play for empty playlist")
         return
       }
-      do {
-          try AVAudioSession.sharedInstance().setActive(true)
-      } catch {
-          print("Failed to start AVAudioSession: \(error)")
+      #if targetEnvironment(simulator)
+          do {
+              try AVAudioSession.sharedInstance().setActive(true)
+              player?.play()
+              isPlaying = true
+              updateTrackInfo()
+              updateNowPlaying()
+          } catch {
+              print("Failed to set up AVAudioSession: \(error)")
+          }
+      #else
+        AVAudioSession.sharedInstance().activate { [self] success, error in
+          if success {
+            DispatchQueue.main.async { [self] in
+              player?.play()
+              isPlaying = true
+              updateTrackInfo()
+              updateNowPlaying()
+            }
+          } else {
+            print("Failed to start AVAudioSession: \(error?.localizedDescription ?? "nil")")
+          }
+        }
+      #endif
+      AVAudioSession.sharedInstance().activate { [self] success, error in
+        if success {
+          DispatchQueue.main.async { [self] in
+            player?.play()
+            isPlaying = true
+            updateTrackInfo()
+            updateNowPlaying()
+          }
+        } else {
+          print("Failed to start AVAudioSession: \(error?.localizedDescription ?? "nil")")
+        }
       }
-      player?.play()
-      isPlaying = true
-      updateTrackInfo()
-      updateNowPlaying()
   }
 
   @objc func pauseMusic() {
-      if player?.items().isEmpty ?? true {
-        print("Skip pause for empty playlist")
-        return
-      }
+//      if player?.items().isEmpty ?? true {
+//        print("Skip pause for empty playlist")
+//        return
+//      }
       
       do {
           try AVAudioSession.sharedInstance().setActive(false)
@@ -116,15 +168,29 @@ class MusicPlayerManager: ObservableObject {
         return
       }
       
-      currentTrackIndex = (currentTrackIndex + 1) % playerItems.count
+      print("Prev CurrentTrackIndex: \(currentTrackIndex)")
+      self.currentTrackIndex = ((currentTrackIndex + 1) % playerItems.count)
+      print("Track: \(((currentTrackIndex + 1) % playerItems.count))")
       player?.advanceToNextItem()
-      if currentTrackIndex < playerItems.count - 1 {
-          let nextItem = playerItems[currentTrackIndex]
-          player?.insert(nextItem, after: player?.currentItem)
+    
+    if player?.items().isEmpty ?? false {
+        print("PlayerItems: \(playerItems.count)")
+        print("CurrentTrackIndex: \(currentTrackIndex)")
+        pauseMusic()
+        for index in playerItems.indices {
+          let prev = index == 0 ? nil : playerItems[index - 1]
+          let current = playerItems[index]
+          current.seek(to: CMTime(value: 0, timescale: 1))
+          player?.insert(current, after: prev)
+        }
       }
-      if isPlaying {
-          player?.play()
-      }
+//      if currentTrackIndex < playerItems.count - 1 {
+//          let nextItem = playerItems[currentTrackIndex]
+//          player?.insert(nextItem, after: player?.currentItem)
+//      }
+//      if isPlaying {
+//          player?.play()
+//      }
       updateTrackInfo()
   }
 
@@ -155,10 +221,15 @@ class MusicPlayerManager: ObservableObject {
       updateTrackInfo()
   }
   
+  // TODO: Add move playlist option
+  func movePlaylist(from source: IndexSet, to destination: Int) {
+    
+  }
+  
   func updateTrackInfo() {
       print("Updating track info for index \(currentTrackIndex)")
       //let currentItem = playerItems[currentTrackIndex]
-      let currentPlaylistItem = playlist[currentTrackIndex]
+      let currentPlaylistItem = playerPlaylistItems[currentTrackIndex]
 //      let asset = currentItem.asset
     
       self.currentTitle = currentPlaylistItem.title ?? "Unknown title"
@@ -222,4 +293,20 @@ class MusicPlayerManager: ObservableObject {
       return .success
     }
   }
+}
+
+
+func unzip<K, V>(_ array: [(key: K, value: V)]) -> ([K], [V]) {
+    var keys = [K]()
+    var values = [V]()
+
+    keys.reserveCapacity(array.count)
+    values.reserveCapacity(array.count)
+
+    array.forEach { key, value in
+        keys.append(key)
+        values.append(value)
+    }
+
+    return (keys, values)
 }
