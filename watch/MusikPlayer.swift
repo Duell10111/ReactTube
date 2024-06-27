@@ -9,7 +9,6 @@ import SwiftUI
 
 struct MusikPlayer: View {
     @EnvironmentObject var musicManager: MusicPlayerManager
-    private var currentCover: URL? = URL(string: "https://i.ytimg.com/vi/0nsawcTwebQ/maxresdefault.jpg")
   
     var body: some View {
         VStack {
@@ -67,7 +66,13 @@ struct MusikPlayer: View {
                       .frame(width: 30, height: 30)
               }.frame(width: 50, height: 50)
           }
-      }
+      }.toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          NavigationLink(destination: PlaylistView()) {
+              Label("Music", systemImage: "music.note.list")
+            }
+        }
+    }
     }
 }
 

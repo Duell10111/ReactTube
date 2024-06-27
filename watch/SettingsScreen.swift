@@ -6,13 +6,19 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SettingsScreen: View {
     @Environment(\.modelContext) var modelContext
+    @Query(sort: \Video.title) var videos: [Video]
     
     var body: some View {
       Button("Delete Downloads") {
         clearDownloads(modelContext: modelContext)
+      }
+      Spacer()
+      Button("Check Videos") {
+        checkVideosForExpiration(videos)
       }
     }
 }

@@ -161,6 +161,15 @@ func addPlaylistData(_ modelContext: ModelContext, id: String, title: String? = 
   }
 }
 
+func checkVideosForExpiration(_ videos: [Video]) {
+  for video in videos {
+    if let validUntil = video.validUntil, validUntil < Date() {
+      print("Refetch expired videoID")
+      requestVideo(id: video.id)
+    }
+  }
+}
+
 func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
   if backupFile.videos.isEmpty {
     print("No Videos available")
