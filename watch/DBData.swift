@@ -17,12 +17,12 @@ final class Video {
     var validUntil: Date?
     var fileURL: String?
     var coverURL: String?
+    var temp: Bool?
 
-  init(id: String, date: Date? = nil, title: String? = nil, downloaded: Bool = false) {
+  init(id: String, title: String? = nil, downloaded: Bool = false) {
         self.id = id
         self.title = title
         self.downloaded = downloaded
-        
   }
 }
 
@@ -34,8 +34,26 @@ final class Playlist {
     var videoIDs: [String] = []
     var videos = [Video]()
 
-  init(id: String, date: Date? = nil, title: String? = nil) {
+  init(id: String, title: String? = nil) {
         self.id = id
         self.title = title
+  }
+}
+
+@Model
+final class HomeScreenElement {
+    @Attribute(.unique) var id: String
+    var title: String?
+    var type: String
+    var videoID: String?
+    var video: Video?
+    var playlistID: String?
+    var playlist: Playlist?
+
+  init(id: String, title: String? = nil, type: String) {
+        self.id = id
+        self.title = title
+        self.type = type
+        
   }
 }

@@ -61,8 +61,8 @@ struct HomeList: View {
         Button("Fetch playlist") {
           requestPlaylist(id: "PL9k0aZnruOJgXFKr9QXOLAlo2ZE8IvUAw")
         }
-        NavigationLink("Musik") {
-          MusikPlayer()
+        Button("Get Home") {
+          requestHome()
         }
         NavigationLink("Settings") {
           SettingsScreen()

@@ -12,7 +12,8 @@ struct MusikPlayer: View {
   
     var body: some View {
         VStack {
-          if let cover = musicManager.currentCover {
+          // Causes app crashes if switching too fast :/
+          if let cover = musicManager.currentCover, false {
               AsyncImage(url: cover) { image in
                 image
                   .resizable()
@@ -79,4 +80,15 @@ struct MusikPlayer: View {
 #Preview {
   MusikPlayer()
     .environmentObject(MusicPlayerManager.shared)
+}
+
+struct PlayButton: View {
+  @Binding var playing: Bool
+  @Binding var loading: Bool
+  
+  var body: some View {
+    Image(systemName: playing ? "pause.circle.fill" : "play.circle.fill")
+          .resizable()
+          .frame(width: 50, height: 50)
+  }
 }
