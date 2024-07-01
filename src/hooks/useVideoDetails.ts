@@ -65,7 +65,7 @@ export default function useVideoDetails(
   }, [Video]);
 
   // Trigger refresh if streaming data expired
-  const targetTimestamp = Video?.streaming_data.expires?.getDate?.();
+  const targetTimestamp = Video?.streaming_data?.expires?.getDate?.();
   useEffect(() => {
     if (!targetTimestamp) {
       return;
