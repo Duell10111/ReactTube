@@ -46,8 +46,7 @@ class MusicPlayerManager: ObservableObject {
       // Set up AVAudioSession for background audio playback
       do {
           // .longFormAudio needed to play audio when screnn is off?
-          try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, policy: .longFormAudio)
-//          try AVAudioSession.sharedInstance().setActive(true)
+          try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, policy: .longFormAudio, options: [])
       } catch {
           print("Failed to set up AVAudioSession: \(error)")
       }
@@ -87,6 +86,9 @@ class MusicPlayerManager: ObservableObject {
 
       NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: nil, queue: .main) { notification in
           self.nextTrack()
+          DispatchQueue.main.async {
+            self.updateTrackInfo()
+          }
       }
     
       NotificationCenter.default.addObserver(forName: AVPlayerItem.failedToPlayToEndTimeNotification, object: nil, queue: .main) { notification in
@@ -95,9 +97,12 @@ class MusicPlayerManager: ObservableObject {
     
       NotificationCenter.default.addObserver(forName: AVPlayerItem.playbackStalledNotification, object: nil, queue: .main) { notification in
         print("Playback stalled: \(notification.debugDescription)")
+        if let playerItem = notification.object as? AVPlayerItem {
+          DispatchQueue.main.async {
+            self.isStalled = true
+          }
+        }
       }
-    
-      
     
       updateTrackInfo()
   }
@@ -107,11 +112,19 @@ class MusicPlayerManager: ObservableObject {
         print("Skip play for empty playlist")
         return
       }
+      // Set up AVAudioSession for background audio playback
+      do {
+          // .longFormAudio needed to play audio when screnn is off?
+          try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, policy: .longFormAudio, options: [])
+      } catch {
+          print("Failed to set up AVAudioSession: \(error)")
+      }
       #if targetEnvironment(simulator)
           do {
               try AVAudioSession.sharedInstance().setActive(true)
               player?.play()
               isPlaying = true
+              isStalled = false
               updateTrackInfo()
               updateNowPlaying()
           } catch {
@@ -123,6 +136,7 @@ class MusicPlayerManager: ObservableObject {
             DispatchQueue.main.async { [self] in
               player?.play()
               isPlaying = true
+              isStalled = false
               updateTrackInfo()
               updateNowPlaying()
             }
@@ -131,18 +145,6 @@ class MusicPlayerManager: ObservableObject {
           }
         }
       #endif
-      AVAudioSession.sharedInstance().activate { [self] success, error in
-        if success {
-          DispatchQueue.main.async { [self] in
-            player?.play()
-            isPlaying = true
-            updateTrackInfo()
-            updateNowPlaying()
-          }
-        } else {
-          print("Failed to start AVAudioSession: \(error?.localizedDescription ?? "nil")")
-        }
-      }
   }
 
   @objc func pauseMusic() {
@@ -173,7 +175,7 @@ class MusicPlayerManager: ObservableObject {
       print("Track: \(((currentTrackIndex + 1) % playerItems.count))")
       player?.advanceToNextItem()
     
-    if player?.items().isEmpty ?? false {
+      if player?.items().isEmpty ?? false {
         print("PlayerItems: \(playerItems.count)")
         print("CurrentTrackIndex: \(currentTrackIndex)")
         pauseMusic()
@@ -194,13 +196,16 @@ class MusicPlayerManager: ObservableObject {
       updateTrackInfo()
   }
 
+  // TODO: Fix this to make it more stable!!!
   func previousTrack() {
       if player?.items().isEmpty ?? true {
         print("Skip prev Track for empty playlist")
         return
       }
     
+      print("Current Track: \(currentTrackIndex)")
       currentTrackIndex = (currentTrackIndex - 1 + playerItems.count) % playerItems.count
+      print("Prev Track: \(currentTrackIndex)")
       let previousItem = playerItems[currentTrackIndex]
       player?.pause()
       player?.removeAllItems()
@@ -211,6 +216,7 @@ class MusicPlayerManager: ObservableObject {
       updateTrackInfo()
   }
 
+  // TODO: Not used at all?
   func playCurrentTrack() {
       guard currentTrackIndex < playerItems.count else { return }
       let currentItem = playerItems[currentTrackIndex]
@@ -273,8 +279,16 @@ class MusicPlayerManager: ObservableObject {
   func configutreRemoteCommand() {
     let commandCenter = MPRemoteCommandCenter.shared()
 
-    commandCenter.previousTrackCommand.isEnabled = false;
-    commandCenter.nextTrackCommand.isEnabled = false
+    commandCenter.previousTrackCommand.isEnabled = true
+    commandCenter.previousTrackCommand.addTarget { event in
+      self.nextTrack()
+      return .success
+    }
+    commandCenter.nextTrackCommand.isEnabled = true
+    commandCenter.nextTrackCommand.addTarget { event in
+      self.previousTrack()
+      return .success
+    }
     
     commandCenter.skipBackwardCommand.isEnabled = false
     commandCenter.skipForwardCommand.isEnabled = false
