@@ -53,9 +53,7 @@ struct MusikPlayer: View {
                       musicManager.playMusic()
                   }
               }) {
-                Image(systemName: musicManager.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                      .resizable()
-                      .frame(width: 50, height: 50)
+                PlayButton()
               }
               .frame(width: 50, height: 50)
 
@@ -83,12 +81,21 @@ struct MusikPlayer: View {
 }
 
 struct PlayButton: View {
-  @Binding var playing: Bool
-  @Binding var loading: Bool
+  @EnvironmentObject var musicManager: MusicPlayerManager
   
   var body: some View {
-    Image(systemName: playing ? "pause.circle.fill" : "play.circle.fill")
-          .resizable()
-          .frame(width: 50, height: 50)
+    ZStack {
+      Circle()
+        .fill(Color.white)
+        .frame(width: 45, height: 45)
+      Circle()
+        .stroke(lineWidth: 5)
+        .foregroundColor(!musicManager.isStalled ? .white : .blue)
+        .animation(musicManager.isStalled ? .easeInOut(duration: 1).repeatForever() : .smooth, value: musicManager.isStalled)
+        .frame(width: 45, height: 45)
+      Image(systemName: musicManager.isPlaying ? "pause.fill" : "play.fill")
+        .foregroundColor(.black)
+        .font(.system(size: 24))
+    }
   }
 }

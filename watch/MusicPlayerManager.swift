@@ -13,7 +13,11 @@ import MediaPlayer
 class MusicPlayerManager: ObservableObject {
     static let shared = MusicPlayerManager()
     
-    @Published var currentTrackIndex = 0
+    @Published var trackIndex = 0
+    private var currentTrackIndex = 0
+  
+    @Published private(set) var duration: TimeInterval = 0.0
+    @Published private(set) var currentTime: TimeInterval = 0.0
 
     @Published var isPlaying: Bool = false
     @Published var currentTitle: String = "Unknown Title"
@@ -22,6 +26,7 @@ class MusicPlayerManager: ObservableObject {
     @Published var isStalled: Bool = false
     
     private var player: AVQueuePlayer?
+    private var timeObserver: Any?
     private var playerItems: [AVPlayerItem] = []
     @Published var playerPlaylistItems: [Video] = []
     private var playlist: [Video] = []
@@ -36,13 +41,13 @@ class MusicPlayerManager: ObservableObject {
     playlist = newPlaylist
     
     // TODO: Put into setupPlayer?
-    player?.pause()
-    isPlaying = false
-    currentTrackIndex = 0
     setupPlayer()
   }
     
   private func setupPlayer() {
+      if player != nil {
+        deinitPlayer()
+      }
       // Set up AVAudioSession for background audio playback
       do {
           // .longFormAudio needed to play audio when screnn is off?
@@ -82,11 +87,16 @@ class MusicPlayerManager: ObservableObject {
     
       player = AVQueuePlayer(items: playerItems)
     
+      // Add time observer
+      addPeriodicTimeObserver()
+    
       // Setup Notifications
 
       NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: nil, queue: .main) { notification in
-          self.nextTrack()
+        // Not needed with queue player?
+//          self.nextTrack()
           DispatchQueue.main.async {
+            self.currentTrackIndex += 1
             self.updateTrackInfo()
           }
       }
@@ -105,6 +115,14 @@ class MusicPlayerManager: ObservableObject {
       }
     
       updateTrackInfo()
+  }
+  
+  private func deinitPlayer() {
+    player?.pause()
+    isPlaying = false
+    isStalled = false
+    currentTrackIndex = 0
+    removePeriodicTimeObserver()
   }
 
   @objc func playMusic() {
@@ -207,9 +225,13 @@ class MusicPlayerManager: ObservableObject {
       currentTrackIndex = (currentTrackIndex - 1 + playerItems.count) % playerItems.count
       print("Prev Track: \(currentTrackIndex)")
       let previousItem = playerItems[currentTrackIndex]
+      previousItem.seek(to: CMTime(value: 0, timescale: 1))
       player?.pause()
       player?.removeAllItems()
       player?.insert(previousItem, after: nil)
+      for i in (currentTrackIndex+1) ..< playerItems.count {
+        player?.insert(playerItems[i], after: nil)
+      }
       if isPlaying {
           player?.play()
       }
@@ -273,6 +295,8 @@ class MusicPlayerManager: ObservableObject {
     var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String : Any]()
     nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1 : 0
     
+    // TODO: Update audio progress?
+    
     MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
   }
   
@@ -305,6 +329,33 @@ class MusicPlayerManager: ObservableObject {
     commandCenter.pauseCommand.addTarget {event in
       self.pauseMusic()
       return .success
+    }
+  }
+  
+  /// Adds an observer of the player timing.
+  private func addPeriodicTimeObserver() {
+      // Create a 0.5 second interval time.
+      let interval = CMTime(value: 1, timescale: 2)
+      if let player = player {
+        timeObserver = player.addPeriodicTimeObserver(forInterval: interval,
+                                                      queue: .main) { [weak self] time in
+            guard let self else { return }
+            // Update the published currentTime and duration values.
+            currentTime = time.seconds
+            duration = player.currentItem?.duration.seconds ?? 0.0
+          
+            if isStalled {
+              isStalled = false
+            }
+        }
+      }
+  }
+  
+  private func removePeriodicTimeObserver() {
+      guard let timeObserver else { return }
+    if let player = player {
+      player.removeTimeObserver(timeObserver)
+      self.timeObserver = nil
     }
   }
 }

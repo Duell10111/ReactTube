@@ -24,6 +24,10 @@ func requestHome() {
   sendVideoAPIMessage(message: ["request": "home"])
 }
 
+func requestLibraryPlaylists() {
+  sendVideoAPIMessage(message: ["request": "library-playlists"])
+}
+
 func processYoutubeAPIMessage(_ session: WCSession, message: [String: Any]) {
   if let type = message["type"] as? String {
     switch type {

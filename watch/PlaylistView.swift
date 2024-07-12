@@ -16,12 +16,12 @@ struct PlaylistView: View {
             HStack {
               Text(video.title ?? "Track \(index + 1)")
                 Spacer()
-                if index == musicManager.currentTrackIndex {
+                if index == musicManager.trackIndex {
                     Image(systemName: "play.fill")
                 }
             }
             .padding()
-            .background(index == musicManager.currentTrackIndex ? Color.blue.opacity(0.3) : Color.clear)
+            .background(index == musicManager.trackIndex ? Color.blue.opacity(0.3) : Color.clear)
             .cornerRadius(8)
             }
 //            .onMove(perform: move)
