@@ -18,7 +18,6 @@ struct HomeList: View {
         ForEach(items, id: \.id) { video in
           VStack {
             Button {
-//              checkVideosForExpiration([video])
               musicPlayerManager.updatePlaylist(newPlaylist: [video])
             } label: {
               VStack {
@@ -35,6 +34,11 @@ struct HomeList: View {
                     Label("Downloaded", systemImage: "arrow.down.circle")
                   }
                 }
+                if let videoDownload = DownloadManager.shared.activeDownloads.first(where: { activeDownload in
+                  activeDownload.id == video.id
+                }) {
+                  ProgressView(videoDownload.session.progress)
+                }
               }
             }
             .swipeActions {
@@ -50,7 +54,6 @@ struct HomeList: View {
         Section("Playlists") {
           ForEach(playlists, id: \.id) { playlist in
             Button(playlist.title ?? "No title") {
-//              checkVideosForExpiration(playlist.videos)
               musicPlayerManager.updatePlaylist(newPlaylist: playlist.videos)
             }
           }
@@ -63,6 +66,9 @@ struct HomeList: View {
         }
         Button("Get Home") {
           requestHome()
+        }
+        NavigationLink("Library") {
+          LibraryView()
         }
         NavigationLink("Settings") {
           SettingsScreen()

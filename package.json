@@ -53,7 +53,7 @@
     "stream-browserify": "^3.0.0",
     "web-streams-polyfill": "^3.2.1",
     "widget-watchos-expo-plugin": "^1.0.0-beta.4",
-    "youtubei.js": "10.0.0"
+    "youtubei.js": "10.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
