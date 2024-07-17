@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct PlaylistView: View {
-    @EnvironmentObject var musicManager: MusicPlayerManager
+    @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
     
     var body: some View {
         List {
@@ -46,6 +46,6 @@ struct PlaylistView: View {
 struct PlaylistView_Previews: PreviewProvider {
     static var previews: some View {
       PlaylistView()
-        .environmentObject(MusicPlayerManager.shared)
+        .environment(MusicPlayerManager.shared)
     }
 }
