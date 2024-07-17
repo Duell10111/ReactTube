@@ -9,27 +9,36 @@ import Foundation
 import AVFoundation
 import SwiftUI
 import MediaPlayer
+import Combine
 
-class MusicPlayerManager: ObservableObject {
+@Observable
+class MusicPlayerManager {
     static let shared = MusicPlayerManager()
     
-    @Published var trackIndex = 0
+    var trackIndex = 0
     private var currentTrackIndex = 0
   
-    @Published private(set) var duration: TimeInterval = 0.0
-    @Published private(set) var currentTime: TimeInterval = 0.0
+    private(set) var duration: TimeInterval = 0.0
+    private(set) var currentTime: TimeInterval = 0.0
 
-    @Published var isPlaying: Bool = false
-    @Published var currentTitle: String = "Unknown Title"
-    @Published var currentCover: URL? = nil
+    var isPlaying: Bool = false
+    var currentTitle: String = "Unknown Title"
+    var currentCover: URL? = nil
   
-    @Published var isStalled: Bool = false
+    var isStalled: Bool = false
     
     private var player: AVQueuePlayer?
     private var timeObserver: Any?
     private var playerItems: [AVPlayerItem] = []
-    @Published var playerPlaylistItems: [Video] = []
+    var playerPlaylistItems: [Video] = []
     private var playlist: [Video] = []
+  
+    // Utils
+    private let queue = DispatchQueue(label: "music.player.queue")
+    private let playlistManager = PlaylistManager()
+  
+    // Subscriptions
+    private var currentItemObserver: Cancellable?
     
     private init() {
       configutreRemoteCommand()
@@ -38,10 +47,18 @@ class MusicPlayerManager: ObservableObject {
   
   func updatePlaylist(newPlaylist: [Video]) {
     // TODO: Check if playlist already present?
-    playlist = newPlaylist
+    playlistManager.setPlaylist(nil, videos: newPlaylist)
     
     // TODO: Put into setupPlayer?
     setupPlayer()
+  }
+  
+  func updatePlaylist(playlist: Playlist) {
+    queue.async {
+      self.playlistManager.setPlaylist(playlist)
+      
+      self.setupPlayer()
+    }
   }
     
   private func setupPlayer() {
@@ -56,30 +73,15 @@ class MusicPlayerManager: ObservableObject {
           print("Failed to set up AVAudioSession: \(error)")
       }
     
-      let pItems = playlist.compactMap { p in
-        print("FileURL: \(p.fileURL)")
-        if let localFile = p.fileURL {
-          let uri = getDownloadDirectory().appending(path: localFile)
-          print("Local uri: \(uri)")
-          let item = AVPlayerItem(url: uri)
-          print("Local version")
-          // Set end for local files?
-//          item.forwardPlaybackEndTime =
-          return (p, item)
-        } else if let sURL = p.streamURL, let uri = URL(string: sURL) {
-          print("Remote uri: \(sURL)")
-          let item = AVPlayerItem(url: uri)
-          
-          return (p, item)
-        }
-        return nil
-      }
+      
       
     
-      if pItems.isEmpty {
+      if (playlistManager.videos?.isEmpty ?? true) {
         print("Skipping setup of Queue for empty playlist")
         return
       }
+    
+      let pItems = playlistManager.getAll()
     
       let (videoItems, playerItems) = unzip(pItems)
       self.playerItems = playerItems
@@ -91,13 +93,20 @@ class MusicPlayerManager: ObservableObject {
       addPeriodicTimeObserver()
     
       // Setup Notifications
+    
+      currentItemObserver = player?.publisher(for: \.currentItem)
+        .sink {item in
+          print("Current item changed \(item)")
+          self.queue.async {
+            self.checkCurrentIndex()
+          }
+        }
 
       NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: nil, queue: .main) { notification in
         // Not needed with queue player?
 //          self.nextTrack()
           DispatchQueue.main.async {
-            self.currentTrackIndex += 1
-            self.updateTrackInfo()
+            self.checkCurrentIndex()
           }
       }
     
@@ -123,6 +132,7 @@ class MusicPlayerManager: ObservableObject {
     isStalled = false
     currentTrackIndex = 0
     removePeriodicTimeObserver()
+    currentItemObserver?.cancel()
   }
 
   @objc func playMusic() {
@@ -166,11 +176,6 @@ class MusicPlayerManager: ObservableObject {
   }
 
   @objc func pauseMusic() {
-//      if player?.items().isEmpty ?? true {
-//        print("Skip pause for empty playlist")
-//        return
-//      }
-      
       do {
           try AVAudioSession.sharedInstance().setActive(false)
       } catch {
@@ -204,13 +209,6 @@ class MusicPlayerManager: ObservableObject {
           player?.insert(current, after: prev)
         }
       }
-//      if currentTrackIndex < playerItems.count - 1 {
-//          let nextItem = playerItems[currentTrackIndex]
-//          player?.insert(nextItem, after: player?.currentItem)
-//      }
-//      if isPlaying {
-//          player?.play()
-//      }
       updateTrackInfo()
   }
 
@@ -237,21 +235,19 @@ class MusicPlayerManager: ObservableObject {
       }
       updateTrackInfo()
   }
-
-  // TODO: Not used at all?
-  func playCurrentTrack() {
-      guard currentTrackIndex < playerItems.count else { return }
-      let currentItem = playerItems[currentTrackIndex]
-      player?.replaceCurrentItem(with: currentItem)
-      if isPlaying {
-          player?.play()
-      }
-      updateTrackInfo()
-  }
   
   // TODO: Add move playlist option
   func movePlaylist(from source: IndexSet, to destination: Int) {
     
+  }
+  
+  private func checkCurrentIndex() {
+    if let player = player, let currItem = player.currentItem, let firstIndex = playerItems.firstIndex(of: currItem), firstIndex != currentTrackIndex {
+      currentTrackIndex = firstIndex
+      updateTrackInfo()
+    } else {
+      print("No update found for Video")
+    }
   }
   
   func updateTrackInfo() {

@@ -70,3 +70,17 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any]) {
     print("YT Video Response incomplete")
   }
 }
+
+@MainActor
+func saveHomeScreenResponse(_ session: WCSession, message: [String: Any]) {
+  // TODO: ADAPT
+  if let id = message["id"] as? String, let title = message["title"] as? String, let videoIds = message["videoIds"] as? [String], let coverURL = message["coverUrl"] as? String {
+    print("Received Playlist Response for id: \(id)")
+    videoIds.forEach { id in
+      requestVideo(id: id)
+    }
+    addPlaylistData(DataController.shared.container.mainContext, id: id, title: title, videoIds: videoIds, coverURL: coverURL)
+  } else {
+    print("YT Video Response incomplete")
+  }
+}

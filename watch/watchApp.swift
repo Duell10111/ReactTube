@@ -11,7 +11,7 @@ struct ContentView: View {
 
 @main
 struct watchApp: App {
-    @StateObject private var musicPlayerManager = MusicPlayerManager.shared
+    @State private var musicPlayerManager = MusicPlayerManager.shared
   
     @Environment(\.scenePhase) var scenePhase
     let session = SessionSyncStruct.shared
@@ -19,7 +19,7 @@ struct watchApp: App {
         WindowGroup {
           ContentView()
             .modelContainer(DataController.shared.container)
-            .environmentObject(musicPlayerManager)
+            .environment(musicPlayerManager)
         }
     }
 }

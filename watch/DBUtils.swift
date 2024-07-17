@@ -209,6 +209,8 @@ func clearDownloads(modelContext: ModelContext) {
 func clearDatabase(modelContext: ModelContext) {
   do {
       try modelContext.delete(model: Video.self)
+      try modelContext.delete(model: Playlist.self)
+      try modelContext.delete(model: HomeScreenElement.self)
       try FileManager.default.removeItem(at: getDownloadDirectory())
   } catch {
       print("Failed to clear all Video and Playlist data.")

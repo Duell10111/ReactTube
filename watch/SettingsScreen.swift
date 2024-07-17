@@ -16,6 +16,9 @@ struct SettingsScreen: View {
       Button("Delete Downloads") {
         clearDownloads(modelContext: modelContext)
       }
+      Button("DELETE Database!") {
+        clearDatabase(modelContext: modelContext)
+      }
       Spacer()
       Button("Check Videos") {
         checkVideosForExpiration(videos)

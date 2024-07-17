@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct MusikPlayer: View {
-    @EnvironmentObject var musicManager: MusicPlayerManager
+    @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
   
     var body: some View {
         VStack {
@@ -77,11 +77,11 @@ struct MusikPlayer: View {
 
 #Preview {
   MusikPlayer()
-    .environmentObject(MusicPlayerManager.shared)
+    .environment(MusicPlayerManager.shared)
 }
 
 struct PlayButton: View {
-  @EnvironmentObject var musicManager: MusicPlayerManager
+  @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
   
   var body: some View {
     ZStack {
