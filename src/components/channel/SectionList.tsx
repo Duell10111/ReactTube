@@ -1,7 +1,8 @@
 import React, {useCallback} from "react";
 import {FlatList, StyleProp, ViewStyle} from "react-native";
-import PageSegment from "../PageSegment";
+
 import {HorizontalData} from "../../extraction/ShelfExtraction";
+import PageSegment from "../PageSegment";
 
 interface Props {
   style?: StyleProp<ViewStyle>;
@@ -10,8 +11,6 @@ interface Props {
 }
 
 export default function SectionList({node, ...otherProps}: Props) {
-  console.log(node);
-
   return <ItemList nodes={node} {...otherProps} />;
 }
 

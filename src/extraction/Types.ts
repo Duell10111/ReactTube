@@ -1,4 +1,4 @@
-import {Helpers, Misc, YT, YTNodes} from "../utils/Youtube";
+import {Helpers, Misc, YT, YTMusic, YTNodes} from "../utils/Youtube";
 
 export interface Thumbnail {
   url: string;
@@ -21,12 +21,17 @@ export interface VideoData {
   author?: Author;
   quality?: string;
   livestream?: boolean;
+  music?: boolean;
+  // Music Properties
+  durationSeconds?: number;
+  artists?: Author[];
 }
 
 export interface Author {
   id: string;
   name: string;
-  thumbnail: Thumbnail;
+  thumbnail?: Thumbnail;
+  navEndpoint?: YTNodes.NavigationEndpoint;
 }
 
 export interface PlaylistData {
@@ -38,6 +43,7 @@ export interface PlaylistData {
   author?: Author;
   videoCount?: string;
   videos?: string[];
+  music?: boolean;
 }
 
 export interface ChannelData {
@@ -47,6 +53,7 @@ export interface ChannelData {
   title: string;
   thumbnailImage: Thumbnail;
   author?: Author;
+  music?: boolean;
 }
 
 // YT.* Types
@@ -81,6 +88,8 @@ export interface YTVideoInfo {
   liked?: boolean;
   disliked?: boolean;
   endscreen?: YTEndscreen;
+  // Music Properties
+  durationSeconds?: number;
 }
 
 export interface YTChapter {
@@ -120,10 +129,19 @@ export interface YTEndscreenElement {
 }
 
 export interface YTPlaylist {
-  originalData: YT.Playlist;
+  originalData: YT.Playlist | YTMusic.Playlist;
   title: string;
   thumbnailImage: Thumbnail;
   author?: Author;
+
+  playEndpoint?: YTNodes.NavigationEndpoint;
+
+  items: ElementData[];
+  loadMore: () => Promise<void>;
+}
+
+export interface YTMusicPlaylist extends YTPlaylist {
+  originalData: YTMusic.Playlist;
 }
 
 export function getAuthor(author: Misc.Author) {

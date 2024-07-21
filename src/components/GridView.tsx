@@ -21,6 +21,7 @@ interface Props extends Omit<FlatListProps<any>, "renderItem" | "data"> {
   columns?: number;
   onEndReached?: () => void;
   onElementFocused?: () => void;
+  horizontalListSegmentStyle?: StyleProp<ViewStyle>;
 }
 
 export default function GridView({
@@ -33,23 +34,32 @@ export default function GridView({
 }: Props) {
   const sorted = useGrid(shelfItem, columns);
 
-  const renderItem = useCallback(({item}: {item: (typeof sorted)[number]}) => {
-    if (Array.isArray(item)) {
+  const renderItem = useCallback(
+    ({item}: {item: (typeof sorted)[number]}) => {
+      if (Array.isArray(item)) {
+        return (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-around",
+              alignItems: "flex-start",
+            }}>
+            {item.map((v, index) => (
+              <VideoSegment key={`${v.id}-${index}`} element={v} />
+            ))}
+          </View>
+        );
+      }
       return (
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-around",
-            alignItems: "flex-start",
-          }}>
-          {item.map((v, index) => (
-            <VideoSegment key={`${v.id}-${index}`} element={v} />
-          ))}
-        </View>
+        <PageSectionList
+          headerText={item.title}
+          content={item}
+          horizontalListSegmentStyle={props.horizontalListSegmentStyle}
+        />
       );
-    }
-    return <PageSectionList headerText={item.title} content={item} />;
-  }, []);
+    },
+    [props.horizontalListSegmentStyle],
+  );
   const keyExtractor = useCallback(
     (item: (typeof sorted)[number], index: number) =>
       Array.isArray(item)

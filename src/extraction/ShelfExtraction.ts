@@ -1,10 +1,11 @@
-import {Helpers, YTNodes} from "../utils/Youtube";
 import _ from "lodash";
-import {getVideoData} from "./ElementData";
-import Logger from "../utils/Logger";
+
 import {parseObservedArrayHorizontalData} from "./ArrayExtraction";
+import {getVideoData} from "./ElementData";
 import {extractKeyNode} from "./KeyExtraction";
 import {ElementData} from "./Types";
+import Logger from "../utils/Logger";
+import {Helpers, YTNodes} from "../utils/Youtube";
 
 const LOGGER = Logger.extend("SHELF-EXTRACTION");
 
@@ -115,7 +116,7 @@ export function parseHorizontalNode(
 
     return {
       data: content,
-      parsedData: parsedData,
+      parsedData,
       loadMore: () => {},
       id: extractKeyNode(node),
       originalNode: node,
@@ -125,7 +126,7 @@ export function parseHorizontalNode(
     const {content, parsedData} = extractContent(Array.from(node.contents));
     return {
       data: content,
-      parsedData: parsedData,
+      parsedData,
       loadMore: () => {},
       id: extractKeyNode(node),
       originalNode: node,
@@ -137,7 +138,7 @@ export function parseHorizontalNode(
     const {content, parsedData} = extractContent(Array.from(node.contents));
     return {
       data: content,
-      parsedData: parsedData,
+      parsedData,
       loadMore: () => {},
       id: extractKeyNode(node),
       originalNode: node,
@@ -151,6 +152,18 @@ export function parseHorizontalNode(
       loadMore: () => {},
       id: node.title.text ?? "feed_nudge",
       title: node.title.text,
+      originalNode: node,
+    };
+  } else if (node.is(YTNodes.MusicCarouselShelf)) {
+    console.log(node.contents);
+    const {content, parsedData} = extractContent(Array.from(node.contents));
+    console.log("Header: ", node.header);
+    return {
+      data: content,
+      parsedData,
+      loadMore: () => {},
+      id: node.header.title?.text,
+      title: node.header.title?.text,
       originalNode: node,
     };
   } else {

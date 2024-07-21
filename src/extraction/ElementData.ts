@@ -1,5 +1,6 @@
 import {getThumbnail} from "./Misc";
 import {
+  Author,
   ChannelData,
   ElementData,
   getAuthor,
@@ -103,16 +104,73 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
       duration: ytNode.duration.text,
     } as VideoData;
+  } else if (ytNode.is(YTNodes.MusicTwoRowItem)) {
+    console.log("Music two row ", JSON.stringify(ytNode));
+    if (ytNode.item_type === "playlist") {
+      return {
+        type: "playlist",
+        originalNode: ytNode,
+        id: ytNode.id,
+        navEndpoint: ytNode.endpoint,
+        title: ytNode.title.toString(),
+        thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
+        music: true,
+        // TODO: Add Autor
+      } as PlaylistData;
+    } else if (ytNode.item_type === "song" || ytNode.item_type === "video") {
+      return {
+        type: "video",
+        originalNode: ytNode,
+        id: ytNode.id,
+        navEndpoint: ytNode.endpoint,
+        title: ytNode.title.toString(),
+        thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
+        music: true,
+        // TODO: Add Autor
+      } as VideoData;
+    } else {
+      LOGGER.warn(`Unknown Music two row item type: ${ytNode.item_type}`);
+    }
   } else if (ytNode.is(YTNodes.MusicResponsiveListItem)) {
-    return {
-      type: "video",
-      originalNode: ytNode,
-      id: ytNode.id,
-      navEndpoint: ytNode.endpoint,
-      title: ytNode.title.toString(),
-      thumbnailImage: getThumbnail(ytNode.thumbnail.contents[0]),
-      duration: ytNode.duration.text,
-    } as VideoData;
+    if (ytNode.item_type === "playlist") {
+      return {
+        type: "playlist",
+        originalNode: ytNode,
+        id: ytNode.id,
+        navEndpoint: ytNode.endpoint,
+        title: ytNode.title.toString(),
+        thumbnailImage: getThumbnail(ytNode.thumbnail.contents[0]),
+        music: true,
+        // TODO: Add Autor
+      } as PlaylistData;
+    } else if (ytNode.item_type === "video" || ytNode.item_type === "song") {
+      // console.log("Menu: ", ytNode.menu.items);
+      console.log("Endpoint: ", ytNode.endpoint);
+
+      return {
+        type: "video",
+        originalNode: ytNode,
+        id: ytNode.id,
+        navEndpoint: ytNode.overlay?.content?.endpoint ?? ytNode.endpoint,
+        title: ytNode.title.toString(),
+        thumbnailImage: getThumbnail(ytNode.thumbnail.contents[0]),
+        duration: ytNode.duration?.text,
+        music: true,
+        artists: ytNode.artists?.map(
+          artist =>
+            ({
+              name: artist.name,
+              id: artist.channel_id,
+              navEndpoint: artist.endpoint,
+            }) as Author,
+        ),
+      } as VideoData;
+    } else {
+      LOGGER.warn(
+        "getVideoData: Unknown MusicResponsiveListItem type: ",
+        ytNode.item_type,
+      );
+    }
   }
   // Playlist Data
   else if (ytNode.is(YTNodes.GridPlaylist)) {

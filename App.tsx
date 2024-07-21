@@ -10,20 +10,25 @@ import {btoa, atob} from "react-native-quick-base64";
 
 // import "react-native/tvos-types.d";
 import {SafeAreaProvider} from "react-native-safe-area-context";
+import TrackPlayer from "react-native-track-player";
 
 import AccountContextProvider from "./src/context/AccountContext";
 import AppDataContextProvider from "./src/context/AppDataContext";
 import AppStyleProvider from "./src/context/AppStyleContext";
 import {DownloaderContext} from "./src/context/DownloaderContext";
+import {MusicPlayerContext} from "./src/context/MusicPlayerContext";
 import YoutubeContextProvider from "./src/context/YoutubeContext";
 import Navigation from "./src/navigation/Navigation";
 import BackgroundWrapper from "./src/utils/BackgroundWrapper";
+import playbackService from "./src/utils/MusicService";
 
 // Polyfill for youtube.js
 Object.assign(global, {
   btoa,
   atob,
 });
+
+TrackPlayer.registerPlaybackService(() => playbackService);
 
 const App = () => {
   const isDarkMode = useColorScheme() === "dark";
@@ -41,7 +46,9 @@ const App = () => {
                     barStyle={isDarkMode ? "light-content" : "light-content"}
                   />
                   <SafeAreaProvider>
-                    <Navigation />
+                    <MusicPlayerContext>
+                      <Navigation />
+                    </MusicPlayerContext>
                     <FlashMessage position={"top"} />
                   </SafeAreaProvider>
                 </DownloaderContext>
