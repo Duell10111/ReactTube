@@ -1,14 +1,15 @@
+import _ from "lodash";
 import {useCallback, useEffect, useState} from "react";
+import {DeviceEventEmitter} from "react-native";
+
 import {useYoutubeContext} from "../context/YoutubeContext";
+import Logger from "../utils/Logger";
 import {
   YT,
   Helpers,
   YTNodes,
   AppendContinuationItemsAction,
 } from "../utils/Youtube";
-import Logger from "../utils/Logger";
-import _ from "lodash";
-import {DeviceEventEmitter} from "react-native";
 
 const LOGGER = Logger.extend("HOOKS");
 
@@ -17,7 +18,7 @@ export default function useHomeScreen() {
   const [homePage, setHomePage] = useState<YT.HomeFeed>();
   const [content, setContent] = useState<Helpers.YTNode[]>([]);
 
-  console.log("MEMO: ", homePage?.memo.size);
+  // console.log("MEMO: ", homePage?.memo.size);
 
   const fetchHomeContent = useCallback(() => {
     if (youtube) {
@@ -84,5 +85,5 @@ export default function useHomeScreen() {
     return listener.remove();
   }, [fetchHomeContent]);
 
-  return {homePage, content: content, fetchMore, refresh: fetchHomeContent};
+  return {homePage, content, fetchMore, refresh: fetchHomeContent};
 }

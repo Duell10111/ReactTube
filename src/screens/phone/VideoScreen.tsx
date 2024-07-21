@@ -27,6 +27,7 @@ import PlaylistBottomSheet from "../../components/video/playlistBottomSheet/Play
 import PlaylistBottomSheetContainer from "../../components/video/playlistBottomSheet/PlaylistBottomSheetContainer";
 import {useAppStyle} from "../../context/AppStyleContext";
 import {useDownloaderContext} from "../../context/DownloaderContext";
+import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
 import {parseObservedArray} from "../../extraction/ArrayExtraction";
 import {YTVideoInfo as YTVideoInfoType} from "../../extraction/Types";
 import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
@@ -46,6 +47,14 @@ export default function VideoScreen({route, navigation}: Props) {
     dislike,
     removeRating,
   } = useVideoDetails(navEndpoint ?? videoId);
+
+  // Pause Music if playing. :)
+  const {playing, pause} = useMusikPlayerContext();
+  useEffect(() => {
+    if (playing) {
+      pause();
+    }
+  }, []);
 
   const {style} = useAppStyle();
 

@@ -3,7 +3,10 @@ import _ from "lodash";
 import {getVideoData} from "./ElementData";
 import {getThumbnail} from "./Misc";
 import {
+  Author,
+  ElementData,
   getAuthor,
+  Thumbnail,
   YTChannel,
   YTChapter,
   YTEndscreen,
@@ -11,7 +14,7 @@ import {
   YTPlaylist,
   YTVideoInfo,
 } from "./Types";
-import {YT, YTNodes} from "../utils/Youtube";
+import {YT, YTNodes, YTMusic} from "../utils/Youtube";
 
 export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
   const thumbnail = videoInfo.basic_info.thumbnail
@@ -46,6 +49,7 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     endscreen: parseEndScreen(videoInfo.endscreen),
     // TODO: Adapt author to only contain name
     author: {name: videoInfo.basic_info.author},
+    durationSeconds: videoInfo.basic_info.duration,
   } as YTVideoInfo;
 }
 
@@ -165,10 +169,89 @@ export function getElementDataFromYTChannel(channel: YT.Channel) {
 // YT.Playlist
 
 export function getElementDataFromYTPlaylist(playlist: YT.Playlist) {
-  return {
-    originalData: playlist,
-    title: playlist.info.title,
-    thumbnailImage: getThumbnail(playlist.info.thumbnails[0]),
-    author: getAuthor(playlist.info.author),
-  } as YTPlaylist;
+  return new YTPlaylistClass(playlist);
+}
+
+export function getElementDataFromYTMusicPlaylist(playlist: YTMusic.Playlist) {
+  return new YTMusicPlaylistClass(playlist);
+}
+
+class YTPlaylistClass implements YTPlaylist {
+  items: ElementData[];
+
+  originalData: YT.Playlist;
+  thumbnailImage: Thumbnail;
+  title: string;
+  author?: Author;
+
+  constructor(playlist: YT.Playlist) {
+    this.originalData = playlist;
+    this.items = _.chain(playlist.items).map(getVideoData).compact().value();
+    this.thumbnailImage = getThumbnail(playlist.info.thumbnails[0]);
+    this.title = playlist.info.title;
+    this.author = getAuthor(playlist.info.author);
+  }
+
+  async loadMore() {
+    if (this.originalData.has_continuation) {
+      const updatedPlaylist = await this.originalData.getContinuation();
+      const newItems = updatedPlaylist.items.map(getVideoData);
+      this.items.push(...newItems);
+      this.originalData = updatedPlaylist;
+    } else {
+      throw new Error("No continuation available");
+    }
+  }
+}
+
+class YTMusicPlaylistClass implements YTPlaylist {
+  items: ElementData[];
+
+  originalData: YTMusic.Playlist;
+  thumbnailImage: Thumbnail;
+  title: string;
+  author?: Author;
+  subtitle?: string;
+
+  playEndpoint?: YTNodes.NavigationEndpoint;
+
+  backgroundThumbnail?: Thumbnail;
+
+  constructor(playlist: YTMusic.Playlist) {
+    this.originalData = playlist;
+    this.items = _.chain(playlist.items).map(getVideoData).compact().value();
+    this.backgroundThumbnail = playlist.background
+      ? getThumbnail(playlist.background.contents[0])
+      : undefined;
+
+    if (playlist.header.is(YTNodes.MusicResponsiveHeader)) {
+      this.thumbnailImage = getThumbnail(playlist.header.thumbnail.contents[0]);
+      this.title = playlist.header.title?.text ?? "Empty title";
+      this.subtitle = playlist.header.subtitle.text;
+      playlist.header.buttons.forEach(v => {
+        if (v.is(YTNodes.MusicPlayButton)) {
+          this.playEndpoint = v.endpoint;
+        }
+      });
+    } else if (playlist.header.is(YTNodes.MusicDetailHeader)) {
+      this.thumbnailImage = getThumbnail(playlist.header.thumbnails[0]);
+      this.title = playlist.header.title?.text ?? "Empty title";
+      this.subtitle = playlist.header.subtitle.text;
+      // console.log("Badges: ", playlist.header.badges);
+      // this.author = getAuthor(playlist.header?.author);
+    } else if (playlist.header.is(YTNodes.MusicEditablePlaylistDetailHeader)) {
+      console.log(`Unknown music detail header: ${playlist.header}`);
+    }
+  }
+
+  async loadMore() {
+    if (this.originalData.has_continuation) {
+      const updatedPlaylist = await this.originalData.getContinuation();
+      const newItems = updatedPlaylist.items.map(getVideoData);
+      this.items.push(...newItems);
+      this.originalData = updatedPlaylist;
+    } else {
+      throw new Error("No continuation available");
+    }
+  }
 }

@@ -66,6 +66,7 @@ export default function VideoSegment({
           thumbnail={element.thumbnailImage}
           videoCount={element.videoCount}
           author={element.author}
+          music={element.music}
         />
       );
     } else {

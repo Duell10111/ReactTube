@@ -18,6 +18,8 @@ import SubscriptionScreen from "../screens/SubscriptionScreen";
 import VideoScreen from "../screens/VideoScreen";
 import {ActiveDownloadScreen} from "../screens/phone/ActiveDownloadScreen";
 import {DownloadPlayer} from "../screens/phone/DownloadPlayer";
+import {MusicPlayerScreen} from "../screens/phone/MusicPlayerScreen";
+import {MusicPlaylistScreen} from "../screens/phone/MusicPlaylistScreen";
 import VideoScreenWrapper from "../screens/phone/VideoScreenWrapper";
 import {YTNodes} from "../utils/Youtube";
 
@@ -39,6 +41,12 @@ export type RootStackParamList = {
   // Downloads
   ActiveDownloadScreen: undefined;
   DownloadPlayer: {id: string};
+  // Music Screens
+  MusicPlaylistScreen: {playlistId: string};
+  MusicPlayerScreen: {
+    videoId: string;
+    navEndpoint?: YTNodes.NavigationEndpoint;
+  };
 };
 
 export type RootNavProp = NativeStackNavigationProp<RootStackParamList>;
@@ -101,6 +109,22 @@ export default function RootStackNavigator() {
             name={"DownloadPlayer"}
             component={DownloadPlayer}
             options={{headerTitle: "Download Player"}}
+          />
+          {/* Music Screens*/}
+          <Stack.Screen
+            name={"MusicPlaylistScreen"}
+            component={MusicPlaylistScreen}
+            options={{title: "Music Playlist"}}
+          />
+          <Stack.Screen
+            name={"MusicPlayerScreen"}
+            component={MusicPlayerScreen}
+            options={{
+              title: "Music Player",
+              contentStyle: {backgroundColor: "#222222dd"},
+              headerStyle: {backgroundColor: "#222222dd"},
+              // presentation: "formSheet",
+            }}
           />
         </>
       )}
