@@ -10,6 +10,11 @@ export default function useMusicHome() {
   const youtube = useYoutubeContext();
   const [data, setData] = useState<HorizontalData[]>();
 
+  console.log(
+    "Horizontal Data Types: ",
+    data?.map(h => h.originalNode.type),
+  );
+
   useEffect(() => {
     youtube.music.getHomeFeed().then(homeFeed => {
       homeData.current = homeFeed;

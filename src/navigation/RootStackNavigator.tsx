@@ -121,8 +121,9 @@ export default function RootStackNavigator() {
             component={MusicPlayerScreen}
             options={{
               title: "Music Player",
-              contentStyle: {backgroundColor: "#222222dd"},
-              headerStyle: {backgroundColor: "#222222dd"},
+              // Use #222222dd for transparent in the future
+              contentStyle: {backgroundColor: "#222222"},
+              headerStyle: {backgroundColor: "#222222"},
               // presentation: "formSheet",
             }}
           />

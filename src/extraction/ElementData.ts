@@ -4,6 +4,7 @@ import {
   ChannelData,
   ElementData,
   getAuthor,
+  getAuthorMusic,
   PlaylistData,
   VideoData,
 } from "./Types";
@@ -115,9 +116,11 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
         title: ytNode.title.toString(),
         thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
         music: true,
+        author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
         // TODO: Add Autor
       } as PlaylistData;
     } else if (ytNode.item_type === "song" || ytNode.item_type === "video") {
+      console.log("Author: ", ytNode.author);
       return {
         type: "video",
         originalNode: ytNode,
@@ -126,6 +129,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
         title: ytNode.title.toString(),
         thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
         music: true,
+        author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
         // TODO: Add Autor
       } as VideoData;
     } else {
@@ -141,7 +145,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
         title: ytNode.title.toString(),
         thumbnailImage: getThumbnail(ytNode.thumbnail.contents[0]),
         music: true,
-        // TODO: Add Autor
+        author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
       } as PlaylistData;
     } else if (ytNode.item_type === "video" || ytNode.item_type === "song") {
       // console.log("Menu: ", ytNode.menu.items);
@@ -164,6 +168,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
               navEndpoint: artist.endpoint,
             }) as Author,
         ),
+        author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
       } as VideoData;
     } else {
       LOGGER.warn(

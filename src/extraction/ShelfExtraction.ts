@@ -21,6 +21,9 @@ export interface HorizontalData {
   loadMore: () => void;
   id: string;
   title?: string;
+  items_per_columns?: number;
+  shelf?: boolean; // Needed?
+  music?: boolean;
 }
 
 export function gridCalculatorExtract(
@@ -154,9 +157,14 @@ export function parseHorizontalNode(
       title: node.title.text,
       originalNode: node,
     };
-  } else if (node.is(YTNodes.MusicCarouselShelf)) {
+  }
+  // Music types
+  else if (node.is(YTNodes.MusicCarouselShelf)) {
     console.log(node.contents);
     const {content, parsedData} = extractContent(Array.from(node.contents));
+    const twoRowItem = parsedData.find(v =>
+      v.originalNode.is(YTNodes.MusicTwoRowItem),
+    );
     console.log("Header: ", node.header);
     return {
       data: content,
@@ -164,7 +172,21 @@ export function parseHorizontalNode(
       loadMore: () => {},
       id: node.header.title?.text,
       title: node.header.title?.text,
+      items_per_columns: node.num_items_per_column,
+      music: true,
+      shelf: true,
       originalNode: node,
+    };
+  } else if (node.is(YTNodes.MusicDescriptionShelf)) {
+    return {
+      data: [],
+      parsedData: [],
+      loadMore: () => {},
+      id: node.type, // TODO: Hash description?
+      title: node.description.text,
+      originalNode: node,
+      music: true,
+      shelf: true,
     };
   } else {
     console.warn("ShelfExtraction: Unknown horizontal type: ", node.type);
