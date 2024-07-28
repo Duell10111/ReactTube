@@ -151,3 +151,17 @@ export function getAuthor(author: Misc.Author) {
     thumbnail: author.best_thumbnail,
   } as Author;
 }
+
+interface AuthorMusic {
+  name: string;
+  channel_id?: string;
+  endpoint?: YTNodes.NavigationEndpoint;
+}
+
+export function getAuthorMusic(author: AuthorMusic) {
+  return {
+    id: author.channel_id,
+    name: author.name,
+    navEndpoint: author.endpoint,
+  } as Author;
+}

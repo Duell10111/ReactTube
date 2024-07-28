@@ -1,3 +1,4 @@
+import {useNavigation} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React from "react";
 import {View} from "react-native";
@@ -15,11 +16,11 @@ const LOGGER = Logger.extend("PLAYLIST");
 
 type Props = NativeStackScreenProps<RootStackParamList, "PlaylistScreen">;
 
-export function MusicPlaylistScreen({route}: Props) {
+export function MusicPlaylistScreen({navigation, route}: Props) {
   const {playlistId} = route.params;
-  const {playlist} = usePlaylistDetails(playlistId);
-  const {bottom} = useSafeAreaInsets();
-  const {} = useMusikPlayerContext();
+  const {playlist, fetchMore} = usePlaylistDetails(playlistId);
+  const {bottom, left, right} = useSafeAreaInsets();
+  const {setPlaylistViaEndpoint} = useMusikPlayerContext();
 
   if (!playlist) {
     return <LoadingComponent />;
@@ -28,17 +29,28 @@ export function MusicPlaylistScreen({route}: Props) {
   // LOGGER.debug("Playlist: ", recursiveTypeLogger([playlist.page_contents]));
 
   return (
-    <View style={{flex: 1, paddingBottom: bottom}}>
+    <View
+      style={{
+        flex: 1,
+        paddingBottom: bottom,
+        paddingLeft: left,
+        paddingRight: right,
+      }}>
       {/* ADD PLAYLIST LIST */}
       <MusicPlaylistList
         data={playlist.items}
-        // onFetchMore={() => fetchMore()}
+        onFetchMore={() => fetchMore()}
         ListHeaderComponent={
           <MusicPlaylistHeader
             image={playlist.thumbnailImage}
             title={playlist.title}
             subtitle={"Subtitle"}
-            // onPlayPress={() => }
+            onPlayPress={() => {
+              if (playlist.playEndpoint) {
+                setPlaylistViaEndpoint(playlist.playEndpoint);
+                navigation.navigate("MusicPlayerScreen");
+              }
+            }}
           />
         }
       />

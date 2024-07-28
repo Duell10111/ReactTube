@@ -22,10 +22,15 @@ export function MusicPlaylistList({
     return null;
   }, []);
 
+  const keyExtractor = useCallback((item: ElementData, index: number) => {
+    return item.id;
+  }, []);
+
   return (
     <FlatList
       data={data}
       renderItem={renderItem}
+      keyExtractor={keyExtractor}
       onEndReached={onFetchMore}
       ListHeaderComponent={ListHeaderComponent}
     />

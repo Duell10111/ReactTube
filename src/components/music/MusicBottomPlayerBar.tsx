@@ -8,7 +8,13 @@ import {RootStackParamList} from "../../navigation/RootStackNavigator";
 
 type NProp = NativeStackNavigationProp<RootStackParamList>;
 
-export function MusicBottomPlayerBar() {
+interface MusicBottomPlayerBarProps {
+  onPressOverride?: () => void;
+}
+
+export function MusicBottomPlayerBar({
+  onPressOverride,
+}: MusicBottomPlayerBarProps) {
   const {currentItem, playing, play, pause} = useMusikPlayerContext();
   const navigation = useNavigation<NProp>();
 
@@ -18,7 +24,11 @@ export function MusicBottomPlayerBar() {
 
   return (
     <TouchableHighlight
-      onPress={() => navigation.navigate("MusicPlayerScreen")}>
+      onPress={() =>
+        !onPressOverride
+          ? navigation.navigate("MusicPlayerScreen")
+          : onPressOverride()
+      }>
       <View style={styles.container}>
         <Image
           style={styles.imageStyle}
@@ -78,6 +88,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     height: "100%",
     alignItems: "center",
+    marginLeft: 5,
     marginRight: 15,
     // backgroundColor: "white",
   },

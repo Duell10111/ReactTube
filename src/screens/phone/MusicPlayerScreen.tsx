@@ -1,7 +1,7 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {ButtonGroup, Icon} from "@rneui/base";
 import {Duration} from "luxon";
-import {useMemo} from "react";
+import {useMemo, useState} from "react";
 import {Image, StyleSheet, Text, View} from "react-native";
 import {Slider} from "react-native-awesome-slider";
 import Animated, {
@@ -11,25 +11,24 @@ import Animated, {
 } from "react-native-reanimated";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
+import {MusicBottomPlayerBar} from "../../components/music/MusicBottomPlayerBar";
+import {MusicPlayerPlayerButtons} from "../../components/music/player/MusicPlayerPlayerButtons";
+import {MusicPlayerPlaylistList} from "../../components/music/player/MusicPlayerPlaylistList";
+import {MusicPlayerRelatedTab} from "../../components/music/player/MusicPlayerRelatedTab";
+import {MusicPlayerSlider} from "../../components/music/player/MusicPlayerSlider";
+import {MusicPlayerTitle} from "../../components/music/player/MusicPlayerTitle";
 import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
+
+type Tab = "Playlist" | "Lyrics" | "Related";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MusicPlayerScreen">;
 
 export function MusicPlayerScreen({route, navigation}: Props) {
   const {bottom} = useSafeAreaInsets();
+  const {currentItem} = useMusikPlayerContext();
 
-  const {
-    currentItem,
-    play,
-    pause,
-    previous,
-    next,
-    seek,
-    playing,
-    currentTime,
-    duration,
-  } = useMusikPlayerContext();
+  const [openTab, setOpenTab] = useState<Tab>();
 
   const hlsAudio = useMemo(
     () => currentItem?.originalData?.streaming_data?.hls_manifest_url,
@@ -48,27 +47,19 @@ export function MusicPlayerScreen({route, navigation}: Props) {
     "VideoDataPlaylistData",
     currentItem?.playlist?.content?.map(v => v.title),
   );
-  const sharedValue = useSharedValue(1);
-  const min = useSharedValue(0);
-  const max = useSharedValue(1);
-  const currentProgressString = useSharedValue("");
-  const durationString = useSharedValue("");
 
-  const parseProgress = (seconds: number) => {
-    currentProgressString.value = secondsToReadableString(seconds);
-  };
-
-  useDerivedValue(() => {
-    return runOnJS(parseProgress)(currentTime.value);
-  }, [currentTime]);
-
-  const parseDuration = (seconds: number) => {
-    durationString.value = secondsToReadableString(seconds);
-  };
-
-  useDerivedValue(() => {
-    return runOnJS(parseDuration)(duration.value);
-  }, [duration]);
+  if (openTab) {
+    return (
+      <View style={[styles.container, {paddingBottom: bottom}]}>
+        <MusicBottomPlayerBar onPressOverride={() => setOpenTab(undefined)} />
+        {openTab === "Playlist" ? (
+          <MusicPlayerPlaylistList />
+        ) : (
+          <MusicPlayerRelatedTab />
+        )}
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, {paddingBottom: bottom}]}>
@@ -107,70 +98,22 @@ export function MusicPlayerScreen({route, navigation}: Props) {
         {/*/>*/}
       </View>
       <View style={styles.bottomContainer}>
-        <View style={styles.textContainer}>
-          <Text style={styles.titleStyle}>{currentItem?.title}</Text>
-          <Text style={styles.subtitleStyle}>{currentItem?.author?.name}</Text>
-        </View>
-        <View>
-          <Slider
-            style={{flex: 0, height: 50}}
-            progress={currentTime}
-            minimumValue={min}
-            maximumValue={duration}
-            bubble={seconds => {
-              const dur = Duration.fromObject({seconds});
-              return dur.toFormat("mm:ss");
-            }}
-            onSlidingComplete={seconds => {
-              console.log(`Slide to ${seconds}`);
-              seek(seconds);
-            }}
-          />
-          <Animated.Text
-            style={{position: "absolute", left: 0, bottom: 0, color: "white"}}>
-            {currentProgressString.value}
-          </Animated.Text>
-          <Animated.Text
-            style={{position: "absolute", right: 0, bottom: 0, color: "white"}}>
-            {durationString.value}
-          </Animated.Text>
-        </View>
+        <MusicPlayerTitle />
+        <MusicPlayerSlider />
         <View style={styles.buttonContainer} />
-        <View style={styles.playerItemsContainer}>
-          <Icon
-            name={"stepbackward"}
-            type={"antdesign"}
-            size={25}
-            color={"white"}
-            containerStyle={{marginRight: 20}}
-            onPress={previous}
-          />
-          <Icon
-            name={!playing ? "play" : "pause"}
-            type={"feather"}
-            raised
-            size={30}
-            onPress={() => {
-              if (playing) {
-                pause();
-              } else {
-                play();
-              }
-            }}
-          />
-          <Icon
-            name={"stepforward"}
-            type={"antdesign"}
-            size={25}
-            color={"white"}
-            containerStyle={{marginLeft: 20}}
-            onPress={next}
-          />
-        </View>
+        <MusicPlayerPlayerButtons />
         <View style={styles.bottomActionsContainer}>
-          <Text>{"Bottom actions"}</Text>
-          <Text>{"Next titles"}</Text>
-          <Text>{"Lyrics?"}</Text>
+          <Text
+            style={styles.bottomActionTextStyle}
+            onPress={() => setOpenTab("Playlist")}>
+            {"Next titles"}
+          </Text>
+          <Text style={styles.bottomActionTextStyle}>{"Lyrics?"}</Text>
+          <Text
+            style={styles.bottomActionTextStyle}
+            onPress={() => setOpenTab("Related")}>
+            {"Related"}
+          </Text>
         </View>
       </View>
     </View>
@@ -194,28 +137,6 @@ const styles = StyleSheet.create({
     // backgroundColor: "blue",
     marginHorizontal: 5,
   },
-  textContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    // backgroundColor: "red",
-    flex: 1, // Expand titles in case of space
-  },
-  titleStyle: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  subtitleStyle: {
-    color: "white",
-  },
-  playerItemsContainer: {
-    flexDirection: "row",
-    width: "100%",
-    // backgroundColor: "green",
-    alignItems: "center",
-    justifyContent: "center",
-    maxHeight: 200,
-  },
   buttonContainer: {
     width: "100%",
     minHeight: 50,
@@ -223,7 +144,10 @@ const styles = StyleSheet.create({
   bottomActionsContainer: {
     width: "100%",
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-evenly",
+  },
+  bottomActionTextStyle: {
+    color: "white",
   },
 });
 

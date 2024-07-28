@@ -20,15 +20,10 @@ export default function usePlaylistDetails(playlistId: string) {
       .catch(LOGGER.warn);
   }, [youtube, playlistId]);
 
-  // const fetchMore = useCallback(async () => {
-  //   if (playlist?.current) {
-  //     const update = await playlist.getContinuation();
-  //     setPlaylist(update);
-  //     setData([...data, ...update.items]);
-  //   } else {
-  //     LOGGER.warn("No Continuation available");
-  //   }
-  // }, [playlist, data]);
+  const fetchMore = useCallback(async () => {
+    await playlist.loadMore();
+    setPlaylist(playlist);
+  }, [playlist]);
 
-  return {playlist};
+  return {playlist, fetchMore};
 }

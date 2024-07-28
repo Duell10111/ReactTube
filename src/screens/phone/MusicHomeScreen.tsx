@@ -1,5 +1,5 @@
 import {useCallback} from "react";
-import {FlatList, ListRenderItem} from "react-native";
+import {FlatList, ListRenderItem, View} from "react-native";
 
 import MusicHorizontalItem from "../../components/music/MusicHorizontalItem";
 import {HorizontalData} from "../../extraction/ShelfExtraction";
@@ -12,5 +12,11 @@ export function MusicHomeScreen() {
     return <MusicHorizontalItem data={item} />;
   }, []);
 
-  return <FlatList data={data} renderItem={renderItem} />;
+  return (
+    <FlatList
+      data={data}
+      renderItem={renderItem}
+      onEndReached={fetchContinuation}
+    />
+  );
 }

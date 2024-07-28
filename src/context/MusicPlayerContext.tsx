@@ -27,6 +27,7 @@ type PlayType = "Audio" | "Video";
 interface MusicPlayerContextType {
   addPlaylist: (playlist: YTPlaylist) => void;
   setCurrentItem: (item: VideoData) => void;
+  setPlaylistViaEndpoint: (endpoint: YTNodes.NavigationEndpoint) => void;
   currentItem?: YTVideoInfo;
   playlist: ElementData[];
   currentTime: SharedValue<number>;
@@ -60,7 +61,8 @@ interface MusicPlayerProviderProps {
 }
 
 export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
-  const {videoExtractor} = useVideoDataGenerator();
+  const {videoExtractor, videoExtractorNavigationEndpoint} =
+    useVideoDataGenerator();
 
   const [playType, setPlayType] = useState<PlayType>("Audio");
   const [playing, setPlaying] = useState(false);
@@ -119,11 +121,17 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const setCurrentPlaylist = (videoData: VideoData) => {
-    videoExtractor(videoData).then(setCurrentVideoData);
+    videoExtractor(videoData).then(setCurrentVideoData).catch(LOGGER.warn);
+  };
+
+  const setPlaylistViaEndpoint = (endpoint: YTNodes.NavigationEndpoint) => {
+    videoExtractorNavigationEndpoint(endpoint)
+      .then(setCurrentVideoData)
+      .catch(LOGGER.warn);
   };
 
   const onEndReached = () => {
-    if (currentVideoData.playlist) {
+    if (currentVideoData?.playlist) {
       console.log(
         "Playlist",
         currentVideoData.playlist.content.map(v => v.title),
@@ -157,7 +165,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   const previous = async () => {
     if (
-      currentVideoData.playlist &&
+      currentVideoData?.playlist &&
       currentVideoData.playlist.current_index > 0
     ) {
       console.log(
@@ -174,7 +182,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const next = async () => {
-    if (currentVideoData.playlist) {
+    if (currentVideoData?.playlist) {
       console.log(
         "Playlist",
         currentVideoData.playlist.content.map(v => v.title),
@@ -194,6 +202,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         addPlaylist,
         currentItem: currentVideoData,
         setCurrentItem: setCurrentPlaylist,
+        setPlaylistViaEndpoint,
         duration,
         currentTime,
         playlist: currentVideoData?.playlist?.content ?? [],
