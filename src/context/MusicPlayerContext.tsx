@@ -7,9 +7,10 @@ import React, {
 } from "react";
 import {SharedValue, useSharedValue} from "react-native-reanimated";
 import TrackPlayer, {
+  Capability,
+  Event,
   Track,
   useTrackPlayerEvents,
-  Event,
 } from "react-native-track-player";
 
 import {
@@ -20,7 +21,7 @@ import {
 } from "../extraction/Types";
 import useVideoDataGenerator from "../hooks/music/useVideoDataGenerator";
 import Logger from "../utils/Logger";
-import {YTNodes, Innertube} from "../utils/Youtube";
+import {Innertube, YTNodes} from "../utils/Youtube";
 
 type PlayType = "Audio" | "Video";
 
@@ -97,18 +98,42 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       currentTime.value = event.position;
       LOGGER.debug("CurrentTime: ", event.position);
     }
+
+    if (event.type === Event.RemotePlay) {
+      setPlaying(true);
+      TrackPlayer.play().catch(LOGGER.warn);
+    }
+
+    if (event.type === Event.RemotePause) {
+      setPlaying(false);
+      TrackPlayer.pause().catch(LOGGER.warn);
+    }
+
+    if (event.type === Event.RemotePrevious) {
+      previous().catch(LOGGER.warn);
+    }
+
+    if (event.type === Event.RemoteNext) {
+      next().catch(LOGGER.warn);
+    }
   });
 
   useEffect(() => {
     TrackPlayer.updateOptions({
       progressUpdateEventInterval: 1,
+      capabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+        Capability.SkipToPrevious,
+      ],
     }).catch(LOGGER.warn);
   }, []);
 
   useEffect(() => {
     if (playType === "Audio" && currentVideoData) {
       TrackPlayer.load(videoInfoToTrack(currentVideoData)).then(() => {
-        TrackPlayer.play();
+        TrackPlayer.play().catch(LOGGER.warn);
       });
     }
     duration.value = currentVideoData?.durationSeconds ?? 0;
@@ -233,6 +258,8 @@ function videoInfoToTrack(vidoeInfo: YTVideoInfo) {
   return {
     url: vidoeInfo.originalData.streaming_data.hls_manifest_url,
     title: vidoeInfo.title,
+    artist: vidoeInfo.author?.name,
+    artwork: vidoeInfo.thumbnailImage.url,
     type: "hls",
   } as Track;
 }
