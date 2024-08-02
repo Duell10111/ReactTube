@@ -1,0 +1,7 @@
+{
+  "build": {
+    "preview": {
+      "distribution": "internal"
+    }
+  }
+}

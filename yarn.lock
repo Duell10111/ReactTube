@@ -12706,14 +12706,15 @@ which@^2.0.1:
   dependencies:
     isexe "^2.0.0"
 
-widget-watchos-expo-plugin@^1.0.0-beta.4:
-  version "1.0.0-beta.4"
-  resolved "https://registry.yarnpkg.com/widget-watchos-expo-plugin/-/widget-watchos-expo-plugin-1.0.0-beta.4.tgz#7909a3b67ef3e84f65b40a2ed232d05a3200b820"
-  integrity sha512-qRzcZBPPf2OzvoSyfJQ8xiyeyICZjxifw6IZcdFplIzs7QqGLyrZnF6g4AFPBoWEPOHzgNNhB69WmrVU2zMfUQ==
+widget-watchos-expo-plugin@^1.0.1-beta.2:
+  version "1.0.1-beta.2"
+  resolved "https://registry.yarnpkg.com/widget-watchos-expo-plugin/-/widget-watchos-expo-plugin-1.0.1-beta.2.tgz#8d4139c5318173c361b13618030fcd861df1c5bb"
+  integrity sha512-7KTlOmsrZFHujIbSGAUVrw03NqKRAbrwde90P86I4pEcyrgADgv7Gd43aw+JtTmeUQJ90cBpGgg04kA+ZLmc2w==
   dependencies:
     "@expo/config-plugins" "^7.2.5"
     expo-module-scripts "^3.1.0"
     fs-extra "^11.2.0"
+    getenv "^1.0.0"
 
 wonka@^4.0.14:
   version "4.0.15"
