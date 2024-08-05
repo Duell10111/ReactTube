@@ -10,7 +10,6 @@ import {btoa, atob} from "react-native-quick-base64";
 
 // import "react-native/tvos-types.d";
 import {SafeAreaProvider} from "react-native-safe-area-context";
-import TrackPlayer from "react-native-track-player";
 
 import AccountContextProvider from "./src/context/AccountContext";
 import AppDataContextProvider from "./src/context/AppDataContext";
@@ -20,7 +19,7 @@ import {MusicPlayerContext} from "./src/context/MusicPlayerContext";
 import YoutubeContextProvider from "./src/context/YoutubeContext";
 import Navigation from "./src/navigation/Navigation";
 import BackgroundWrapper from "./src/utils/BackgroundWrapper";
-import playbackService from "./src/utils/MusicService";
+import {setupMusicPlayer} from "./src/utils/music/MusicInit";
 
 // Polyfill for youtube.js
 Object.assign(global, {
@@ -28,7 +27,7 @@ Object.assign(global, {
   atob,
 });
 
-TrackPlayer.registerPlaybackService(() => playbackService);
+setupMusicPlayer();
 
 const App = () => {
   const isDarkMode = useColorScheme() === "dark";
