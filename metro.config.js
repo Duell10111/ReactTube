@@ -1,6 +1,8 @@
 // Learn more https://docs.expo.io/guides/customizing-metro
 const {getDefaultConfig} = require("expo/metro-config");
 
+const appJSONConfig = require("./app.json");
+
 // eslint-disable-next-line no-undef
 const config = getDefaultConfig(__dirname);
 
@@ -22,9 +24,13 @@ if (process.env?.EXPO_TV === '1') {
 }
  */
 
-// config.resolver.sourceExts.unshift(
-//   ...config.resolver.sourceExts.map(e => `tv.${e}`),
-// );
+// TODO: Load app.json and check if expoTV true?
+
+if (appJSONConfig.expo.plugins[0][1].isTV) {
+  config.resolver.sourceExts.unshift(
+    ...config.resolver.sourceExts.map(e => `tv.${e}`),
+  );
+}
 
 config.resolver.sourceExts.push("sql");
 
