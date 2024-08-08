@@ -35,4 +35,4 @@ global.CustomEvent = CustomEvent as any;
 
 // === END === Making Youtube.js work
 
-export * from "youtubei.js";
+export * from "../ytjs/react-native";
