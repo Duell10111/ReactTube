@@ -1,5 +1,6 @@
-import {useYoutubeContext} from "../../context/YoutubeContext";
 import {useEffect, useState} from "react";
+
+import {useYoutubeContext} from "../../context/YoutubeContext";
 import Logger from "../../utils/Logger";
 import {useSettings} from "../../utils/SettingsWrapper";
 
@@ -69,7 +70,7 @@ export default function useAccountData() {
         credentials: {
           access_token: credentials.access_token,
           refresh_token: credentials.refresh_token,
-          expires: credentials.expires.getDate(),
+          expires: Date.parse(credentials.expiry_date),
         },
       };
       updateSettings({
@@ -87,7 +88,7 @@ export default function useAccountData() {
         credentials: {
           access_token: credentials.access_token,
           refresh_token: credentials.refresh_token,
-          expires: credentials.expires.getDate(),
+          expires: Date.parse(credentials.expiry_date),
         },
       };
       updateSettings({
@@ -108,7 +109,7 @@ export default function useAccountData() {
       const credentials = settings.accounts[0].credentials;
       youtube.session
         .signIn({
-          expires: new Date(credentials.expires),
+          expiry_date: new Date(credentials.expires).toISOString(),
           refresh_token: credentials.refresh_token,
           access_token: credentials.access_token,
         })

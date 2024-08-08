@@ -47,7 +47,7 @@
     "rn-native-search-bar": "^1.0.0-beta.10",
     "stream-browserify": "^3.0.0",
     "web-streams-polyfill": "^3.2.1",
-    "youtubei.js": "9.4.0"
+    "youtubei.js": "10.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

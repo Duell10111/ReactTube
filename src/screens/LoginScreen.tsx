@@ -1,8 +1,9 @@
+import {Button} from "@rneui/base";
 import React, {useEffect} from "react";
 import {Linking, Platform, StyleSheet, Text, View} from "react-native";
-import {Button} from "@rneui/base";
-import {useAccountContext} from "../context/AccountContext";
 import QRCode from "react-native-qrcode-svg";
+
+import {useAccountContext} from "../context/AccountContext";
 import {useAppStyle} from "../context/AppStyleContext";
 
 const Clipboard = !Platform.isTV
@@ -16,7 +17,7 @@ export default function LoginScreen() {
   useEffect(() => {
     if (!Platform.isTV && account?.qrCode) {
       Clipboard.setString(account.qrCode.user_code);
-      Linking.openURL(account?.qrCode.verification_url);
+      Linking.openURL(account?.qrCode.verification_url).catch(console.warn);
     }
   }, [account?.qrCode]);
 
