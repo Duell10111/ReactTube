@@ -8,13 +8,13 @@ import SettingsItem, {
   SettingsButton,
 } from "../components/settings/SettingsItem";
 import SettingsSection from "../components/settings/SettingsSection";
-import {parseLanguage} from "../components/settings/screens/LanguageSelector";
 import {parsePlayerResolution} from "../components/settings/screens/PlayerResolutionSelector";
 import {parsePlayerType} from "../components/settings/screens/PlayerSelector";
 import {useAppData} from "../context/AppDataContext";
 import useAccountData from "../hooks/account/useAccountData";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
 import {SettingsStackParamList} from "../navigation/SettingsNavigator";
+import {parseLanguage} from "../utils/YTLanguages";
 
 type Props = CompositeScreenProps<
   NativeStackScreenProps<SettingsStackParamList, "Root">,

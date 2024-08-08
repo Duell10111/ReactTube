@@ -33,6 +33,7 @@ if (appJSONConfig.expo.plugins[0][1].isTV) {
 }
 
 config.resolver.sourceExts.push("sql");
+config.resolver.unstable_enablePackageExports = true;
 
 console.log(config.resolver.sourceExts);
 

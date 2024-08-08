@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react";
 
-import {parseLanguage} from "../components/settings/screens/LanguageSelector";
 import {useAppData} from "../context/AppDataContext";
+import {parseLanguage} from "../utils/YTLanguages";
 import {Innertube} from "../utils/Youtube";
 
 const visitorDataKey = "visitorDataYT";

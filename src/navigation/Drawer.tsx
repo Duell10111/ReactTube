@@ -17,6 +17,7 @@ import Animated, {
 
 import {NativeStackProp} from "./types";
 import {useAppStyle} from "../context/AppStyleContext";
+import useAccountData from "../hooks/account/useAccountData";
 
 interface Props {
   open: boolean;
@@ -25,7 +26,7 @@ interface Props {
 }
 
 export default function Drawer({open, onOpen, onClose}: Props) {
-  console.log("Open: ", open);
+  const {loginData} = useAccountData();
 
   useEffect(() => {
     openDrawer.value = open;
@@ -70,35 +71,40 @@ export default function Drawer({open, onOpen, onClose}: Props) {
           open={open}
           iconTitle={"search"}
         />
-        <DrawerItem
-          title={"Login"}
-          onFocus={() => onOpen()}
-          onPress={() => navigation.navigate("LoginScreen")}
-          open={open}
-          iconTitle={"login"}
-        />
-        <DrawerItem
-          title={"Subscriptions"}
-          onFocus={() => onOpen()}
-          onPress={() => navigation.navigate("SubscriptionScreen")}
-          open={open}
-          iconTitle={"subscriptions"}
-        />
-        <DrawerItem
-          title={"History"}
-          onFocus={() => onOpen()}
-          onPress={() => navigation.navigate("HistoryScreen")}
-          open={open}
-          iconTitle={"history"}
-        />
-        <DrawerItem
-          title={"Library"}
-          onFocus={() => onOpen()}
-          onPress={() => navigation.navigate("LibraryScreen")}
-          open={open}
-          iconTitle={"library"}
-          iconType={"ionicon"}
-        />
+        {loginData.accounts.length > 0 ? (
+          <>
+            <DrawerItem
+              title={"Subscriptions"}
+              onFocus={() => onOpen()}
+              onPress={() => navigation.navigate("SubscriptionScreen")}
+              open={open}
+              iconTitle={"subscriptions"}
+            />
+            <DrawerItem
+              title={"History"}
+              onFocus={() => onOpen()}
+              onPress={() => navigation.navigate("HistoryScreen")}
+              open={open}
+              iconTitle={"history"}
+            />
+            <DrawerItem
+              title={"Library"}
+              onFocus={() => onOpen()}
+              onPress={() => navigation.navigate("LibraryScreen")}
+              open={open}
+              iconTitle={"library"}
+              iconType={"ionicon"}
+            />
+          </>
+        ) : (
+          <DrawerItem
+            title={"Login"}
+            onFocus={() => onOpen()}
+            onPress={() => navigation.navigate("LoginScreen")}
+            open={open}
+            iconTitle={"login"}
+          />
+        )}
         <DrawerItem
           bottom
           title={"Settings"}

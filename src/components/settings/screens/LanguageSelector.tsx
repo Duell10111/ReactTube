@@ -1,24 +1,9 @@
 import {StyleSheet} from "react-native";
 
-import {AppSettings, useAppData} from "../../../context/AppDataContext";
+import {useAppData} from "../../../context/AppDataContext";
+import {languages, parseLanguage} from "../../../utils/YTLanguages";
 import {SettingsSelectorItem} from "../SettingsItem";
 import SettingsSection from "../SettingsSection";
-
-interface Language {
-  key: string;
-  label: string;
-}
-
-const languages: Language[] = [
-  {
-    key: "en",
-    label: "English",
-  },
-  {
-    key: "de",
-    label: "Deutsch",
-  },
-];
 
 export default function LanguageSelectorScreen() {
   const {appSettings, updateSettings} = useAppData();
@@ -48,9 +33,3 @@ const styles = StyleSheet.create({
     backgroundColor: "#111111",
   },
 });
-
-export function parseLanguage(appSettings: AppSettings) {
-  return (
-    languages.find(v => v.key === appSettings.languageSelected) ?? languages[0]
-  );
-}
