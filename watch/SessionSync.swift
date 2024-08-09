@@ -53,9 +53,22 @@ extension SessionSync: WCSessionDelegate {
 
   func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
     print("WCSession didReceiveMessage message:\(message)")
+    // TODO: Use same with reply handler and no reply handler?
     if(message["sendDatabase"] != nil) {
       Task {
         await self.sendDatabase(session)
+      }
+    } else if let type = message["type"] as? String, type == "overrideDB" {
+      Task {
+        await self.overrideDatabaseCommand(session, message: message)
+      }
+    } else if let type = message["type"] as? String {
+      if(type == "uploadFile") {
+        Task {
+          await self.receiveFileUploadData(session, message: message)
+        }
+      } else if type == "youtubeAPI", let payload = message["payload"] as? [String: Any] {
+        processYoutubeAPIMessage(session, message: payload)
       }
     }
   }

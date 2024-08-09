@@ -7,8 +7,6 @@ import {StatusBar, useColorScheme} from "react-native";
 import FlashMessage from "react-native-flash-message";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import {btoa, atob} from "react-native-quick-base64";
-
-// import "react-native/tvos-types.d";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 
 import AccountContextProvider from "./src/context/AccountContext";
