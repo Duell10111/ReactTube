@@ -18,18 +18,9 @@ class DataController {
         do {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             let container = try ModelContainer(for: Video.self, Playlist.self, HomeScreenElement.self, configurations: config)
-          
+
             let video = Video(id: "5pZ2IbO9VB4", title: "Sarà Perché Ti Amo (Long Version)", downloaded: false)
             container.mainContext.insert(video)
-
-//            let diaryEntry = DiaryEntry(id: nil, date: nil, title: "TestTitle")
-//            container.mainContext.insert(diaryEntry)
-//
-//            for i in 1...9 {
-//                let content = Content(content: "Example Content \(i)", type: ContentType.allCases.randomElement()!.rawValue, order_index: i)
-//                content.entry = diaryEntry
-//                container.mainContext.insert(content)
-//            }
 
             return container
         } catch {
@@ -40,7 +31,7 @@ class DataController {
   init(inMemory: Bool = false) {
     do {
         let config = ModelConfiguration(isStoredInMemoryOnly: false)
-        let container = try ModelContainer(for: Video.self, Playlist.self, configurations: config)
+      let container = try ModelContainer(for: Video.self, Playlist.self, HomeScreenSection.self, HomeScreenElement.self, configurations: config)
 
         self.container = container
     } catch {
