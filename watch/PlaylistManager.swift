@@ -7,12 +7,13 @@
 
 import Foundation
 import AVFoundation
+import SwiftAudioEx
 
 class PlaylistManager {
   
   private var playlist: Playlist?
   var videos: [Video]?
-  private var playlistItems: [AVPlayerItem?] = []
+  private var playlistItems: [AudioItem?] = []
   
   init() {
     
@@ -32,15 +33,15 @@ class PlaylistManager {
     }
   }
   
-  func getAll() -> [(Video, AVPlayerItem)] {
+  func getAll() -> [(Video, AudioItem)] {
     if let videos = videos {
       return getVideos(indexSet: IndexSet(0...videos.count-1))
     }
     return []
   }
   
-  func getVideos(indexSet: IndexSet) -> [(Video, AVPlayerItem)] {
-    let items : [(Int, AVPlayerItem?)] = indexSet.map { index in
+  func getVideos(indexSet: IndexSet) -> [(Video, AudioItem)] {
+    let items : [(Int, AudioItem?)] = indexSet.map { index in
       let playerItem = playlistItems[index]
       if let pItem = playerItem {
         return (index, pItem)
@@ -67,18 +68,18 @@ class PlaylistManager {
     // TODO: Check if playlist contains new videos
   }
   
-  private func getPlayerItem(_ video: Video) -> AVPlayerItem? {
+  private func getPlayerItem(_ video: Video) -> AudioItem? {
     if let localFile = video.fileURL {
       let uri = getDownloadDirectory().appending(path: localFile)
       print("Local uri: \(uri)")
-      let item = AVPlayerItem(url: uri)
+      let item = DefaultAudioItem(audioUrl: uri.absoluteString, sourceType: .file)
       print("Local version")
       // Set end for local files?
 //          item.forwardPlaybackEndTime =
       return item
     } else if let sURL = video.streamURL, let uri = URL(string: sURL) {
       print("Remote uri: \(sURL)")
-      let item = AVPlayerItem(url: uri)
+      let item = DefaultAudioItem(audioUrl: sURL, sourceType: .stream)
       
       return item
     }
