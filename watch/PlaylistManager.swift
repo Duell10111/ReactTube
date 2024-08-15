@@ -10,15 +10,15 @@ import AVFoundation
 import SwiftAudioEx
 
 class PlaylistManager {
-  
+
   private var playlist: Playlist?
   var videos: [Video]?
   private var playlistItems: [AudioItem?] = []
-  
+
   init() {
-    
+
   }
-  
+
   func setPlaylist(_ playlist: Playlist?, videos: [Video]? = nil) {
     if let p = playlist {
       self.playlist = p
@@ -32,14 +32,14 @@ class PlaylistManager {
       print("Setting playlist invalid")
     }
   }
-  
+
   func getAll() -> [(Video, AudioItem)] {
     if let videos = videos {
       return getVideos(indexSet: IndexSet(0...videos.count-1))
     }
     return []
   }
-  
+
   func getVideos(indexSet: IndexSet) -> [(Video, AudioItem)] {
     let items : [(Int, AudioItem?)] = indexSet.map { index in
       let playerItem = playlistItems[index]
@@ -54,20 +54,20 @@ class PlaylistManager {
       }
       return (index, nil)
     }
-    
+
     return items.compactMap { index, playerItem in
       if let pItem = playerItem, let video = videos?[index] {
         return (video, pItem)
       }
       return nil
     }
-    
+
   }
-  
+
   func checkForNewVideos() {
     // TODO: Check if playlist contains new videos
   }
-  
+
   private func getPlayerItem(_ video: Video) -> AudioItem? {
     if let localFile = video.fileURL {
       let uri = getDownloadDirectory().appending(path: localFile)
@@ -80,14 +80,17 @@ class PlaylistManager {
     } else if let sURL = video.streamURL, let uri = URL(string: sURL) {
       print("Remote uri: \(sURL)")
       let item = DefaultAudioItem(audioUrl: sURL, sourceType: .stream)
-      
+
+      // TODO: Outsource to skip duplicate code
+      item.title = video.title
+
       return item
     }
     return nil
   }
-  
-  
-  
+
+
+
 }
 
 protocol PlaylistManagerDelegate {
