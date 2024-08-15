@@ -84,6 +84,19 @@ class MusicPlayerManager {
       self.playerPlaylistItems = videoItems
 
       player = QueuedAudioPlayer()
+      do {
+        try player?.add(items: playerItems, at: 0)
+      } catch {
+        print("Error adding items")
+      }
+    
+      player?.remoteCommands = [
+        .play,
+        .pause,
+        .previous,
+        .next
+      ]
+    
       player?.event.currentItem.addListener(self, handleAudioPlayerCurrentItemChange)
     
     
@@ -113,7 +126,8 @@ class MusicPlayerManager {
           lastIndex: Int?,
           lastPosition: Double?
   ) {
-    
+    print("Current item change: \(item?.getTitle())")
+    currentTitle = item?.getTitle() ?? "Unknown Title"
   }
 
   @objc func playMusic() {

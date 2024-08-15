@@ -20,9 +20,7 @@ interface DownloaderContextProps {
 }
 
 export function DownloaderContext({children}: DownloaderContextProps) {
-  if (Platform.isTV) {
-    return <>{children}</>;
-  }
+  console.log("DownloadContext");
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const {downloadRefs, download} = useDownloadProcessor();
