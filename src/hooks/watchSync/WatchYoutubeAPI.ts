@@ -95,7 +95,7 @@ export async function handleWatchMessage(
 ) {
   console.log("Handle watch request: ", request);
   if (request.request === "video") {
-    const ytInfo = await youtube.getInfo(request.videoId);
+    const ytInfo = await youtube.getInfo(request.videoId, "iOS");
     const info = getElementDataFromVideoInfo(ytInfo);
 
     const format = ytInfo.chooseFormat({type: "audio"});
@@ -106,7 +106,7 @@ export async function handleWatchMessage(
 
     return toVideoResponse(
       info,
-      streamURL,
+      ytInfo.streaming_data.hls_manifest_url ?? streamURL,
       validUntil,
       format.approx_duration_ms,
     );
