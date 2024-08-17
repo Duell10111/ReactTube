@@ -106,7 +106,7 @@ export async function handleWatchMessage(
 
     return toVideoResponse(
       info,
-      ytInfo.streaming_data.hls_manifest_url ?? streamURL,
+      streamURL,
       validUntil,
       format.approx_duration_ms,
     );
