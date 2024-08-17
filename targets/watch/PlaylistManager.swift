@@ -44,12 +44,12 @@ class PlaylistManager {
     }
     return []
   }
-  
+
   func getFirstBatchOfAvailable() -> [(Video, AudioItem)] {
     if let videos = videos {
       var arr = Array<(Video, AudioItem)>()
       let videos = getVideos(indexSet: IndexSet(0...videos.count-1))
-      
+
       for v in videos {
         if let audio = v.1 {
           arr.append((v.0, audio))
@@ -98,9 +98,12 @@ class PlaylistManager {
 
   private func getPlayerItem(_ video: Video) -> AudioItem? {
     if let localFile = video.fileURL {
-//      let uri = getDownloadDirectory().appending(path: localFile)
-      print("Local uri: \(localFile)")
-      let item = DefaultAudioItem(audioUrl: localFile, sourceType: .file)
+      let uri = getDownloadDirectory().appending(path: localFile)
+      print("Local uri: \(uri)")
+      let item = DefaultAudioItem(audioUrl: uri.path(), sourceType: .file)
+
+      // TODO: Outsource to skip duplicate code
+      item.title = video.title
       print("Local version")
       // Set end for local files?
 //          item.forwardPlaybackEndTime =
