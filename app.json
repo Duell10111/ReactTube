@@ -38,43 +38,9 @@
         }
       ],
       [
-        "widget-watchos-expo-plugin",
+        "@duell10111/apple-targets",
         {
-          "isTV": false,
-          "targets": [
-            {
-              "type": "watch",
-              "name": "watch",
-              "bundleId": "com.duell10111.reacttube.watch",
-              "displayName": "reacttube",
-              "companionAppBundleId": "com.duell10111.reacttube",
-              "sourceDir": "watch",
-              "sourceFiles": [
-                "watchApp.swift",
-                "DBData.swift",
-                "DBUtils.swift",
-                "SessionSync.swift",
-                "PlaylistView.swift",
-                "MusicPlayerManager.swift",
-                "DataController.swift",
-                "SettingsScreen.swift",
-                "MusikPlayer.swift",
-                "Types.swift",
-                "YoutubeAPI.swift",
-                "YTScreens/HomeList.swift",
-                "DownloadManager.swift",
-                "LibraryView.swift",
-                "PlaylistManager.swift"
-              ],
-              "entitlementsFile": "watch.entitlements",
-              "frameworks": [
-                "SwiftUI.framework"
-              ],
-              "buildConfigOverrides": {
-                "WATCHOS_DEPLOYMENT_TARGET": "10.0"
-              }
-            }
-          ]
+          "appleTeamId": "XXXXXXXXXX"
         }
       ]
     ],

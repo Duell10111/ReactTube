@@ -3,6 +3,7 @@
   "version": "0.0.2",
   "dependencies": {
     "@craftzdog/react-native-buffer": "^6.0.5",
+    "@duell10111/apple-targets": "^0.0.6-alpha.0",
     "@duell10111/react-native-watch-connectivity": "^1.1.2",
     "@gorhom/bottom-sheet": "4.4.7",
     "@react-native-clipboard/clipboard": "^1.11.2",
