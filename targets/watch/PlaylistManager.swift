@@ -97,10 +97,11 @@ class PlaylistManager {
   }
 
   private func getPlayerItem(_ video: Video) -> AudioItem? {
-    if let localFile = video.fileURL {
-      let uri = getDownloadDirectory().appending(path: localFile)
-      print("Local uri: \(uri)")
-      let item = DefaultAudioItem(audioUrl: uri.path(), sourceType: .file)
+    if let localFile = video.fileURL, let uri = URL(string: localFile) {
+      let localUri = uri.path()
+//      let uri = getDownloadDirectory().appending(path: localFile)
+      print("Local uri: \(localUri)")
+      let item = DefaultAudioItem(audioUrl: localUri, sourceType: .file)
 
       // TODO: Outsource to skip duplicate code
       item.title = video.title
