@@ -13,7 +13,7 @@ class DownloadManager {
   var activeDownloads : [ActiveDownload] = []
 
   func downloadVideo(video: Video) {
-    if let streamURL = video.streamURL, let date = video.validUntil, let uri = URL(string: streamURL) {
+    if let streamURL = video.downloadURL, let date = video.validUntil, let uri = URL(string: streamURL) {
       print("Started download \(video.id)")
       let downloadTask = URLSession.shared.downloadTask(with: URLRequest(url: uri)) { urlOrNil, responseOrNil, errorOrNil in
         print("Response: \(responseOrNil.debugDescription)")

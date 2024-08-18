@@ -14,6 +14,7 @@ final class Video {
     var title: String?
     var downloaded: Bool
     var streamURL: String?
+    var downloadURL: String? // Workaround for download issues
     var validUntil: Date?
     var fileURL: String?
     var coverURL: String?

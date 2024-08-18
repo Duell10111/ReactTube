@@ -1,9 +1,4 @@
-import {
-  watchEvents,
-  sendMessage,
-  startFileTransfer,
-} from "@duell10111/react-native-watch-connectivity";
-import {getFileTransfers} from "@duell10111/react-native-watch-connectivity/build/files";
+import {addMessageListener, sendMessage} from "expo-watch-connectivity";
 import {useEffect} from "react";
 
 import {handleWatchMessage} from "./WatchYoutubeAPI";
@@ -17,7 +12,7 @@ export default function useWatchSync() {
   const innertube = useYoutubeContext();
 
   useEffect(() => {
-    return watchEvents.addListener("message", (messageFromWatch, reply) => {
+    const sub = addMessageListener(messageFromWatch => {
       console.log("Message from watch: ", messageFromWatch);
       if (messageFromWatch.type === "GetDownloads") {
         // handleDiaryUpdate(db, messageFromWatch)
@@ -50,6 +45,7 @@ export default function useWatchSync() {
       }
       // reply({text: 'Thanks watch!'})
     });
+    return () => sub.remove();
   }, [innertube]);
 
   const upload = (id: string) => {
@@ -74,29 +70,29 @@ async function sendDownloadDB(videos: ReturnType<typeof useVideos>) {
   });
 }
 
-async function sendDownloadedFilesToWatch(
-  videos: ReturnType<typeof useVideos>,
-) {
-  const fileTransfers = await getFileTransfers();
-
-  Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
-    const {
-      completedUnitCount, // num bytes completed
-      estimatedTimeRemaining,
-      fractionCompleted,
-      throughput, // Bit rate
-      totalUnitCount, // total num. bytes
-      url, // url of file being transferred
-      metadata, // file metadata
-      id, // id === transferId
-      startTime, // time that the file transfer started
-      endTime, // time that the file transfer ended
-      error, // null or [Error] if the file transfer failed
-    } = transferInfo;
-  });
-
-  const {id} = await startFileTransfer("file:///path/to/file", metadata);
-}
+// async function sendDownloadedFilesToWatch(
+//   videos: ReturnType<typeof useVideos>,
+// ) {
+//   const fileTransfers = await getFileTransfers();
+//
+//   Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
+//     const {
+//       completedUnitCount, // num bytes completed
+//       estimatedTimeRemaining,
+//       fractionCompleted,
+//       throughput, // Bit rate
+//       totalUnitCount, // total num. bytes
+//       url, // url of file being transferred
+//       metadata, // file metadata
+//       id, // id === transferId
+//       startTime, // time that the file transfer started
+//       endTime, // time that the file transfer ended
+//       error, // null or [Error] if the file transfer failed
+//     } = transferInfo;
+//   });
+//
+//   const {id} = await startFileTransfer("file:///path/to/file", metadata);
+// }
 
 async function sendDownloadDataToWatch(
   id: string,
@@ -151,11 +147,12 @@ async function sendDownloadToWatch(
 }
 
 async function checkTransfers() {
-  const fileTransfers = await getFileTransfers();
-
-  Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
-    console.log("TransferInfo: ", transferInfo);
-  });
+  // TODO: Migrate to other library
+  // const fileTransfers = await getFileTransfers();
+  //
+  // Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
+  //   console.log("TransferInfo: ", transferInfo);
+  // });
 }
 
 interface DownloadDB {

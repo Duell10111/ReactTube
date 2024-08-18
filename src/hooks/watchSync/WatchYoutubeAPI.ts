@@ -29,7 +29,8 @@ interface YoutubeVideoResponse {
   id: string;
   title: string;
   duration: number;
-  steamURL: string;
+  streamURL: string;
+  downloadURL: string; // Workaround to always use mp4 stream for downloads
   validUntil: number;
   coverUrl: string;
 }
@@ -107,6 +108,7 @@ export async function handleWatchMessage(
     return toVideoResponse(
       info,
       streamURL,
+      ytInfo.streaming_data.hls_manifest_url,
       validUntil,
       format.approx_duration_ms,
     );
@@ -188,6 +190,7 @@ export async function handleWatchMessage(
 
 function toVideoResponse(
   videoInfo: YTVideoInfo,
+  downloadURL: string, // Workaround for download issues see type definition
   streamURL: string,
   validUntil: number,
   duration_ms: number,
@@ -198,7 +201,8 @@ function toVideoResponse(
     title: videoInfo.title,
     duration: duration_ms,
     coverUrl: videoInfo.thumbnailImage.url,
-    steamURL: streamURL,
+    streamURL,
+    downloadURL,
     validUntil,
   } as YoutubeVideoResponse;
 }
