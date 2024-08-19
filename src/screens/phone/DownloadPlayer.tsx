@@ -1,5 +1,5 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {Video, Audio} from "expo-av";
+import {Audio} from "expo-av";
 import {useEffect, useState} from "react";
 import {StyleSheet, View} from "react-native";
 
@@ -16,13 +16,13 @@ export function DownloadPlayer({route}: Props) {
 
   async function playSound() {
     console.log("Loading Sound");
-    const {sound} = await Audio.Sound.createAsync({
+    const {sound: avSound} = await Audio.Sound.createAsync({
       uri: getAbsoluteVideoURL(video.fileUrl),
     });
-    setSound(sound);
+    setSound(avSound);
 
     console.log("Playing Sound");
-    await sound.playAsync();
+    await avSound.playAsync();
   }
 
   useEffect(() => {
