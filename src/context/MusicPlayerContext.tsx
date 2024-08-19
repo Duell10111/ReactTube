@@ -162,7 +162,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         currentVideoData.playlist.content.map(v => v.title),
       );
       const newIndex = currentVideoData.playlist.current_index + 1;
-      console.log(`Switching to newIndex: ${newIndex}`);
+      LOGGER.debug(`Switching to newIndex: ${newIndex}`);
       const nextElement = currentVideoData.playlist.content[newIndex];
       if (nextElement.type === "video") {
         videoExtractor(nextElement).then(setCurrentVideoData);
@@ -198,7 +198,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         currentVideoData.playlist.content.map(v => v.title),
       );
       const newIndex = currentVideoData.playlist.current_index - 1;
-      console.log(`Switching to newIndex: ${newIndex}`);
+      LOGGER.debug(`Switching to newIndex: ${newIndex}`);
       const nextElement = currentVideoData.playlist.content[newIndex];
       if (nextElement.type === "video") {
         videoExtractor(nextElement).then(setCurrentVideoData);
@@ -213,7 +213,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         currentVideoData.playlist.content.map(v => v.title),
       );
       const newIndex = currentVideoData.playlist.current_index + 1;
-      console.log(`Switching to newIndex: ${newIndex}`);
+      LOGGER.debug(`Switching to newIndex: ${newIndex}`);
       const nextElement = currentVideoData.playlist.content[newIndex];
       if (nextElement.type === "video") {
         videoExtractor(nextElement).then(setCurrentVideoData);

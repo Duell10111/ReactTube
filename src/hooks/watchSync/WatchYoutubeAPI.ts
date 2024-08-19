@@ -10,6 +10,9 @@ import {
   getElementDataFromYTMusicPlaylist,
   getElementDataFromYTPlaylist,
 } from "../../extraction/YTElements";
+import Logger from "../../utils/Logger";
+
+const LOGGER = Logger.extend("WATCH_YT_API");
 
 type InnerTube = ReturnType<typeof useYoutubeContext>;
 
@@ -94,7 +97,7 @@ export async function handleWatchMessage(
   youtube: InnerTube,
   request: YoutubeAPIRequest,
 ) {
-  console.log("Handle watch request: ", request);
+  LOGGER.debug("Handle watch request: ", request);
   if (request.request === "video") {
     const ytInfo = await youtube.getInfo(request.videoId, "iOS");
     const info = getElementDataFromVideoInfo(ytInfo);

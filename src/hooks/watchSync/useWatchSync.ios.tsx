@@ -59,6 +59,10 @@ export default function useWatchSync() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    sendMessage({test: "test"}).catch(console.warn);
+  }, []);
+
   return {upload};
 }
 

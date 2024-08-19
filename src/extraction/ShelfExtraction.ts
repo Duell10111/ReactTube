@@ -37,12 +37,12 @@ export function gridCalculator(
   content: Helpers.YTNode[],
   columns: number,
 ): (ElementData[] | HorizontalData)[] {
-  console.log("TypesArr: ", listPrintTypes(content));
+  // console.log("TypesArr: ", listPrintTypes(content));
 
   const groups = _.groupBy(content, node => node.type);
 
   const types = Object.keys(groups);
-  console.log("Types: ", types);
+  // console.log("Types: ", types);
 
   const sectionsAvailable = _.intersection(types, sectionItems);
 

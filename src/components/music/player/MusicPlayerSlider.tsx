@@ -45,7 +45,7 @@ export function MusicPlayerSlider() {
           return dur.toFormat("mm:ss");
         }}
         onSlidingComplete={seconds => {
-          console.log(`Slide to ${seconds}`);
+          // console.log(`Slide to ${seconds}`);
           seek(seconds);
         }}
       />

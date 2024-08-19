@@ -20,7 +20,7 @@ export function MusicHorizontalNRowShelf({
 
   const renderItem = useCallback<ListRenderItem<ElementData>>(({item}) => {
     return (
-      <HorizontalListItem data={item} />
+      <HorizontalListItem key={item?.id} data={item} />
       // <VideoSegment
       //   element={item}
       //   // textStyle={textStyle}

@@ -2,11 +2,9 @@ import React, {useCallback, useMemo} from "react";
 import {ListRenderItem, Platform, StyleSheet, Text, View} from "react-native";
 import {FlatGrid} from "react-native-super-grid";
 
-import {HorizontalListItem} from "./horizontal/HorizontalListItem";
 import {useAppStyle} from "../../context/AppStyleContext";
 import {HorizontalData} from "../../extraction/ShelfExtraction";
 import {ElementData} from "../../extraction/Types";
-import VideoSegment from "../VideoSegment";
 
 interface MusicHorizontalColumnShelfProps {
   data: HorizontalData;

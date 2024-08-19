@@ -1,11 +1,11 @@
 import {createContext, MutableRefObject, ReactNode, useContext} from "react";
-import {Platform} from "react-native";
 
 import {useMigration} from "../downloader/DownloadDatabaseOperations";
 import useDownloadProcessor, {
   DownloadRef,
 } from "../hooks/downloader/useDownloadProcessor";
-import useWatchSync from "../hooks/watchSync/useWatchSync.ios";
+// @ts-ignore Ignore atm as not relevant for Android
+import useWatchSync from "../hooks/watchSync/useWatchSync";
 
 interface DownloaderContextValue {
   currentDownloads: MutableRefObject<DownloadRef>;
@@ -20,8 +20,6 @@ interface DownloaderContextProps {
 }
 
 export function DownloaderContext({children}: DownloaderContextProps) {
-  console.log("DownloadContext");
-
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const {downloadRefs, download} = useDownloadProcessor();
 

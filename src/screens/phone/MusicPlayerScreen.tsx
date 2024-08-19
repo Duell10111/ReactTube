@@ -42,11 +42,11 @@ export function MusicPlayerScreen({route, navigation}: Props) {
   // const [playing, setPlaying] = useState(false);
 
   // console.log("VideoData: ", currentItem);
-  console.log("VideoDataPlaylist", currentItem?.playlist?.current_index);
-  console.log(
-    "VideoDataPlaylistData",
-    currentItem?.playlist?.content?.map(v => v.title),
-  );
+  // console.log("VideoDataPlaylist", currentItem?.playlist?.current_index);
+  // console.log(
+  //   "VideoDataPlaylistData",
+  //   currentItem?.playlist?.content?.map(v => v.title),
+  // );
 
   if (openTab) {
     return (

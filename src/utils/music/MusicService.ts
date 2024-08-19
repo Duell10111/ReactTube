@@ -1,9 +1,13 @@
+import {Platform} from "react-native";
 import TrackPlayer, {Event} from "react-native-track-player";
 
 export default async function playbackService() {
-  await TrackPlayer.setupPlayer({
-    autoHandleInterruptions: true,
-  });
+  console.log("Setup Player");
+  if (Platform.OS === "ios") {
+    await TrackPlayer.setupPlayer({
+      autoHandleInterruptions: true,
+    });
+  }
 
   TrackPlayer.addEventListener(Event.RemotePlay, () => TrackPlayer.play());
 

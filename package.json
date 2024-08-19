@@ -26,7 +26,7 @@
     "expo-splash-screen": "~0.26.3",
     "expo-sqlite": "~13.4.0",
     "expo-status-bar": "~1.11.1",
-    "expo-watch-connectivity": "^0.1.0",
+    "expo-watch-connectivity": "^0.1.1",
     "fast-text-encoding": "^1.0.6",
     "lodash": "^4.17.21",
     "luxon": "^3.4.4",
@@ -40,9 +40,9 @@
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "~2.14.0",
     "react-native-logs": "^5.0.1",
-    "react-native-mmkv": "^2.12.2",
     "react-native-orientation-locker": "github:Duell10111/react-native-orientation-locker#fix-nativeeventemitter",
     "react-native-qrcode-svg": "^6.2.0",
+    "react-native-quick-crypto": "^0.7.3",
     "react-native-reanimated": "~3.6.2",
     "react-native-reanimated-carousel": "^3.5.1",
     "react-native-redash": "^18.1.0",
@@ -59,7 +59,6 @@
     "rn-native-search-bar": "^1.0.0-beta.10",
     "stream-browserify": "^3.0.0",
     "web-streams-polyfill": "^3.2.1",
-    "widget-watchos-expo-plugin": "^1.0.1-beta.2",
     "youtubei.js": "10.3.0"
   },
   "devDependencies": {

@@ -106,7 +106,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       duration: ytNode.duration.text,
     } as VideoData;
   } else if (ytNode.is(YTNodes.MusicTwoRowItem)) {
-    console.log("Music two row ", JSON.stringify(ytNode));
+    // console.log("Music two row ", JSON.stringify(ytNode));
     if (ytNode.item_type === "playlist") {
       return {
         type: "playlist",
@@ -120,7 +120,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
         // TODO: Add Autor
       } as PlaylistData;
     } else if (ytNode.item_type === "song" || ytNode.item_type === "video") {
-      console.log("Author: ", ytNode.author);
+      // console.log("Author: ", ytNode.author);
       return {
         type: "video",
         originalNode: ytNode,

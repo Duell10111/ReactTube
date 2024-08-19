@@ -1,7 +1,7 @@
 // React-Native Platform Support
 /* eslint-disable object-shorthand */
-import crypto from "crypto-browserify";
 import RNFS from "react-native-fs";
+import crypto from "react-native-quick-crypto";
 import uuid from "react-native-uuid";
 import {ReadableStream} from "web-streams-polyfill";
 import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
@@ -10,6 +10,9 @@ import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
 import {Platform} from "youtubei.js/dist/src/utils/Utils.js";
 
 import evaluate from "./jinterMetro";
+
+// eslint-disable-next-line import/order
+import Innertube from "youtubei.js/dist/src/platform/lib";
 
 // const meta_url = import.meta.url;
 // const is_cjs = !meta_url;
@@ -125,6 +128,4 @@ Platform.load({
 });
 
 export * from "youtubei.js/dist/src/platform/lib";
-// eslint-disable-next-line import/order
-import Innertube from "youtubei.js/dist/src/platform/lib";
 export default Innertube;

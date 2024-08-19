@@ -18,7 +18,7 @@ export function HorizontalListItem({data}: HorizontalListItemProps) {
 
   const author = useMemo(() => {
     return data.type === "video"
-      ? data.artists?.[0].name ?? data.author?.name
+      ? (data.artists?.[0]?.name ?? data.author?.name)
       : data.author?.name;
   }, [data]);
 

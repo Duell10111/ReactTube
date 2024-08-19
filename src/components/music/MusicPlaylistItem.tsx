@@ -16,8 +16,8 @@ export function MusicPlaylistItem({data}: MusicPlaylistItemProps): JSX.Element {
   const {style} = useAppStyle();
   const {navigate} = useNavigation<RootNavProp>();
 
-  console.log("NavEndpoint: ", JSON.stringify(data.navEndpoint));
-  const originalItem = data.originalNode.as(YTNodes.MusicResponsiveListItem);
+  // console.log("NavEndpoint: ", JSON.stringify(data.navEndpoint));
+  // const originalItem = data.originalNode.as(YTNodes.MusicResponsiveListItem);
   // console.log("ORG: ", originalItem.overlay.content.endpoint);
 
   const {setCurrentItem} = useMusikPlayerContext();
