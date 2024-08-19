@@ -1,7 +1,9 @@
+import {useCallback, useEffect, useMemo, useState} from "react";
+
 import {useYoutubeContext} from "../context/YoutubeContext";
-import {useCallback, useEffect, useState} from "react";
-import {YTNodes, YT} from "../utils/Youtube";
+import {getVideoData} from "../extraction/ElementData";
 import Logger from "../utils/Logger";
+import {YTNodes, YT} from "../utils/Youtube";
 
 type PlaylistItems =
   | YTNodes.Video
@@ -29,6 +31,10 @@ export default function usePlaylistDetails(playlistId: string) {
       .catch(LOGGER.warn);
   }, [youtube, playlistId]);
 
+  const parsedData = useMemo(() => {
+    return data.map(getVideoData);
+  }, [data]);
+
   const fetchMore = useCallback(async () => {
     if (playlist?.has_continuation) {
       const update = await playlist.getContinuation();
@@ -39,5 +45,5 @@ export default function usePlaylistDetails(playlistId: string) {
     }
   }, [playlist, data]);
 
-  return {playlist, data, fetchMore};
+  return {playlist, data, parsedData, fetchMore};
 }

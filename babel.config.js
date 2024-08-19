@@ -19,6 +19,11 @@ module.exports = function (api) {
           },
         },
       ],
+      ["inline-import", {extensions: [".sql"]}],
+      [
+        "@babel/plugin-syntax-import-attributes",
+        {deprecatedAssertSyntax: true},
+      ],
     ],
   };
 };

@@ -76,3 +76,6 @@ buck-out/
 /ios
 
 .expo
+
+# Local building
+fastlane

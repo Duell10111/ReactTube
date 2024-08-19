@@ -38,6 +38,7 @@ export default function VideoSegment({
           date={element.publishDate}
           livestream={element.livestream}
           navEndpoint={element.navEndpoint}
+          music={element.music}
         />
       );
     } else if (element.type === "mix") {
@@ -53,6 +54,7 @@ export default function VideoSegment({
           author={element.author}
           thumbnail={element.thumbnailImage}
           date={element.publishDate}
+          music={element.music}
           mix
         />
       );
@@ -66,6 +68,7 @@ export default function VideoSegment({
           thumbnail={element.thumbnailImage}
           videoCount={element.videoCount}
           author={element.author}
+          music={element.music}
         />
       );
     } else {

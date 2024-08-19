@@ -1,10 +1,11 @@
-import {Helpers, YTNodes} from "../utils/Youtube";
 import _ from "lodash";
-import {getVideoData} from "./ElementData";
-import Logger from "../utils/Logger";
+
 import {parseObservedArrayHorizontalData} from "./ArrayExtraction";
+import {getVideoData} from "./ElementData";
 import {extractKeyNode} from "./KeyExtraction";
 import {ElementData} from "./Types";
+import Logger from "../utils/Logger";
+import {Helpers, YTNodes} from "../utils/Youtube";
 
 const LOGGER = Logger.extend("SHELF-EXTRACTION");
 
@@ -20,6 +21,9 @@ export interface HorizontalData {
   loadMore: () => void;
   id: string;
   title?: string;
+  items_per_columns?: number;
+  shelf?: boolean; // Needed?
+  music?: boolean;
 }
 
 export function gridCalculatorExtract(
@@ -33,12 +37,12 @@ export function gridCalculator(
   content: Helpers.YTNode[],
   columns: number,
 ): (ElementData[] | HorizontalData)[] {
-  console.log("TypesArr: ", listPrintTypes(content));
+  // console.log("TypesArr: ", listPrintTypes(content));
 
   const groups = _.groupBy(content, node => node.type);
 
   const types = Object.keys(groups);
-  console.log("Types: ", types);
+  // console.log("Types: ", types);
 
   const sectionsAvailable = _.intersection(types, sectionItems);
 
@@ -115,7 +119,7 @@ export function parseHorizontalNode(
 
     return {
       data: content,
-      parsedData: parsedData,
+      parsedData,
       loadMore: () => {},
       id: extractKeyNode(node),
       originalNode: node,
@@ -125,7 +129,7 @@ export function parseHorizontalNode(
     const {content, parsedData} = extractContent(Array.from(node.contents));
     return {
       data: content,
-      parsedData: parsedData,
+      parsedData,
       loadMore: () => {},
       id: extractKeyNode(node),
       originalNode: node,
@@ -137,7 +141,7 @@ export function parseHorizontalNode(
     const {content, parsedData} = extractContent(Array.from(node.contents));
     return {
       data: content,
-      parsedData: parsedData,
+      parsedData,
       loadMore: () => {},
       id: extractKeyNode(node),
       originalNode: node,
@@ -152,6 +156,37 @@ export function parseHorizontalNode(
       id: node.title.text ?? "feed_nudge",
       title: node.title.text,
       originalNode: node,
+    };
+  }
+  // Music types
+  else if (node.is(YTNodes.MusicCarouselShelf)) {
+    console.log(node.contents);
+    const {content, parsedData} = extractContent(Array.from(node.contents));
+    const twoRowItem = parsedData.find(v =>
+      v.originalNode.is(YTNodes.MusicTwoRowItem),
+    );
+    console.log("Header: ", node.header);
+    return {
+      data: content,
+      parsedData,
+      loadMore: () => {},
+      id: node.header.title?.text,
+      title: node.header.title?.text,
+      items_per_columns: node.num_items_per_column,
+      music: true,
+      shelf: true,
+      originalNode: node,
+    };
+  } else if (node.is(YTNodes.MusicDescriptionShelf)) {
+    return {
+      data: [],
+      parsedData: [],
+      loadMore: () => {},
+      id: node.type, // TODO: Hash description?
+      title: node.description.text,
+      originalNode: node,
+      music: true,
+      shelf: true,
     };
   } else {
     console.warn("ShelfExtraction: Unknown horizontal type: ", node.type);

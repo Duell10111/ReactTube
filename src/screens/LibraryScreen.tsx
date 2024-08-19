@@ -26,10 +26,10 @@ export default function LibraryDrawerItem() {
 
   return (
     <View>
-      <Text>{"Library"}</Text>
       <GridView
         shelfItem={content}
         onEndReached={() => fetchMore().catch(console.warn)}
+        horizontalListSegmentStyle={{maxWidth: 50}}
       />
     </View>
   );

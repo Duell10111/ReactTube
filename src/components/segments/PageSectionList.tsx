@@ -1,5 +1,12 @@
 import React from "react";
-import {Platform, StyleSheet, Text, View} from "react-native";
+import {
+  Platform,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from "react-native";
 
 import {useAppStyle} from "../../context/AppStyleContext";
 import {HorizontalData} from "../../extraction/ShelfExtraction";
@@ -9,9 +16,14 @@ import HorizontalVideoList from "../HorizontalVideoList";
 interface Props {
   headerText?: string;
   content: Helpers.YTNode[] | HorizontalData;
+  horizontalListSegmentStyle?: StyleProp<ViewStyle>;
 }
 
-export default function PageSectionList({headerText, content}: Props) {
+export default function PageSectionList({
+  headerText,
+  content,
+  horizontalListSegmentStyle,
+}: Props) {
   const {style} = useAppStyle();
 
   if (Array.isArray(content)) {
@@ -20,7 +32,7 @@ export default function PageSectionList({headerText, content}: Props) {
 
   return (
     <View style={styles.containerStyle}>
-      <View style={styles.border} />
+      {/*<View style={styles.border} />*/}
       <Text
         style={[
           styles.textStyle,
@@ -30,17 +42,18 @@ export default function PageSectionList({headerText, content}: Props) {
         {headerText}
       </Text>
       <HorizontalVideoList
-        containerStyle={{marginBottom: 20}}
+        containerStyle={{marginBottom: 0}}
         nodes={Array.isArray(content) ? content : content.parsedData}
+        videoSegmentStyle={horizontalListSegmentStyle}
       />
-      <View style={styles.border} />
+      {/*<View style={styles.border} />*/}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   containerStyle: {
-    marginVertical: 50,
+    marginVertical: 0,
   },
   textStyle: {
     fontSize: 25,

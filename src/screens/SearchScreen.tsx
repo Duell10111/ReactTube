@@ -9,6 +9,9 @@ import GridView from "../components/GridView";
 import useGridColumnsPreferred from "../hooks/home/useGridColumnsPreferred";
 import useSearchScreen from "../hooks/useSearchScreen";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
+import Logger from "../utils/Logger";
+
+const LOGGER = Logger.extend("SEARCH_SCREEN");
 
 export default function SearchScreen() {
   const {search, searchResult, fetchMore, searchSuggestions} =
@@ -53,7 +56,9 @@ export default function SearchScreen() {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       console.log("Trigger Search Suggestions!");
-      searchSuggestions(searchText).then(setHints);
+      if (searchText.trim().length >= 1) {
+        searchSuggestions(searchText).then(setHints).catch(LOGGER.warn);
+      }
     }, [searchText]);
   }
 

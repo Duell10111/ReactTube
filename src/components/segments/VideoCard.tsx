@@ -1,14 +1,16 @@
-import {Platform, StyleProp, TextStyle, ViewStyle} from "react-native";
-import React from "react";
 import {CommonActions, useNavigation, useRoute} from "@react-navigation/native";
-import {NativeStackProp, RootRouteProp} from "../../navigation/types";
-import Logger from "../../utils/Logger";
-import VideoCardTV from "./tv/VideoCardTV";
-import VideoCardPhone from "./phone/VideoCardPhone";
-import {Author, Thumbnail} from "../../extraction/Types";
-import ReelCardPhone from "./phone/ReelCardPhone";
+import React from "react";
+import {Platform, StyleProp, TextStyle, ViewStyle} from "react-native";
 import DeviceInfo from "react-native-device-info";
 import {YTNodes} from "youtubei.js";
+
+import ReelCardPhone from "./phone/ReelCardPhone";
+import VideoCardPhone from "./phone/VideoCardPhone";
+import VideoCardTV from "./tv/VideoCardTV";
+import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
+import {Author, Thumbnail} from "../../extraction/Types";
+import {NativeStackProp, RootRouteProp} from "../../navigation/types";
+import Logger from "../../utils/Logger";
 
 const LOGGER = Logger.extend("VIDEOCARD");
 
@@ -27,16 +29,26 @@ interface Props {
   disabled?: boolean;
   livestream?: boolean;
   mix?: boolean;
+  music?: boolean;
+  onPress?: () => void;
 }
 
 export default function VideoCard({style, ...data}: Props) {
   const navigation = useNavigation<NativeStackProp>();
   const route = useRoute<RootRouteProp>();
+  const {setPlaylistViaEndpoint} = useMusikPlayerContext();
 
   const onPress = () => {
     if (data.disabled) {
       return;
     }
+
+    if (data.music) {
+      setPlaylistViaEndpoint(data.navEndpoint);
+      navigation.navigate("MusicPlayerScreen");
+      return;
+    }
+
     LOGGER.debug("State: ", navigation.getState());
     LOGGER.debug("Route name: ", route.name);
     LOGGER.debug("Nav Endpoint: ", data.navEndpoint);

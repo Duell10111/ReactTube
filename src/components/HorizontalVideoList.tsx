@@ -11,6 +11,7 @@ import {Helpers, YTNodes} from "../utils/Youtube";
 const LOGGER = Logger.extend("SEGMENT");
 
 interface Props {
+  videoSegmentStyle?: StyleProp<ViewStyle>;
   containerStyle?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   nodes: (Helpers.YTNode | ElementData)[];
@@ -19,6 +20,7 @@ interface Props {
 
 export default function HorizontalVideoList({
   nodes,
+  videoSegmentStyle,
   textStyle,
   onEndReached,
   containerStyle,
@@ -29,7 +31,13 @@ export default function HorizontalVideoList({
         if (item.type === "channel") {
           return <ChannelSegment element={item.originalNode} />;
         } else {
-          return <VideoSegment element={item} textStyle={textStyle} />;
+          return (
+            <VideoSegment
+              element={item}
+              textStyle={textStyle}
+              style={videoSegmentStyle}
+            />
+          );
         }
       } else {
         console.error("! Old Way Horizontal List");
@@ -53,7 +61,7 @@ export default function HorizontalVideoList({
       }
       return null;
     },
-    [textStyle],
+    [textStyle, videoSegmentStyle],
   );
 
   const keyExtractor = useCallback((item: Helpers.YTNode | ElementData) => {

@@ -17,7 +17,9 @@ export default function LoginScreen() {
   useEffect(() => {
     if (!Platform.isTV && account?.qrCode) {
       Clipboard.setString(account.qrCode.user_code);
-      Linking.openURL(account?.qrCode.verification_url).catch(console.warn);
+      if (!__DEV__) {
+        Linking.openURL(account?.qrCode.verification_url).catch(console.warn);
+      }
     }
   }, [account?.qrCode]);
 

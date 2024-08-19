@@ -1,3 +1,4 @@
+import {Icon} from "@rneui/base";
 import React from "react";
 import {
   StyleProp,
@@ -10,10 +11,10 @@ import {
   ViewStyle,
 } from "react-native";
 import FastImage from "react-native-fast-image";
-import ChannelIcon from "../../video/ChannelIcon";
+
 import {useAppStyle} from "../../../context/AppStyleContext";
 import {Author, Thumbnail} from "../../../extraction/Types";
-import {Icon} from "@rneui/base";
+import ChannelIcon from "../../video/ChannelIcon";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
@@ -36,7 +37,7 @@ export default function PlaylistCardPhone({
   const {style: appStyle} = useAppStyle();
 
   return (
-    <View style={[styles.container, {minWidth: 150, maxWidth: width}]}>
+    <View style={[styles.container, {minWidth: 150, maxWidth: width}, style]}>
       <TouchableNativeFeedback onPress={onPress}>
         <View style={[styles.segmentContainer]}>
           <FastImage
@@ -53,7 +54,10 @@ export default function PlaylistCardPhone({
           </View>
           {data.videoCount ? (
             <View style={styles.countContainer}>
-              <Text style={styles.countStyle}>{data.videoCount}{" Videos"}</Text>
+              <Text style={styles.countStyle}>
+                {data.videoCount}
+                {" Videos"}
+              </Text>
             </View>
           ) : null}
         </View>

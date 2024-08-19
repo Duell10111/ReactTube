@@ -36,6 +36,26 @@
             "topShelfWide2x": "./assets/images/tv/app_store_icon_topshelf.png"
           }
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "pickFirst": [
+              "lib/arm64-v8a/libcrypto.so",
+              "lib/x86/libcrypto.so",
+              "lib/x86_64/libcrypto.so",
+              "lib/armeabi-v7a/libcrypto.so"
+            ]
+          }
+        }
+      ],
+      [
+        "@duell10111/apple-targets",
+        {
+          "appleTeamId": "XXXXXXXXXX",
+          "isTV": true
+        }
       ]
     ],
     "name": "reacttube",

@@ -97,6 +97,12 @@ export default function useAccountData() {
     });
   }, [youtube, updateSettings]);
 
+  // useEffect(() => {
+  //   updateSettings({
+  //     accounts: [], // Adapt when using multiple accounts
+  //   });
+  // }, []);
+
   useEffect(() => {
     if (
       youtube &&
