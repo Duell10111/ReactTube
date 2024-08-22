@@ -1,7 +1,8 @@
-import {Helpers} from "../utils/Youtube";
-import {getVideoData} from "./ElementData";
 import _ from "lodash";
+
+import {getVideoData} from "./ElementData";
 import {parseHorizontalNode} from "./ShelfExtraction";
+import {Helpers} from "../utils/Youtube";
 
 export function parseObservedArray(
   array: Helpers.ObservedArray<Helpers.YTNode>,
@@ -19,6 +20,10 @@ export function parseObservedArrayHorizontalData(
     .map(parseHorizontalNode)
     .compact()
     .value();
+}
+
+export function parseArrayHorizontalData(array: Helpers.YTNode[]) {
+  return _.chain(array).map(parseHorizontalNode).compact().value();
 }
 
 export function parseObservedArrayHorizontalDataFlatMap(

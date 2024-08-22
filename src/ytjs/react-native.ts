@@ -100,6 +100,7 @@ class Cache implements ICache {
   }
 }
 
+console.log("Correct YTJS");
 Platform.load({
   runtime: "node",
   info: {
@@ -107,13 +108,13 @@ Platform.load({
     bugs_url: "",
     repo_url: "",
   },
-  server: true,
+  server: false,
   Cache: Cache,
   sha1Hash: async (data: string) => {
     return crypto.createHash("sha1").update(data).digest("hex");
   },
   uuidv4() {
-    return uuid.v4().toString();
+    return crypto.randomUUID();
   },
   eval: evaluate,
   fetch: fetch as unknown as FetchFunction,
@@ -121,7 +122,7 @@ Platform.load({
   Response: Response as unknown as typeof globalThis.Response,
   Headers: Headers as unknown as typeof globalThis.Headers,
   FormData: FormData as unknown as typeof globalThis.FormData,
-  File: {} as unknown as typeof globalThis.File,
+  File: globalThis.File,
   ReadableStream: ReadableStream,
   // @ts-ignore
   CustomEvent: CustomEvent,

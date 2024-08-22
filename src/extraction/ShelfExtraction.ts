@@ -188,6 +188,33 @@ export function parseHorizontalNode(
       music: true,
       shelf: true,
     };
+  } else if (node.is(YTNodes.MusicShelf)) {
+    const {content, parsedData} = extractContent(Array.from(node.contents));
+    return {
+      data: content,
+      parsedData,
+      loadMore: () => {},
+      id: node.type, // TODO: Hash description?
+      title: node.title.text,
+      originalNode: node,
+      music: true,
+      shelf: true,
+    };
+  } else if (node.is(YTNodes.MusicCardShelf)) {
+    // TODO: Handle case with no content - Only Play button
+    const {content, parsedData} = node.contents
+      ? extractContent(Array.from(node.contents))
+      : {content: [], parsedData: []};
+    return {
+      data: content,
+      parsedData,
+      loadMore: () => {},
+      id: node.type, // TODO: Hash description?
+      title: node.title.text,
+      originalNode: node,
+      music: true,
+      shelf: true,
+    };
   } else {
     console.warn("ShelfExtraction: Unknown horizontal type: ", node.type);
   }
@@ -238,16 +265,4 @@ function listPrintTypes(v: Helpers.YTNode | Helpers.YTNode[]): any {
     return v.map((v2: any) => listPrintTypes(v2));
   }
   return v.type;
-}
-
-// SectionList Extraction
-
-export function extractSectionList(node: Helpers.YTNode) {
-  if (node.is(YTNodes.SectionList)) {
-    console.log(JSON.stringify(listPrintTypes(node), null, 4));
-    return parseObservedArrayHorizontalData(node.contents);
-  } else {
-    LOGGER.warn("Unknown SectionList type: ", node.type);
-  }
-  return [];
 }

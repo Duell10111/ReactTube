@@ -20,12 +20,16 @@ import {ActiveDownloadScreen} from "../screens/phone/ActiveDownloadScreen";
 import {DownloadPlayer} from "../screens/phone/DownloadPlayer";
 import {MusicPlayerScreen} from "../screens/phone/MusicPlayerScreen";
 import {MusicPlaylistScreen} from "../screens/phone/MusicPlaylistScreen";
+import {MusicSearchScreen} from "../screens/phone/MusicSearchScreen";
 import VideoScreenWrapper from "../screens/phone/VideoScreenWrapper";
 import {YTNodes} from "../utils/Youtube";
+
+import TrendingScreen from "@/screens/TrendingScreen";
 
 export type RootStackParamList = {
   LoadingScreen: undefined;
   Home: undefined;
+  Trending: undefined;
   VideoScreen: {
     videoId: string;
     navEndpoint?: YTNodes.NavigationEndpoint;
@@ -43,6 +47,7 @@ export type RootStackParamList = {
   DownloadPlayer: {id: string};
   // Music Screens
   MusicPlaylistScreen: {playlistId: string};
+  MusicSearchScreen: undefined;
   MusicPlayerScreen: {
     videoId: string;
     navEndpoint?: YTNodes.NavigationEndpoint;
@@ -69,6 +74,11 @@ export default function RootStackNavigator() {
           <Stack.Screen
             name={"Home"}
             component={HomeWrapperScreen}
+            options={!Platform.isTV ? {headerShown: false} : undefined}
+          />
+          <Stack.Screen
+            name={"Trending"}
+            component={TrendingScreen}
             options={!Platform.isTV ? {headerShown: false} : undefined}
           />
           <Stack.Screen
@@ -111,6 +121,11 @@ export default function RootStackNavigator() {
             options={{headerTitle: "Download Player"}}
           />
           {/* Music Screens*/}
+          <Stack.Screen
+            name={"MusicSearchScreen"}
+            component={MusicSearchScreen}
+            options={{title: "Music Search"}}
+          />
           <Stack.Screen
             name={"MusicPlaylistScreen"}
             component={MusicPlaylistScreen}

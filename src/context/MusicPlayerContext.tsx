@@ -96,7 +96,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     if (event.type === Event.PlaybackProgressUpdated) {
       duration.value = event.duration;
       currentTime.value = event.position;
-      LOGGER.debug("CurrentTime: ", event.position);
+      // LOGGER.debug("CurrentTime: ", event.position);
     }
 
     if (event.type === Event.RemotePlay) {

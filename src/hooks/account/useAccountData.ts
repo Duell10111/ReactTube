@@ -1,8 +1,10 @@
 import {useEffect, useState} from "react";
 
-import {useYoutubeContext} from "../../context/YoutubeContext";
 import Logger from "../../utils/Logger";
-import {useSettings} from "../../utils/SettingsWrapper";
+
+import {useYoutubeContext} from "@/context/YoutubeContext";
+import {useSettings} from "@/utils/SettingsWrapper";
+import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 const accountKey = "accountData";
 
@@ -28,6 +30,8 @@ interface LoginData {
 
 const LOGGER = Logger.extend("ACCOUNT");
 
+// TODO: Rewrite login mechanism and make faster!
+
 export default function useAccountData() {
   const {settings, updateSettings, clearAll} = useSettings<AccountData>(
     accountKey,
@@ -36,12 +40,12 @@ export default function useAccountData() {
     },
   );
   const [qrCode, setQRCodeData] = useState<LoginData>();
-  const [success, setSuccess] = useState(false);
-  // TODO: Add success reaction?
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const [autoLoginFinished, setAutoLoginFinished] = useState(false);
 
   const youtube = useYoutubeContext();
 
+  // Register listener for auth events
   useEffect(() => {
     if (!youtube) {
       LOGGER.debug("No Youtube Context available");
@@ -77,7 +81,10 @@ export default function useAccountData() {
         accounts: [account],
       });
       setQRCodeData(undefined);
-      setSuccess(true);
+      showMessage({
+        type: "success",
+        message: "Login successful",
+      });
     });
 
     // 'update-credentials' is fired when the access token expires, if you do not save the updated credentials any subsequent request will fail
@@ -95,20 +102,15 @@ export default function useAccountData() {
         accounts: [account],
       });
     });
-  }, [youtube, updateSettings]);
+  }, [youtube]);
 
-  // useEffect(() => {
-  //   updateSettings({
-  //     accounts: [], // Adapt when using multiple accounts
-  //   });
-  // }, []);
-
+  // Check for existing login
   useEffect(() => {
-    if (
-      youtube &&
-      !youtube.session.logged_in &&
-      settings.accounts?.[0]?.credentials
-    ) {
+    if (!youtube) {
+      LOGGER.debug("Skipping Auto Login! No Youtube Context available.");
+      return;
+    }
+    if (!youtube.session.logged_in && settings.accounts?.[0]?.credentials) {
       //TODO: Check if user wants to log in?
 
       LOGGER.debug("Account credentials available");
@@ -125,7 +127,8 @@ export default function useAccountData() {
         })
         .catch(LOGGER.warn);
     }
-  }, [youtube, settings]);
+    setAutoLoginFinished(true);
+  }, [youtube]);
 
   const login = () => {
     if (!youtube) {
@@ -134,8 +137,8 @@ export default function useAccountData() {
     }
     youtube.session
       .signIn()
-      .then(() => LOGGER.debug("Login succedd"))
-      .catch(LOGGER.warn);
+      .then(() => LOGGER.debug("Login succeed"))
+      .catch(console.warn);
     LOGGER.debug("Login triggered");
   };
 
@@ -152,7 +155,14 @@ export default function useAccountData() {
         });
         LOGGER.debug("Logout succeeded");
       })
-      .catch(LOGGER.warn);
+      .catch(error => {
+        LOGGER.warn(error);
+        // TODO: Show error prompt?
+        // Delete to allow new login
+        updateSettings({
+          accounts: [], // Adapt when using multiple accounts
+        });
+      });
     LOGGER.debug("Logout triggered");
   };
 
@@ -163,5 +173,6 @@ export default function useAccountData() {
     loginData: settings,
     clearAllData: clearAll,
     loginSuccess,
+    autoLoginFinished,
   };
 }

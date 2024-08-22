@@ -25,11 +25,12 @@
           "isTV": true,
           "showVerboseWarnings": false,
           "tvosDeploymentTarget": "13.4",
-          "removeFlipperOnAndroid": true,
+          "removeFlipperOnAndroid": false,
           "androidTVBanner": "./assets/images/tv/tv_banner.png",
           "appleTVImages": {
             "icon": "./assets/images/tv/app_store_icon.png",
             "iconSmall": "./assets/images/tv/app_store_icon_400.png",
+            "iconSmall2x": "./assets/images/tv/app_store_icon_800.png",
             "topShelf": "./assets/images/tv/app_store_icon_topshelf.png",
             "topShelf2x": "./assets/images/tv/app_store_icon_topshelf.png",
             "topShelfWide": "./assets/images/tv/app_store_icon_topshelf.png",

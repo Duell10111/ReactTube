@@ -1,10 +1,19 @@
-import {Platform, Settings} from "react-native";
 import {useCallback, useState} from "react";
+import {Platform, Settings} from "react-native";
+import {MMKV} from "react-native-mmkv";
 
 // TODO: Add concrete Android implementation
 
+const storage = new MMKV({
+  id: "settings-storage",
+});
+
 function getSettings<T>(settingsKey: string) {
   if (Platform.OS === "android") {
+    const value = storage.getString(settingsKey);
+    if (value && typeof value === "string") {
+      return JSON.parse(value) as T;
+    }
     return undefined;
   }
 
@@ -16,14 +25,16 @@ function getSettings<T>(settingsKey: string) {
 }
 
 function setSettings<T>(settingsKey: string, settings: Partial<T>) {
-  if (Platform.OS === "android") {
-    return;
-  }
   const curSettings = getSettings<T>(settingsKey);
   const newValue = {
     ...curSettings,
     ...settings,
   };
+  if (Platform.OS === "android") {
+    storage.set(settingsKey, JSON.stringify(newValue));
+    return;
+  }
+
   Settings.set({
     [settingsKey]: JSON.stringify(newValue),
   });

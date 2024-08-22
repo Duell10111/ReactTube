@@ -16,6 +16,8 @@ import {RootStackParamList} from "../navigation/RootStackNavigator";
 import {SettingsStackParamList} from "../navigation/SettingsNavigator";
 import {parseLanguage} from "../utils/YTLanguages";
 
+import {useAccountContext} from "@/context/AccountContext";
+
 type Props = CompositeScreenProps<
   NativeStackScreenProps<SettingsStackParamList, "Root">,
   NativeStackScreenProps<RootStackParamList, "SettingsScreen">
@@ -23,7 +25,7 @@ type Props = CompositeScreenProps<
 
 export default function SettingsScreen({navigation}: Props) {
   const {appSettings} = useAppData();
-  const {logout, clearAllData} = useAccountData();
+  const {logout, clearAllData} = useAccountContext();
 
   useEffect(() => {
     if (!Platform.isTV) {

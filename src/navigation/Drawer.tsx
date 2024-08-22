@@ -17,7 +17,8 @@ import Animated, {
 
 import {NativeStackProp} from "./types";
 import {useAppStyle} from "../context/AppStyleContext";
-import useAccountData from "../hooks/account/useAccountData";
+
+import {useAccountContext} from "@/context/AccountContext";
 
 interface Props {
   open: boolean;
@@ -26,7 +27,7 @@ interface Props {
 }
 
 export default function Drawer({open, onOpen, onClose}: Props) {
-  const {loginData} = useAccountData();
+  const account = useAccountContext();
 
   useEffect(() => {
     openDrawer.value = open;
@@ -65,13 +66,20 @@ export default function Drawer({open, onOpen, onClose}: Props) {
           iconTitle={"home"}
         />
         <DrawerItem
+          title={"Trending"}
+          onFocus={() => onOpen()}
+          onPress={navigationWrapper(() => navigation.navigate("Trending"))}
+          open={open}
+          iconTitle={"home"}
+        />
+        <DrawerItem
           title={"Search"}
           onFocus={() => onOpen()}
           onPress={() => navigation.navigate("Search")}
           open={open}
           iconTitle={"search"}
         />
-        {loginData.accounts.length > 0 ? (
+        {account?.loginData?.accounts?.length > 0 ? (
           <>
             <DrawerItem
               title={"Subscriptions"}
@@ -169,20 +177,21 @@ const DrawerItem = forwardRef<TouchableOpacity, ItemProps>(
           setFocus(false);
           onBlur?.();
         }}>
-        <View style={itemStyles.viewContainer}>
+        <Animated.View
+          style={itemStyles.viewContainer}
+          entering={FadeIn}
+          exiting={FadeOut}>
           {iconTitle ? (
             <Icon name={iconTitle} type={iconType} color={"white"} size={30} />
           ) : null}
           {open ? (
             <Animated.Text
-              entering={FadeIn}
-              exiting={FadeOut}
               numberOfLines={1}
               style={[itemStyles.text, {color: style.textColor}, textStyle]}>
               {title}
             </Animated.Text>
           ) : null}
-        </View>
+        </Animated.View>
       </TouchableOpacity>
     );
   },

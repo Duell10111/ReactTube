@@ -38,16 +38,14 @@ const App = () => {
             <YoutubeContextProvider>
               <AccountContextProvider>
                 <DownloaderContext>
-                  <StatusBar
-                    // TODO: Currently only dark-mode exists
-                    barStyle={isDarkMode ? "light-content" : "light-content"}
-                  />
-                  <SafeAreaProvider>
-                    <MusicPlayerContext>
-                      <Navigation />
-                    </MusicPlayerContext>
+                  <MusicPlayerContext>
+                    <StatusBar
+                      // TODO: Currently only dark-mode exists
+                      barStyle={isDarkMode ? "light-content" : "light-content"}
+                    />
+                    <Navigation />
                     <FlashMessage position={"top"} />
-                  </SafeAreaProvider>
+                  </MusicPlayerContext>
                 </DownloaderContext>
               </AccountContextProvider>
             </YoutubeContextProvider>

@@ -3,16 +3,17 @@ import {
   BottomTabBar,
   createBottomTabNavigator,
 } from "@react-navigation/bottom-tabs";
-import React, {useState} from "react";
+import React from "react";
 
 import {MusicBottomPlayerBar} from "../components/music/MusicBottomPlayerBar";
-import useAccountData from "../hooks/account/useAccountData";
 import HomeScreen from "../screens/HomeScreen";
 import LibraryScreen from "../screens/LibraryScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
 import {DownloadScreen} from "../screens/phone/DownloadScreen";
 import {MusicHomeScreen} from "../screens/phone/MusicHomeScreen";
+
+import {useAccountContext} from "@/context/AccountContext";
 
 export type RootBottomTabParamList = {
   HomeFeed: undefined;
@@ -27,7 +28,7 @@ export type RootBottomTabParamList = {
 const Tab = createBottomTabNavigator<RootBottomTabParamList>();
 
 export default function BottomTabBarNavigator() {
-  const {loginData} = useAccountData();
+  const {loginData} = useAccountContext();
   // const [musicPlayer, setShowMusicPlayer] = useState(false)
   return (
     <>

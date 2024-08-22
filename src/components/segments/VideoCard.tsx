@@ -2,7 +2,6 @@ import {CommonActions, useNavigation, useRoute} from "@react-navigation/native";
 import React from "react";
 import {Platform, StyleProp, TextStyle, ViewStyle} from "react-native";
 import DeviceInfo from "react-native-device-info";
-import {YTNodes} from "youtubei.js";
 
 import ReelCardPhone from "./phone/ReelCardPhone";
 import VideoCardPhone from "./phone/VideoCardPhone";
@@ -11,6 +10,7 @@ import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
 import {Author, Thumbnail} from "../../extraction/Types";
 import {NativeStackProp, RootRouteProp} from "../../navigation/types";
 import Logger from "../../utils/Logger";
+import {YTNodes} from "../../utils/Youtube";
 
 const LOGGER = Logger.extend("VIDEOCARD");
 
