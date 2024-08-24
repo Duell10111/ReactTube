@@ -12,6 +12,9 @@
       "icon": "./assets/images/ios_icon.png",
       "bundleIdentifier": "com.duell10111.reacttube",
       "supportsTablet": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
