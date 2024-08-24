@@ -235,8 +235,8 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
     // Recursive extraction
     return getVideoData(ytNode.content);
   } else if (ytNode.is(YTNodes.ReelShelf)) {
-    console.warn("ReelShelf Nav Endpoint: ", ytNode.endpoint);
-    console.log("ReelShelf: ", ytNode.items);
+    LOGGER.debug("ReelShelf Nav Endpoint: ", ytNode.endpoint);
+    LOGGER.debug("ReelShelf: ", ytNode.items);
   } else {
     LOGGER.warn("getVideoData: Unknown type: ", ytNode.type);
   }

@@ -1,14 +1,15 @@
+import {useNavigation} from "@react-navigation/native";
+import {Icon} from "@rneui/base";
 import React, {useMemo} from "react";
 import {Modal, ScrollView, StyleSheet, Text, View} from "react-native";
-import HorizontalVideoList from "../HorizontalVideoList";
+
 import ChannelIcon from "./ChannelIcon";
 import NextVideo from "./endcard/NextVideo";
-import {useNavigation} from "@react-navigation/native";
-import {NativeStackProp} from "../../navigation/types";
 import {parseObservedArray} from "../../extraction/ArrayExtraction";
-import useVideoElementData from "../../hooks/video/useVideoElementData";
 import {YTVideoInfo} from "../../extraction/Types";
-import {Icon} from "@rneui/base";
+import useVideoElementData from "../../hooks/video/useVideoElementData";
+import {NativeStackProp} from "../../navigation/types";
+import HorizontalVideoList from "../HorizontalVideoList";
 
 interface Props {
   video: YTVideoInfo;
@@ -39,8 +40,7 @@ export default function EndCard({
 
   // TODO: use playlist data if available?
   const nextVideoID = useMemo(() => {
-    const videoEndpoint = video.originalData.autoplay_video_endpoint?.payload
-      .videoId as string | undefined;
+    const videoEndpoint = video.originalData.autoplay_video_endpoint;
 
     return (
       video.playlist?.content?.[video.playlist?.current_index + 1]?.id ??
@@ -66,7 +66,10 @@ export default function EndCard({
             <NextVideo
               nextVideo={videoElement}
               onPress={videoId => {
-                navigation.replace("VideoScreen", {videoId: videoId});
+                navigation.replace("VideoScreen", {
+                  videoId,
+                  navEndpoint: video.originalData.autoplay_video_endpoint,
+                });
               }}
             />
           ) : null}
