@@ -201,6 +201,7 @@ export default function VideoScreen({route, navigation}: Props) {
               <VideoEndCard endcard={YTVideoInfo.endscreen} />
             ) : null
           }
+          endCardStartSeconds={YTVideoInfo.endscreen?.startDuration}
         />
       ) : (
         <VideoComponent

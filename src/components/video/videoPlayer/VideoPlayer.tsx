@@ -20,7 +20,8 @@ import {useAnimations} from "./hooks/useAnimations";
 import {useControlTimeout} from "./hooks/useControlTimeout";
 import useTVSeekControl from "./hooks/useTVSeekControl";
 import {usePanResponders} from "./usePanResponders";
-import {useSponsorBlock} from "../../../utils/SponsorBlockProvider";
+
+import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
 
 export interface VideoMetadata {
   title: string;
@@ -60,6 +61,7 @@ interface VideoPlayerProps<T> {
   bottomContainer?: React.ReactNode;
   metadata: VideoMetadata;
   endCardContainer: React.ReactNode;
+  endCardStartSeconds?: number;
   // Callbacks
   onAuthorClick?: () => void;
   onEnd?: () => void;
@@ -94,7 +96,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     const [seekerFocus, setSeekerFocus] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
 
-    const [showControls, setShowControls] = useState(true);
+    const [showControls, setShowControls] = useState(false);
     const [showEndcard, setShowEndcard] = useState(false);
 
     const [loading, setLoading] = useState(true);
@@ -194,7 +196,23 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       animations.showEndCard.value = showEndcard;
     }, [showEndcard]);
 
+    const endCardShownRef = useRef(false);
+
+    useEffect(() => {
+      if (!endCardShownRef.current && currentTime > props.endCardStartSeconds) {
+        setShowEndcard(true);
+        endCardShownRef.current = true;
+      } else if (
+        endCardShownRef.current &&
+        currentTime < props.endCardStartSeconds
+      ) {
+        endCardShownRef.current = false;
+      }
+    }, [currentTime]);
+
     //TODO: Add support for back event to dismiss EndCard/Controls
+    // Currently not working with native screen stack
+    // https://github.com/software-mansion/react-native-screens/pull/801
 
     useTVEventHandler(event => {
       switch (event.eventType) {
@@ -313,15 +331,11 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentTime, duration, seekerWidth, setSeekerPosition]);
 
-    useImperativeHandle(
-      ref,
-      () => {
-        return {
-          seek: seconds => _videoRef.current?.seek(seconds),
-        };
-      },
-      [],
-    );
+    useImperativeHandle(ref, () => {
+      return {
+        seek: seconds => _videoRef.current?.seek(seconds),
+      };
+    }, []);
 
     useSponsorBlock(props.videoID, currentTime, _videoRef.current?.seek);
 
@@ -340,7 +354,9 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           ref={_videoRef}
         />
         {endCardContainer ? (
-          <EndCardContainer showEndCard={animations.showEndCard}>
+          <EndCardContainer
+            showEndCard={animations.showEndCard}
+            onCloseEndCard={() => setShowEndcard(false)}>
             {endCardContainer}
           </EndCardContainer>
         ) : null}

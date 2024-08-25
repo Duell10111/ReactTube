@@ -51,7 +51,7 @@ export default function useVideoDetails(
       LOGGER.debug("Format: ", format?.quality_label);
       return format?.decipher(youtube.actions.session.player);
     } catch (e) {
-      LOGGER.warn("Error while matching formats: ", e);
+      LOGGER.debug("Error while matching formats: ", e);
     }
     return undefined;
   }, [Video, youtube]);
