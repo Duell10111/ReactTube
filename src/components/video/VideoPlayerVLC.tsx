@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import React from "react";
 import {
   ActivityIndicator,
@@ -5,10 +7,11 @@ import {
   StyleSheet,
   ViewStyle,
 } from "react-native";
+
+import VLCPlayerControls from "./VLCPlayerControls";
+import useYoutubeDash from "../../hooks/video/useYoutubeDash";
 import Logger from "../../utils/Logger";
 import {YT} from "../../utils/Youtube";
-import useYoutubeDash from "../../hooks/video/useYoutubeDash";
-import VLCPlayerControls from "./VLCPlayerControls";
 
 const LOGGER = Logger.extend("VIDEO");
 

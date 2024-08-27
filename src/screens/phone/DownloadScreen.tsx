@@ -1,12 +1,17 @@
+import {CompositeScreenProps} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {Icon} from "@rneui/base";
 import React, {useEffect} from "react";
 
-import {DownloadListItem} from "../../components/downloader/DownloadListItem";
-import {useVideos} from "../../downloader/DownloadDatabaseOperations";
-import {RootBottomTabParamList} from "../../navigation/BottomTabBarNavigator";
+import {DownloadListItem} from "@/components/downloader/DownloadListItem";
+import {useVideos} from "@/downloader/DownloadDatabaseOperations";
+import {RootBottomTabParamList} from "@/navigation/BottomTabBarNavigator";
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
-type Props = NativeStackScreenProps<RootBottomTabParamList, "Download">;
+type Props = CompositeScreenProps<
+  NativeStackScreenProps<RootStackParamList, "Home">,
+  NativeStackScreenProps<RootBottomTabParamList, "Download">
+>;
 
 export function DownloadScreen({navigation}: Props) {
   const videos = useVideos();

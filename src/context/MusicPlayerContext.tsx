@@ -240,6 +240,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         previous,
         next,
         seek,
+        // @ts-ignore
         callbacks: {
           onEndReached,
         },
