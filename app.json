@@ -64,6 +64,7 @@
     ],
     "name": "reacttube",
     "slug": "reacttube",
-    "userInterfaceStyle": "automatic"
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#000000"
   }
 }
