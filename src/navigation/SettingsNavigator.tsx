@@ -1,5 +1,4 @@
 import {createNativeStackNavigator} from "@react-navigation/native-stack";
-import {Platform} from "react-native";
 
 import LanguageSelectorScreen from "../components/settings/screens/LanguageSelector";
 import PlayerResolutionSelectorScreen from "../components/settings/screens/PlayerResolutionSelector";

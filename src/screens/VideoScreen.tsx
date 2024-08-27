@@ -69,7 +69,7 @@ export default function VideoScreen({route, navigation}: Props) {
 
   const longClickCount = useRef(0);
   useTVEventHandler(event => {
-    LOGGER.debug("TV Event: ", event.eventType);
+    // LOGGER.debug("TV Event: ", event.eventType);
     // Skip on own overlay enabled!
     if (appSettings.ownOverlayEnabled) {
       return;
