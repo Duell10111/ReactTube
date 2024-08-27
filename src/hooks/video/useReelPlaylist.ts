@@ -1,13 +1,16 @@
-import {useYoutubeContext} from "../../context/YoutubeContext";
-import {YTNodes, YTShorts, Helpers} from "../../utils/Youtube";
-import {useEffect, useState} from "react";
 import _ from "lodash";
+import {useEffect, useState} from "react";
+
+import {YTNodes, YTShorts, Helpers} from "../../utils/Youtube";
+
+import {useYoutubeContext} from "@/context/YoutubeContext";
 
 export function useReelPlaylist(reelId?: string) {
   const youtube = useYoutubeContext();
-  const [shortItem, setShortItem] = useState<YTShorts.VideoInfo>();
+  const [shortItem, setShortItem] = useState<YTShorts.ShortFormVideoInfo>();
 
-  const [elements, setElements] = useState<string[]>();
+  const [elements, setElements] =
+    useState<(string | YTNodes.NavigationEndpoint)[]>();
 
   useEffect(() => {
     if (!reelId) {
@@ -15,10 +18,10 @@ export function useReelPlaylist(reelId?: string) {
     }
 
     youtube
-      ?.getShortsWatchItem(reelId)
+      ?.getShortsVideoInfo(reelId)
       .then(item => {
         setShortItem(item);
-        const data = extractVideoIds(item.watch_next_feed);
+        const data = item.watch_next_feed;
         setElements([...(elements ?? []), ...data]);
       })
       .catch(console.warn);
@@ -31,7 +34,7 @@ export function useReelPlaylist(reelId?: string) {
       ?.getWatchNextContinuation()
       .then(item => {
         setShortItem(item);
-        const data = extractVideoIds(item.watch_next_feed);
+        const data = item.watch_next_feed;
         setElements([...(elements ?? []), ...data]);
       })
       .catch(console.warn);
@@ -40,12 +43,13 @@ export function useReelPlaylist(reelId?: string) {
   return {elements, fetchMore};
 }
 
-function extractVideoIds(arr?: Helpers.ObservedArray) {
-  const data =
-    arr?.map(v => {
-      return v.as(YTNodes.Command)?.endpoint?.payload?.videoId as
-        | string
-        | undefined;
-    }) ?? [];
-  return _.compact(data);
-}
+// TODO: Currently not needed?
+// function extractVideoIds(arr?: Helpers.ObservedArray) {
+//   const data =
+//     arr?.map(v => {
+//       return v.as(YTNodes.Command)?.endpoint?.payload?.videoId as
+//         | string
+//         | undefined;
+//     }) ?? [];
+//   return _.compact(data);
+// }
