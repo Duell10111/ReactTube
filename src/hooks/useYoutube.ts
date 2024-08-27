@@ -4,14 +4,16 @@ import {useAppData} from "../context/AppDataContext";
 import {parseLanguage} from "../utils/YTLanguages";
 import {Innertube} from "../utils/Youtube";
 
+import Logger from "@/utils/Logger";
+
 const visitorDataKey = "visitorDataYT";
+
+const LOGGER = Logger.extend("INNERTUBE");
 
 export default function useYoutube() {
   const [youtube, setYoutube] = useState<Innertube>();
   const {appSettings} = useAppData();
   const language = parseLanguage(appSettings);
-
-  console.log("Settings: ", appSettings);
 
   useEffect(() => {
     // let visitorData = Settings.get(visitorDataKey);
@@ -24,10 +26,12 @@ export default function useYoutube() {
 
     Innertube.create({
       lang: language.key,
+      // cookie: "SOCS=CAISEwgDEgk2NjUyNDgyNDcaAmRlIAEaBgiAuY-2Bg",
     })
       .then(setYoutube)
       .catch(console.warn);
-  }, [language]);
+    LOGGER.debug("Created Innertube Object");
+  }, []);
 
   // useEffect(() => {
   //   // TODO: Check if visitorData is wanted

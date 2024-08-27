@@ -24,7 +24,6 @@ import Animated, {runOnJS} from "react-native-reanimated";
 import Carousel from "react-native-reanimated-carousel";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {ResizeMode} from "react-native-video";
-import {YTNodes} from "youtubei.js";
 
 import VideoComponent from "../../components/VideoComponent";
 import ErrorComponent from "../../components/general/ErrorComponent";
@@ -33,6 +32,7 @@ import PlayPauseAnimation from "../../components/video/phone/PlayPauseAnimation"
 import useVideoDetails from "../../hooks/useVideoDetails";
 import {useReelPlaylist} from "../../hooks/video/useReelPlaylist";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
+import {YTNodes} from "../../utils/Youtube";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 type NProp = NativeStackNavigationProp<RootStackParamList, "VideoScreen">;

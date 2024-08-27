@@ -9,16 +9,16 @@ import GridView from "../components/GridView";
 import LoadingComponent from "../components/general/LoadingComponent";
 import useGridColumnsPreferred from "../hooks/home/useGridColumnsPreferred";
 import useHomeScreen from "../hooks/useHomeScreen";
-import {useDrawerContext} from "../navigation/DrawerContext";
-import {RootNavProp} from "../navigation/RootStackNavigator";
 import Logger from "../utils/Logger";
+
+import useTrending from "@/hooks/useTrending";
+import {useDrawerContext} from "@/navigation/DrawerContext";
+import {RootNavProp} from "@/navigation/RootStackNavigator";
 
 const LOGGER = Logger.extend("HOME");
 
-// TODO: Do not fetch Home if not logged in?
-// Alternative: Show trending screen instead?
-
-export default function HomeScreen() {
+export default function TrendingScreen() {
+  const {data} = useTrending();
   const [fetchDate, setFetchDate] = useState(Date.now());
   const {content, fetchMore, refresh} = useHomeScreen();
 

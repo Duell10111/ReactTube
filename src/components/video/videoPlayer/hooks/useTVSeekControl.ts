@@ -36,6 +36,7 @@ export default function useTVSeekControl({
   useEffect(() => {
     return () => {
       console.log("Deinit useTVSeekControl");
+      // @ts-ignore
       clearInterval(longPressInterval.current);
     };
   }, []);
@@ -78,6 +79,7 @@ export default function useTVSeekControl({
         setSeekerPosition(newPosition);
       }, 1000);
     } else {
+      // @ts-ignore
       clearInterval(longPressInterval.current);
       const percent = seekerPosition / seekerWidth;
       const time = duration * percent;
@@ -91,6 +93,7 @@ export default function useTVSeekControl({
       setPause(!pause);
     }
     if (!enabled) {
+      // @ts-ignore
       longPressInterval.current && clearInterval(longPressInterval.current);
       return;
     }

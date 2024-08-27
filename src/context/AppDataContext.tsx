@@ -3,6 +3,8 @@ import {Platform, Settings} from "react-native";
 
 import useAccountData from "../hooks/account/useAccountData";
 
+import {useAccountContext} from "@/context/AccountContext";
+
 const settingsKey = "appSettings";
 
 export interface AppSettings {
@@ -16,7 +18,6 @@ export interface AppSettings {
 interface AppDataContext {
   appSettings: AppSettings;
   updateSettings: (settings: Partial<AppSettings>) => void;
-  account: ReturnType<typeof useAccountData>;
 }
 
 // @ts-ignore
@@ -73,13 +74,12 @@ export default function AppDataContextProvider({children}: Props) {
     }
   }, []);
 
-  const account = useAccountData();
-
   const value: AppDataContext = {
     appSettings: settings,
     updateSettings,
-    account,
   };
+
+  console.log("App Data rerender!");
 
   return <context.Provider children={children} value={value} />;
 }

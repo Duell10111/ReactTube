@@ -2,7 +2,8 @@ import {useNavigation} from "@react-navigation/native";
 import {Button, ListItem} from "@rneui/base";
 import {Text} from "react-native";
 
-import {useDownloaderContext} from "../../context/DownloaderContext";
+import {useDownloaderContext} from "@/context/DownloaderContext";
+import {NativeStackProp} from "@/navigation/types";
 
 interface DownloadListItemProps {
   id: string;
@@ -10,7 +11,7 @@ interface DownloadListItemProps {
 }
 
 export function DownloadListItem({id, name}: DownloadListItemProps) {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackProp>();
   const {uploadToWatch} = useDownloaderContext();
   return (
     <ListItem.Swipeable

@@ -12,6 +12,9 @@
       "icon": "./assets/images/ios_icon.png",
       "bundleIdentifier": "com.duell10111.reacttube",
       "supportsTablet": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
@@ -25,15 +28,16 @@
           "isTV": true,
           "showVerboseWarnings": false,
           "tvosDeploymentTarget": "13.4",
-          "removeFlipperOnAndroid": true,
+          "removeFlipperOnAndroid": false,
           "androidTVBanner": "./assets/images/tv/tv_banner.png",
           "appleTVImages": {
             "icon": "./assets/images/tv/app_store_icon.png",
             "iconSmall": "./assets/images/tv/app_store_icon_400.png",
-            "topShelf": "./assets/images/tv/app_store_icon_topshelf.png",
-            "topShelf2x": "./assets/images/tv/app_store_icon_topshelf.png",
-            "topShelfWide": "./assets/images/tv/app_store_icon_topshelf.png",
-            "topShelfWide2x": "./assets/images/tv/app_store_icon_topshelf.png"
+            "iconSmall2x": "./assets/images/tv/app_store_icon_800.png",
+            "topShelf": "./assets/images/tv/app_store_icon_topshelf_1x.png",
+            "topShelf2x": "./assets/images/tv/app_store_icon_topshelf_2x.png",
+            "topShelfWide": "./assets/images/tv/app_store_icon_topshelf_wide1x.png",
+            "topShelfWide2x": "./assets/images/tv/app_store_icon_topshelf_wide2x.png"
           }
         }
       ],
@@ -60,6 +64,7 @@
     ],
     "name": "reacttube",
     "slug": "reacttube",
-    "userInterfaceStyle": "automatic"
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#000000"
   }
 }

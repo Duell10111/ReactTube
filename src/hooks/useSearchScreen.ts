@@ -1,10 +1,9 @@
 import _ from "lodash";
-import {useCallback, useEffect, useReducer, useState} from "react";
-import {Helpers} from "youtubei.js";
+import {useCallback, useReducer, useState} from "react";
 
 import {useYoutubeContext} from "../context/YoutubeContext";
 import Logger from "../utils/Logger";
-import {YT} from "../utils/Youtube";
+import {Helpers, YT} from "../utils/Youtube";
 
 const LOGGER = Logger.extend("SEARCH");
 
@@ -57,7 +56,7 @@ export default function useSearchScreen() {
     if (result.results && result.results.length > 0) {
       dispatch(result.results);
     } else {
-      LOGGER.debug("Np results available");
+      LOGGER.debug("No results available");
     }
     setSearchData(result);
   }, [searchData]);
@@ -67,7 +66,7 @@ export default function useSearchScreen() {
       if (!innerTube) {
         return [];
       }
-      if (query.length == 0) {
+      if (query.length === 0) {
         return [];
       }
       return await innerTube.getSearchSuggestions(query);

@@ -8,7 +8,7 @@ export default function LoadingComponent() {
         StyleSheet.absoluteFillObject,
         {justifyContent: "center", alignItems: "center"},
       ]}>
-      <ActivityIndicator size={"large"} />
+      <ActivityIndicator size={"large"} color={"white"} />
     </View>
   );
 }

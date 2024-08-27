@@ -131,20 +131,18 @@ export default function BottomControls({
           source={require("../../../../assets/videoPlayer/bottom-vignette.png")}
           style={[styles.column]}
           imageStyle={[styles.vignette]}>
-          {/*<SafeAreaView style={[styles.row, _styles.bottomControlGroup]}>*/}
-          {/*  {timerControl}*/}
-          {/*  /!*<Title title={title} />*!/*/}
-          {/*</SafeAreaView>*/}
           <SafeAreaView style={styles.seekBarContainer}>
             {timerControl}
-            <TVFocusGuideView autoFocus>{seekbarControl}</TVFocusGuideView>
+            <TVFocusGuideView autoFocus hasTVPreferredFocus={showControls}>
+              {seekbarControl}
+            </TVFocusGuideView>
           </SafeAreaView>
         </ImageBackground>
       </Animated.View>
       <Animated.View style={bottomContainerStyle}>
         <BottomContainer
           onFocus={() => {
-            console.log("Bottom Focus");
+            // console.log("Bottom Focus");
             showBottomContainer.value = true;
           }}>
           {bottomContainer}

@@ -13,15 +13,16 @@ import TrackPlayer, {
   useTrackPlayerEvents,
 } from "react-native-track-player";
 
+import useVideoDataGenerator from "../hooks/music/useVideoDataGenerator";
+import Logger from "../utils/Logger";
+import {Innertube, YTNodes} from "../utils/Youtube";
+
 import {
   ElementData,
   VideoData,
   YTPlaylist,
   YTVideoInfo,
-} from "../extraction/Types";
-import useVideoDataGenerator from "../hooks/music/useVideoDataGenerator";
-import Logger from "../utils/Logger";
-import {Innertube, YTNodes} from "../utils/Youtube";
+} from "@/extraction/Types";
 
 type PlayType = "Audio" | "Video";
 
@@ -96,7 +97,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     if (event.type === Event.PlaybackProgressUpdated) {
       duration.value = event.duration;
       currentTime.value = event.position;
-      LOGGER.debug("CurrentTime: ", event.position);
+      // LOGGER.debug("CurrentTime: ", event.position);
     }
 
     if (event.type === Event.RemotePlay) {
@@ -126,6 +127,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         Capability.Pause,
         Capability.SkipToNext,
         Capability.SkipToPrevious,
+        Capability.JumpForward,
+        Capability.JumpBackward,
       ],
     }).catch(LOGGER.warn);
   }, []);
@@ -237,6 +240,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         previous,
         next,
         seek,
+        // @ts-ignore
         callbacks: {
           onEndReached,
         },

@@ -138,10 +138,11 @@ async function sendDownloadToWatch(
     id,
   };
   console.log("Starting file transfer");
-  const {id: fileID} = await startFileTransfer(
-    getAbsoluteVideoURL(video.fileUrl),
-    metadata,
-  );
+  // TODO: Enable File transfer again
+  // const {id: fileID} = await startFileTransfer(
+  //   getAbsoluteVideoURL(video.fileUrl),
+  //   metadata,
+  // );
 
   console.log(`Finished file transfer for video ${id}`);
 

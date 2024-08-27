@@ -1,14 +1,17 @@
+// @ts-nocheck
+
+import {Duration} from "luxon";
 import React, {useCallback, useMemo, useRef, useState} from "react";
 // @ts-ignore
-import {VLCPlayer} from "react-native-vlc-media-player";
 import {Text, useTVEventHandler} from "react-native";
-import VideoProgressBar, {Progress as BarProgress} from "./VideoProgressBar";
 import {useSharedValue} from "react-native-reanimated";
-import Logger from "../../utils/Logger";
-import {Duration} from "luxon";
+import {VLCPlayer} from "react-native-vlc-media-player";
+
 import VLCPlayerWrapper from "./VLCPlayerWrapper";
 import VideoControl from "./VideoControl";
 import VideoInfo from "./VideoInfo";
+import VideoProgressBar, {Progress as BarProgress} from "./VideoProgressBar";
+import Logger from "../../utils/Logger";
 import {YT} from "../../utils/Youtube";
 
 const LOGGER = Logger.extend("VLCPLAYERCONTROLS");

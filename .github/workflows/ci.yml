@@ -18,7 +18,7 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Lint files
-        run: yarn lint --quiet
+        run: npm run lint --quiet
 
       - name: Typecheck files
-        run: yarn typecheck
+        run: npm run typecheck

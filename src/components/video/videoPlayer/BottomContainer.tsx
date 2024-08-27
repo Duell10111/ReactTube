@@ -6,14 +6,9 @@ import ShelfVideoSelectorProvider from "../../../context/ShelfVideoSelector";
 interface Props {
   children: React.ReactNode;
   onFocus?: () => void;
-  nextFocusUp?: number;
 }
 
-export default function BottomContainer({
-  children,
-  onFocus,
-  nextFocusUp,
-}: Props) {
+export default function BottomContainer({children, onFocus}: Props) {
   return (
     <View style={styles.container}>
       <ShelfVideoSelectorProvider onElementFocused={onFocus}>

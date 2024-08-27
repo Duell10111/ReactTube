@@ -1,17 +1,19 @@
+import {ButtonGroup} from "@rneui/base";
+import _ from "lodash";
 import React, {useMemo, useState} from "react";
 import {Text, TextProps, TouchableOpacity, View} from "react-native";
-import {YT, YTNodes} from "../../utils/Youtube";
+
+import SectionList from "./SectionList";
 import useChannelData, {
   ChannelContentTypes,
 } from "../../hooks/channel/useChannelData";
-import Logger from "../../utils/Logger";
-import SectionList from "./SectionList";
-import {ButtonGroup} from "@rneui/base";
-import _ from "lodash";
-import {useAppStyle} from "../../context/AppStyleContext";
-import GridView from "../GridView";
-import {extractSectionList} from "../../extraction/ShelfExtraction";
 import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
+import Logger from "../../utils/Logger";
+import {YT, YTNodes} from "../../utils/Youtube";
+import GridView from "../GridView";
+
+import {useAppStyle} from "@/context/AppStyleContext";
+import {extractSectionList} from "@/extraction/CustomListExtractors";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -34,7 +36,9 @@ export default function Channel({channel}: Props) {
         channel.has_videos
           ? {
               element: ({isSelected}: {isSelected?: boolean}) => (
-                <ChannelBtnText isSelected={isSelected}>{"Videos"}</ChannelBtnText>
+                <ChannelBtnText isSelected={isSelected}>
+                  {"Videos"}
+                </ChannelBtnText>
               ),
               key: "Videos" as ChannelContentTypes,
             }
@@ -42,7 +46,9 @@ export default function Channel({channel}: Props) {
         channel.has_shorts
           ? {
               element: ({isSelected}: {isSelected?: boolean}) => (
-                <ChannelBtnText isSelected={isSelected}>{"Reels"}</ChannelBtnText>
+                <ChannelBtnText isSelected={isSelected}>
+                  {"Reels"}
+                </ChannelBtnText>
               ),
               key: "Reels" as ChannelContentTypes,
             }
