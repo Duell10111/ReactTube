@@ -79,10 +79,13 @@ export default function VideoComponent({
     );
   }
 
+  const videoURL = hlsUrl ?? url;
+
   return (
     <>
       <ActivityIndicator style={styles.activityIndicator} size={"large"} />
       <Video
+        key={videoURL}
         ref={playerRef}
         source={{
           // uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
@@ -91,7 +94,7 @@ export default function VideoComponent({
           // uri: "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
           // type: "mpd",
           // uri: `http://localhost:7500/video/${videoId}/master.m3u8`,
-          uri: hlsUrl ?? url,
+          uri: videoURL,
           metadata: {
             title: videoInfo?.title,
             subtitle: videoInfo?.author?.name,
