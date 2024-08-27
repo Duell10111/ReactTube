@@ -11,5 +11,5 @@ runs:
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm i
+      run: npm i --legacy-peer-deps
       shell: bash
