@@ -26,15 +26,15 @@ export default function HomeScreen() {
 
   const navigation = useNavigation<RootNavProp>();
 
-  // useFocusEffect(() => {
-  //   if (Math.abs(Date.now() - fetchDate) > 43200000) {
-  //     LOGGER.debug("Triggering refresh home content");
-  //     refresh();
-  //     setFetchDate(Date.now());
-  //   } else {
-  //     LOGGER.debug("Last fetch has been recently. Skipping refresh");
-  //   }
-  // });
+  useFocusEffect(() => {
+    if (Math.abs(Date.now() - fetchDate) > 43200000) {
+      LOGGER.debug("Triggering refresh home content");
+      refresh();
+      setFetchDate(Date.now());
+    } else {
+      LOGGER.debug("Last fetch has been recently. Skipping refresh");
+    }
+  });
 
   useEffect(() => {
     if (!Platform.isTV) {

@@ -142,7 +142,7 @@ export default function BottomControls({
       <Animated.View style={bottomContainerStyle}>
         <BottomContainer
           onFocus={() => {
-            console.log("Bottom Focus");
+            // console.log("Bottom Focus");
             showBottomContainer.value = true;
           }}>
           {bottomContainer}

@@ -82,7 +82,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     const _videoRef = useRef<VideoComponentRefType>(null);
     const controlTimeout = useRef<ReturnType<typeof setTimeout>>(
       setTimeout(() => {}),
-    ).current;
+    );
 
     // const [_resizeMode, setResizeMode] = useState<ResizeMode>(resizeMode);
     const [_paused, setPaused] = useState<boolean>(false);
@@ -214,6 +214,8 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     // Currently not working with native screen stack
     // https://github.com/software-mansion/react-native-screens/pull/801
 
+    const longButtonPressed = useRef<string>();
+
     useTVEventHandler(event => {
       switch (event.eventType) {
         case "select":
@@ -221,18 +223,35 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         case "down":
         case "right":
         case "left":
-        // TODO: Special treatment for long-buttons (Pause timeout until seconds event)
-        case "longLeft":
-        case "longRight":
           if (showEndcard) {
             return;
           }
+          console.log("Control Timeout Triggered! ", event.eventType);
           if (!showControls) {
             setShowControls(true);
             resetControlTimeout();
             setControlTimeout();
           } else {
             resetControlTimeout();
+            setControlTimeout();
+          }
+          break;
+        case "longLeft":
+        case "longRight":
+          // Special treatment for longLeft/Right
+          console.log("LONG Control Timeout Triggered! ", event.eventType);
+          console.log("Current: ", longButtonPressed.current);
+          if (
+            (event.eventType === "longLeft" ||
+              event.eventType === "longRight") &&
+            !longButtonPressed.current
+          ) {
+            longButtonPressed.current = event.eventType;
+            console.log("Disabling Timeout!");
+            clearControlTimeout();
+          } else if (event.eventType === longButtonPressed.current) {
+            console.log("Activating Timeout again!");
+            longButtonPressed.current = undefined;
             setControlTimeout();
           }
           break;
@@ -268,7 +287,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     const {clearControlTimeout, resetControlTimeout, setControlTimeout} =
       useControlTimeout({
         controlTimeout,
-        controlTimeoutDelay: 2000,
+        controlTimeoutDelay: 4000,
         mounted: mounted.current,
         showControls,
         setShowControls,

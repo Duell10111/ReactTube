@@ -1,7 +1,13 @@
-import {Dispatch, SetStateAction, useEffect, useState} from "react";
+import {
+  Dispatch,
+  MutableRefObject,
+  SetStateAction,
+  useEffect,
+  useState,
+} from "react";
 
 interface ControlTimeoutProps {
-  controlTimeout: ReturnType<typeof setTimeout>;
+  controlTimeout: MutableRefObject<ReturnType<typeof setTimeout>>;
   controlTimeoutDelay: number;
   mounted: boolean;
   showControls: boolean;
@@ -41,18 +47,19 @@ export const useControlTimeout = ({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    controlTimeout = setTimeout(() => {
+    controlTimeout.current = setTimeout(() => {
       hideControls();
     }, controlTimeoutDelay);
 
     return () => {
-      clearTimeout(controlTimeout);
+      clearTimeout(controlTimeout.current);
     };
   }, [_controlTimeout]);
 
   useEffect(() => {
     if (_clearTimeout) {
-      clearTimeout(controlTimeout);
+      clearTimeout(controlTimeout.current);
+      console.log("Clear Timeout");
       setClearTimeout(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

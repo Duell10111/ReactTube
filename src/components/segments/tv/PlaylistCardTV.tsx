@@ -1,3 +1,4 @@
+import {Icon} from "@rneui/base";
 import React from "react";
 import {
   StyleProp,
@@ -7,10 +8,11 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import VideoTouchable from "../../general/VideoTouchable";
 import FastImage from "react-native-fast-image";
-import {useAppStyle} from "../../../context/AppStyleContext";
-import {Icon} from "@rneui/base";
+
+import VideoTouchable from "../../general/VideoTouchable";
+
+import {useAppStyle} from "@/context/AppStyleContext";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
@@ -34,10 +36,7 @@ export default function PlaylistCardTV({
 
   return (
     <View style={[styles.viewContainer, style]}>
-      <VideoTouchable
-        // onFocus={() => console.log("Focus")}
-        style={styles.segmentContainer}
-        onPress={onPress}>
+      <VideoTouchable style={styles.segmentContainer} onPress={onPress}>
         <FastImage
           style={styles.imageStyle}
           source={{
@@ -51,7 +50,10 @@ export default function PlaylistCardTV({
         </View>
         {videoCount ? (
           <View style={styles.countContainer}>
-            <Text style={styles.countStyle}>{videoCount}{" Videos"}</Text>
+            <Text style={styles.countStyle}>
+              {videoCount}
+              {" Videos"}
+            </Text>
           </View>
         ) : null}
       </VideoTouchable>

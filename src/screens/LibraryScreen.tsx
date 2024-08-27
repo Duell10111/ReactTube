@@ -1,25 +1,8 @@
-import {createDrawerNavigator} from "@react-navigation/drawer";
 import React from "react";
-import {Platform, Text, View} from "react-native";
+import {Platform, View} from "react-native";
 
 import GridView from "../components/GridView";
 import useLibrary from "../hooks/useLibrary";
-
-const Drawer = createDrawerNavigator();
-
-function LibraryScreen() {
-  return (
-    <Drawer.Navigator
-      initialRouteName={"Home"}
-      defaultStatus={"open"}
-      screenOptions={{
-        drawerType: Platform.isTV ? "permanent" : undefined,
-      }}>
-      <Drawer.Screen name={"Home"} component={LibraryDrawerItem} />
-      <Drawer.Screen name={"Notifications"} component={LibraryDrawerItem} />
-    </Drawer.Navigator>
-  );
-}
 
 export default function LibraryDrawerItem() {
   const {content, fetchMore} = useLibrary();
@@ -29,7 +12,7 @@ export default function LibraryDrawerItem() {
       <GridView
         shelfItem={content}
         onEndReached={() => fetchMore().catch(console.warn)}
-        horizontalListSegmentStyle={{maxWidth: 50}}
+        horizontalListSegmentStyle={!Platform.isTV ? {maxWidth: 50} : undefined}
       />
     </View>
   );
