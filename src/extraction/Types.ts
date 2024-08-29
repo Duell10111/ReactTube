@@ -6,6 +6,10 @@ export interface Thumbnail {
   width: number;
 }
 
+export interface ThumbnailOverlays {
+  videoProgress?: number; // Value from 0 to 1
+}
+
 export type ElementData = VideoData | PlaylistData | ChannelData;
 
 export interface VideoData {
@@ -21,6 +25,9 @@ export interface VideoData {
   author?: Author;
   quality?: string;
   livestream?: boolean;
+  // Progress of video
+  progress?: number;
+  thumbnailOverlays?: ThumbnailOverlays;
   music?: boolean;
   // Music Properties
   durationSeconds?: number;
@@ -116,7 +123,7 @@ export interface YTEndscreen {
 export interface YTEndscreenElement {
   originalData: YTNodes.EndscreenElement;
   id: string;
-  style: "VIDEO" | "PLAYLIST" | "CHANNEL";
+  style: "VIDEO" | "PLAYLIST" | "CHANNEL" | "WEBSITE";
   startDuration: number;
   endDuration: number;
   title?: string;

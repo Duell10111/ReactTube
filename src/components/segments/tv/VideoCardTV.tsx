@@ -11,10 +11,11 @@ import {
 } from "react-native";
 import FastImage from "react-native-fast-image";
 
-import {useAppStyle} from "../../../context/AppStyleContext";
-import {useShelfVideoSelector} from "../../../context/ShelfVideoSelector";
-import {Author} from "../../../extraction/Types";
 import VideoTouchable from "../../general/VideoTouchable";
+
+import {useAppStyle} from "@/context/AppStyleContext";
+import {useShelfVideoSelector} from "@/context/ShelfVideoSelector";
+import {Author} from "@/extraction/Types";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
@@ -30,6 +31,7 @@ interface Props {
   disabled?: boolean;
   livestream?: boolean;
   mix?: boolean;
+  progressPercentage?: number;
 }
 
 export default function VideoCardTV({
@@ -82,6 +84,11 @@ export default function VideoCardTV({
           <View style={styles.bottomBorder}>
             <Icon name={"playlist-play"} color={"white"} />
           </View>
+        ) : null}
+        {data.progressPercentage ? (
+          <View
+            style={[styles.progressBar, {width: `${data.progressPercentage}%`}]}
+          />
         ) : null}
       </VideoTouchable>
       <Text style={[styles.titleStyle, {color: appStyle.textColor}, textStyle]}>
@@ -163,5 +170,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-start",
     paddingHorizontal: 15,
+  },
+  progressBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    backgroundColor: "red",
+    width: "100%",
+    height: 3,
   },
 });

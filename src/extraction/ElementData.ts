@@ -1,4 +1,4 @@
-import {getThumbnail} from "./Misc";
+import {getThumbnail, parseThumbnailOverlays} from "./Misc";
 import {
   Author,
   ChannelData,
@@ -63,6 +63,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       type: "video",
       duration: duration?.startsWith("N/A") ? undefined : duration,
       livestream: ytNode.is_live,
+      thumbnailOverlays: parseThumbnailOverlays(ytNode.thumbnail_overlays),
       originalNode: ytNode,
     } as VideoData;
   } else if (ytNode.is(YTNodes.GridVideo)) {
@@ -75,6 +76,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       publishDate: ytNode.published.text,
       type: "video",
       duration: ytNode.duration?.text,
+      thumbnailOverlays: parseThumbnailOverlays(ytNode.thumbnail_overlays),
       originalNode: ytNode,
     } as VideoData;
   } else if (ytNode.is(YTNodes.ReelItem)) {
@@ -94,6 +96,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       navEndpoint: ytNode.endpoint,
       title: ytNode.title.toString(),
       thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
+      thumbnailOverlays: parseThumbnailOverlays(ytNode.thumbnail_overlays),
     } as VideoData;
   } else if (ytNode.is(YTNodes.PlaylistPanelVideo)) {
     return {

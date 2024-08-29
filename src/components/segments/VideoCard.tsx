@@ -6,11 +6,12 @@ import DeviceInfo from "react-native-device-info";
 import ReelCardPhone from "./phone/ReelCardPhone";
 import VideoCardPhone from "./phone/VideoCardPhone";
 import VideoCardTV from "./tv/VideoCardTV";
-import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
-import {Author, Thumbnail} from "../../extraction/Types";
-import {NativeStackProp, RootRouteProp} from "../../navigation/types";
 import Logger from "../../utils/Logger";
 import {YTNodes} from "../../utils/Youtube";
+
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {Author, Thumbnail} from "@/extraction/Types";
+import {NativeStackProp, RootRouteProp} from "@/navigation/types";
 
 const LOGGER = Logger.extend("VIDEOCARD");
 
@@ -29,6 +30,7 @@ interface Props {
   disabled?: boolean;
   livestream?: boolean;
   mix?: boolean;
+  progressPercentage?: number;
   music?: boolean;
   onPress?: () => void;
 }
@@ -48,6 +50,8 @@ export default function VideoCard({style, ...data}: Props) {
       navigation.navigate("MusicPlayerScreen");
       return;
     }
+
+    // TODO: Add init seconds params
 
     LOGGER.debug("State: ", navigation.getState());
     LOGGER.debug("Route name: ", route.name);

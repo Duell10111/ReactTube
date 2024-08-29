@@ -1,49 +1,28 @@
 import {useNavigation} from "@react-navigation/native";
-import React, {useEffect, useState} from "react";
-import {DimensionValue, StyleSheet, TouchableOpacity, View} from "react-native";
+import React from "react";
+import {
+  DeviceEventEmitter,
+  DimensionValue,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import FastImage from "react-native-fast-image";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 
-import {YTEndscreen, YTEndscreenElement} from "../../extraction/Types";
-import {RootNavProp} from "../../navigation/RootStackNavigator";
+import {EndCardCloseEvent} from "@/components/video/videoPlayer/VideoPlayer";
+import {YTEndscreen, YTEndscreenElement} from "@/extraction/Types";
+import {RootNavProp} from "@/navigation/RootStackNavigator";
+import Logger from "@/utils/Logger";
 
-// TODO: Remove Animations?
+const LOGGER = Logger.extend("VIDEO_ENDCARD");
 
 interface VideoEndCardProps {
   endcard: YTEndscreen;
-  visisble?: boolean;
-  currentTime?: number;
 }
 
-export default function VideoEndCard({
-  endcard,
-  visisble,
-  currentTime,
-}: VideoEndCardProps) {
-  const {showEndCard, containerStyle} = useAnimation();
-  const [show, setShow] = useState(false);
-
-  // console.log("Start Duration: ", endcard.startDuration);
-  // console.log("Current Time: ", currentTime);
-  // console.log("Show Endcard", showEndCard.value);
-  // console.log("Show", show);
-
-  useEffect(() => {
-    if (currentTime && endcard.startDuration <= currentTime) {
-      showEndCard.value = true;
-      setShow(true);
-      console.log("Match");
-    } else {
-      console.log("Not matching");
-    }
-  }, [currentTime]);
-
+export default function VideoEndCard({endcard}: VideoEndCardProps) {
   return (
-    <Animated.View
+    <View
       style={[
         {
           backgroundColor: "rgba(119,119,119,0.6)",
@@ -58,7 +37,7 @@ export default function VideoEndCard({
       {endcard.elements.map(e => (
         <VideoCard key={e.id} element={e} />
       ))}
-    </Animated.View>
+    </View>
   );
 }
 
@@ -67,7 +46,7 @@ interface VideoCardProps {
 }
 
 function VideoCard({element}: VideoCardProps) {
-  //TODO: Different between channel and web?
+  //TODO: Difference between channel and web?
 
   const navigation = useNavigation<RootNavProp>();
 
@@ -81,10 +60,28 @@ function VideoCard({element}: VideoCardProps) {
         aspectRatio: element.aspect_ratio,
       }}
       onPress={() => {
-        navigation.navigate("VideoScreen", {
-          navEndpoint: element.navEndpoint,
-          videoId: element.id, // TODO: Wrong id as not known :/
-        });
+        console.log("Style: ", element.style);
+        console.log("EndCard NAvEndpoint: ", element.navEndpoint);
+        console.log("EndCard ID: ", element.id);
+        if (element.style === "CHANNEL") {
+          const channelID = element.navEndpoint.payload.browseId;
+          navigation.navigate("ChannelScreen", {
+            channelId: channelID,
+          });
+        } else if (element.style === "VIDEO") {
+          navigation.navigate("VideoScreen", {
+            navEndpoint: element.navEndpoint,
+            videoId: "", // TODO: Wrong id as not known :/
+          });
+        } else if (element.style === "WEBSITE") {
+          const websiteUrl = element.navEndpoint.payload.url;
+          LOGGER.debug("Website triggered!");
+          // Only on phone?!
+        } else {
+          LOGGER.warn(`Unknown EndCard type ${element.style}`);
+        }
+        // Emit Event to trigger Close of EndCard
+        DeviceEventEmitter.emit(EndCardCloseEvent);
       }}>
       <FastImage
         style={[styles.image]}
@@ -110,19 +107,4 @@ const styles = StyleSheet.create({
 
 function numberToPercent(number: number) {
   return `${number * 100}%` as DimensionValue;
-}
-
-function useAnimation() {
-  const showEndCard = useSharedValue(false);
-
-  const containerStyle = useAnimatedStyle(() => {
-    return {
-      opacity: withTiming(showEndCard.value ? 1 : 0),
-    };
-  });
-
-  return {
-    showEndCard,
-    containerStyle,
-  };
 }

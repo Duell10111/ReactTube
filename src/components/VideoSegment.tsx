@@ -38,6 +38,11 @@ export default function VideoSegment({
           date={element.publishDate}
           livestream={element.livestream}
           navEndpoint={element.navEndpoint}
+          progressPercentage={
+            element.thumbnailOverlays?.videoProgress
+              ? element.thumbnailOverlays.videoProgress * 100
+              : undefined
+          }
           music={element.music}
         />
       );

@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {useTVEventHandler, View} from "react-native";
+import {DeviceEventEmitter, useTVEventHandler, View} from "react-native";
 import {
   OnLoadData,
   OnProgressData,
@@ -22,6 +22,8 @@ import useTVSeekControl from "./hooks/useTVSeekControl";
 import {usePanResponders} from "./usePanResponders";
 
 import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
+
+export const EndCardCloseEvent = "EndCardClose";
 
 export interface VideoMetadata {
   title: string;
@@ -209,6 +211,13 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         endCardShownRef.current = false;
       }
     }, [currentTime]);
+
+    useEffect(() => {
+      const sub = DeviceEventEmitter.addListener(EndCardCloseEvent, () => {
+        setShowEndcard(false);
+      });
+      return () => sub.remove();
+    }, []);
 
     //TODO: Add support for back event to dismiss EndCard/Controls
     // Currently not working with native screen stack
