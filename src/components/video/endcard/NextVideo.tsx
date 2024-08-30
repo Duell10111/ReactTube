@@ -1,6 +1,6 @@
+import {Image} from "expo-image";
 import React, {useEffect, useRef} from "react";
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import FastImage from "react-native-fast-image";
 
 import PlayButton from "./PlayButton";
 import {YTVideoInfo} from "../../../extraction/Types";
@@ -25,7 +25,7 @@ export default function NextVideo({nextVideo, onPress}: NextVideoProps) {
     <View style={styles.container}>
       <Text style={styles.nextVideoText}>{"Next Video in " + countdown}</Text>
       <Text style={styles.videoTitle}>{nextVideo?.title}</Text>
-      <FastImage
+      <Image
         style={styles.imageContainer}
         source={{uri: nextVideo?.thumbnailImage?.url}}
       />

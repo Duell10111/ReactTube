@@ -1,4 +1,6 @@
 import {useNavigation} from "@react-navigation/native";
+import {Image} from "expo-image";
+import * as Linking from "expo-linking";
 import React from "react";
 import {
   DeviceEventEmitter,
@@ -7,7 +9,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import FastImage from "react-native-fast-image";
 
 import {EndCardCloseEvent} from "@/components/video/videoPlayer/VideoPlayer";
 import {YTEndscreen, YTEndscreenElement} from "@/extraction/Types";
@@ -77,13 +78,14 @@ function VideoCard({element}: VideoCardProps) {
           const websiteUrl = element.navEndpoint.payload.url;
           LOGGER.debug("Website triggered!");
           // Only on phone?!
+          Linking.openURL(websiteUrl).catch(LOGGER.warn);
         } else {
           LOGGER.warn(`Unknown EndCard type ${element.style}`);
         }
         // Emit Event to trigger Close of EndCard
         DeviceEventEmitter.emit(EndCardCloseEvent);
       }}>
-      <FastImage
+      <Image
         style={[styles.image]}
         source={
           element.thumbnailImage

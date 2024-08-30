@@ -1,4 +1,5 @@
 import {Icon} from "@rneui/base";
+import {Image} from "expo-image";
 import React, {useState} from "react";
 import {
   StyleProp,
@@ -9,7 +10,6 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import FastImage from "react-native-fast-image";
 
 import VideoTouchable from "../../general/VideoTouchable";
 
@@ -63,7 +63,7 @@ export default function VideoCardTV({
         onLongPress={() => {
           setSelectedVideo(data.videoId);
         }}>
-        <FastImage
+        <Image
           style={styles.imageStyle}
           source={{
             uri:

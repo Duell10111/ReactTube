@@ -1,4 +1,5 @@
 import {Icon} from "@rneui/base";
+import {Image} from "expo-image";
 import React from "react";
 import {
   StyleProp,
@@ -10,7 +11,6 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import FastImage from "react-native-fast-image";
 
 import {useAppStyle} from "../../../context/AppStyleContext";
 import {Author, Thumbnail} from "../../../extraction/Types";
@@ -40,7 +40,7 @@ export default function PlaylistCardPhone({
     <View style={[styles.container, {minWidth: 150, maxWidth: width}, style]}>
       <TouchableNativeFeedback onPress={onPress}>
         <View style={[styles.segmentContainer]}>
-          <FastImage
+          <Image
             style={styles.imageStyle}
             resizeMode={"cover"}
             source={{

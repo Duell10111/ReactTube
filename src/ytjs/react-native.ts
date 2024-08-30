@@ -1,8 +1,7 @@
 // React-Native Platform Support
 /* eslint-disable object-shorthand */
-import RNFS from "react-native-fs";
+import FileSystem from "expo-file-system";
 import crypto from "react-native-quick-crypto";
-import uuid from "react-native-uuid";
 import {ReadableStream} from "web-streams-polyfill";
 import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
 import {ICache} from "youtubei.js/dist/src/types/Cache.js";
@@ -32,11 +31,11 @@ class Cache implements ICache {
   }
 
   static get temp_directory() {
-    return `${RNFS.CachesDirectoryPath}/youtubei.js`;
+    return `${FileSystem.cacheDirectory}/youtubei.js`;
   }
 
   static get default_persistent_directory() {
-    return [RNFS.DocumentDirectoryPath, "youtubei.js"].join("/");
+    return [FileSystem.documentDirectory, "youtubei.js"].join("/");
   }
 
   get cache_dir() {
@@ -46,15 +45,15 @@ class Cache implements ICache {
   async #createCache() {
     const dir = this.cache_dir;
     try {
-      const cwd = await RNFS.stat(dir);
-      if (!cwd.isDirectory()) {
+      const cwd = await FileSystem.getInfoAsync(dir);
+      if (!cwd.isDirectory) {
         throw new Error(
           "An unexpected file was found in place of the cache directory",
         );
       }
     } catch (e: any) {
       if (e?.code === "ENOENT") {
-        await RNFS.mkdir(dir);
+        await FileSystem.makeDirectoryAsync(dir);
       } else {
         throw e;
       }
@@ -65,9 +64,11 @@ class Cache implements ICache {
     await this.#createCache();
     const file = [this.cache_dir, key].join("/");
     try {
-      const stat = await RNFS.stat(file);
-      if (stat.isFile()) {
-        const data: Buffer = Buffer.from(await RNFS.readFile(file));
+      const stat = await FileSystem.getInfoAsync(file);
+      if (stat.exists && stat.isDirectory === false) {
+        const data: Buffer = Buffer.from(
+          await FileSystem.readAsStringAsync(file),
+        );
         return data.buffer;
       }
       throw new Error("An unexpected file was found in place of the cache key");
@@ -83,14 +84,14 @@ class Cache implements ICache {
     await this.#createCache();
     const file = [this.cache_dir, key].join("/");
     const dec = new TextDecoder();
-    await RNFS.writeFile(file, dec.decode(value));
+    await FileSystem.writeAsStringAsync(file, dec.decode(value));
   }
 
   async remove(key: string) {
     await this.#createCache();
     const file = [this.cache_dir, key].join("/");
     try {
-      await RNFS.unlink(file);
+      await FileSystem.deleteAsync(file);
     } catch (e: any) {
       if (e?.code === "ENOENT") {
         return;

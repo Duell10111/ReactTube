@@ -8,7 +8,6 @@ import {
   View,
   useTVEventHandler,
   TVEventControl,
-  ScrollView,
   Text,
 } from "react-native";
 
@@ -37,6 +36,8 @@ interface PlaybackInformation {
 
 // TODO: Fix if freeze if video does only provide audio!!
 // TODO: Add TV remote input for suggestions https://github.com/react-native-tvos/react-native-tvos/blob/tvos-v0.64.2/README.md
+
+// TODO: Add option for init seconds for continuation of video
 
 export default function VideoScreen({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;

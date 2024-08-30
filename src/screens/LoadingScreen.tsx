@@ -1,11 +1,11 @@
+import {Image} from "expo-image";
 import React from "react";
 import {Platform, StyleSheet, Text, View} from "react-native";
-import FastImage from "react-native-fast-image";
 
 export default function LoadingScreen() {
   return (
     <View style={styles.container}>
-      <FastImage
+      <Image
         style={[styles.logo, Platform.isTV ? styles.logoTV : undefined]}
         source={require("../../assets/icon-512-maskable.png")}
       />

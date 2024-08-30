@@ -1,8 +1,9 @@
+import {useNavigation} from "@react-navigation/native";
+import {Image, ImageStyle} from "expo-image";
 import React from "react";
 import {StyleProp, StyleSheet, TouchableOpacity} from "react-native";
-import FastImage, {ImageStyle} from "react-native-fast-image";
+
 import useChannelDetails from "../../hooks/useChannelDetails";
-import {useNavigation} from "@react-navigation/native";
 import {NativeStackProp} from "../../navigation/types";
 
 interface Props {
@@ -27,10 +28,8 @@ export default function ChannelIcon({
   return (
     <TouchableOpacity
       style={styles.container}
-      onPress={() =>
-        navigation.navigate("ChannelScreen", {channelId: channelId})
-      }>
-      <FastImage
+      onPress={() => navigation.navigate("ChannelScreen", {channelId})}>
+      <Image
         style={[styles.image, imageStyle]}
         source={
           url ? {uri: url} : require("../../../assets/grey-background.jpg")
