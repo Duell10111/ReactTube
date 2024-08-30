@@ -135,6 +135,7 @@ export default function useAccountData() {
       LOGGER.warn("No Youtube Context available!");
       return;
     }
+    // TODO: Trigger Login Succeeded Event to react on it in Login Screen
     youtube.session
       .signIn()
       .then(() => LOGGER.debug("Login succeed"))

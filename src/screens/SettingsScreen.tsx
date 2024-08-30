@@ -11,7 +11,6 @@ import SettingsSection from "../components/settings/SettingsSection";
 import {parsePlayerResolution} from "../components/settings/screens/PlayerResolutionSelector";
 import {parsePlayerType} from "../components/settings/screens/PlayerSelector";
 import {useAppData} from "../context/AppDataContext";
-import useAccountData from "../hooks/account/useAccountData";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
 import {SettingsStackParamList} from "../navigation/SettingsNavigator";
 import {parseLanguage} from "../utils/YTLanguages";
