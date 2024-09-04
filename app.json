@@ -65,6 +65,10 @@
     "name": "reacttube",
     "slug": "reacttube",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#000000"
+    "backgroundColor": "#000000",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#000000"
+    }
   }
 }
