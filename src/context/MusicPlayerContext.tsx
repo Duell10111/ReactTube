@@ -127,8 +127,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         Capability.Pause,
         Capability.SkipToNext,
         Capability.SkipToPrevious,
-        Capability.JumpForward,
-        Capability.JumpBackward,
+        Capability.SeekTo,
       ],
     }).catch(LOGGER.warn);
   }, []);
