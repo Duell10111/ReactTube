@@ -7,7 +7,7 @@ export function getThumbnail(thumbnail: Misc.Thumbnail) {
   return {
     height: thumbnail.height,
     width: thumbnail.width,
-    url: thumbnail.url.split("?")[0],
+    url: thumbnail.url,
   } as Thumbnail;
 }
 
