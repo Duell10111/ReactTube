@@ -239,8 +239,10 @@ function extractListContent(node: Helpers.YTNode): Helpers.YTNode[] {
   } else if (node.is(YTNodes.Grid)) {
     // TODO: Replace by allowing to return multiple Horizontal Data's for nested Grids
     return Array.from(node.contents.values());
+  } else if (node.is(YTNodes.ExpandedShelfContents)) {
+    return Array.from(node.contents.values());
   } else {
-    console.log("Unknown ListContent extraction type: ", node.type);
+    LOGGER.warn("Unknown ListContent extraction type: ", node.type);
   }
   return [];
 }
@@ -249,7 +251,7 @@ function extractHeader(node: Helpers.YTNode) {
   if (node.is(YTNodes.ItemSectionHeader)) {
     return node.title.toString();
   } else {
-    console.warn("Unknown Header type: ", node.type);
+    LOGGER.warn("Unknown Header type: ", node.type);
   }
 }
 

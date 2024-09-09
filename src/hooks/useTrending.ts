@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 
 import useYoutube from "./useYoutube";
 
@@ -12,17 +12,38 @@ const LOGGER = Logger.extend("TRENDING");
 export default function useTrending() {
   const youtube = useYoutube();
   const trending = useRef<Mixins.TabbedFeed<IBrowseResponse>>();
-  const [data, setData] = useState<HorizontalData[]>([]);
+  const continuation = useRef<Mixins.Feed<IBrowseResponse>>();
+  const [data, setData] = useState<HorizontalData[]>();
+  const [tabs, setTabs] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  console.log("Data: ", data);
 
   useEffect(() => {
     youtube
       ?.getTrending()
       .then(t => {
         trending.current = t;
+        continuation.current = undefined;
+        console.log("Tabs: ", t.title);
+        setTabs(t.tabs);
+        setCurrentIndex(t.tabs.findIndex(v => v === t.title));
         setData(extractSectionList(t.page_contents));
       })
       .catch(LOGGER.warn);
   }, [youtube]);
 
-  return {trending, data};
+  const fetchMore = async () => {
+    const trendRef = continuation.current ?? trending.current;
+    const cont = await trendRef.getContinuation();
+    continuation.current = cont;
+    setData([...data, ...extractSectionList(cont.page_contents)]);
+    console.log("Fetch more!");
+  };
+
+  const selectTab = async (tabName: string) => {
+    trending.current = await trending.current.getTabByName(tabName);
+  };
+
+  return {trending, data, fetchMore, selectTab};
 }

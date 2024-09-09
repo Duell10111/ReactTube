@@ -3,9 +3,10 @@ import {Platform, StyleProp, TextStyle, ViewStyle} from "react-native";
 
 import PlaylistCard from "./segments/PlaylistCard";
 import VideoCard from "./segments/VideoCard";
-import {ElementData} from "../extraction/Types";
 import Logger from "../utils/Logger";
 import {Helpers} from "../utils/Youtube";
+
+import {ElementData} from "@/extraction/Types";
 
 const LOGGER = Logger.extend("SEGMENT");
 
@@ -77,10 +78,10 @@ export default function VideoSegment({
         />
       );
     } else {
-      console.warn("Unknown element data: ", element.type);
+      LOGGER.warn("Unknown element data: ", element.type);
     }
   } else {
-    console.error("Used old way in VideoSegment!");
+    LOGGER.error("Used old way in VideoSegment!");
     // TODO: Remove once not needed anymore!
   }
   return null;
