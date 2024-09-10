@@ -21,12 +21,13 @@ import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
 import VideoPlayer, {
   VideoPlayerRefs,
 } from "../components/video/videoPlayer/VideoPlayer";
-import {useAppData} from "../context/AppDataContext";
-import {parseObservedArray} from "../extraction/ArrayExtraction";
 import useChannelDetails from "../hooks/useChannelDetails";
 import useVideoDetails from "../hooks/useVideoDetails";
-import {RootStackParamList} from "../navigation/RootStackNavigator";
 import LOGGER from "../utils/Logger";
+
+import {useAppData} from "@/context/AppDataContext";
+import {parseObservedArray} from "@/extraction/ArrayExtraction";
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 

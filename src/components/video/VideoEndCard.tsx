@@ -10,7 +10,10 @@ import {
   View,
 } from "react-native";
 
-import {EndCardCloseEvent} from "@/components/video/videoPlayer/VideoPlayer";
+import {
+  EndCardCloseEvent,
+  PausePlayerEvent,
+} from "@/components/video/videoPlayer/VideoPlayer";
 import {YTEndscreen, YTEndscreenElement} from "@/extraction/Types";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
 import Logger from "@/utils/Logger";
@@ -69,6 +72,8 @@ function VideoCard({element}: VideoCardProps) {
           navigation.navigate("ChannelScreen", {
             channelId: channelID,
           });
+          // Pause player on press of item
+          DeviceEventEmitter.emit(PausePlayerEvent);
         } else if (element.style === "VIDEO") {
           navigation.navigate("VideoScreen", {
             navEndpoint: element.navEndpoint,
