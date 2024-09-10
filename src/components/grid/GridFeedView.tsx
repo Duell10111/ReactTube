@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo} from "react";
-import {ListRenderItem, View} from "react-native";
+import {ListRenderItem} from "react-native";
 import {FlatGrid} from "react-native-super-grid";
 
 import VideoSegment from "@/components/VideoSegment";
@@ -31,10 +31,7 @@ export default function GridFeedView({items, onEndReached}: GridFeedViewProps) {
   );
 
   const renderItem = useCallback<ListRenderItem<GridDataItem>>(({item}) => {
-    if (item._fullWidth && item.item.data) {
-      // console.log("Items: ", item.item.parsedData);
-      // console.log("Org Items: ", item.item.data);
-      // console.log("Original: ", item.item.originalNode);
+    if (item._fullWidth && "data" in item.item) {
       return (
         <PageSectionList
           headerText={item.item.title}
@@ -55,7 +52,6 @@ export default function GridFeedView({items, onEndReached}: GridFeedViewProps) {
 
   return (
     <FlatGrid
-      style={{backgroundColor: "red"}}
       data={data}
       renderItem={renderItem}
       itemDimension={10}
