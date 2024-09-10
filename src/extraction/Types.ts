@@ -179,6 +179,7 @@ export interface YTChannel {
   id: string;
   title?: string;
   description?: string;
+  thumbnail: Thumbnail;
 }
 
 export interface YTMusicArtist {

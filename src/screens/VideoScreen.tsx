@@ -25,6 +25,7 @@ import LOGGER from "../utils/Logger";
 
 import {useAppData} from "@/context/AppDataContext";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
+import useChannelDetails from "@/hooks/useChannelDetails";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
@@ -43,6 +44,7 @@ export default function VideoScreen({route, navigation}: Props) {
   const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(
     navEndpoint ?? videoId,
   );
+  const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id);
   const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components
@@ -152,7 +154,13 @@ export default function VideoScreen({route, navigation}: Props) {
           metadata={{
             title: YTVideoInfo.title,
             author: YTVideoInfo.author?.name,
-            authorUrl: YTVideoInfo.author?.id,
+            authorID: YTVideoInfo.channel_id,
+            authorThumbnailUrl:
+              YTVideoInfo.channel?.url ?? parsedChannel?.thumbnail?.url,
+            onAuthorPress: () =>
+              navigation.navigate("ChannelScreen", {
+                channelId: YTVideoInfo.channel_id,
+              }),
             views: YTVideoInfo.short_views,
             videoDate: YTVideoInfo.publishDate,
           }}
