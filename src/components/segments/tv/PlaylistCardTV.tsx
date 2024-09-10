@@ -1,4 +1,5 @@
 import {Icon} from "@rneui/base";
+import {Image} from "expo-image";
 import React from "react";
 import {
   StyleProp,
@@ -8,7 +9,6 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import FastImage from "react-native-fast-image";
 
 import VideoTouchable from "../../general/VideoTouchable";
 
@@ -37,7 +37,7 @@ export default function PlaylistCardTV({
   return (
     <View style={[styles.viewContainer, style]}>
       <VideoTouchable style={styles.segmentContainer} onPress={onPress}>
-        <FastImage
+        <Image
           style={styles.imageStyle}
           source={{
             uri:

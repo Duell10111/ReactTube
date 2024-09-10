@@ -1,9 +1,9 @@
 import React, {createContext, useCallback, useContext, useState} from "react";
-import {Platform, Settings} from "react-native";
+import {MMKV} from "react-native-mmkv";
 
-import useAccountData from "../hooks/account/useAccountData";
+// TODO: Use MMKV For this to support Android
 
-import {useAccountContext} from "@/context/AccountContext";
+const storage = new MMKV({id: "settings"});
 
 const settingsKey = "appSettings";
 
@@ -31,11 +31,11 @@ const context = createContext<AppDataContext>(defaultContext);
 // TODO: Add concrete implementation for Android
 
 function getSettings() {
-  if (Platform.OS === "android") {
-    return undefined;
-  }
+  // if (Platform.OS === "android") {
+  //   return undefined;
+  // }
 
-  const value = Settings.get(settingsKey);
+  const value = storage.getString(settingsKey);
   if (value && typeof value === "string") {
     return JSON.parse(value) as AppSettings;
   }
@@ -43,18 +43,16 @@ function getSettings() {
 }
 
 function setSettings(settings: Partial<AppSettings>) {
-  if (Platform.OS === "android") {
-    return;
-  }
+  // if (Platform.OS === "android") {
+  //   return;
+  // }
 
   const curSettings = getSettings();
   const newValue: AppSettings = {
     ...curSettings,
     ...settings,
   };
-  Settings.set({
-    [settingsKey]: JSON.stringify(newValue),
-  });
+  storage.set(settingsKey, JSON.stringify(newValue));
 }
 
 interface Props {

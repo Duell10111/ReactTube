@@ -126,7 +126,7 @@ export default function VideoComponent({
         onProgress={callbacks.onProgress}
         onLoadStart={() => LOGGER.debug("Video Start Loading...")}
         onError={(error: any) => {
-          LOGGER.warn(error);
+          LOGGER.warn("Error playing video: ", JSON.stringify(error));
           if (hlsUrl) {
             setFailbackUrl(true);
             LOGGER.warn("Switching to fallback url");

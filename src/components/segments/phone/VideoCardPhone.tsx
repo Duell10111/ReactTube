@@ -1,3 +1,6 @@
+import {Icon} from "@rneui/base";
+import {Image} from "expo-image";
+import _ from "lodash";
 import React, {useMemo} from "react";
 import {
   StyleProp,
@@ -9,12 +12,10 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import FastImage from "react-native-fast-image";
-import {Icon} from "@rneui/base";
+
 import {useAppStyle} from "../../../context/AppStyleContext";
-import ChannelIcon from "../../video/ChannelIcon";
 import {Author, Thumbnail} from "../../../extraction/Types";
-import _ from "lodash";
+import ChannelIcon from "../../video/ChannelIcon";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
@@ -53,7 +54,7 @@ export default function VideoCardPhone({
     <View style={[styles.container, {minWidth: 150, maxWidth: width}, style]}>
       <TouchableNativeFeedback onPress={onPress}>
         <View style={[styles.segmentContainer, imageContainerStyle]}>
-          <FastImage
+          <Image
             style={styles.imageStyle}
             resizeMode={"cover"}
             source={{

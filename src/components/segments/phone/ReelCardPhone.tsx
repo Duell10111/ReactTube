@@ -1,3 +1,4 @@
+import {Image} from "expo-image";
 import React from "react";
 import {
   StyleProp,
@@ -8,7 +9,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import FastImage from "react-native-fast-image";
+
 import {useAppStyle} from "../../../context/AppStyleContext";
 import {Author, Thumbnail} from "../../../extraction/Types";
 
@@ -42,7 +43,7 @@ export default function ReelCardPhone({
             styles.segmentContainer,
             {aspectRatio: 0.56, borderRadius: 25},
           ]}>
-          <FastImage
+          <Image
             style={styles.imageStyle}
             resizeMode={"cover"}
             source={{

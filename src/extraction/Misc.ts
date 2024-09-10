@@ -7,7 +7,7 @@ export function getThumbnail(thumbnail: Misc.Thumbnail) {
   return {
     height: thumbnail.height,
     width: thumbnail.width,
-    url: thumbnail.url.split("?")[0],
+    url: thumbnail.url,
   } as Thumbnail;
 }
 
@@ -29,6 +29,11 @@ export function parseThumbnailOverlays(
     } else if (o.is(YTNodes.ThumbnailOverlayToggleButton)) {
       // Skip ThumbnailOverlayToggleButton only contains tooltip buttons
       // LOGGER.debug("ThumbnailOverlayToggleButton: ", JSON.stringify(o));
+    } else if (o.is(YTNodes.ThumbnailOverlayLoadingPreview)) {
+      // Skip ThumbnailOverlayLoadingPreview as does not contain infos
+    } else if (o.is(YTNodes.ThumbnailOverlayInlineUnplayable)) {
+      // Skip ThumbnailOverlayInlineUnplayable as does not contain infos
+      // TODO: Disable preview play?!
     } else {
       LOGGER.warn(`Unknown Thumbnail Overlay Type: ${o.type}`);
     }

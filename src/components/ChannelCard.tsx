@@ -1,9 +1,10 @@
+import {useNavigation} from "@react-navigation/native";
+import {Image} from "expo-image";
 import React from "react";
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import FastImage from "react-native-fast-image";
-import {useNavigation} from "@react-navigation/native";
-import {NativeStackProp} from "../navigation/types";
+
 import {useAppStyle} from "../context/AppStyleContext";
+import {NativeStackProp} from "../navigation/types";
 
 interface Props {
   id: string;
@@ -23,7 +24,7 @@ export default function ChannelCard({id, channelName, imageUrl}: Props) {
             channelId: id,
           })
         }>
-        <FastImage
+        <Image
           style={styles.image}
           source={{
             uri:

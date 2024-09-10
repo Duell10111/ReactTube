@@ -17,11 +17,7 @@ export default async function playbackService() {
     TrackPlayer.skipToPrevious(),
   );
 
-  TrackPlayer.addEventListener(Event.RemoteJumpForward, event =>
-    TrackPlayer.seekTo(event.interval),
-  );
-
-  TrackPlayer.addEventListener(Event.RemoteJumpBackward, event =>
-    TrackPlayer.seekTo(event.interval),
+  TrackPlayer.addEventListener(Event.RemoteSeek, event =>
+    TrackPlayer.seekTo(event.position),
   );
 }
