@@ -34,6 +34,7 @@ interface BottomControlsProps {
   showDuration: boolean;
   showHours: boolean;
   paused: boolean;
+  setPaused: Dispatch<SetStateAction<boolean>>;
   showTimeRemaining: boolean;
   currentTime: number;
   duration: number;
@@ -62,6 +63,7 @@ export default function BottomControls({
   showTimeRemaining,
   showHours,
   paused,
+  setPaused,
   currentTime,
   duration,
   bottomContainer,
@@ -125,7 +127,11 @@ export default function BottomControls({
       ]}>
       <Animated.View style={topContainerStyle}>
         <View>
-          <MetadataContainer metadata={metadata} resolution={resolution} />
+          <MetadataContainer
+            metadata={metadata}
+            resolution={resolution}
+            pause={() => setPaused(true)}
+          />
         </View>
         <ImageBackground
           source={require("../../../../assets/videoPlayer/bottom-vignette.png")}

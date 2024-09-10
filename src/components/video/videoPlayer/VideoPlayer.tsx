@@ -29,7 +29,9 @@ export const EndCardCloseEvent = "EndCardClose";
 export interface VideoMetadata {
   title: string;
   author: string;
-  authorUrl: string;
+  authorID: string;
+  authorThumbnailUrl: string;
+  onAuthorPress: () => void;
   views: string;
   videoDate: string;
 }
@@ -416,6 +418,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
             metadata={props.metadata}
             resolution={resolution}
             showControls={showControls}
+            setPaused={setPaused}
           />
         </>
       </View>

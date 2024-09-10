@@ -65,7 +65,10 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     disliked: videoInfo.basic_info.is_disliked,
     endscreen: parseEndScreen(videoInfo.endscreen),
     // TODO: Adapt author to only contain name
-    author: {name: videoInfo.basic_info.author},
+    author: {
+      name: videoInfo.basic_info.author,
+      id: videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
+    },
     durationSeconds: videoInfo.basic_info.duration,
   } as YTVideoInfo;
 }
@@ -280,6 +283,9 @@ export function getElementDataFromYTChannel(channel: YT.Channel) {
     id: channel.metadata.external_id,
     title: channel.title,
     description: channel.metadata.description,
+    thumbnail: channel.metadata?.thumbnail
+      ? getThumbnail(channel.metadata?.thumbnail[0])
+      : undefined,
   } as YTChannel;
 }
 
