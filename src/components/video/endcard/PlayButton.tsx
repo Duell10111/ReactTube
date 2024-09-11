@@ -16,7 +16,7 @@ interface Props extends TouchableOpacityProps {
   onPress?: () => void;
 }
 
-const PlayButton = forwardRef<TouchableOpacity, Props>(
+const PlayButton = forwardRef<React.ElementRef<typeof TouchableOpacity>, Props>(
   ({onPress, style, ...props}, ref) => {
     return (
       <TouchableField

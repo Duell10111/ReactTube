@@ -11,7 +11,7 @@ export default function useMusicPlayer(
   const [video, setVideo] = useState<YT.VideoInfo>();
 
   useEffect(() => {
-    youtube.getInfo(target, "iOS").then(setVideo);
+    youtube.getInfo(target, "IOS").then(setVideo);
   }, [target, youtube]);
 
   const videoData = useMemo(
