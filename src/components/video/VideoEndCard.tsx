@@ -6,6 +6,7 @@ import {
   DeviceEventEmitter,
   DimensionValue,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -98,6 +99,9 @@ function VideoCard({element}: VideoCardProps) {
             : require("../../../assets/grey-background.jpg")
         }
       />
+      {element.style === "VIDEO" || element.style === "PLAYLIST" ? (
+        <Text style={styles.videoTitleStyle}>{element.title}</Text>
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -109,6 +113,20 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 2,
     borderColor: "black",
+  },
+  videoTitleStyle: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    color: "white",
+    fontSize: 35,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginVertical: 20,
+    textShadowColor: "black",
+    textShadowOffset: {width: 5, height: 5},
+    textShadowRadius: 10,
   },
 });
 
