@@ -17,7 +17,7 @@ export default function useVideoDetails(
 
   const fetchVideoData = useCallback(() => {
     youtube
-      ?.getInfo(videoId, appSettings.hlsEnabled ? "iOS" : undefined)
+      ?.getInfo(videoId, appSettings.hlsEnabled ? "IOS" : undefined)
       .then(setVideo)
       .catch(LOGGER.warn);
   }, [appSettings.hlsEnabled, videoId, youtube]);
@@ -94,7 +94,7 @@ export default function useVideoDetails(
 
   const fetchActionsVideoData = useCallback(() => {
     youtube
-      ?.getInfo(videoId, appSettings.hlsEnabled ? "iOS" : undefined)
+      ?.getInfo(videoId, appSettings.hlsEnabled ? "IOS" : undefined)
       .then(setActionVideoData)
       .catch(LOGGER.warn);
   }, [videoId, appSettings.hlsEnabled, youtube]);
