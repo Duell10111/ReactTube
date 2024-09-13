@@ -30,6 +30,15 @@ export default function useVideoDetails(
     return Video ? getElementDataFromVideoInfo(Video) : undefined;
   }, [Video]);
 
+  // Use for History, if enabled?
+  // Video.addToWatchHistory()
+
+  useEffect(() => {
+    if (appSettings.trackingEnabled && Video) {
+      Video.addToWatchHistory().catch(LOGGER.warn);
+    }
+  }, [Video, appSettings.trackingEnabled]);
+
   const httpVideoURL = useMemo(() => {
     if (!youtube?.actions.session.player) {
       return undefined;
