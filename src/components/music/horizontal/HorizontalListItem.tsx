@@ -2,10 +2,10 @@ import {useNavigation} from "@react-navigation/native";
 import {useMemo} from "react";
 import {Image, StyleSheet, Text, TouchableHighlight, View} from "react-native";
 
-import {useAppStyle} from "../../../context/AppStyleContext";
-import {useMusikPlayerContext} from "../../../context/MusicPlayerContext";
-import {ElementData} from "../../../extraction/Types";
-import {RootNavProp} from "../../../navigation/RootStackNavigator";
+import {useAppStyle} from "@/context/AppStyleContext";
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {ElementData} from "@/extraction/Types";
+import {RootNavProp} from "@/navigation/RootStackNavigator";
 
 interface HorizontalListItemProps {
   data: ElementData;
@@ -28,6 +28,8 @@ export function HorizontalListItem({data}: HorizontalListItemProps) {
         if (data.type === "video") {
           setCurrentItem(data);
           navigation.navigate("MusicPlayerScreen");
+        } else if (data.type === "playlist") {
+          navigation.navigate("MusicPlaylistScreen", {playlistId: data.id});
         }
       }}>
       <View style={styles.container}>

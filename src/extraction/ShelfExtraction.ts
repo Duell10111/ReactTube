@@ -1,6 +1,5 @@
 import _ from "lodash";
 
-import {parseObservedArrayHorizontalData} from "./ArrayExtraction";
 import {getVideoData} from "./ElementData";
 import {extractKeyNode} from "./KeyExtraction";
 import {ElementData} from "./Types";

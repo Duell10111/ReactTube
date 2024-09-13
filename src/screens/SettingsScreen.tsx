@@ -2,7 +2,7 @@ import {CompositeScreenProps} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {Icon} from "@rneui/base";
 import React, {useCallback, useEffect} from "react";
-import {Platform, StyleSheet, Text, View} from "react-native";
+import {Platform, StyleSheet, View} from "react-native";
 
 import SettingsItem, {
   SettingsButton,
@@ -76,6 +76,13 @@ export default function SettingsScreen({navigation}: Props) {
           label={"Video resolution variant"}
           value={parsePlayerResolution(appSettings).label}
           onPress={() => navigate("PlayerResolutionSelector")}
+        />
+        <SettingsItem
+          icon={"globe"}
+          iconBackground={"#f5d132"}
+          label={"History enabled"}
+          value={appSettings.trackingEnabled ? "True" : "False"}
+          onPress={() => navigate("TrackingSelector")}
         />
         <SettingsButton label={"Clear all"} onPress={() => clearAllData()} />
         <SettingsButton label={"Logout"} onPress={() => logout()} />

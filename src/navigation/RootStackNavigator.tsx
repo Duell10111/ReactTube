@@ -25,6 +25,7 @@ import VideoScreenWrapper from "../screens/phone/VideoScreenWrapper";
 import {YTNodes} from "../utils/Youtube";
 
 import TrendingScreen from "@/screens/TrendingScreen";
+import {MusicLibraryScreen} from "@/screens/phone/MusicLibraryScreen";
 
 export type RootStackParamList = {
   LoadingScreen: undefined;
@@ -48,6 +49,7 @@ export type RootStackParamList = {
   // Music Screens
   MusicPlaylistScreen: {playlistId: string};
   MusicSearchScreen: undefined;
+  MusicLibraryScreen: undefined;
   MusicPlayerScreen: {
     videoId: string;
     navEndpoint?: YTNodes.NavigationEndpoint;
@@ -121,6 +123,11 @@ export default function RootStackNavigator() {
             options={{headerTitle: "Download Player"}}
           />
           {/* Music Screens*/}
+          <Stack.Screen
+            name={"MusicLibraryScreen"}
+            component={MusicLibraryScreen}
+            options={{title: "Music Library"}}
+          />
           <Stack.Screen
             name={"MusicSearchScreen"}
             component={MusicSearchScreen}

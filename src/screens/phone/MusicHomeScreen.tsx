@@ -2,12 +2,13 @@ import {useNavigation} from "@react-navigation/native";
 import {NativeStackNavigationProp} from "@react-navigation/native-stack";
 import {Icon} from "@rneui/base";
 import React, {useCallback, useEffect} from "react";
-import {FlatList, ListRenderItem, Platform, View} from "react-native";
+import {FlatList, ListRenderItem} from "react-native";
 
 import MusicHorizontalItem from "../../components/music/MusicHorizontalItem";
-import {HorizontalData} from "../../extraction/ShelfExtraction";
 import useMusicHome from "../../hooks/music/useMusicHome";
-import {RootStackParamList} from "../../navigation/RootStackNavigator";
+
+import {HorizontalData} from "@/extraction/ShelfExtraction";
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 export function MusicHomeScreen() {
   const navigation =
@@ -16,6 +17,15 @@ export function MusicHomeScreen() {
 
   useEffect(() => {
     navigation.setOptions({
+      headerLeft: () => (
+        <Icon
+          name={"library-music"}
+          type={"material"}
+          onPress={() => navigation.navigate("MusicLibraryScreen")}
+          color={"white"}
+          style={{marginStart: 10}}
+        />
+      ),
       headerRight: () => (
         <Icon
           name={"search"}
