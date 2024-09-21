@@ -193,7 +193,7 @@ export function parseHorizontalNode(
       data: content,
       parsedData,
       loadMore: () => {},
-      id: node.type, // TODO: Hash description?
+      id: node.type + node.title.text, // TODO: Hash description?
       title: node.title.text,
       originalNode: node,
       music: true,

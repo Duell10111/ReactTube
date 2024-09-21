@@ -1,5 +1,7 @@
 import {Helpers, Misc, YT, YTMusic, YTNodes} from "../utils/Youtube";
 
+import {HorizontalData} from "@/extraction/ShelfExtraction";
+
 export interface Thumbnail {
   url: string;
   height: number;
@@ -43,7 +45,7 @@ export interface Author {
 
 export interface PlaylistData {
   originalNode: Helpers.YTNode;
-  type: "playlist";
+  type: "playlist" | "album";
   id: string;
   title: string;
   thumbnailImage: Thumbnail;
@@ -55,12 +57,14 @@ export interface PlaylistData {
 
 export interface ChannelData {
   originalNode: Helpers.YTNode;
-  type: "channel";
+  type: "channel" | "artist" | "profile";
   id: string;
   title: string;
   thumbnailImage: Thumbnail;
   author?: Author;
   music?: boolean;
+  subscribers?: string;
+  subtitle?: string;
 }
 
 // YT.* Types
@@ -99,6 +103,61 @@ export interface YTVideoInfo {
   durationSeconds?: number;
 }
 
+// Make YTTrackInfo extend from VideoInfo or BasicVideoInfoType?
+export interface YTTrackInfo {
+  originalData: YTMusic.TrackInfo;
+  id: string;
+  thumbnailImage: Thumbnail;
+  title: string;
+  description?: string;
+  duration?: string;
+  short_views: string;
+  publishDate?: string;
+  quality?: string;
+  livestream?: boolean;
+  author?: Author;
+  channel_id?: string;
+  channel?: {
+    id: string;
+    name: string;
+    url: string;
+  };
+  playlist?: {
+    id: string;
+    title: string;
+    content: ElementData[];
+    author?: string | Author;
+    current_index: number;
+    is_infinite: boolean;
+  };
+  liked?: boolean;
+  disliked?: boolean;
+  endscreen?: YTEndscreen;
+  // Music Properties
+  durationSeconds?: number;
+}
+
+export interface YTPlaylistPanel {
+  title?: string;
+  items: YTPlaylistPanelItem[];
+}
+
+export interface YTPlaylistPanelItem extends VideoData {
+  selected: boolean;
+}
+
+export interface YTChipCloud {
+  originalData: YTNodes.ChipCloud;
+  chip_clouds: YTChipCloudChip[];
+}
+
+export interface YTChipCloudChip {
+  originalData: YTNodes.ChipCloudChip;
+  text: string;
+  isSelected: boolean;
+  endpoint?: YTNodes.NavigationEndpoint;
+}
+
 export interface YTChapter {
   originalData: YTNodes.Chapter;
   title: string;
@@ -112,6 +171,29 @@ export interface YTChannel {
   id: string;
   title?: string;
   description?: string;
+}
+
+export interface YTMusicArtist {
+  originalData: YTMusic.Artist;
+  id: string;
+  title: string;
+  description?: string;
+  thumbnail?: Thumbnail;
+  profileImage?: Thumbnail;
+  // Endpoints
+  playEndpoint?: YTNodes.NavigationEndpoint;
+  data: HorizontalData[];
+}
+
+export interface YTMusicAlbum {
+  originalData: YTMusic.Album;
+  id: string;
+  title: string;
+  subtitle?: string;
+  thumbnail?: Thumbnail;
+  // Endpoints
+  playEndpoint?: YTNodes.NavigationEndpoint;
+  data: ElementData[];
 }
 
 export interface YTEndscreen {

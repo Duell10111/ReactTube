@@ -3,30 +3,26 @@ import {FlatList, ListRenderItem} from "react-native";
 
 import {MusicPlaylistItem} from "./MusicPlaylistItem";
 
+import MusicSearchSectionItem from "@/components/music/MusicSearchSectionItem";
+import {HorizontalData} from "@/extraction/ShelfExtraction";
 import {ElementData} from "@/extraction/Types";
 
 interface MusicPlaylistListProps {
-  data: ElementData[];
+  data: HorizontalData[];
   onFetchMore?: () => void;
   ListHeaderComponent?: ReactElement;
 }
 
-export function MusicPlaylistList({
+export function MusicChannelList({
   data,
   onFetchMore,
   ListHeaderComponent,
-}: MusicPlaylistListProps): JSX.Element {
-  const renderItem = useCallback<ListRenderItem<ElementData>>(
-    ({item, index}) => {
-      if (item.type === "video") {
-        return <MusicPlaylistItem data={item} index={index} />;
-      }
-      return null;
-    },
-    [],
-  );
+}: MusicPlaylistListProps) {
+  const renderItem = useCallback<ListRenderItem<HorizontalData>>(({item}) => {
+    return <MusicSearchSectionItem data={item} />;
+  }, []);
 
-  const keyExtractor = useCallback((item: ElementData, index: number) => {
+  const keyExtractor = useCallback((item: HorizontalData, index: number) => {
     return item.id;
   }, []);
 

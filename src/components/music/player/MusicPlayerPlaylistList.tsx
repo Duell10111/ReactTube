@@ -3,19 +3,21 @@ import {useCallback, useMemo} from "react";
 import {FlatList, ListRenderItem} from "react-native";
 
 import {MusicPlayerPlaylistListItem} from "./MusicPlayerPlaylistListItem";
-import {useMusikPlayerContext} from "../../../context/MusicPlayerContext";
-import {VideoData} from "../../../extraction/Types";
+
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {VideoData, YTPlaylistPanelItem} from "@/extraction/Types";
 
 interface MusicPlayerPlaylistListProps {
   // currentItem: YTVideoInfo;
 }
 
 export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
-  const {currentItem, setCurrentItem} = useMusikPlayerContext();
+  const {currentItem, setPlaylistViaEndpoint, playlist} =
+    useMusikPlayerContext();
 
   const selectedItem = useMemo(
-    () => currentItem?.playlist?.current_index ?? -1,
-    [currentItem?.playlist?.current_index],
+    () => playlist.items.findIndex(item => item.id === currentItem.id),
+    [currentItem.id],
   );
 
   const videoElements = useMemo(
@@ -28,16 +30,19 @@ export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
     [currentItem?.playlist?.content],
   );
 
-  const renderItem = useCallback<ListRenderItem<VideoData>>(
+  const renderItem = useCallback<ListRenderItem<YTPlaylistPanelItem>>(
     ({item, index}) => (
       <MusicPlayerPlaylistListItem
         data={item}
         currentItem={selectedItem === index}
-        onPress={() => setCurrentItem(item)}
+        onPress={() => {
+          console.log("Endpoint Item: ", item.navEndpoint);
+          setPlaylistViaEndpoint(item.navEndpoint);
+        }}
       />
     ),
     [selectedItem],
   );
 
-  return <FlatList data={videoElements} renderItem={renderItem} />;
+  return <FlatList data={playlist.items} renderItem={renderItem} />;
 }

@@ -4,6 +4,10 @@ import {getVideoData} from "./ElementData";
 import {parseHorizontalNode} from "./ShelfExtraction";
 import {Helpers} from "../utils/Youtube";
 
+export function parseArray(array: Helpers.YTNode[]) {
+  return _.chain(array).map(getVideoData).compact().value();
+}
+
 export function parseObservedArray(
   array: Helpers.ObservedArray<Helpers.YTNode>,
 ) {

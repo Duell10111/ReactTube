@@ -2,21 +2,26 @@ import _ from "lodash";
 import {useCallback, useMemo, useRef, useState} from "react";
 import {SearchContinuation} from "youtubei.js/dist/src/parser/ytmusic/Search";
 
-import {useYoutubeContext} from "../../context/YoutubeContext";
-import {parseArrayHorizontalData} from "../../extraction/ArrayExtraction";
 import Logger from "../../utils/Logger";
 import {Helpers, YTMusic, YTNodes} from "../../utils/Youtube";
 
-const LOGGER = Logger.extend("MUSIC_SEARCH");
+import {useYoutubeContext} from "@/context/YoutubeContext";
+import {
+  parseArray,
+  parseArrayHorizontalData,
+} from "@/extraction/ArrayExtraction";
+import {HorizontalData} from "@/extraction/ShelfExtraction";
+import {YTChipCloud, YTChipCloudChip} from "@/extraction/Types";
+import {parseChipCloud} from "@/extraction/YTElements";
 
-type MusicSearchFilter = "all" | "video";
+const LOGGER = Logger.extend("MUSIC_SEARCH");
 
 export default function useMusicSearch() {
   const youtube = useYoutubeContext();
   const searchObject = useRef<YTMusic.Search>();
   const searchContinuation = useRef<SearchContinuation>();
   const [searchResult, setSearchResult] = useState<Helpers.YTNode[]>([]);
-  const [filter, setFilter] = useState();
+  const [cloudChip, setCloudChip] = useState<YTChipCloud | undefined>();
 
   const parsedData = useMemo(() => {
     return parseArrayHorizontalData(searchResult);
@@ -27,7 +32,11 @@ export default function useMusicSearch() {
       .search(query)
       .then(searchObj => {
         searchObject.current = searchObj;
+        setCloudChip(
+          searchObj.header ? parseChipCloud(searchObj.header) : undefined,
+        );
         setSearchResult(Array.from(searchObj.contents.values()));
+        clearDetailsData();
       })
       .catch(LOGGER.warn);
   };
@@ -37,6 +46,73 @@ export default function useMusicSearch() {
     } else {
       LOGGER.debug("No Search Continuation available!");
     }
+  };
+
+  // SearchFilters
+
+  const shelfSearch = useRef<YTMusic.Search>();
+  const shelfCont = useRef<SearchContinuation>();
+  const [shelfData, setShelfData] = useState<Helpers.YTNode[]>();
+
+  const extendMusicShelf = (horizontalData: HorizontalData) => {
+    if (horizontalData.originalNode.is(YTNodes.MusicShelf)) {
+      searchObject.current
+        .getMore(horizontalData.originalNode)
+        .then(shelfContent => {
+          shelfSearch.current = shelfContent;
+          shelfCont.current = undefined;
+          setShelfData(
+            shelfContent.contents.firstOfType(YTNodes.MusicShelf).contents,
+          );
+          setCloudChip(
+            shelfContent.header
+              ? parseChipCloud(shelfContent.header)
+              : undefined,
+          );
+        })
+        .catch(LOGGER.warn);
+    } else {
+      LOGGER.warn("No Music Shelf provided");
+    }
+  };
+
+  const extendMusicShelfViaFilter = (chip: YTChipCloudChip) => {
+    searchObject.current
+      .applyFilter(chip.originalData)
+      .then(obj => {
+        shelfSearch.current = obj;
+        shelfCont.current = undefined;
+        setShelfData(obj.contents.firstOfType(YTNodes.MusicShelf).contents);
+        setCloudChip(obj.header ? parseChipCloud(obj.header) : undefined);
+      })
+      .catch(LOGGER.warn);
+  };
+
+  const parsedMusicShelfData = useMemo(() => {
+    return shelfData ? parseArray(shelfData) : undefined;
+  }, [shelfData]);
+
+  const fetchMoreShelfData = () => {
+    const shelf = shelfCont.current ?? shelfSearch.current;
+    if (shelf?.has_continuation) {
+      shelf.getContinuation().then(s => {
+        shelfCont.current = s;
+        setShelfData([...shelfData, ...s.contents.contents]);
+      });
+    } else {
+      LOGGER.debug("No Search Continuation available!");
+    }
+  };
+
+  const clearDetailsData = () => {
+    setShelfData(undefined);
+    shelfSearch.current = undefined;
+    shelfCont.current = undefined;
+    setCloudChip(
+      searchObject.current.header
+        ? parseChipCloud(searchObject.current.header)
+        : undefined,
+    );
   };
 
   const searchSuggestions = useCallback(
@@ -64,5 +140,16 @@ export default function useMusicSearch() {
 
   LOGGER.debug("SearchResult: ", JSON.stringify(searchResult));
 
-  return {search, searchResult, parsedData, searchSuggestions};
+  return {
+    search,
+    searchResult,
+    parsedData,
+    searchSuggestions,
+    extendMusicShelf,
+    fetchMoreShelfData,
+    clearDetailsData,
+    extendMusicShelfViaFilter,
+    parsedMusicShelfData,
+    cloudChip,
+  };
 }

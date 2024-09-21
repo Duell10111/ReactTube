@@ -4,48 +4,49 @@ import {Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
 
 import {useAppStyle} from "@/context/AppStyleContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
-import {VideoData} from "@/extraction/Types";
+import {ElementData} from "@/extraction/Types";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
 
-interface MusicPlaylistItemProps {
-  data: VideoData;
-  index: number;
+interface MusicSearchListItemProps {
+  data: ElementData;
 }
 
-export function MusicPlaylistItem({
-  data,
-  index,
-}: MusicPlaylistItemProps): JSX.Element {
+export function MusicSearchListItem({data}: MusicSearchListItemProps) {
   const {style} = useAppStyle();
   const {navigate} = useNavigation<RootNavProp>();
 
-  // console.log("NavEndpoint: ", JSON.stringify(data.navEndpoint));
-  // const originalItem = data.originalNode.as(YTNodes.MusicResponsiveListItem);
-  // console.log("ORG: ", originalItem.overlay.content.endpoint);
-
   const {setCurrentItem} = useMusikPlayerContext();
 
+  const onPress = () => {
+    if (data.type === "video" || data.type === "mix") {
+      setCurrentItem(data);
+      navigate("MusicPlayerScreen", {
+        videoId: data.id,
+        navEndpoint: data.navEndpoint,
+      });
+    } else if (data.type === "playlist") {
+      navigate("MusicPlaylistScreen", {
+        playlistId: data.id,
+      });
+    } else if (data.type === "artist" || data.type === "channel") {
+      navigate("MusicChannelScreen", {
+        artistId: data.id,
+      });
+    } else if (data.type === "album") {
+      navigate("MusicAlbumScreen", {
+        albumId: data.id,
+      });
+    }
+  };
+
   return (
-    <TouchableOpacity
-      onPress={() => {
-        setCurrentItem(data);
-        navigate("MusicPlayerScreen", {
-          videoId: data.id,
-          navEndpoint: data.navEndpoint,
-        });
-      }}>
+    <TouchableOpacity onPress={onPress}>
       <View style={styles.container}>
-        {data.thumbnailImage ? (
-          <Image
-            style={styles.image}
-            source={{uri: data.thumbnailImage.url}}
-            resizeMode={"cover"}
-          />
-        ) : (
-          <View style={[styles.image, styles.countImage]}>
-            <Text style={styles.countText}>{index + 1}</Text>
-          </View>
-        )}
+        <Image
+          style={styles.image}
+          source={{uri: data.thumbnailImage.url}}
+          resizeMode={"cover"}
+        />
         <View style={styles.textContainer}>
           <Text style={{color: style.textColor}}>{data.title}</Text>
           <Text
@@ -54,7 +55,7 @@ export function MusicPlaylistItem({
                 color: style.textColor,
               },
               styles.subtitleText,
-            ]}>{`${data.type === "video" ? `${data.artists?.map(a => a.name)?.join(", ") ?? ""} - ${data.duration}` : ""} - ${data.originalNode.type}`}</Text>
+            ]}>{`${data.type === "video" ? `${data.artists?.map(a => a.name)?.join(", ") ?? data.author?.name ?? ""} - ${data.duration}` : ""} - ${data.originalNode.type} `}</Text>
         </View>
         <Icon
           name={"dots-vertical"}
@@ -74,16 +75,8 @@ const styles = StyleSheet.create({
   },
   image: {
     borderRadius: 5,
-    width: 60,
-    height: 60,
-  },
-  countImage: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  countText: {
-    color: "white",
-    fontSize: 17,
+    width: 55,
+    height: 55,
   },
   textContainer: {
     justifyContent: "center",
