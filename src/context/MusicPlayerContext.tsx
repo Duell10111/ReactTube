@@ -17,6 +17,7 @@ import useVideoDataGenerator from "../hooks/music/useVideoDataGenerator";
 import Logger from "../utils/Logger";
 import {Innertube, YTNodes} from "../utils/Youtube";
 
+import {useAppData} from "@/context/AppDataContext";
 import {
   VideoData,
   YTPlaylist,
@@ -66,6 +67,7 @@ interface MusicPlayerProviderProps {
 }
 
 export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
+  const {appSettings} = useAppData();
   const {videoExtractor, videoExtractorNavigationEndpoint} =
     useVideoDataGenerator();
 
@@ -156,6 +158,12 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         .catch(() => LOGGER.debug("No new Track Playlist available"));
     }
   }, [currentVideoData]);
+
+  useEffect(() => {
+    if (appSettings.trackingEnabled && currentVideoData) {
+      currentVideoData.originalData.addToWatchHistory().catch(LOGGER.warn);
+    }
+  }, [currentVideoData, appSettings.trackingEnabled]);
 
   const addPlaylist = (p: YTPlaylist) => {
     const data = p.items.filter(v => v.type === "video") as VideoData[];
