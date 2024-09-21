@@ -9,12 +9,22 @@ import {
   Thumbnail,
   YTChannel,
   YTChapter,
+  YTChipCloud,
+  YTChipCloudChip,
   YTEndscreen,
   YTEndscreenElement,
+  YTMusicAlbum,
+  YTMusicArtist,
   YTPlaylist,
+  YTPlaylistPanel,
+  YTPlaylistPanelItem,
+  YTTrackInfo,
   YTVideoInfo,
 } from "./Types";
 import {YT, YTNodes, YTMusic} from "../utils/Youtube";
+
+import {parseObservedArray} from "@/extraction/ArrayExtraction";
+import {parseHorizontalNode} from "@/extraction/ShelfExtraction";
 
 export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
   const thumbnail = videoInfo.basic_info.thumbnail
@@ -86,6 +96,69 @@ function parseEndScreenElements(element: YTNodes.EndscreenElement) {
   } as YTEndscreenElement;
 }
 
+export function getElementDataFromTrackInfo(trackInfo: YTMusic.TrackInfo) {
+  const thumbnail = trackInfo.basic_info.thumbnail
+    ? trackInfo.basic_info.thumbnail
+        .map(getThumbnail)
+        .find(thumb => !thumb.url.endsWith("webp")) // Do not use webp for iOS!
+    : undefined;
+
+  // TODO: Check?
+  return {
+    originalData: trackInfo,
+    id: trackInfo.basic_info.id,
+    livestream: trackInfo.basic_info.is_live,
+    thumbnailImage: thumbnail,
+    title: trackInfo.basic_info.title,
+    description: trackInfo.basic_info.short_description,
+    short_views: trackInfo.basic_info?.view_count.toString(),
+    channel_id:
+      trackInfo.basic_info.channel_id ?? trackInfo.basic_info.channel?.id,
+    channel: trackInfo.basic_info.channel,
+    // playlist: parseVideoInfoPlaylist(trackInfo),
+    liked: trackInfo.basic_info.is_liked,
+    disliked: trackInfo.basic_info.is_disliked,
+    endscreen: parseEndScreen(trackInfo.endscreen),
+    // TODO: Adapt author to only contain name
+    author: {name: trackInfo.basic_info.author},
+    durationSeconds: trackInfo.basic_info.duration,
+  } as YTTrackInfo;
+}
+
+export function parseTrackInfoPlaylist(playlist: YTNodes.PlaylistPanel) {
+  const items = _.chain(playlist.contents)
+    .map(parseTrackInfoPlaylistItems)
+    .compact()
+    .value();
+  return {
+    title: playlist.title,
+    items,
+  } as YTPlaylistPanel;
+}
+
+// TODO: Outsource to ElementData?
+function parseTrackInfoPlaylistItems(
+  item:
+    | YTNodes.PlaylistPanelVideoWrapper
+    | YTNodes.PlaylistPanelVideo
+    | YTNodes.AutomixPreviewVideo,
+) {
+  if (item.is(YTNodes.PlaylistPanelVideo)) {
+    return {
+      id: item.video_id,
+      navEndpoint: item.endpoint,
+      selected: item.selected,
+      thumbnailImage: getThumbnail(item.thumbnail[0]),
+      title: item.title.text,
+      duration: item.duration.text,
+      durationSeconds: item.duration.seconds,
+      author: {name: item.author},
+    } as YTPlaylistPanelItem;
+  } else {
+    console.warn("Unknown Track Info Playlist Item: ", item.type);
+  }
+}
+
 function parseVideoInfoPlaylist(videoInfo: YT.VideoInfo) {
   if (videoInfo.playlist) {
     const playlist = videoInfo.playlist;
@@ -154,6 +227,28 @@ export function getChapterFromData(
   } as YTChapter;
 }
 
+export function parseChipCloud(chipCloud: YTNodes.ChipCloud) {
+  return {
+    originalData: chipCloud,
+    chip_clouds: _.chain(chipCloud.chips)
+      .map(parseChipCloudChip)
+      .compact()
+      .value(),
+  } as YTChipCloud;
+}
+
+function parseChipCloudChip(chipCloudChip: YTNodes.ChipCloudChip) {
+  if (chipCloudChip.text === "N/A") {
+    return;
+  }
+  return {
+    originalData: chipCloudChip,
+    text: chipCloudChip.text,
+    isSelected: chipCloudChip.is_selected,
+    endpoint: chipCloudChip.endpoint,
+  } as YTChipCloudChip;
+}
+
 // YT.Channel
 
 export function getElementDataFromYTChannel(channel: YT.Channel) {
@@ -163,6 +258,61 @@ export function getElementDataFromYTChannel(channel: YT.Channel) {
     title: channel.title,
     description: channel.metadata.description,
   } as YTChannel;
+}
+
+export function getElementDataFromYTMusicArtist(
+  artist: YTMusic.Artist,
+  id: string,
+) {
+  let title: string, description: string;
+  let thumbnail: Thumbnail;
+  const header = artist.header;
+  if (header.is(YTNodes.MusicImmersiveHeader)) {
+    title = header.title.text;
+    description = header.description.text;
+    thumbnail = getThumbnail(header.thumbnail.contents[0]);
+  } else {
+    console.warn(`Unknown YTMusicArtist Header type: ${header.type}`);
+  }
+
+  return {
+    originalData: artist,
+    id,
+    title,
+    description,
+    thumbnail,
+    data: _.chain(artist.sections).map(parseHorizontalNode).compact().value(),
+  } as YTMusicArtist;
+}
+
+// YTMusic.Album
+
+export function getElementDataFromYTAlbum(album: YTMusic.Album, id: string) {
+  console.log("YTAlbum", album);
+  let title: string, subtitle: string;
+  let thumbnail: Thumbnail;
+  let endpoint: YTNodes.NavigationEndpoint;
+
+  const header = album.header;
+  if (header.is(YTNodes.MusicResponsiveHeader)) {
+    title = header.title.text;
+    subtitle = header.subtitle.text;
+    thumbnail = getThumbnail(header.thumbnail.contents[0]);
+    endpoint = header.buttons.firstOfType(YTNodes.MusicPlayButton).endpoint;
+  } else {
+    console.warn(`Unknown YTMusicArtist Header type: ${header.type}`);
+  }
+  console.log("Contents: ", album.contents);
+
+  return {
+    originalData: album,
+    id,
+    title,
+    subtitle,
+    thumbnail,
+    playEndpoint: endpoint,
+    data: parseObservedArray(album.contents),
+  } as YTMusicAlbum;
 }
 
 // YT.Playlist

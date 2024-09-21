@@ -8,15 +8,29 @@ import {SafeAreaView} from "react-native-safe-area-context";
 import {MusicBottomPlayerBar} from "../../components/music/MusicBottomPlayerBar";
 import MusicHorizontalItem from "../../components/music/MusicHorizontalItem";
 import {SearchBarSuggestions} from "../../components/search/SearchBarSuggestions";
-import {SearchNoResultsScreen} from "../../components/search/SearchNoResultsScreen";
-import {HorizontalData} from "../../extraction/ShelfExtraction";
 import useMusicSearch from "../../hooks/music/useMusicSearch";
-import {RootStackParamList} from "../../navigation/RootStackNavigator";
+
+import {MusicSearchDetailsList} from "@/components/music/MusicSearchDetailsList";
+import {MusicSearchFilterHeader} from "@/components/music/MusicSearchFilterHeader";
+import MusicSearchSectionItem from "@/components/music/MusicSearchSectionItem";
+import {SearchNoResultsScreen} from "@/components/search/SearchNoResultsScreen";
+import {HorizontalData} from "@/extraction/ShelfExtraction";
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 export function MusicSearchScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const {search, parsedData, searchSuggestions} = useMusicSearch();
+  const {
+    search,
+    parsedData,
+    searchSuggestions,
+    parsedMusicShelfData,
+    cloudChip,
+    extendMusicShelf,
+    fetchMoreShelfData,
+    clearDetailsData,
+    extendMusicShelfViaFilter,
+  } = useMusicSearch();
 
   const [searchText, setSearchText] = useState("");
   const [suggestions, setSearchSuggestions] = useState<string[]>([]);
@@ -70,9 +84,19 @@ export function MusicSearchScreen() {
     });
   }, [navigation]);
 
-  const renderItem = useCallback<ListRenderItem<HorizontalData>>(({item}) => {
-    return <MusicHorizontalItem data={item} />;
-  }, []);
+  const renderItem = useCallback<ListRenderItem<HorizontalData>>(
+    ({item}) => {
+      return (
+        <MusicSearchSectionItem
+          data={item}
+          onPress={() => extendMusicShelf(item)}
+        />
+      );
+    },
+    [extendMusicShelf],
+  );
+
+  console.log(parsedData);
 
   console.log("Bar open: ", searchBarOpen);
 
@@ -86,19 +110,38 @@ export function MusicSearchScreen() {
   //   );
   // }
 
+  if (parsedMusicShelfData) {
+    return (
+      <MusicSearchDetailsList
+        header={cloudChip}
+        data={parsedMusicShelfData}
+        onFetchMore={fetchMoreShelfData}
+        onClose={() => clearDetailsData()}
+        onClick={chip => extendMusicShelfViaFilter(chip)}
+      />
+    );
+  }
+
   if (parsedData.length === 0) {
     return <SearchNoResultsScreen />;
   }
 
   return (
-    <SafeAreaView style={{backgroundColor: "red", marginTop: 50}}>
+    // TODO: Check margins for Android and Tablets?
+    <SafeAreaView style={{marginTop: 50, marginBottom: 100}}>
+      <MusicSearchFilterHeader
+        data={cloudChip}
+        onClick={chip => extendMusicShelfViaFilter(chip)}
+      />
       <FlatList
         contentInsetAdjustmentBehavior={"automatic"}
         style={{}}
         data={parsedData}
         renderItem={renderItem}
         // onEndReached={fetchContinuation}
+        // ListFooterComponent={<MusicBottomPlayerBar />}
       />
+      <MusicBottomPlayerBar />
     </SafeAreaView>
   );
 }

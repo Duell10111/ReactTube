@@ -139,14 +139,16 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       LOGGER.warn(`Unknown Music two row item type: ${ytNode.item_type}`);
     }
   } else if (ytNode.is(YTNodes.MusicResponsiveListItem)) {
-    if (ytNode.item_type === "playlist") {
+    if (ytNode.item_type === "playlist" || ytNode.item_type === "album") {
       return {
-        type: "playlist",
+        type: ytNode.item_type,
         originalNode: ytNode,
         id: ytNode.id,
         navEndpoint: ytNode.endpoint,
         title: ytNode.title.toString(),
-        thumbnailImage: getThumbnail(ytNode.thumbnail.contents[0]),
+        thumbnailImage: ytNode.thumbnail
+          ? getThumbnail(ytNode.thumbnail.contents[0])
+          : undefined,
         music: true,
         author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
       } as PlaylistData;
@@ -160,19 +162,40 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
         id: ytNode.id,
         navEndpoint: ytNode.overlay?.content?.endpoint ?? ytNode.endpoint,
         title: ytNode.title.toString(),
-        thumbnailImage: getThumbnail(ytNode.thumbnail.contents[0]),
+        thumbnailImage: ytNode.thumbnail
+          ? getThumbnail(ytNode.thumbnail.contents[0])
+          : undefined,
         duration: ytNode.duration?.text,
         music: true,
         artists: ytNode.artists?.map(
           artist =>
             ({
               name: artist.name,
-              id: artist.channel_id,
+              id: artist?.channel_id,
               navEndpoint: artist.endpoint,
             }) as Author,
         ),
-        author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
+        author: ytNode.author
+          ? getAuthorMusic(ytNode.author)
+          : ytNode.authors
+            ? getAuthorMusic(ytNode.authors[0])
+            : undefined,
       } as VideoData;
+    } else if (ytNode.item_type === "artist") {
+      return {
+        type: "channel",
+        originalNode: ytNode,
+        id: ytNode.id,
+        navEndpoint: ytNode.endpoint,
+        title: ytNode.title?.toString() ?? ytNode.name,
+        thumbnailImage: ytNode.thumbnail
+          ? getThumbnail(ytNode.thumbnail.contents[0])
+          : undefined,
+        music: true,
+        author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
+        subscribers: ytNode.subscribers,
+        subtitle: ytNode.subtitle.runs.toReversed()[0].text,
+      } as ChannelData;
     } else {
       LOGGER.warn(
         "getVideoData: Unknown MusicResponsiveListItem type: ",

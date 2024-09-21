@@ -18,11 +18,12 @@ import Logger from "../utils/Logger";
 import {Innertube, YTNodes} from "../utils/Youtube";
 
 import {
-  ElementData,
   VideoData,
   YTPlaylist,
-  YTVideoInfo,
+  YTPlaylistPanel,
+  YTTrackInfo,
 } from "@/extraction/Types";
+import {parseTrackInfoPlaylist} from "@/extraction/YTElements";
 
 type PlayType = "Audio" | "Video";
 
@@ -30,8 +31,8 @@ interface MusicPlayerContextType {
   addPlaylist: (playlist: YTPlaylist) => void;
   setCurrentItem: (item: VideoData) => void;
   setPlaylistViaEndpoint: (endpoint: YTNodes.NavigationEndpoint) => void;
-  currentItem?: YTVideoInfo;
-  playlist: ElementData[];
+  currentItem?: YTTrackInfo;
+  playlist?: YTPlaylistPanel;
   currentTime: SharedValue<number>;
   duration: SharedValue<number>;
   playing: boolean;
@@ -51,6 +52,8 @@ const events = [
   Event.PlaybackError,
   Event.PlaybackActiveTrackChanged,
   Event.PlaybackProgressUpdated,
+  Event.RemoteNext,
+  Event.RemotePrevious,
 ];
 
 const LOGGER = Logger.extend("MUSIC_CTX");
@@ -70,12 +73,12 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const [playing, setPlaying] = useState(false);
   const duration = useSharedValue(0);
   const currentTime = useSharedValue(0);
-  const playlist = useRef<VideoData[]>([]);
-  const [currentVideoData, setCurrentVideoData] = useState<YTVideoInfo>();
+  const [playlist, setPlaylist] = useState<YTPlaylistPanel>();
+  const [currentVideoData, setCurrentVideoData] = useState<YTTrackInfo>();
 
   useTrackPlayerEvents(events, event => {
     if (event.type === Event.PlaybackError) {
-      console.warn("An error occured while playing the current track.");
+      console.warn("An error occurred while playing the current track.");
     }
     if (event.type === Event.PlaybackState) {
       if (event.state === "playing") {
@@ -134,11 +137,24 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   useEffect(() => {
     if (playType === "Audio" && currentVideoData) {
+      console.log("Current video Data: ", currentVideoData);
       TrackPlayer.load(videoInfoToTrack(currentVideoData)).then(() => {
         TrackPlayer.play().catch(LOGGER.warn);
       });
     }
     duration.value = currentVideoData?.durationSeconds ?? 0;
+  }, [currentVideoData]);
+
+  useEffect(() => {
+    // TODO: Only update on first VideoData or check if Up Next contains data?
+    if (currentVideoData) {
+      currentVideoData.originalData
+        .getUpNext()
+        .then(p => {
+          setPlaylist(parseTrackInfoPlaylist(p));
+        })
+        .catch(() => LOGGER.debug("No new Track Playlist available"));
+    }
   }, [currentVideoData]);
 
   const addPlaylist = (p: YTPlaylist) => {
@@ -158,6 +174,17 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const onEndReached = () => {
+    if (playlist) {
+      const currentIndex = playlist.items.findIndex(
+        v => v.id === currentVideoData.id,
+      );
+      if (currentIndex >= 0) {
+        const newIndex = currentIndex + 1;
+        LOGGER.debug(`Switching to newIndex: ${newIndex}`);
+        const nextElement = playlist.items[newIndex];
+        videoExtractor(nextElement).then(setCurrentVideoData);
+      }
+    }
     if (currentVideoData?.playlist) {
       console.log(
         "Playlist",
@@ -209,18 +236,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const next = async () => {
-    if (currentVideoData?.playlist) {
-      console.log(
-        "Playlist",
-        currentVideoData.playlist.content.map(v => v.title),
-      );
-      const newIndex = currentVideoData.playlist.current_index + 1;
-      LOGGER.debug(`Switching to newIndex: ${newIndex}`);
-      const nextElement = currentVideoData.playlist.content[newIndex];
-      if (nextElement.type === "video") {
-        videoExtractor(nextElement).then(setCurrentVideoData);
-      }
-    }
+    onEndReached();
   };
 
   return (
@@ -232,7 +248,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         setPlaylistViaEndpoint,
         duration,
         currentTime,
-        playlist: currentVideoData?.playlist?.content ?? [],
+        playlist,
         playing,
         play,
         pause,
@@ -257,12 +273,13 @@ export function useMusikPlayerContext() {
   return useContext(MusicPlayerCtx);
 }
 
-function videoInfoToTrack(vidoeInfo: YTVideoInfo) {
+function videoInfoToTrack(videoInfo: YTTrackInfo) {
   return {
-    url: vidoeInfo.originalData.streaming_data.hls_manifest_url,
-    title: vidoeInfo.title,
-    artist: vidoeInfo.author?.name,
-    artwork: vidoeInfo.thumbnailImage.url,
+    id: videoInfo.id, // Set id for later find in queue
+    url: videoInfo.originalData.streaming_data.hls_manifest_url,
+    title: videoInfo.title,
+    artist: videoInfo.author?.name,
+    artwork: videoInfo.thumbnailImage.url,
     type: "hls",
   } as Track;
 }
