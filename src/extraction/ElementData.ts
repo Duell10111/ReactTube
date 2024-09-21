@@ -153,9 +153,6 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
         author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
       } as PlaylistData;
     } else if (ytNode.item_type === "video" || ytNode.item_type === "song") {
-      // console.log("Menu: ", ytNode.menu.items);
-      console.log("Endpoint: ", ytNode.endpoint);
-
       return {
         type: "video",
         originalNode: ytNode,
@@ -177,7 +174,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
         ),
         author: ytNode.author
           ? getAuthorMusic(ytNode.author)
-          : ytNode.authors
+          : ytNode.authors?.length > 0
             ? getAuthorMusic(ytNode.authors[0])
             : undefined,
       } as VideoData;

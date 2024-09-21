@@ -16,6 +16,7 @@ import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
 
 import {PhoneOrientationLocker} from "@/components/PhoneOrientationLocker";
+import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
 
 type Tab = "Playlist" | "Lyrics" | "Related";
 
@@ -44,6 +45,8 @@ export function MusicPlayerScreen({route, navigation}: Props) {
   //   "VideoDataPlaylistData",
   //   currentItem?.playlist?.content?.map(v => v.title),
   // );
+
+  usePhoneOrientationLocker();
 
   if (openTab) {
     return (
