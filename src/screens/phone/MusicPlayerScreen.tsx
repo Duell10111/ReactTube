@@ -3,7 +3,6 @@ import {ButtonGroup} from "@rneui/base";
 import {Duration} from "luxon";
 import React, {useEffect, useMemo, useState} from "react";
 import {Image, StyleSheet, Text, View} from "react-native";
-import Orientation, {OrientationLocker} from "react-native-orientation-locker";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {MusicBottomPlayerBar} from "../../components/music/MusicBottomPlayerBar";
@@ -15,7 +14,6 @@ import {MusicPlayerTitle} from "../../components/music/player/MusicPlayerTitle";
 import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
 
-import {PhoneOrientationLocker} from "@/components/PhoneOrientationLocker";
 import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
 
 type Tab = "Playlist" | "Lyrics" | "Related";

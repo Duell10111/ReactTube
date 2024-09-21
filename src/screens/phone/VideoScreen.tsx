@@ -11,10 +11,9 @@ import {
   View,
 } from "react-native";
 import DeviceInfo from "react-native-device-info";
-import Orientation, {
+import {
   ALL_ORIENTATIONS_BUT_UPSIDE_DOWN,
   OrientationLocker,
-  useOrientationChange,
 } from "react-native-orientation-locker";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
@@ -33,6 +32,8 @@ import {YTVideoInfo as YTVideoInfoType} from "../../extraction/Types";
 import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
 import useVideoDetails from "../../hooks/useVideoDetails";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
+
+import useOrientationChange from "@/hooks/ui/useOrientationChange";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -69,13 +70,13 @@ export default function VideoScreen({route, navigation}: Props) {
   const [landscape, setLandscape] = useState(false);
   const focus = useIsFocused();
 
-  useEffect(() => {
-    Orientation.getOrientation(orientation => {
-      setLandscape(
-        orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
-      );
-    });
-  }, []);
+  // useEffect(() => {
+  //   Orientation.getOrientation(orientation => {
+  //     setLandscape(
+  //       orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
+  //     );
+  //   });
+  // }, []);
 
   useOrientationChange(orientation => {
     // Do not react if not focused
@@ -83,13 +84,9 @@ export default function VideoScreen({route, navigation}: Props) {
       return;
     }
     if (!DeviceInfo.isTablet()) {
-      setFullScreen(
-        orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
-      );
+      setFullScreen(orientation === "LANDSCAPE");
     }
-    setLandscape(
-      orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
-    );
+    setLandscape(orientation === "LANDSCAPE");
   });
 
   console.log("Landscape: ", landscape);
