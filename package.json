@@ -1,6 +1,6 @@
 {
   "name": "reacttube",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "dependencies": {
     "@craftzdog/react-native-buffer": "^6.0.5",
     "@duell10111/apple-targets": "^0.0.6-alpha.1",

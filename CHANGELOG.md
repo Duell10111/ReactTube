@@ -1,3 +1,9 @@
+## [0.1.1](https://github.com/Duell10111/ReactTube/compare/v0.1.0...v0.1.1) (2024-09-21)
+
+### Minor changes
+
+* migrate to expo dependencies to prepare for new architecture and fix various small issues ([#31](https://github.com/Duell10111/ReactTube/issues/31)) ([94ee573](https://github.com/Duell10111/ReactTube/commit/94ee573283badc1fcc51620d7ecb483c608c0290))
+
 ## [0.1.0](https://github.com/Duell10111/ReactTube/compare/v0.0.1...v0.1.0) (2024-08-30)
 
 ### :sparkles: Features
