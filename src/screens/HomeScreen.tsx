@@ -2,8 +2,6 @@ import {useFocusEffect, useNavigation} from "@react-navigation/native";
 import {Icon} from "@rneui/base";
 import React, {useEffect, useState} from "react";
 import {Platform, TVEventControl} from "react-native";
-import DeviceInfo from "react-native-device-info";
-import {OrientationLocker} from "react-native-orientation-locker";
 
 import GridView from "../components/GridView";
 import LoadingComponent from "../components/general/LoadingComponent";
@@ -12,6 +10,8 @@ import useHomeScreen from "../hooks/useHomeScreen";
 import {useDrawerContext} from "../navigation/DrawerContext";
 import {RootNavProp} from "../navigation/RootStackNavigator";
 import Logger from "../utils/Logger";
+
+import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
 
 const LOGGER = Logger.extend("HOME");
 
@@ -57,15 +57,14 @@ export default function HomeScreen() {
 
   const columns = useGridColumnsPreferred();
 
+  usePhoneOrientationLocker();
+
   if (!content) {
     return <LoadingComponent />;
   }
 
   return (
     <>
-      {!Platform.isTV && !DeviceInfo.isTablet() ? (
-        <OrientationLocker orientation={"PORTRAIT"} />
-      ) : null}
       <GridView
         columns={columns}
         shelfItem={content}
