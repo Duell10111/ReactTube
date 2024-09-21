@@ -17,11 +17,9 @@ import ErrorComponent from "../components/general/ErrorComponent";
 import EndCard from "../components/video/EndCard";
 import VideoEndCard from "../components/video/VideoEndCard";
 import VideoPlayerNative from "../components/video/VideoPlayerNative";
-import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
 import VideoPlayer, {
   VideoPlayerRefs,
 } from "../components/video/videoPlayer/VideoPlayer";
-import useChannelDetails from "../hooks/useChannelDetails";
 import useVideoDetails from "../hooks/useVideoDetails";
 import LOGGER from "../utils/Logger";
 
@@ -139,18 +137,8 @@ export default function VideoScreen({route, navigation}: Props) {
 
   return (
     <View style={[StyleSheet.absoluteFill]}>
-      {appSettings.vlcEnabled ? (
-        <VideoPlayerVLC
-          videoInfo={YTVideoInfo.originalData}
-          url={videoUrl}
-          hlsUrl={hlsUrl}
-          onEndReached={() => {
-            setEnded(true);
-            setShowEndCard(true);
-          }}
-          disableControls={showEndCard}
-        />
-      ) : appSettings.ownOverlayEnabled ? (
+      {appSettings.ownOverlayEnabled || appSettings.vlcEnabled ? (
+        // TODO: Add VLC VideoComponent, once VLC Player is not broken anymore on XCode 16
         <VideoPlayer
           ref={videoPlayerRef}
           // @ts-ignore
