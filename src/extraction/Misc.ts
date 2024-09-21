@@ -20,7 +20,7 @@ export function parseThumbnailOverlays(
   thumbnailOverlays.forEach(o => {
     if (o.is(YTNodes.ThumbnailOverlayResumePlayback)) {
       LOGGER.debug("Progress: ", o.percent_duration_watched);
-      overlay.videoProgress = Number.parseInt(o.percent_duration_watched, 10);
+      overlay.videoProgress = o.percent_duration_watched;
     } else if (o.is(YTNodes.ThumbnailOverlayTimeStatus)) {
       // Skip ThumbnailOverlayTimeStatus which contains duration to show
       // LOGGER.debug("ThumbnailOverlayTimeStatus: ", o);

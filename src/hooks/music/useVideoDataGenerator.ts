@@ -1,9 +1,10 @@
 import {useCallback} from "react";
 
-import {useYoutubeContext} from "../../context/YoutubeContext";
-import {VideoData} from "../../extraction/Types";
-import {getElementDataFromVideoInfo} from "../../extraction/YTElements";
 import {YTNodes} from "../../utils/Youtube";
+
+import {useYoutubeContext} from "@/context/YoutubeContext";
+import {VideoData} from "@/extraction/Types";
+import {getElementDataFromVideoInfo} from "@/extraction/YTElements";
 
 export default function useVideoDataGenerator() {
   const youtube = useYoutubeContext();
@@ -12,7 +13,7 @@ export default function useVideoDataGenerator() {
     async (videoData: VideoData) => {
       const info = await youtube.getInfo(
         videoData.navEndpoint ?? videoData.id,
-        "iOS",
+        "IOS",
       );
 
       return getElementDataFromVideoInfo(info);
@@ -22,7 +23,7 @@ export default function useVideoDataGenerator() {
 
   const videoExtractorNavigationEndpoint = useCallback(
     async (navigationEndpoint: YTNodes.NavigationEndpoint) => {
-      const info = await youtube.getInfo(navigationEndpoint, "iOS");
+      const info = await youtube.getInfo(navigationEndpoint, "IOS");
 
       return getElementDataFromVideoInfo(info);
     },

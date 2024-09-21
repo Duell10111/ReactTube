@@ -23,6 +23,7 @@ import {usePanResponders} from "./usePanResponders";
 
 import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
 
+export const PausePlayerEvent = "PlayerPauseVideo";
 export const EndCardCloseEvent = "EndCardClose";
 
 export interface VideoMetadata {
@@ -215,6 +216,13 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     useEffect(() => {
       const sub = DeviceEventEmitter.addListener(EndCardCloseEvent, () => {
         setShowEndcard(false);
+      });
+      return () => sub.remove();
+    }, []);
+
+    useEffect(() => {
+      const sub = DeviceEventEmitter.addListener(PausePlayerEvent, () => {
+        setPaused(true);
       });
       return () => sub.remove();
     }, []);

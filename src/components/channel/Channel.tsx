@@ -70,6 +70,7 @@ export default function Channel({channel}: Props) {
   return (
     <View style={{flex: 1}}>
       <ButtonGroup
+        // @ts-ignore
         Component={TouchableOpacity}
         selectedIndex={buttons.findIndex(value => value.key === selected)}
         buttons={buttons}

@@ -6,11 +6,15 @@ import {
   DeviceEventEmitter,
   DimensionValue,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from "react-native";
 
-import {EndCardCloseEvent} from "@/components/video/videoPlayer/VideoPlayer";
+import {
+  EndCardCloseEvent,
+  PausePlayerEvent,
+} from "@/components/video/videoPlayer/VideoPlayer";
 import {YTEndscreen, YTEndscreenElement} from "@/extraction/Types";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
 import Logger from "@/utils/Logger";
@@ -69,6 +73,8 @@ function VideoCard({element}: VideoCardProps) {
           navigation.navigate("ChannelScreen", {
             channelId: channelID,
           });
+          // Pause player on press of item
+          DeviceEventEmitter.emit(PausePlayerEvent);
         } else if (element.style === "VIDEO") {
           navigation.navigate("VideoScreen", {
             navEndpoint: element.navEndpoint,
@@ -93,6 +99,9 @@ function VideoCard({element}: VideoCardProps) {
             : require("../../../assets/grey-background.jpg")
         }
       />
+      {element.style === "VIDEO" || element.style === "PLAYLIST" ? (
+        <Text style={styles.videoTitleStyle}>{element.title}</Text>
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -104,6 +113,20 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 2,
     borderColor: "black",
+  },
+  videoTitleStyle: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    color: "white",
+    fontSize: 35,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginVertical: 20,
+    textShadowColor: "black",
+    textShadowOffset: {width: 5, height: 5},
+    textShadowRadius: 10,
   },
 });
 

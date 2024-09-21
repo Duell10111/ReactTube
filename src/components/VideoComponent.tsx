@@ -14,8 +14,9 @@ import Video, {
   VideoRef,
 } from "react-native-video";
 
-import {YTChapter, YTVideoInfo} from "../extraction/Types";
 import Logger from "../utils/Logger";
+
+import {YTChapter, YTVideoInfo} from "@/extraction/Types";
 
 const LOGGER = Logger.extend("VIDEO");
 
@@ -108,6 +109,7 @@ export default function VideoComponent({
         controls={controls !== undefined ? controls : true}
         paused={paused !== undefined ? paused : !isFocused}
         fullscreen={fullscreen ?? true}
+        fullscreenOrientation={"landscape"}
         repeat={repeat}
         resizeMode={resizeMode ?? ResizeMode.CONTAIN}
         chapters={parsedChapters}
@@ -115,6 +117,7 @@ export default function VideoComponent({
         pictureInPicture
         // @ts-ignore type error?
         ignoreSilentSwitch={"ignore"}
+        showNotificationControls
         // Event listener
         onLoad={(data: any) => {
           LOGGER.debug("Video Loading...", JSON.stringify(data, null, 4));

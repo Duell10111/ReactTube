@@ -17,7 +17,7 @@ export default function useVideoDetails(
 
   const fetchVideoData = useCallback(() => {
     youtube
-      ?.getInfo(videoId, appSettings.hlsEnabled ? "iOS" : undefined)
+      ?.getInfo(videoId, appSettings.hlsEnabled ? "IOS" : undefined)
       .then(setVideo)
       .catch(LOGGER.warn);
   }, [appSettings.hlsEnabled, videoId, youtube]);
@@ -29,6 +29,15 @@ export default function useVideoDetails(
   const YTVideoInfo = useMemo(() => {
     return Video ? getElementDataFromVideoInfo(Video) : undefined;
   }, [Video]);
+
+  // Use for History, if enabled?
+  // Video.addToWatchHistory()
+
+  useEffect(() => {
+    if (appSettings.trackingEnabled && Video) {
+      Video.addToWatchHistory().catch(LOGGER.warn);
+    }
+  }, [Video, appSettings.trackingEnabled]);
 
   const httpVideoURL = useMemo(() => {
     if (!youtube?.actions.session.player) {
@@ -94,7 +103,7 @@ export default function useVideoDetails(
 
   const fetchActionsVideoData = useCallback(() => {
     youtube
-      ?.getInfo(videoId, appSettings.hlsEnabled ? "iOS" : undefined)
+      ?.getInfo(videoId, appSettings.hlsEnabled ? "IOS" : undefined)
       .then(setActionVideoData)
       .catch(LOGGER.warn);
   }, [videoId, appSettings.hlsEnabled, youtube]);

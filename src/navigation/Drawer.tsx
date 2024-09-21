@@ -1,12 +1,7 @@
 import {useNavigation} from "@react-navigation/native";
 import {Icon} from "@rneui/base";
 import React, {forwardRef, useCallback, useEffect, useState} from "react";
-import {
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  TVFocusGuideView,
-} from "react-native";
+import {StyleSheet, TouchableOpacity, TVFocusGuideView} from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -16,9 +11,9 @@ import Animated, {
 } from "react-native-reanimated";
 
 import {NativeStackProp} from "./types";
-import {useAppStyle} from "../context/AppStyleContext";
 
 import {useAccountContext} from "@/context/AccountContext";
+import {useAppStyle} from "@/context/AppStyleContext";
 
 interface Props {
   open: boolean;
@@ -70,7 +65,7 @@ export default function Drawer({open, onOpen, onClose}: Props) {
           onFocus={() => onOpen()}
           onPress={navigationWrapper(() => navigation.navigate("Trending"))}
           open={open}
-          iconTitle={"home"}
+          iconTitle={"trending-up"}
         />
         <DrawerItem
           title={"Search"}
@@ -146,7 +141,10 @@ interface ItemProps {
   open: boolean;
 }
 
-const DrawerItem = forwardRef<TouchableOpacity, ItemProps>(
+const DrawerItem = forwardRef<
+  React.ElementRef<typeof TouchableOpacity>,
+  ItemProps
+>(
   (
     {title, onFocus, onBlur, onPress, start, bottom, iconTitle, iconType, open},
     ref,
