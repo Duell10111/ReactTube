@@ -9,6 +9,7 @@ import useMusicHome from "../../hooks/music/useMusicHome";
 
 import {useAccountContext} from "@/context/AccountContext";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
+import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 export function MusicHomeScreen() {
@@ -41,6 +42,9 @@ export function MusicHomeScreen() {
       ),
     });
   }, [navigation]);
+
+  // TODO: Could cause locks if screen is still loaded in background
+  usePhoneOrientationLocker();
 
   const renderItem = useCallback<ListRenderItem<HorizontalData>>(({item}) => {
     return <MusicHorizontalItem data={item} />;

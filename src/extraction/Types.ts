@@ -251,6 +251,6 @@ export function getAuthorMusic(author: AuthorMusic) {
   return {
     id: author.channel_id,
     name: author.name,
-    navEndpoint: author.endpoint,
+    navEndpoint: author?.endpoint,
   } as Author;
 }
