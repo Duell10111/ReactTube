@@ -54,7 +54,7 @@ export function MusicPlaylistItem({
                 color: style.textColor,
               },
               styles.subtitleText,
-            ]}>{`${data.type === "video" ? `${data.artists?.map(a => a.name)?.join(", ") ?? ""} - ${data.duration}` : ""} - ${data.originalNode.type}`}</Text>
+            ]}>{`${data.type === "video" ? `${data.artists?.map(a => a.name)?.join(", ") ?? data.author?.name ?? ""} - ${data.duration}` : ""} - ${data.originalNode.type}`}</Text>
         </View>
         <Icon
           name={"dots-vertical"}
