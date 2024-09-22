@@ -40,8 +40,6 @@ interface PlaybackInformation {
 
 export default function VideoScreen({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;
-  console.log("VideoID: ", videoId);
-  console.log("NavEndpoint: ", navEndpoint);
   const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(
     navEndpoint ?? videoId,
   );
@@ -51,6 +49,7 @@ export default function VideoScreen({route, navigation}: Props) {
   const [ended, setEnded] = useState(false);
 
   const {appSettings} = useAppData();
+  const videoPlayerRef = useRef<VideoPlayerRefs>();
 
   // TODO: Will be replaced once embed server is available on tvOS
   const hlsUrl = useMemo(() => {
@@ -62,6 +61,7 @@ export default function VideoScreen({route, navigation}: Props) {
   useEffect(() => {
     return navigation.addListener("blur", () => {
       setShowEndCard(false);
+      videoPlayerRef.current.pause();
     });
   }, [navigation]);
 
@@ -106,8 +106,6 @@ export default function VideoScreen({route, navigation}: Props) {
         : [],
     [YTVideoInfo?.originalData?.watch_next_feed],
   );
-
-  const videoPlayerRef = useRef<VideoPlayerRefs>();
 
   if (!YTVideoInfo) {
     return (
