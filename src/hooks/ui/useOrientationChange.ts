@@ -12,7 +12,7 @@ export default function useOrientationChange(
       const o: Orientation = getOrientation(state.orientationInfo.orientation);
       listener(o);
     });
-    return () => sub.remove();
+    return () => ScreenOrientation.removeOrientationChangeListener(sub);
   }, [listener]);
 }
 
