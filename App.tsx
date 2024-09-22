@@ -27,7 +27,7 @@ Object.assign(global, {
   atob,
 });
 
-enableFreeze(true);
+// enableFreeze(true);
 
 setupMusicPlayer();
 

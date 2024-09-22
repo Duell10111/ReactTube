@@ -53,6 +53,7 @@ export interface VideoComponentRefType {
 
 export interface VideoPlayerRefs {
   seek: (seconds: number) => void;
+  pause: () => void;
 }
 
 interface VideoPlayerProps<T> {
@@ -369,6 +370,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
 
     useImperativeHandle(ref, () => {
       return {
+        pause: () => setPaused(true),
         seek: seconds => _videoRef.current?.seek(seconds),
       };
     }, []);
