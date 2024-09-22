@@ -44,7 +44,7 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
           <MusicPlaylistHeader
             image={playlist.thumbnailImage}
             title={playlist.title}
-            subtitle={"Subtitle"}
+            subtitle={playlist.description}
             onPlayPress={() => {
               if (playlist.playEndpoint) {
                 setPlaylistViaEndpoint(playlist.playEndpoint);

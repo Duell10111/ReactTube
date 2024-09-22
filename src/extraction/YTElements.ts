@@ -1,4 +1,5 @@
 import _ from "lodash";
+import {Simulate} from "react-dom/test-utils";
 
 import {getVideoData} from "./ElementData";
 import {getThumbnail} from "./Misc";
@@ -25,6 +26,7 @@ import {YT, YTNodes, YTMusic} from "../utils/Youtube";
 
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import {parseHorizontalNode} from "@/extraction/ShelfExtraction";
+import play = Simulate.play;
 
 export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
   const thumbnail = videoInfo.basic_info.thumbnail
@@ -361,6 +363,7 @@ class YTMusicPlaylistClass implements YTPlaylist {
   title: string;
   author?: Author;
   subtitle?: string;
+  description?: string;
 
   playEndpoint?: YTNodes.NavigationEndpoint;
 
@@ -377,6 +380,7 @@ class YTMusicPlaylistClass implements YTPlaylist {
       this.thumbnailImage = getThumbnail(playlist.header.thumbnail.contents[0]);
       this.title = playlist.header.title?.text ?? "Empty title";
       this.subtitle = playlist.header.subtitle.text;
+      this.description = playlist.header.description?.description?.text;
       playlist.header.buttons.forEach(v => {
         if (v.is(YTNodes.MusicPlayButton)) {
           this.playEndpoint = v.endpoint;
@@ -386,6 +390,7 @@ class YTMusicPlaylistClass implements YTPlaylist {
       this.thumbnailImage = getThumbnail(playlist.header.thumbnails[0]);
       this.title = playlist.header.title?.text ?? "Empty title";
       this.subtitle = playlist.header.subtitle.text;
+      this.description = playlist.header.description.text;
       // console.log("Badges: ", playlist.header.badges);
       // this.author = getAuthor(playlist.header?.author);
     } else if (playlist.header.is(YTNodes.MusicEditablePlaylistDetailHeader)) {

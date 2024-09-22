@@ -222,6 +222,7 @@ export interface YTPlaylist {
   title: string;
   thumbnailImage: Thumbnail;
   author?: Author;
+  description?: string;
 
   playEndpoint?: YTNodes.NavigationEndpoint;
 
