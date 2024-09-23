@@ -51,7 +51,15 @@ struct LibraryPlaylists: View {
 
 struct LibraryVideos: View {
   @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
+  @Environment(DownloadManager.self) private var downloadManager: DownloadManager
   @Query(sort: \Video.title, order: .reverse) var videos: [Video]
+  
+//  let formatter = NumberFormatter()
+//  formatter.numberStyle = .percent
+//  formatter.minimumIntegerDigits = 1
+//  formatter.maximumIntegerDigits = 1
+//  formatter.maximumFractionDigits = 3
+//  formatter.minimumFractionDigits = 3
   
   var body: some View {
     List {
@@ -74,10 +82,8 @@ struct LibraryVideos: View {
                   Label("Downloaded", systemImage: "arrow.down.circle")
                 }
               }
-              if let videoDownload = DownloadManager.shared.activeDownloads.first(where: { activeDownload in
-                activeDownload.id == video.id
-              }) {
-                ProgressView(videoDownload.session.progress)
+              if let videoDownload = downloadManager.progressDownloads[video.id] {
+                ProgressView(value: videoDownload)  { Text("\(videoDownload)%  progress") }
               }
             }
           }

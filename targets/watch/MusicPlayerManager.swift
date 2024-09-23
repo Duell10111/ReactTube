@@ -27,7 +27,7 @@ class MusicPlayerManager {
     var currentCover: URL? = nil
 
     var isStalled: Bool = false
-  
+
     private var player: QueuedAudioPlayer? = nil
     var playerPlaylistItems: [Video] = []
     private var playlist: [Video] = []
@@ -89,31 +89,35 @@ class MusicPlayerManager {
       } catch {
         print("Error adding items")
       }
-    
+
       player?.remoteCommands = [
         .play,
         .pause,
         .previous,
         .next
       ]
-    
+
       player?.event.currentItem.addListener(self, handleAudioPlayerCurrentItemChange)
-    
+
     player?.event.fail.addListener(self, { data in
       print("Error occured in player \(data)")
     })
-    
-    
+
+    player?.event.stateChange.addListener(self, { state in
+      print("State changed \(state)")
+    })
+
+
     player?.remoteCommandController.handlePlayCommand = { [weak self] _ in
       self?.player?.play()
       return MPRemoteCommandHandlerStatus.success
     }
-    
+
     player?.remoteCommandController.handlePauseCommand = { [weak self] _ in
       self?.player?.pause()
       return MPRemoteCommandHandlerStatus.success
     }
-    
+
   }
 
   private func deinitPlayer() {
@@ -122,9 +126,9 @@ class MusicPlayerManager {
     isStalled = false
     currentTrackIndex = 0
   }
-  
+
   // Event Listeners
-  
+
   func handleAudioPlayerCurrentItemChange(
           item: AudioItem?,
           index: Int?,
@@ -158,7 +162,7 @@ class MusicPlayerManager {
               print("Playeritem: \(player?.currentItem?.getSourceUrl())")
               isPlaying = true
               isStalled = false
-            
+
               if let curItem = player?.currentItem, let title = curItem.getTitle(){
                 currentTitle = title
               }
@@ -182,6 +186,7 @@ class MusicPlayerManager {
           }
         }
       #endif
+      print("Player state: \(player?.playerState)")
   }
 
   @objc func pauseMusic() {
@@ -190,13 +195,14 @@ class MusicPlayerManager {
       } catch {
           print("Failed to start AVAudioSession: \(error)")
       }
+      print("Player state: \(player?.playerState)")
       player?.pause()
       isPlaying = false
   }
 
   func nextTrack() {
       // TODO: Add check if new items are available
-    
+
       player?.next()
   }
 
