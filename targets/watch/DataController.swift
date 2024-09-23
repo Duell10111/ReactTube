@@ -19,7 +19,7 @@ class DataController {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             let container = try ModelContainer(for: Video.self, Playlist.self, HomeScreenElement.self, configurations: config)
 
-            let video = Video(id: "5pZ2IbO9VB4", title: "Sarà Perché Ti Amo (Long Version)", downloaded: false)
+          let video = Video(id: "5pZ2IbO9VB4", durationMillis: 180000, title: "Sarà Perché Ti Amo (Long Version)", downloaded: false)
             container.mainContext.insert(video)
 
             return container

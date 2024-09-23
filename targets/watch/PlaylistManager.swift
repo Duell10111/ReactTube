@@ -100,7 +100,7 @@ class PlaylistManager {
     if let localFile = video.fileURL {
       let uri = getDownloadDirectory().appending(path: localFile)
       print("Local uri: \(uri)")
-      let item = DefaultAudioItem(audioUrl: uri.path(), sourceType: .file)
+      let item = DefaultAudioItemEndTime(audioUrl: uri.path(), artist: nil, title: video.title, albumTitle: nil, sourceType: .file, artwork: nil, endTiming: CMTime(value: Int64(video.durationMillis/1000), timescale: 1))
 
       // TODO: Outsource to skip duplicate code
       item.title = video.title

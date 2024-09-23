@@ -65,7 +65,7 @@ func removeURLPrefix(url: String, prefix: String) -> String {
 }
 
 // TODO: Rename to VideoData?
-func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, downloaded: Bool? = nil, duration: Int? = nil, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil) {
+func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, downloaded: Bool? = nil, duration: Int, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil) {
 
   do {
     let descriptor = FetchDescriptor<Video>(
@@ -75,7 +75,7 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
 
     let existingEntry = !contents.isEmpty
 
-    let video = contents.first ?? Video(id: id, title: title, downloaded: downloaded ?? false)
+    let video = contents.first ?? Video(id: id, durationMillis: duration, title: title, downloaded: downloaded ?? false)
 
     if let d = downloaded {
       video.downloaded = d
@@ -243,7 +243,7 @@ func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
   // TODO: Delete all files as well?
   clearDatabase(modelContext: modelContext)
   backupFile.videos.forEach { video in
-    let v = Video(id: video.id, title: video.title, downloaded: false)
+    let v = Video(id: video.id, durationMillis: video.duration, title: video.title, downloaded: false)
     modelContext.insert(v)
   }
 }

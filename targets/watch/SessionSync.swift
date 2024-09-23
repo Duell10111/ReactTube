@@ -72,6 +72,14 @@ extension SessionSync: WCSessionDelegate {
       }
     }
   }
+  
+  func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
+    print("WCSession didReceiveMessageData messageData:\(messageData)")
+  }
+  
+  func session(_ session: WCSession, didReceiveMessageData messageData: Data, replyHandler: @escaping (Data) -> Void) {
+    print("WCSession didReceiveMessageData with reply handler messageData:\(messageData)")
+  }
 
   func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
     print("WCSession didReceiveMessage with reply handler message:\(message)")
@@ -102,11 +110,11 @@ extension SessionSync: WCSessionDelegate {
   func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: (any Error)?) {
     print("WCSession didFinish FileTranfer fileURL:\(fileTransfer.file.fileURL)")
     
-    if let id = fileTransfer.file.metadata?["id"] as? String {
+    if let id = fileTransfer.file.metadata?["id"] as? String, let duration = fileTransfer.file.metadata?["duration"] as? Int {
       let file = saveDownloadFile(id: id, filePath: fileTransfer.file.fileURL)
       if let f = file {
         Task {
-          await self.receiveFileUpload(session, id: id, fileURL: f)
+          await self.receiveFileUpload(session, id: id, fileURL: f, duration: duration)
         }
       }
       // Add Data before receiving file
@@ -155,7 +163,7 @@ extension SessionSync: WCSessionDelegate {
   func receiveFileUploadData(_ session: WCSession, message: [String: Any]) {
     if let id = message["id"] as? String, let title = message["title"] as? String, let duration = message["duration"] as? Int {
       print("Received File Upload Data: id: \(id)")
-      addDownloadData(DataController.shared.container.mainContext, id: id, title: title)
+      addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: duration)
       // Add Data before receiving file
       
       // TODO: Request download if not already downloaded?
@@ -166,8 +174,8 @@ extension SessionSync: WCSessionDelegate {
   }
   
   @MainActor
-  func receiveFileUpload(_ session: WCSession, id: String, fileURL: String) {
-    addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true, fileURL: fileURL)
+  func receiveFileUpload(_ session: WCSession, id: String, fileURL: String, duration: Int) {
+    addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true, duration: duration, fileURL: fileURL)
   }
 
 }

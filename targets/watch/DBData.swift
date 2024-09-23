@@ -13,6 +13,7 @@ final class Video {
     @Attribute(.unique) var id: String
     var title: String?
     var downloaded: Bool
+    var durationMillis: Int
     var streamURL: String?
     var downloadURL: String? // Workaround for download issues
     var validUntil: Date?
@@ -20,8 +21,9 @@ final class Video {
     var coverURL: String?
     var temp: Bool?
 
-    init(id: String, title: String? = nil, downloaded: Bool = false) {
+  init(id: String, durationMillis: Int, title: String? = nil, downloaded: Bool = false) {
         self.id = id
+        self.durationMillis = durationMillis
         self.title = title
         self.downloaded = downloaded
     }

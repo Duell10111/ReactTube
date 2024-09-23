@@ -38,7 +38,7 @@ class DownloadManager {
         print("Save Download \(saveDownload)")
         if let saveURL = saveDownload {
           Task {
-            await self.receiveFileUpload(id: video.id, fileURL: saveURL)
+            await self.receiveFileUpload(id: video.id, fileURL: saveURL, duration: video.durationMillis)
             self.activeDownloads.removeAll { download in
               download.id == video.id
             }
@@ -52,8 +52,8 @@ class DownloadManager {
   }
 
   @MainActor
-  private func receiveFileUpload(id: String, fileURL: String) {
-    addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true, fileURL: fileURL)
+  private func receiveFileUpload(id: String, fileURL: String, duration: Int) {
+    addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true, duration: duration, fileURL: fileURL)
   }
 
 }
