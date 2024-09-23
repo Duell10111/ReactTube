@@ -9,7 +9,7 @@ module.exports = {
     {
       name: "SwiftAudioEx",
       repository: "https://github.com/Duell10111/SwiftAudioEx.git",
-      branch: "watchos-support-local-testing",
+      branch: "watchos-support-add-crop",
     },
   ],
 };

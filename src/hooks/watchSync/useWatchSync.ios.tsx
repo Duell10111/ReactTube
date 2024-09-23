@@ -34,14 +34,18 @@ export default function useWatchSync() {
         );
         handleWatchMessage(innertube, messageFromWatch.payload)
           .catch(console.warn)
-          .then(response => {
+          .then(async response => {
             const ytResponse = {
               type: "youtubeAPI",
               payload: response,
             };
-            LOGGER.debug("Sending WATCH YT API response: ", ytResponse);
-            sendMessage(ytResponse);
-          });
+            LOGGER.debug(
+              "Sending WATCH YT API response: ",
+              JSON.stringify(ytResponse, null, 2),
+            );
+            await sendMessage(ytResponse);
+          })
+          .catch(console.warn);
       }
       // reply({text: 'Thanks watch!'})
     });
