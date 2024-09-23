@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import SDDownloadManager
 
 func getDocumentsDirectory() -> URL {
     let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
@@ -250,6 +251,7 @@ func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
 
 func clearDownloads(modelContext: ModelContext) {
   do {
+    SDDownloadManager.shared.cancelAllDownloads()
     try FileManager.default.removeItem(at: getDownloadDirectory())
 
     let batchSize = 1000

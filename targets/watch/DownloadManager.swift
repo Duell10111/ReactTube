@@ -6,48 +6,47 @@
 //
 
 import Foundation
+import SDDownloadManager
 
+@Observable
 class DownloadManager {
   static let shared = DownloadManager()
 
   var activeDownloads : [ActiveDownload] = []
+  var progressDownloads: [String: Double] = [:]
 
   func downloadVideo(video: Video) {
     if let streamURL = video.downloadURL, let date = video.validUntil, let uri = URL(string: streamURL) {
       print("Started download \(video.id)")
-      let downloadTask = URLSession.shared.downloadTask(with: URLRequest(url: uri)) { urlOrNil, responseOrNil, errorOrNil in
-        print("Response: \(responseOrNil.debugDescription)")
-        let ext = responseOrNil?.mimeType?.split(separator: "/")[1]
-
-        if let response = responseOrNil as? HTTPURLResponse, response.statusCode != 200 {
-          print("Download failed for \(video.id)")
-          self.activeDownloads.removeAll { download in
-            download.id == video.id
-          }
-        }
-
-        print("Extension: \(ext)")
-        guard let fileURL = urlOrNil else {
-          self.activeDownloads.removeAll { download in
-            download.id == video.id
-          }
-          return
-        }
-        // TODO: Remove hardcode fileExt
-        let saveDownload = saveDownloadFile(id: video.id, filePath: fileURL, fileExtension: "mp4")
-        print("Save Download \(saveDownload)")
-        if let saveURL = saveDownload {
-          Task {
-            await self.receiveFileUpload(id: video.id, fileURL: saveURL, duration: video.durationMillis)
-            self.activeDownloads.removeAll { download in
-              download.id == video.id
+      let request = URLRequest(url: uri)
+      let id = SDDownloadManager.shared.downloadFile(withRequest: request, onProgress: { progress in
+        print("Progrss: \(progress)")
+        self.progressDownloads[video.id] = Double(progress)
+      }) { error, fileUrl in
+        if let error = error {
+          print("Error is \(error as NSError)")
+        } else {
+          if let url = fileUrl {
+            print("Downloaded file's url is \(url.path)")
+            // TODO: Remove hardcode fileExt
+            let saveDownload = saveDownloadFile(id: video.id, filePath: url, fileExtension: "mp4")
+            if let saveURL = saveDownload {
+              Task {
+                await self.receiveFileUpload(id: video.id, fileURL: saveURL, duration: video.durationMillis)
+                self.activeDownloads.removeAll { download in
+                  download.id == video.id
+                }
+                print("Saved Download")
+              }
             }
-            print("Saved Download")
           }
         }
+        self.activeDownloads.removeAll { download in
+          download.id == video.id
+        }
+        self.progressDownloads.removeValue(forKey: video.id)
       }
-      downloadTask.resume()
-      activeDownloads.append(ActiveDownload(id: video.id, session: downloadTask))
+//      activeDownloads.append(ActiveDownload(id: video.id, session: downloadTask))
     }
   }
 
