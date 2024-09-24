@@ -108,7 +108,7 @@ class PlaylistManager {
       // Set end for local files?
 //          item.forwardPlaybackEndTime =
       return item
-    } else if let sURL = video.streamURL, let uri = URL(string: sURL) {
+    } else if let sURL = video.streamURL, let validUntil = video.validUntil, validUntil > Date() {
       print("Remote uri: \(sURL)")
       let item = DefaultAudioItem(audioUrl: sURL, sourceType: .stream)
 
