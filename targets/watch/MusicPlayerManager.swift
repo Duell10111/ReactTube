@@ -178,6 +178,10 @@ class MusicPlayerManager {
               player?.play()
               isPlaying = true
               isStalled = false
+              
+              if let curItem = player?.currentItem, let title = curItem.getTitle(){
+                currentTitle = title
+              }
 //              updateTrackInfo()
 //              updateNowPlaying()
             }
