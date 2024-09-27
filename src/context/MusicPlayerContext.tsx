@@ -166,22 +166,25 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     }
   }, [currentVideoData]);
 
-  const fetchMorePlaylistData = () => {
+  const fetchMorePlaylistData = async () => {
     if (currentVideoData && playlist) {
-      currentVideoData.originalData
-        .getUpNextContinuation(
+      const continuation =
+        await currentVideoData.originalData.getUpNextContinuation(
           playlistContinuation.current?.originalData ?? playlist.originalData,
-        )
-        .then(continuation => {
-          const parsedData = parseTrackInfoPlaylistContinuation(continuation);
-          setPlaylist({
-            ...playlist,
-            items: [...playlist.items, ...parsedData.items],
-          });
-          playlistContinuation.current = parsedData;
-        })
-        .catch(LOGGER.warn);
+        );
+
+      const parsedData = parseTrackInfoPlaylistContinuation(continuation);
+      setPlaylist({
+        ...playlist,
+        items: [...playlist.items, ...parsedData.items],
+      });
+      playlistContinuation.current = parsedData;
+      return parsedData;
     }
+  };
+
+  const fetchPlaylistDataWrapper = () => {
+    fetchMorePlaylistData().catch(LOGGER.warn);
   };
 
   useEffect(() => {
@@ -206,7 +209,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       .catch(LOGGER.warn);
   };
 
-  const onEndReached = () => {
+  const onEndReached = async () => {
     if (playlist) {
       const currentIndex = playlist.items.findIndex(
         v => v.id === currentVideoData.id,
@@ -214,11 +217,14 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       if (currentIndex >= 0) {
         const newIndex = currentIndex + 1;
         LOGGER.debug(`Switching to newIndex: ${newIndex}`);
-        if (newIndex > playlist.items.length) {
+        if (newIndex >= playlist.items.length) {
           // Fetch next playlist items?
+          const contData = await fetchMorePlaylistData();
+          videoExtractor(contData.items[0]).then(setCurrentVideoData);
+        } else {
+          const nextElement = playlist.items[newIndex];
+          videoExtractor(nextElement).then(setCurrentVideoData);
         }
-        const nextElement = playlist.items[newIndex];
-        videoExtractor(nextElement).then(setCurrentVideoData);
       }
     }
     if (currentVideoData?.playlist) {
@@ -295,7 +301,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         callbacks: {
           onEndReached,
         },
-        fetchMorePlaylistData,
+        fetchMorePlaylistData: fetchPlaylistDataWrapper,
       }}>
       {children}
     </MusicPlayerCtx.Provider>
