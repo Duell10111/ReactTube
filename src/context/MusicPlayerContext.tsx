@@ -22,9 +22,13 @@ import {
   VideoData,
   YTPlaylist,
   YTPlaylistPanel,
+  YTPlaylistPanelContinuation,
   YTTrackInfo,
 } from "@/extraction/Types";
-import {parseTrackInfoPlaylist} from "@/extraction/YTElements";
+import {
+  parseTrackInfoPlaylist,
+  parseTrackInfoPlaylistContinuation,
+} from "@/extraction/YTElements";
 
 type PlayType = "Audio" | "Video";
 
@@ -46,6 +50,7 @@ interface MusicPlayerContextType {
     onProgress: (durationSeconds: number) => void;
     onEndReached: () => void;
   };
+  fetchMorePlaylistData: () => void;
 }
 
 const events = [
@@ -76,6 +81,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const duration = useSharedValue(0);
   const currentTime = useSharedValue(0);
   const [playlist, setPlaylist] = useState<YTPlaylistPanel>();
+  const playlistContinuation = useRef<YTPlaylistPanelContinuation>();
   const [currentVideoData, setCurrentVideoData] = useState<YTTrackInfo>();
 
   useTrackPlayerEvents(events, event => {
@@ -154,10 +160,29 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         .getUpNext()
         .then(p => {
           setPlaylist(parseTrackInfoPlaylist(p));
+          playlistContinuation.current = undefined;
         })
         .catch(() => LOGGER.debug("No new Track Playlist available"));
     }
   }, [currentVideoData]);
+
+  const fetchMorePlaylistData = () => {
+    if (currentVideoData && playlist) {
+      currentVideoData.originalData
+        .getUpNextContinuation(
+          playlistContinuation.current?.originalData ?? playlist.originalData,
+        )
+        .then(continuation => {
+          const parsedData = parseTrackInfoPlaylistContinuation(continuation);
+          setPlaylist({
+            ...playlist,
+            items: [...playlist.items, ...parsedData.items],
+          });
+          playlistContinuation.current = parsedData;
+        })
+        .catch(LOGGER.warn);
+    }
+  };
 
   useEffect(() => {
     if (appSettings.trackingEnabled && currentVideoData) {
@@ -189,6 +214,9 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       if (currentIndex >= 0) {
         const newIndex = currentIndex + 1;
         LOGGER.debug(`Switching to newIndex: ${newIndex}`);
+        if (newIndex > playlist.items.length) {
+          // Fetch next playlist items?
+        }
         const nextElement = playlist.items[newIndex];
         videoExtractor(nextElement).then(setCurrentVideoData);
       }
@@ -267,6 +295,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         callbacks: {
           onEndReached,
         },
+        fetchMorePlaylistData,
       }}>
       {children}
     </MusicPlayerCtx.Provider>

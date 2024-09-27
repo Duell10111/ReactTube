@@ -12,7 +12,7 @@ interface MusicPlayerPlaylistListProps {
 }
 
 export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
-  const {currentItem, setPlaylistViaEndpoint, playlist} =
+  const {currentItem, setPlaylistViaEndpoint, playlist, fetchMorePlaylistData} =
     useMusikPlayerContext();
 
   const selectedItem = useMemo(
@@ -44,5 +44,11 @@ export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
     [selectedItem],
   );
 
-  return <FlatList data={playlist.items} renderItem={renderItem} />;
+  return (
+    <FlatList
+      data={playlist.items}
+      renderItem={renderItem}
+      onEndReached={fetchMorePlaylistData}
+    />
+  );
 }

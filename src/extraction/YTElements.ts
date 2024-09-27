@@ -18,15 +18,20 @@ import {
   YTMusicArtist,
   YTPlaylist,
   YTPlaylistPanel,
+  YTPlaylistPanelContinuation,
   YTPlaylistPanelItem,
   YTTrackInfo,
   YTVideoInfo,
 } from "./Types";
-import {YT, YTNodes, YTMusic} from "../utils/Youtube";
+import {
+  YT,
+  YTNodes,
+  YTMusic,
+  PlaylistPanelContinuation,
+} from "../utils/Youtube";
 
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import {parseHorizontalNode} from "@/extraction/ShelfExtraction";
-import play = Simulate.play;
 
 export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
   const thumbnail = videoInfo.basic_info.thumbnail
@@ -133,9 +138,23 @@ export function parseTrackInfoPlaylist(playlist: YTNodes.PlaylistPanel) {
     .compact()
     .value();
   return {
+    originalData: playlist,
     title: playlist.title,
     items,
   } as YTPlaylistPanel;
+}
+
+export function parseTrackInfoPlaylistContinuation(
+  playlistPanelContinuation: PlaylistPanelContinuation,
+) {
+  const items = _.chain(playlistPanelContinuation.contents)
+    .map(parseTrackInfoPlaylistItems)
+    .compact()
+    .value();
+  return {
+    originalData: playlistPanelContinuation,
+    items,
+  } as YTPlaylistPanelContinuation;
 }
 
 // TODO: Outsource to ElementData?
@@ -156,6 +175,8 @@ function parseTrackInfoPlaylistItems(
       durationSeconds: item.duration.seconds,
       author: {name: item.author},
     } as YTPlaylistPanelItem;
+  } else if (item.is(YTNodes.AutomixPreviewVideo)) {
+    // TODO: Use Automix item in future?
   } else {
     console.warn("Unknown Track Info Playlist Item: ", item.type);
   }
