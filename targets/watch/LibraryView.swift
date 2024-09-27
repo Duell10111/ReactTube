@@ -18,7 +18,7 @@ struct LibraryView: View {
       }.toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           NavigationLink(destination: MusikPlayer()) {
-              Label("Music", systemImage: "music.note.list")
+              Label("Music", systemImage: "playpause.circle")
             }
         }
       }
@@ -32,8 +32,23 @@ struct LibraryPlaylists: View {
   var body: some View {
     List {
       ForEach(playlists, id: \.id) { playlist in
-        Button(playlist.title ?? "No title") {
-          musicPlayerManager.updatePlaylist(playlist: playlist)
+        NavigationLink(playlist.title ?? "No title") {
+          PlaylistListView(playlist: playlist)
+        }.swipeActions {
+          Button {
+              print("Playing Playlist")
+              checkPlaylist(playlist)
+              musicPlayerManager.updatePlaylist(playlist: playlist)
+          } label: {
+              Label("Play", systemImage: "play.fill")
+          }
+        }.swipeActions(edge: .leading) {
+          Button {
+              print("Checking Playlist")
+              checkPlaylist(playlist)
+          } label: {
+              Label("Check", systemImage: "arrow.clockwise")
+          }
         }
       }
       Button("Refresh") {
@@ -42,7 +57,7 @@ struct LibraryPlaylists: View {
     }.toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         NavigationLink(destination: MusikPlayer()) {
-            Label("Music", systemImage: "music.note.list")
+            Label("Music", systemImage: "playpause.circle")
           }
       }
     }
@@ -54,12 +69,15 @@ struct LibraryVideos: View {
   @Environment(DownloadManager.self) private var downloadManager: DownloadManager
   @Query(sort: \Video.title, order: .reverse) var videos: [Video]
   
-//  let formatter = NumberFormatter()
-//  formatter.numberStyle = .percent
-//  formatter.minimumIntegerDigits = 1
-//  formatter.maximumIntegerDigits = 1
-//  formatter.maximumFractionDigits = 3
-//  formatter.minimumFractionDigits = 3
+  let formatter: NumberFormatter = {
+          let formatter = NumberFormatter()
+          formatter.numberStyle = .percent
+          formatter.minimumIntegerDigits = 1
+          formatter.maximumIntegerDigits = 1
+          formatter.maximumFractionDigits = 2
+          formatter.minimumFractionDigits = 2
+          return formatter
+  }()
   
   var body: some View {
     List {
@@ -83,7 +101,7 @@ struct LibraryVideos: View {
                 }
               }
               if let videoDownload = downloadManager.progressDownloads[video.id] {
-                ProgressView(value: videoDownload)  { Text("\(videoDownload)%  progress") }
+                ProgressView(value: videoDownload)  { Text("\(formatter.string(from: NSNumber(value: videoDownload)) ?? String(videoDownload))  progress").font(.system(size: 12)) }
               }
             }
           }

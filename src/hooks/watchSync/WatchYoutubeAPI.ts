@@ -1,16 +1,17 @@
-import {useYoutubeContext} from "../../context/YoutubeContext";
+import Logger from "../../utils/Logger";
+
+import {useYoutubeContext} from "@/context/YoutubeContext";
 import {
   parseObservedArray,
   parseObservedArrayHorizontalData,
-} from "../../extraction/ArrayExtraction";
-import {gridCalculatorExtract} from "../../extraction/ShelfExtraction";
-import {ElementData, YTPlaylist, YTVideoInfo} from "../../extraction/Types";
+} from "@/extraction/ArrayExtraction";
+import {gridCalculatorExtract} from "@/extraction/ShelfExtraction";
+import {ElementData, YTPlaylist, YTVideoInfo} from "@/extraction/Types";
 import {
   getElementDataFromVideoInfo,
   getElementDataFromYTMusicPlaylist,
   getElementDataFromYTPlaylist,
-} from "../../extraction/YTElements";
-import Logger from "../../utils/Logger";
+} from "@/extraction/YTElements";
 
 const LOGGER = Logger.extend("WATCH_YT_API");
 
@@ -31,6 +32,7 @@ interface YoutubeVideoResponse {
   type: "videoResponse";
   id: string;
   title: string;
+  artist: string;
   duration: number;
   streamURL: string;
   downloadURL: string; // Workaround to always use mp4 stream for downloads
@@ -48,7 +50,7 @@ interface YoutubePlaylistResponse {
   id: string;
   title: string;
   coverUrl: string;
-  videoIds: string[];
+  videos: PlaylistVideoItem[];
 }
 
 interface YoutubeLibraryPlaylistRequest {
@@ -79,7 +81,14 @@ interface YoutubeHomeResponsePlaylistItem {
   id: string;
   temp?: boolean;
   title: string;
-  videoIds: string[];
+  videos: PlaylistVideoItem[];
+  videoIds?: string[];
+  coverUrl: string;
+}
+
+interface PlaylistVideoItem {
+  id: string;
+  title: string;
   coverUrl: string;
 }
 
@@ -101,6 +110,7 @@ export async function handleWatchMessage(
   if (request.request === "video") {
     const ytInfo = await youtube.getInfo(request.videoId, "IOS");
     const info = getElementDataFromVideoInfo(ytInfo);
+    // TODO: Fetch from music endpoint?
 
     const format = ytInfo.chooseFormat({type: "audio"});
     console.log("Format: ", format);
@@ -124,7 +134,7 @@ export async function handleWatchMessage(
     const videoIds = pItems.map(value => value.id);
     console.log("VideoIDs : ", videoIds);
 
-    return toPlaylistResponse(ytInfo, request.playlistId, videoIds);
+    return toPlaylistResponse(ytInfo, request.playlistId);
   } else if (request.request === "home") {
     const home = await youtube.music.getHomeFeed();
     const data = parseObservedArrayHorizontalData(home.sections);
@@ -176,7 +186,7 @@ export async function handleWatchMessage(
             .map(v => v.id);
           // TODO: Create Playlist object which allows continuation, with caching?
           if (ids.length > 0) {
-            return toPlaylistResponse(data, playlist.id, ids);
+            return toPlaylistResponse(data, playlist.id);
           }
         }),
       )
@@ -202,6 +212,7 @@ function toVideoResponse(
     type: "videoResponse",
     id: videoInfo.id,
     title: videoInfo.title,
+    artist: videoInfo.author.name,
     duration: duration_ms,
     coverUrl: videoInfo.thumbnailImage.url,
     streamURL,
@@ -211,18 +222,24 @@ function toVideoResponse(
 }
 
 // TODO: Additionally pass ElementsData for more information?
-function toPlaylistResponse(
-  playlistInfo: YTPlaylist,
-  id: string,
-  videoIds: string[],
-) {
+function toPlaylistResponse(playlistInfo: YTPlaylist, id: string) {
   console.log("YTPLAYLIST: ", playlistInfo);
   console.log("YTPLAYLISTThumb: ", playlistInfo.thumbnailImage);
+
+  const videos = playlistInfo.items.map(
+    value =>
+      ({
+        id: value.id,
+        title: value.title,
+        coverUrl: value.thumbnailImage.url,
+      }) as PlaylistVideoItem,
+  );
+
   return {
     type: "playlistResponse",
     id,
     title: playlistInfo.title,
-    videoIds,
+    videos,
     coverUrl: playlistInfo.thumbnailImage?.url,
   } as YoutubePlaylistResponse;
 }

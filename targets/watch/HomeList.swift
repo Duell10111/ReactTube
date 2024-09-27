@@ -13,6 +13,7 @@ struct HomeList: View {
   
     var body: some View {
       List {
+        HomeSectionList()
         Button("Fetch video") {
           requestVideo(id: "0nsawcTwebQ")
         }
@@ -31,7 +32,7 @@ struct HomeList: View {
       }.toolbar {
           ToolbarItem(placement: .topBarTrailing) {
             NavigationLink(destination: MusikPlayer()) {
-                Label("Music", systemImage: "music.note.list")
+                Label("Music", systemImage: "playpause.circle")
               }
           }
       }

@@ -11,22 +11,38 @@ struct PlaylistView: View {
     @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
     
     var body: some View {
+      ScrollViewReader { proxy in
         List {
+          Button("Scroll") {
+            proxy.scrollTo(musicManager.trackIndex)
+          }
           ForEach(Array(musicManager.playerPlaylistItems.enumerated()), id: \.self.element.id) { (index, video) in
             HStack {
-              Text(video.title ?? "Track \(index + 1)")
-                Spacer()
-                if index == musicManager.trackIndex {
-                    Image(systemName: "play.fill")
-                }
+              Button(video.title ?? "Track \(index + 1)") {
+                musicManager.jumpToIndex(index)
+              }
+              Spacer()
+              if index == musicManager.trackIndex {
+                Image(systemName: "play.fill")
+              }
             }
-            .padding()
             .background(index == musicManager.trackIndex ? Color.blue.opacity(0.3) : Color.clear)
             .cornerRadius(8)
-            }
-//            .onMove(perform: move)
+            .id(index)
+          }
+          //            .onMove(perform: move)
         }
-        .navigationBarTitle("Playlist")
+        .navigationBarTitle("Music Queue")
+        .toolbar {
+          ToolbarItem(placement: .topBarTrailing) {
+            Button {
+              proxy.scrollTo(musicManager.trackIndex)
+            } label: {
+              Label("Current Item", systemImage: "arrow.down.app")
+            }
+          }
+        }
+      }
     }
     
     func move(from source: IndexSet, to destination: Int) {
