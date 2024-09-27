@@ -83,13 +83,14 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
     }
     if let fURL = fileURL {
       video.fileURL = fURL
+      video.durationMillis = duration
     }
 //    if let d = duration {
 //      video.
 //    }
     if let vUntil = validUntil, let sURL = streamURL {
       video.validUntil = vUntil
-      video.streamURL = streamURL
+      video.streamURL = sURL
     }
 
     if let cURL = coverURL {
@@ -175,7 +176,31 @@ func addPlaylistData(_ modelContext: ModelContext, id: String, title: String? = 
   }
 }
 
-func addHomeScreenElement(_ modelContext: ModelContext, type: String, videoID: String?, playlistID: String?) -> HomeScreenElement? {
+func addHomeScreenSection(_ modelContext: ModelContext, title: String, date: Date) -> HomeScreenSection? {
+  do {
+    let descriptor = FetchDescriptor<HomeScreenSection>(
+      predicate: #Predicate { $0.title == title }
+        )
+    let contents = try modelContext.fetch(descriptor)
+
+    let existingEntry = !contents.isEmpty
+
+    let homeScreenElement = contents.first ?? HomeScreenSection(uuid: UUID().uuidString, title: title)
+    
+    homeScreenElement.date = date
+
+    if !existingEntry {
+      modelContext.insert(homeScreenElement)
+    }
+    
+    return homeScreenElement
+  } catch {
+    print("Error inserting HomeScreenSection: \(error)")
+  }
+  return nil
+}
+
+func addHomeScreenElement(_ modelContext: ModelContext, videoID: String?, playlistID: String?) -> HomeScreenElement? {
   if let id = videoID ?? playlistID {
     do {
       let descriptor = FetchDescriptor<HomeScreenElement>(
@@ -230,6 +255,18 @@ func checkVideosForExpiration(_ videos: [Video]) {
   }
 }
 
+func checkPlaylist(_ playlist: Playlist) {
+  let ids = playlist.videoIDs.filter { id in
+    !playlist.videos.contains { video in
+      video.id == id && (video.downloaded || (video.validUntil != nil && video.validUntil! > Date()))
+    }
+  }
+  print("Fetching Playlist Ids: \(ids)")
+  ids.forEach { id in
+    requestVideo(id: id)
+  }
+}
+
 func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
   if backupFile.videos.isEmpty {
     print("No Videos available")
@@ -271,9 +308,13 @@ func clearDatabase(modelContext: ModelContext) {
   do {
       try modelContext.delete(model: Video.self)
       try modelContext.delete(model: Playlist.self)
+      try modelContext.delete(model: HomeScreenSection.self)
       try modelContext.delete(model: HomeScreenElement.self)
-      try FileManager.default.removeItem(at: getDownloadDirectory())
+    
+      if FileManager.default.fileExists(atPath: getDownloadDirectory().path()) {
+        try FileManager.default.removeItem(at: getDownloadDirectory())
+      }
   } catch {
-      print("Failed to clear all Video and Playlist data.")
+      print("Failed to clear all Video and Playlist data. \(error)")
   }
 }

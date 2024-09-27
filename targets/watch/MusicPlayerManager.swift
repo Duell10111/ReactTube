@@ -49,11 +49,22 @@ class MusicPlayerManager {
     self.setupPlayer()
   }
 
-  func updatePlaylist(playlist: Playlist) {
+  func updatePlaylist(playlist: Playlist, index: Int? = nil) {
     queue.async {
       self.playlistManager.setPlaylist(playlist)
-
+      
       self.setupPlayer()
+      
+      if let index = index {
+        self.trackIndex = index
+        self.currentTrackIndex = index
+        // TODO: Could not work if index changes when elements not available, maybe better map to id
+        do {
+          try self.player?.jumpToItem(atIndex: index)
+        } catch {
+          print("Error jumping to init index: \(error)")
+        }
+      }
     }
   }
 
@@ -140,6 +151,7 @@ class MusicPlayerManager {
     currentTitle = item?.getTitle() ?? "Unknown Title"
     if let i = index {
       currentTrackIndex = i
+      trackIndex = i
     }
   }
 
@@ -213,6 +225,14 @@ class MusicPlayerManager {
   // TODO: Fix this to make it more stable!!!
   func previousTrack() {
       player?.previous()
+  }
+  
+  func jumpToIndex(_ index: Int) {
+    do {
+      try player?.jumpToItem(atIndex: index)
+    } catch {
+      print("Failed to jump to index: \(error)")
+    }
   }
 
   // TODO: Add move playlist option

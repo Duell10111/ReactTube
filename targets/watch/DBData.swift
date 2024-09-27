@@ -37,6 +37,9 @@ final class Playlist {
     var videoIDs: [String] = []
     var videos = [Video]()
     var temp: Bool?
+    // TODO: Add download indicator?
+    // If set videos should be checked if downloaded
+    //var download: Bool?
 
     init(id: String, title: String? = nil) {
         self.id = id

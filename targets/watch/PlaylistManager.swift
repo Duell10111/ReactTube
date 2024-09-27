@@ -19,7 +19,7 @@ class PlaylistManager {
 
   }
 
-  func setPlaylist(_ playlist: Playlist?, videos: [Video]? = nil) {
+  func setPlaylist(_ playlist: Playlist?, videos: [Video]? = nil, shuffle: Bool = false) {
     if let p = playlist {
       self.playlist = p
       self.videos = p.videos
@@ -30,6 +30,10 @@ class PlaylistManager {
       self.playlistItems = Array(repeating: nil, count: v.count)
     } else {
       print("Setting playlist invalid")
+    }
+    
+    if shuffle {
+      self.videos?.shuffle()
     }
   }
 
