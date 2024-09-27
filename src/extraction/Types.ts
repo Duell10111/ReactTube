@@ -1,3 +1,5 @@
+import {PlaylistPanelContinuation} from "youtubei.js";
+
 import {Helpers, Misc, YT, YTMusic, YTNodes} from "../utils/Youtube";
 
 import {HorizontalData} from "@/extraction/ShelfExtraction";
@@ -138,7 +140,13 @@ export interface YTTrackInfo {
 }
 
 export interface YTPlaylistPanel {
+  originalData: YTNodes.PlaylistPanel;
   title?: string;
+  items: YTPlaylistPanelItem[];
+}
+
+export interface YTPlaylistPanelContinuation {
+  originalData: PlaylistPanelContinuation;
   items: YTPlaylistPanelItem[];
 }
 
