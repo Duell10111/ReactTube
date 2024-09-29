@@ -14,6 +14,8 @@ class DownloadManager {
 
   var activeDownloads : [ActiveDownload] = []
   var progressDownloads: [String: Double] = [:]
+  
+  // TODO: Add function to download Playlist?
 
   func downloadVideo(video: Video) {
     if let streamURL = video.downloadURL, let date = video.validUntil, let uri = URL(string: streamURL) {

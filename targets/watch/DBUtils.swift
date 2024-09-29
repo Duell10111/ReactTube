@@ -246,24 +246,30 @@ func addHomeScreenElement(_ modelContext: ModelContext, videoID: String?, playli
   return nil
 }
 
+let queue = DispatchQueue(label: "db.utils.queue")
+
 func checkVideosForExpiration(_ videos: [Video]) {
-  for video in videos {
-    if let validUntil = video.validUntil, validUntil < Date() {
-      print("Refetch expired videoID")
-      requestVideo(id: video.id)
+  queue.async {
+    for video in videos {
+      if let validUntil = video.validUntil, validUntil < Date() {
+        print("Refetch expired videoID")
+        requestVideo(id: video.id)
+      }
     }
   }
 }
 
 func checkPlaylist(_ playlist: Playlist) {
-  let ids = playlist.videoIDs.filter { id in
-    !playlist.videos.contains { video in
-      video.id == id && (video.downloaded || (video.validUntil != nil && video.validUntil! > Date()))
+  queue.async {
+    let ids = playlist.videoIDs.filter { id in
+      !playlist.videos.contains { video in
+        video.id == id && (video.downloaded || (video.validUntil != nil && video.validUntil! > Date()))
+      }
     }
-  }
-  print("Fetching Playlist Ids: \(ids)")
-  ids.forEach { id in
-    requestVideo(id: id)
+    print("Fetching Playlist Ids: \(ids)")
+    ids.forEach { id in
+      requestVideo(id: id)
+    }
   }
 }
 

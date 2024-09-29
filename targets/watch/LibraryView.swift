@@ -27,38 +27,59 @@ struct LibraryView: View {
 
 struct LibraryPlaylists: View {
   @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
-  @Query(sort: \Playlist.title, order: .reverse) var playlists: [Playlist]
+  @Query(filter: #Predicate<Playlist> { playlist in
+    playlist.temp == false || playlist.temp == nil
+  }, sort: \Playlist.title, order: .forward) var playlists: [Playlist]
+  @Query(filter: #Predicate<Playlist> { playlist in
+    playlist.temp == true
+  }, sort: \Playlist.title, order: .forward) var tempPlaylists: [Playlist]
   
   var body: some View {
     List {
-      ForEach(playlists, id: \.id) { playlist in
-        NavigationLink(playlist.title ?? "No title") {
-          PlaylistListView(playlist: playlist)
-        }.swipeActions {
-          Button {
-              print("Playing Playlist")
-              checkPlaylist(playlist)
-              musicPlayerManager.updatePlaylist(playlist: playlist)
-          } label: {
-              Label("Play", systemImage: "play.fill")
-          }
-        }.swipeActions(edge: .leading) {
-          Button {
-              print("Checking Playlist")
-              checkPlaylist(playlist)
-          } label: {
-              Label("Check", systemImage: "arrow.clockwise")
-          }
+      Section("Own Playlists") {
+        ForEach(playlists, id: \.id) { playlist in
+          LibraryPlaylistListItem(playlist: playlist)
+        }
+        Button("Refresh") {
+          requestLibraryPlaylists()
         }
       }
-      Button("Refresh") {
-        requestLibraryPlaylists()
+      Section("Temp Playlists") {
+        ForEach(tempPlaylists, id: \.id) { playlist in
+          LibraryPlaylistListItem(playlist: playlist)
+        }
       }
     }.toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         NavigationLink(destination: MusikPlayer()) {
-            Label("Music", systemImage: "playpause.circle")
-          }
+          Label("Music", systemImage: "playpause.circle")
+        }
+      }
+    }
+  }
+}
+
+struct LibraryPlaylistListItem: View {
+  @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
+  var playlist: Playlist
+  
+  var body: some View {
+    NavigationLink(playlist.title ?? "No title") {
+      PlaylistListView(playlist: playlist)
+    }.swipeActions {
+      Button {
+          print("Playing Playlist")
+          checkPlaylist(playlist)
+          musicPlayerManager.updatePlaylist(playlist: playlist)
+      } label: {
+          Label("Play", systemImage: "play.fill")
+      }
+    }.swipeActions(edge: .leading) {
+      Button {
+          print("Checking Playlist")
+          checkPlaylist(playlist)
+      } label: {
+          Label("Check", systemImage: "arrow.clockwise")
       }
     }
   }

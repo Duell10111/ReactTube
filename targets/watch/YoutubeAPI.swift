@@ -91,7 +91,7 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestV
     } else if let videos = videos {
       videos.forEach { video in
         if let id = video["id"] as? String, let title = video["title"] as? String, let coverURL = video["coverUrl"] as? String {
-          addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, coverURL: coverURL)
+          addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, validUntil: Date(), coverURL: coverURL)
           print("Saving Playlist Video ID: \(id)")
         } else {
           print("Playlist VideoData incomplete")
