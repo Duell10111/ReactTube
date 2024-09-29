@@ -35,15 +35,15 @@ export default function useWatchSync() {
         handleWatchMessage(innertube, messageFromWatch.payload)
           .catch(console.warn)
           .then(async response => {
-            const ytResponse = {
-              type: "youtubeAPI",
-              payload: response,
-            };
-            LOGGER.debug(
-              "Sending WATCH YT API response: ",
-              JSON.stringify(ytResponse, null, 2),
-            );
-            await sendMessage(ytResponse);
+            if (Array.isArray(response)) {
+              await Promise.all(
+                response.map(res => {
+                  sendYTAPIMessage(res);
+                }),
+              );
+            } else if (response) {
+              await sendYTAPIMessage(response);
+            }
           })
           .catch(console.warn);
       }
@@ -68,6 +68,18 @@ export default function useWatchSync() {
   }, []);
 
   return {upload};
+}
+
+async function sendYTAPIMessage(response: any) {
+  const ytResponse = {
+    type: "youtubeAPI",
+    payload: response,
+  };
+  LOGGER.debug(
+    "Sending WATCH YT API response: ",
+    JSON.stringify(ytResponse, null, 2),
+  );
+  await sendMessage(ytResponse);
 }
 
 async function sendDownloadDB(videos: ReturnType<typeof useVideos>) {

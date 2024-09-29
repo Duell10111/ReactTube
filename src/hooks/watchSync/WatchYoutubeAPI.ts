@@ -192,10 +192,7 @@ export async function handleWatchMessage(
       )
     ).filter(v => v);
 
-    return {
-      type: "library-playlists",
-      playlists: libraryPlaylists,
-    } as YoutubeLibraryPlaylistResponse;
+    return libraryPlaylists;
   }
 }
 

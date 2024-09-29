@@ -13,15 +13,23 @@ struct SettingsScreen: View {
     @Query(sort: \Video.title) var videos: [Video]
     
     var body: some View {
-      Button("Delete Downloads") {
-        clearDownloads(modelContext: modelContext)
-      }
-      Button("DELETE Database!") {
-        clearDatabase(modelContext: modelContext)
-      }
-      Spacer()
-      Button("Check Videos") {
-        checkVideosForExpiration(videos)
+      List {
+        Section("Dev Tools") {
+          NavigationLink("Dev Tests") {
+            DevTests()
+          }
+          Button("Check Videos") {
+            checkVideosForExpiration(videos)
+          }
+        }
+        Section("DESTRUCTIVE") {
+          Button("Delete Downloads") {
+            clearDownloads(modelContext: modelContext)
+          }
+          Button("DELETE Database!") {
+            clearDatabase(modelContext: modelContext)
+          }
+        }
       }
     }
 }
