@@ -66,7 +66,7 @@ func removeURLPrefix(url: String, prefix: String) -> String {
 }
 
 // TODO: Rename to VideoData?
-func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, downloaded: Bool? = nil, duration: Int, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil) {
+func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, artist: String? = nil, downloaded: Bool? = nil, duration: Int, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil) {
 
   do {
     let descriptor = FetchDescriptor<Video>(
@@ -81,13 +81,16 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
     if let d = downloaded {
       video.downloaded = d
     }
+    
+    if let artist = artist {
+      video.artist = artist
+    }
+    
     if let fURL = fileURL {
       video.fileURL = fURL
       video.durationMillis = duration
     }
-//    if let d = duration {
-//      video.
-//    }
+    
     if let vUntil = validUntil, let sURL = streamURL {
       video.validUntil = vUntil
       video.streamURL = sURL
@@ -295,9 +298,10 @@ func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
 func clearDownloads(modelContext: ModelContext) {
   do {
     SDDownloadManager.shared.cancelAllDownloads()
-    try FileManager.default.removeItem(at: getDownloadDirectory())
+    if FileManager.default.fileExists(atPath: getDownloadDirectory().path()) {
+      try FileManager.default.removeItem(at: getDownloadDirectory())
+    }
 
-    let batchSize = 1000
     let descriptor = FetchDescriptor<Video>()
     let videos = try modelContext.fetch(descriptor)
 
@@ -305,8 +309,15 @@ func clearDownloads(modelContext: ModelContext) {
       video.downloaded = false
       video.fileURL = nil
     }
+    
+    let playlistDescriptor = FetchDescriptor<Playlist>()
+    let playlists = try modelContext.fetch(playlistDescriptor)
+    
+    for playlist in playlists {
+      playlist.download = false
+    }
   } catch {
-    print("Failed to clear all Downloads data.")
+    print("Failed to clear all Downloads data. \(error)")
   }
 }
 

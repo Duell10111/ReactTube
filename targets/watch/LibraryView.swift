@@ -64,9 +64,14 @@ struct LibraryPlaylistListItem: View {
   var playlist: Playlist
   
   var body: some View {
-    NavigationLink(playlist.title ?? "No title") {
+    NavigationLink {
       PlaylistListView(playlist: playlist)
-    }.swipeActions {
+    } label: {
+      Text(playlist.title ?? "No title")
+        .tint(playlist.download == true ? .blue : nil)
+    }
+    .listRowBackground(playlist.download == true ? Color.blue : nil)
+    .swipeActions {
       Button {
           print("Playing Playlist")
           checkPlaylist(playlist)
@@ -81,6 +86,12 @@ struct LibraryPlaylistListItem: View {
       } label: {
           Label("Check", systemImage: "arrow.clockwise")
       }
+      Button {
+        DownloadManager.shared.downloadPlaylist(playlist)
+      } label: {
+        Label("Download", systemImage: "arrow.down")
+      }
+      .tint(.blue)
     }
   }
 }
