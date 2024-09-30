@@ -19,6 +19,7 @@ import BackgroundWrapper from "./src/utils/BackgroundWrapper";
 
 import {DownloaderContext} from "@/context/DownloaderContext";
 import {MusicPlayerContext} from "@/context/MusicPlayerContext";
+import {PlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import {setupMusicPlayer} from "@/utils/music/MusicInit";
 
 // Polyfill for youtube.js
@@ -42,14 +43,18 @@ const App = () => {
             <YoutubeContextProvider>
               <AccountContextProvider>
                 <DownloaderContext>
-                  <MusicPlayerContext>
-                    <StatusBar
-                      // TODO: Currently only dark-mode exists
-                      barStyle={isDarkMode ? "light-content" : "light-content"}
-                    />
-                    <Navigation />
-                    <FlashMessage position={"top"} />
-                  </MusicPlayerContext>
+                  <PlaylistManagerContext>
+                    <MusicPlayerContext>
+                      <StatusBar
+                        // TODO: Currently only dark-mode exists
+                        barStyle={
+                          isDarkMode ? "light-content" : "light-content"
+                        }
+                      />
+                      <Navigation />
+                      <FlashMessage position={"top"} />
+                    </MusicPlayerContext>
+                  </PlaylistManagerContext>
                 </DownloaderContext>
               </AccountContextProvider>
             </YoutubeContextProvider>

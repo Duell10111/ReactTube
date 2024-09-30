@@ -10,6 +10,7 @@ import TrackPlayer, {
   Capability,
   Event,
   Track,
+  TrackType,
   useTrackPlayerEvents,
 } from "react-native-track-player";
 
@@ -18,6 +19,8 @@ import Logger from "../utils/Logger";
 import {Innertube, YTNodes} from "../utils/Youtube";
 
 import {useAppData} from "@/context/AppDataContext";
+import {findVideo} from "@/downloader/DownloadDatabaseOperations";
+import {Video} from "@/downloader/schema";
 import {
   VideoData,
   YTPlaylist,
@@ -29,6 +32,7 @@ import {
   parseTrackInfoPlaylist,
   parseTrackInfoPlaylistContinuation,
 } from "@/extraction/YTElements";
+import {getAbsoluteVideoURL} from "@/hooks/downloader/useDownloadProcessor";
 
 type PlayType = "Audio" | "Video";
 
@@ -36,6 +40,7 @@ interface MusicPlayerContextType {
   addPlaylist: (playlist: YTPlaylist) => void;
   setCurrentItem: (item: VideoData) => void;
   setPlaylistViaEndpoint: (endpoint: YTNodes.NavigationEndpoint) => void;
+  setPlaylistViaLocalDownload: (id: string) => void;
   currentItem?: YTTrackInfo;
   playlist?: YTPlaylistPanel;
   currentTime: SharedValue<number>;
@@ -209,6 +214,20 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       .catch(LOGGER.warn);
   };
 
+  const setPlaylistViaLocalDownload = async (id: string) => {
+    const localVideos = await findVideo(id);
+
+    if (localVideos[0]) {
+      const track = localVideoToTrack(localVideos[0]);
+      LOGGER.warn(track);
+      TrackPlayer.load(track)
+        .then(() => {
+          TrackPlayer.play().catch(LOGGER.warn);
+        })
+        .catch(LOGGER.warn);
+    }
+  };
+
   const onEndReached = async () => {
     if (playlist) {
       const currentIndex = playlist.items.findIndex(
@@ -288,6 +307,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         currentItem: currentVideoData,
         setCurrentItem: setCurrentPlaylist,
         setPlaylistViaEndpoint,
+        setPlaylistViaLocalDownload,
         duration,
         currentTime,
         playlist,
@@ -324,5 +344,14 @@ function videoInfoToTrack(videoInfo: YTTrackInfo) {
     artist: videoInfo.author?.name,
     artwork: videoInfo.thumbnailImage.url,
     type: "hls",
+  } as Track;
+}
+
+function localVideoToTrack(video: Video) {
+  return {
+    id: video.id,
+    url: getAbsoluteVideoURL(video.fileUrl),
+    title: video.name,
+    type: TrackType.Default,
   } as Track;
 }
