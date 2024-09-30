@@ -1,5 +1,5 @@
-import {Helpers, YTNodes} from "../utils/Youtube";
 import Logger from "../utils/Logger";
+import {Helpers, YTNodes} from "../utils/Youtube";
 
 const LOGGER = Logger.extend("KEYEXTRACT");
 
@@ -23,6 +23,8 @@ export function extractKeyNode(node: Helpers.YTNode): string {
     return node.title.text ?? "empty-title-reel";
   } else if (node.is(YTNodes.RecognitionShelf)) {
     return node.title.text ?? "empty-title-recognition-shelf";
+  } else if (node.is(YTNodes.ShortsLockupView)) {
+    return node.entity_id;
   } else if (
     node.is(
       YTNodes.PlaylistVideoList,

@@ -120,6 +120,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
         thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
         music: true,
         author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
+        videoCount: ytNode.item_count,
         // TODO: Add Autor
       } as PlaylistData;
     } else if (ytNode.item_type === "song" || ytNode.item_type === "video") {
@@ -252,6 +253,21 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       title: author.name,
       thumbnailImage: author.thumbnail,
     } as ChannelData;
+  }
+  // TODO: Maybe outsource in other file
+  // Lookup Views
+  else if (ytNode.is(YTNodes.LockupView)) {
+    if (ytNode.content_type === "PLAYLIST") {
+      return {
+        type: "playlist",
+        originalNode: ytNode,
+        id: ytNode.content_id,
+        thumbnailImage: getThumbnail(
+          ytNode.content_image.primary_thumbnail.image[0],
+        ),
+        title: ytNode.metadata.title.text ?? "Unknown Playlist title",
+      } as PlaylistData;
+    }
   }
   // Recursive Section
   else if (ytNode.is(YTNodes.RichItem)) {
