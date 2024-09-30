@@ -8,8 +8,19 @@
 import SwiftUI
 
 struct PlaylistListView: View {
+    @Environment(DownloadManager.self) private var downloadManager: DownloadManager
     @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
     var playlist: Playlist
+  
+    let formatter: NumberFormatter = {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .percent
+            formatter.minimumIntegerDigits = 1
+            formatter.maximumIntegerDigits = 3
+            formatter.maximumFractionDigits = 2
+            formatter.minimumFractionDigits = 2
+            return formatter
+    }()
   
     var body: some View {
       List {
@@ -18,14 +29,25 @@ struct PlaylistListView: View {
             print("Playlist: ", playlist.videoIDs)
             musicPlayerManager.updatePlaylist(playlist: playlist, index: index)
           } label: {
-            HStack {
-              Text(video.title ?? "Unknown title")
-              if let validUntil = video.validUntil, validUntil < Date() && video.downloaded != true {
-                Spacer()
-                Image(systemName: "clock.badge.exclamationmark")
-                  .foregroundColor(.red)
+            VStack {
+              HStack {
+                Text(video.title ?? "Unknown title")
+                if let validUntil = video.validUntil, validUntil < Date() && video.downloaded != true {
+                  Spacer()
+                  Image(systemName: "clock.badge.exclamationmark")
+                    .foregroundColor(.red)
+                }
+              }
+              if video.downloaded {
+                HStack {
+                  Label("Downloaded", systemImage: "arrow.down.circle")
+                }
+              }
+              if let videoDownload = downloadManager.progressDownloads[video.id] {
+                ProgressView(value: videoDownload)  { Text("\(formatter.string(from: NSNumber(value: videoDownload)) ?? String(videoDownload))  progress").font(.system(size: 12)) }
               }
             }
+            .listRowBackground(video.downloaded == true ? Color.blue : nil)
           }
         }
       }

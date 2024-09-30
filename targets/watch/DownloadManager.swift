@@ -15,7 +15,20 @@ class DownloadManager {
   var activeDownloads : [ActiveDownload] = []
   var progressDownloads: [String: Double] = [:]
   
+  var pendingDownloads: Set<Video> = []
+  
   // TODO: Add function to download Playlist?
+  
+  func downloadPlaylist(_ playlist: Playlist) {
+    print("Downloading playlist \(playlist.id)")
+    playlist.download = true
+    playlist.videos.filter { video in
+      video.downloaded == false
+    }.forEach { video in
+      pendingDownloads.insert(video)
+    }
+    checkDownloads()
+  }
 
   func downloadVideo(video: Video) {
     if let streamURL = video.downloadURL, let date = video.validUntil, let uri = URL(string: streamURL) {
@@ -49,6 +62,17 @@ class DownloadManager {
         self.progressDownloads.removeValue(forKey: video.id)
       }
 //      activeDownloads.append(ActiveDownload(id: video.id, session: downloadTask))
+    } else {
+      print("Video metadata not available needed for Download")
+    }
+  }
+  
+  func checkDownloads() {
+    Task(priority: .background) {
+      print("Checking downloads...")
+      pendingDownloads.forEach { video in
+        downloadVideo(video: video)
+      }
     }
   }
 
