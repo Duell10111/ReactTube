@@ -88,6 +88,7 @@ export function gridCalculator(
 
 export function parseHorizontalNode(
   node: Helpers.YTNode,
+  suppressedError?: boolean,
 ): HorizontalData | undefined {
   if (!node) {
     LOGGER.warn("FALSE TYPE PROVIDED!");
@@ -214,7 +215,7 @@ export function parseHorizontalNode(
       music: true,
       shelf: true,
     };
-  } else {
+  } else if (!suppressedError) {
     console.warn("ShelfExtraction: Unknown horizontal type: ", node.type);
   }
 }

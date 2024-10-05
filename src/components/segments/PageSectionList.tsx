@@ -8,42 +8,42 @@ import {
   ViewStyle,
 } from "react-native";
 
-import {useAppStyle} from "../../context/AppStyleContext";
-import {HorizontalData} from "../../extraction/ShelfExtraction";
-import {Helpers} from "../../utils/Youtube";
-import HorizontalVideoList from "../HorizontalVideoList";
+import {HorizontalElementsList} from "@/components/elements/tv/HorizontalElementsList";
+import {useAppStyle} from "@/context/AppStyleContext";
+import {HorizontalData} from "@/extraction/ShelfExtraction";
 
 interface Props {
   headerText?: string;
-  content: Helpers.YTNode[] | HorizontalData;
+  content: HorizontalData;
+  horizontalListContainerStyle?: StyleProp<ViewStyle>;
   horizontalListSegmentStyle?: StyleProp<ViewStyle>;
 }
 
 export default function PageSectionList({
   headerText,
   content,
+  horizontalListContainerStyle,
   horizontalListSegmentStyle,
 }: Props) {
   const {style} = useAppStyle();
 
-  if (Array.isArray(content)) {
-    console.warn("PageSectionList: OLDWAY!");
-  }
-
   return (
     <View style={styles.containerStyle}>
       {/*<View style={styles.border} />*/}
-      <Text
-        style={[
-          styles.textStyle,
-          {color: style.textColor},
-          !Platform.isTV ? {fontSize: 20} : undefined,
-        ]}>
-        {headerText}
-      </Text>
-      <HorizontalVideoList
-        containerStyle={{marginBottom: 0}}
-        nodes={Array.isArray(content) ? content : content.parsedData}
+      {headerText ? (
+        <Text
+          style={[
+            styles.textStyle,
+            {color: style.textColor},
+            !Platform.isTV ? {fontSize: 20} : undefined,
+          ]}>
+          {headerText}
+        </Text>
+      ) : null}
+      <HorizontalElementsList
+        // containerStyle={{marginBottom: 0}}
+        elements={content.parsedData}
+        containerStyle={horizontalListContainerStyle}
         videoSegmentStyle={horizontalListSegmentStyle}
       />
       {/*<View style={styles.border} />*/}
@@ -54,6 +54,10 @@ export default function PageSectionList({
 const styles = StyleSheet.create({
   containerStyle: {
     marginVertical: 0,
+    flex: 1,
+    width: "100%", // Use Full Width when used
+    alignItems: "flex-start",
+    // backgroundColor: "blue",
   },
   textStyle: {
     fontSize: 25,

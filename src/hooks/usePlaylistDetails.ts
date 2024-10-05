@@ -1,49 +1,44 @@
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 
-import {useYoutubeContext} from "../context/YoutubeContext";
-import {getVideoData} from "../extraction/ElementData";
 import Logger from "../utils/Logger";
-import {YTNodes, YT} from "../utils/Youtube";
 
-type PlaylistItems =
-  | YTNodes.Video
-  | YTNodes.CompactVideo
-  | YTNodes.GridVideo
-  | YTNodes.PlaylistPanelVideo
-  | YTNodes.PlaylistVideo
-  | YTNodes.ReelItem
-  | YTNodes.WatchCardCompactVideo;
+import {useYoutubeContext} from "@/context/YoutubeContext";
+import {parseObservedArray} from "@/extraction/ArrayExtraction";
+import {ElementData, YTPlaylist} from "@/extraction/Types";
+import {getElementDataFromYTPlaylist} from "@/extraction/YTElements";
 
 const LOGGER = Logger.extend("PLAYLIST");
 
 export default function usePlaylistDetails(playlistId: string) {
   const youtube = useYoutubeContext();
-  const [playlist, setPlaylist] = useState<YT.Playlist>();
-  const [data, setData] = useState<PlaylistItems[]>([]);
+  const [playlist, setPlaylist] = useState<YTPlaylist>();
+  const [data, setData] = useState<ElementData[]>([]);
 
   useEffect(() => {
     youtube
       ?.getPlaylist(playlistId)
       .then(p => {
-        setPlaylist(p);
-        setData(p.items);
+        setPlaylist(getElementDataFromYTPlaylist(p));
+        setData(parseObservedArray(p.items));
       })
       .catch(LOGGER.warn);
   }, [youtube, playlistId]);
 
-  const parsedData = useMemo(() => {
-    return data.map(getVideoData);
-  }, [data]);
+  // const parsedData = useMemo(() => {
+  //   return data.map(getVideoData);
+  // }, [data]);
 
   const fetchMore = useCallback(async () => {
-    if (playlist?.has_continuation) {
-      const update = await playlist.getContinuation();
-      setPlaylist(update);
-      setData([...data, ...update.items]);
+    if (playlist?.originalData.has_continuation) {
+      const update = await playlist.originalData.getContinuation();
+      setPlaylist(getElementDataFromYTPlaylist(update));
+      setData([...data, ...parseObservedArray(update.items)]);
     } else {
       LOGGER.warn("No Continuation available");
     }
   }, [playlist, data]);
 
-  return {playlist, data, parsedData, fetchMore};
+  console.log("Playlist data: ", data);
+
+  return {playlist, data, fetchMore};
 }

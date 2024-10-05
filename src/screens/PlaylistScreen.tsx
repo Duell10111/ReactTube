@@ -1,13 +1,17 @@
-import React from "react";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {RootStackParamList} from "../navigation/RootStackNavigator";
+import React from "react";
 import {Platform, Text, View} from "react-native";
+
+import GridView from "../components/GridView";
 import LoadingComponent from "../components/general/LoadingComponent";
+import {useAppStyle} from "../context/AppStyleContext";
 import usePlaylistDetails from "../hooks/usePlaylistDetails";
+import {RootStackParamList} from "../navigation/RootStackNavigator";
 import Logger from "../utils/Logger";
 import {recursiveTypeLogger} from "../utils/YTNodeLogger";
-import {useAppStyle} from "../context/AppStyleContext";
-import GridView from "../components/GridView";
+
+import GridFeedView from "@/components/grid/GridFeedView";
+import PlaylistScreenTV from "@/components/playlists/tv/PlaylistScreen";
 
 const LOGGER = Logger.extend("PLAYLIST");
 
@@ -15,26 +19,37 @@ type Props = NativeStackScreenProps<RootStackParamList, "PlaylistScreen">;
 
 export default function PlaylistScreen({route}: Props) {
   const {playlistId} = route.params;
+
+  if (Platform.isTV) {
+    return <PlaylistScreenTV playlistId={playlistId} />;
+  }
+
   const {playlist, data, fetchMore} = usePlaylistDetails(playlistId);
 
   const {style} = useAppStyle();
 
-  if (!playlist) {
+  LOGGER.debug("Playlist: ", JSON.stringify(playlist));
+
+  if (playlist === undefined) {
     return <LoadingComponent />;
   }
 
-  LOGGER.debug("Playlist: ", recursiveTypeLogger([playlist.page_contents]));
+  // LOGGER.debug("Playlist: ", recursiveTypeLogger([playlist.page_contents]));
 
   return (
     <View style={{margin: Platform.isTV ? 20 : 0, flex: 1}}>
       <Text
         style={[{fontSize: Platform.isTV ? 25 : 20, color: style.textColor}]}>
-        {playlist.info.title}
+        {playlist.title}
       </Text>
       <Text style={{fontSize: Platform.isTV ? 20 : 15, color: style.textColor}}>
-        {playlist.info.last_updated}
+        {playlist.originalData?.info?.last_updated}
       </Text>
-      <GridView shelfItem={data} onEndReached={() => fetchMore()} />
+      <GridFeedView
+        items={data}
+        onEndReached={fetchMore}
+        contentContainerStyle={{paddingBottom: 50}}
+      />
     </View>
   );
 }

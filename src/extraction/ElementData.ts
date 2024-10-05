@@ -37,7 +37,10 @@ export function getVideoDataOfFirstElement(
 
 // TODO: Rename to ElementData
 
-export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
+export function getVideoData(
+  ytNode: Helpers.YTNode,
+  suppressedError?: boolean,
+): ElementData | undefined {
   if (!ytNode) {
     // LOGGER.warn("FALSE TYPE PROVIDED!");
     return undefined;
@@ -89,6 +92,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       originalNode: ytNode,
     } as VideoData;
   } else if (ytNode.is(YTNodes.PlaylistVideo)) {
+    const [views, publishment] = ytNode.video_info.text.split(" • ");
     return {
       type: "video",
       originalNode: ytNode,
@@ -97,6 +101,10 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
       title: ytNode.title.toString(),
       thumbnailImage: getThumbnail(ytNode.thumbnails[0]),
       thumbnailOverlays: parseThumbnailOverlays(ytNode.thumbnail_overlays),
+      duration: ytNode.duration?.text,
+      durationSeconds: ytNode.duration?.seconds,
+      publishDate: publishment,
+      short_views: views,
     } as VideoData;
   } else if (ytNode.is(YTNodes.PlaylistPanelVideo)) {
     return {
@@ -276,7 +284,7 @@ export function getVideoData(ytNode: Helpers.YTNode): ElementData | undefined {
   } else if (ytNode.is(YTNodes.ReelShelf)) {
     LOGGER.debug("ReelShelf Nav Endpoint: ", ytNode.endpoint);
     LOGGER.debug("ReelShelf: ", ytNode.items);
-  } else {
+  } else if (!suppressedError) {
     LOGGER.warn("getVideoData: Unknown type: ", ytNode.type);
   }
 }

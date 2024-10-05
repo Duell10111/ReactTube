@@ -1,13 +1,15 @@
 import React, {useCallback, useMemo} from "react";
-import {ListRenderItem} from "react-native";
+import {ListRenderItem, StyleProp, ViewStyle} from "react-native";
 import {FlatGrid} from "react-native-super-grid";
 
-import VideoSegment from "@/components/VideoSegment";
+import {ElementCard} from "@/components/elements/tv/ElementCard";
 import PageSectionList from "@/components/segments/PageSectionList";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 import {ElementData} from "@/extraction/Types";
 
 interface GridFeedViewProps {
+  style?: StyleProp<ViewStyle>;
+  contentContainerStyle?: StyleProp<ViewStyle>;
   items: (ElementData | HorizontalData)[];
   onEndReached?: () => void;
 }
@@ -17,7 +19,12 @@ interface GridDataItem {
   _fullWidth: boolean;
 }
 
-export default function GridFeedView({items, onEndReached}: GridFeedViewProps) {
+export default function GridFeedView({
+  style,
+  contentContainerStyle,
+  items,
+  onEndReached,
+}: GridFeedViewProps) {
   const data = useMemo(
     () =>
       items.map(item => {
@@ -42,19 +49,31 @@ export default function GridFeedView({items, onEndReached}: GridFeedViewProps) {
     }
     return (
       // <View style={{height: 50, width: 200, backgroundColor: "yellow"}} />
-      <VideoSegment
-        element={item.item as ElementData}
-        // textStyle={textStyle}
-        style={{maxWidth: 100, marginHorizontal: 5}}
-      />
+      // <VideoSegment
+      //   element={item.item as ElementData}
+      //   // textStyle={textStyle}
+      //   style={{
+      //     maxWidth: 100,
+      //     marginHorizontal: 5,
+      //   }}
+      // />
+      <ElementCard element={item.item as ElementData} width={"100%"} />
     );
   }, []);
 
   return (
     <FlatGrid
+      style={[{height: "100%"}, style]}
+      // Maybe add alignItems: "center"
+      contentContainerStyle={[contentContainerStyle]}
+      itemContainerStyle={{
+        // backgroundColor: "yellow",
+        alignItems: "center",
+        justifyContent: "flex-start",
+      }}
       data={data}
       renderItem={renderItem}
-      itemDimension={10}
+      itemDimension={500}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
     />
