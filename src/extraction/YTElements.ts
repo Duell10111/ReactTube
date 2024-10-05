@@ -1,5 +1,4 @@
 import _ from "lodash";
-import {Simulate} from "react-dom/test-utils";
 
 import {getVideoData} from "./ElementData";
 import {getThumbnail} from "./Misc";
@@ -14,12 +13,14 @@ import {
   YTChipCloudChip,
   YTEndscreen,
   YTEndscreenElement,
+  YTMenu,
   YTMusicAlbum,
   YTMusicArtist,
   YTPlaylist,
   YTPlaylistPanel,
   YTPlaylistPanelContinuation,
   YTPlaylistPanelItem,
+  YTToggleButton,
   YTTrackInfo,
   YTVideoInfo,
 } from "./Types";
@@ -28,6 +29,7 @@ import {
   YTNodes,
   YTMusic,
   PlaylistPanelContinuation,
+  Helpers,
 } from "../utils/Youtube";
 
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
@@ -253,6 +255,30 @@ export function getChapterFromData(
   } as YTChapter;
 }
 
+export function parseMenu(menu: YTNodes.Menu) {
+  const top_level_buttons = _.chain(menu.top_level_buttons)
+    .map(parseYTMenuItem)
+    .compact()
+    .value();
+  return {
+    originalData: menu,
+    top_level_buttons,
+  } as YTMenu;
+}
+
+function parseYTMenuItem(node: Helpers.YTNode) {
+  if (node.is(YTNodes.ToggleButton)) {
+    return {
+      originalData: node,
+      isToggled: node.is_toggled,
+      text: node.text.text,
+      toggled_text: node.toggled_text.text,
+      endpoint: node.endpoint,
+      icon_type: node.icon_type,
+    } as YTToggleButton;
+  }
+}
+
 export function parseChipCloud(chipCloud: YTNodes.ChipCloud) {
   return {
     originalData: chipCloud,
@@ -362,12 +388,18 @@ class YTPlaylistClass implements YTPlaylist {
   title: string;
   author?: Author;
 
+  menu?: YTMenu;
+
   constructor(playlist: YT.Playlist) {
     this.originalData = playlist;
     this.items = _.chain(playlist.items).map(getVideoData).compact().value();
     this.thumbnailImage = getThumbnail(playlist.info.thumbnails[0]);
     this.title = playlist.info.title;
     this.author = getAuthor(playlist.info.author);
+
+    this.menu = playlist.menu.is(YTNodes.Menu)
+      ? parseMenu(playlist.menu)
+      : undefined;
   }
 
   async loadMore() {

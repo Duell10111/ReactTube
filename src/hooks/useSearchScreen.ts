@@ -1,9 +1,11 @@
 import _ from "lodash";
-import {useCallback, useReducer, useState} from "react";
+import {useCallback, useMemo, useReducer, useState} from "react";
 
 import {useYoutubeContext} from "../context/YoutubeContext";
 import Logger from "../utils/Logger";
 import {Helpers, YT} from "../utils/Youtube";
+
+import {parseArrayHorizontalAndElement} from "@/extraction/ArrayExtraction";
 
 const LOGGER = Logger.extend("SEARCH");
 
@@ -74,5 +76,15 @@ export default function useSearchScreen() {
     [innerTube],
   );
 
-  return {search, searchResult: searchResults, fetchMore, searchSuggestions};
+  const parsedData = useMemo(() => {
+    return parseArrayHorizontalAndElement(searchResults);
+  }, [searchResults]);
+
+  return {
+    search,
+    searchResult: searchResults,
+    parsedSearchResults: parsedData,
+    fetchMore,
+    searchSuggestions,
+  };
 }

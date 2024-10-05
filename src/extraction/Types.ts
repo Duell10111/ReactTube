@@ -154,6 +154,20 @@ export interface YTPlaylistPanelItem extends VideoData {
   selected: boolean;
 }
 
+export interface YTMenu {
+  originalData: YTNodes.Menu;
+  top_level_buttons: YTToggleButton[];
+}
+
+export interface YTToggleButton {
+  originalData: YTNodes.ToggleButton;
+  icon_type: string;
+  isToggled: boolean;
+  text?: string;
+  toggled_text?: string;
+  endpoint?: YTNodes.NavigationEndpoint;
+}
+
 export interface YTChipCloud {
   originalData: YTNodes.ChipCloud;
   chip_clouds: YTChipCloudChip[];
@@ -234,6 +248,8 @@ export interface YTPlaylist {
   description?: string;
 
   playEndpoint?: YTNodes.NavigationEndpoint;
+
+  menu?: YTMenu;
 
   items: ElementData[];
   loadMore: () => Promise<void>;
