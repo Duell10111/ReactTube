@@ -75,7 +75,7 @@ export function gridCalculator(
     return newArray;
   } else {
     const list = _.chain(content)
-      .map(getVideoData)
+      .map(element => getVideoData(element))
       .filter(v => v !== undefined)
       .chunk(columns)
       .value() as ElementData[][];
@@ -222,7 +222,10 @@ export function parseHorizontalNode(
 
 function extractContent(node: Helpers.YTNode | Helpers.YTNode[]) {
   const content = Array.isArray(node) ? node : extractListContent(node);
-  const parsedData = _.chain(content).map(getVideoData).compact().value();
+  const parsedData = _.chain(content)
+    .map(element => getVideoData(element))
+    .compact()
+    .value();
   return {
     content,
     parsedData,

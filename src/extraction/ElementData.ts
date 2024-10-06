@@ -91,6 +91,16 @@ export function getVideoData(
       type: "reel",
       originalNode: ytNode,
     } as VideoData;
+  } else if (ytNode.is(YTNodes.ShortsLockupView)) {
+    return {
+      id: ytNode.entity_id,
+      title: ytNode.overlay_metadata.primary_text.text,
+      thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
+      short_views: ytNode.overlay_metadata.secondary_text?.text,
+      navEndpoint: ytNode.on_tap_endpoint,
+      type: "reel",
+      originalNode: ytNode,
+    } as VideoData;
   } else if (ytNode.is(YTNodes.PlaylistVideo)) {
     const [views, publishment] = ytNode.video_info.text.split(" • ");
     return {
