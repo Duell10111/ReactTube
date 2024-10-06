@@ -1,10 +1,19 @@
 import React from "react";
-import {Text, View} from "react-native";
-import useSubscriptions from "../hooks/useSubscriptions";
+import {Platform, Text, View} from "react-native";
+
 import GridView from "../components/GridView";
+import useSubscriptions from "../hooks/useSubscriptions";
+
+import GridFeedView from "@/components/grid/GridFeedView";
 
 export default function SubscriptionScreen() {
-  const {content, fetchMore} = useSubscriptions();
+  const {content, parsedContent, fetchMore} = useSubscriptions();
+
+  console.log("Subs: ", parsedContent);
+
+  // if (Platform.isTV) {
+  //   return <GridFeedView items={parsedContent} />;
+  // }
 
   return (
     <View>

@@ -1,7 +1,7 @@
 import _ from "lodash";
 
 import {getVideoData} from "./ElementData";
-import {parseHorizontalNode} from "./ShelfExtraction";
+import {HorizontalData, parseHorizontalNode} from "./ShelfExtraction";
 import {Helpers} from "../utils/Youtube";
 
 export function parseArrayHorizontalAndElement(array: Helpers.YTNode[]) {
@@ -25,14 +25,17 @@ export function parseArrayHorizontalAndElement(array: Helpers.YTNode[]) {
 }
 
 export function parseArray(array: Helpers.YTNode[]) {
-  return _.chain(array).map(getVideoData).compact().value();
+  return _.chain(array)
+    .map(element => getVideoData(element))
+    .compact()
+    .value();
 }
 
 export function parseObservedArray(
   array: Helpers.ObservedArray<Helpers.YTNode>,
 ) {
   return _.chain(Array.from(array.values()))
-    .map(getVideoData)
+    .map(element => getVideoData(element))
     .compact()
     .value();
 }
@@ -41,13 +44,16 @@ export function parseObservedArrayHorizontalData(
   array: Helpers.ObservedArray<Helpers.YTNode>,
 ) {
   return _.chain(Array.from(array.values()))
-    .map(parseHorizontalNode)
+    .map(element => parseHorizontalNode(element))
     .compact()
     .value();
 }
 
 export function parseArrayHorizontalData(array: Helpers.YTNode[]) {
-  return _.chain(array).map(parseHorizontalNode).compact().value();
+  return _.chain(array)
+    .map(element => parseHorizontalNode(element))
+    .compact()
+    .value();
 }
 
 export function parseObservedArrayHorizontalDataFlatMap(

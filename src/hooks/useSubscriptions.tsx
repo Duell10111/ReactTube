@@ -15,7 +15,7 @@ export default function useSubscriptions() {
   //     })
   //     .catch(console.warn);
   // }, []);
-  const {content, contentFetched, fetchMore, setFeed, feed} = useFeedData(y =>
+  const {content, parsedContent, fetchMore, setFeed, feed} = useFeedData(y =>
     y.getSubscriptionsFeed(),
   );
 
@@ -45,5 +45,5 @@ export default function useSubscriptions() {
 
   console.log(content.length);
 
-  return {content, fetchMore};
+  return {content, parsedContent, fetchMore};
 }

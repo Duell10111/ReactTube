@@ -4,8 +4,23 @@ import {Platform, View} from "react-native";
 import GridView from "../components/GridView";
 import useLibrary from "../hooks/useLibrary";
 
+import GridFeedView from "@/components/grid/GridFeedView";
+
 export default function LibraryDrawerItem() {
-  const {content, fetchMore} = useLibrary();
+  const {content, fetchMore, parsedContent} = useLibrary();
+
+  console.log(parsedContent);
+
+  if (Platform.isTV) {
+    // Not used atm as new Grid causes lacks
+    // const {onScreenFocused} = useDrawerContext();
+
+    return (
+      // <ShelfVideoSelectorProvider onElementFocused={onScreenFocused}>
+      <GridFeedView items={parsedContent} />
+      // </ShelfVideoSelectorProvider>
+    );
+  }
 
   return (
     <View>

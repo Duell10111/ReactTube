@@ -1,6 +1,7 @@
 import {CommonActions, useNavigation, useRoute} from "@react-navigation/native";
 import {StyleProp, ViewStyle} from "react-native";
 
+import {PlaylistCard} from "@/components/elements/tv/PlaylistCard";
 import {VideoCard} from "@/components/elements/tv/VideoCard";
 import {ElementData} from "@/extraction/Types";
 import {NativeStackProp, RootRouteProp} from "@/navigation/types";
@@ -75,10 +76,34 @@ export function ElementCard({element, ...props}: ElementCardProps) {
     }
   };
 
-  if (element.type === "video" || element.type === "reel") {
+  if (
+    element.type === "video" ||
+    element.type === "reel" ||
+    element.type === "mix"
+  ) {
     return <VideoCard element={element} {...props} onPress={onPress} />;
   } else if (element.type === "channel") {
+  } else if (element.type === "playlist") {
+    return (
+      <PlaylistCard
+        element={element}
+        {...props}
+        onPress={() => {
+          const routeName = element.music
+            ? "MusicPlaylistScreen"
+            : "PlaylistScreen";
+          if (route.name === routeName) {
+            navigation.replace(routeName, {playlistId: element.id});
+          } else {
+            navigation.navigate(routeName, {
+              playlistId: element.id,
+            });
+          }
+        }}
+      />
+    );
   }
+  console.warn("Unknown ElementCard type: ", element.type);
 
   return null;
 }

@@ -3,14 +3,12 @@ import React, {useCallback} from "react";
 import {
   FlatList,
   ListRenderItem,
-  Platform,
   StyleSheet,
-  Text,
+  TVFocusGuideView,
   View,
 } from "react-native";
 
 import LoadingComponent from "@/components/general/LoadingComponent";
-import GridFeedView from "@/components/grid/GridFeedView";
 import {PlaylistHeader} from "@/components/playlists/tv/PlaylistHeader";
 import {PlaylistListItem} from "@/components/playlists/tv/PlaylistListItem";
 import {useAppStyle} from "@/context/AppStyleContext";
@@ -45,16 +43,18 @@ export default function PlaylistScreen({playlistId}: PlaylistScreenProps) {
 
   return (
     <View style={styles.containerStyle}>
-      <PlaylistHeader
-        playlist={playlist}
-        onPlayAllPress={() =>
-          navigation.navigate("VideoScreen", {
-            navEndpoint: data?.[0]?.navEndpoint,
-            videoId: data?.[0]?.id,
-          })
-        }
-      />
-      <View style={{flex: 1}}>
+      <TVFocusGuideView autoFocus style={styles.headerPartStyle}>
+        <PlaylistHeader
+          playlist={playlist}
+          onPlayAllPress={() =>
+            navigation.navigate("VideoScreen", {
+              navEndpoint: data?.[0]?.navEndpoint,
+              videoId: data?.[0]?.id,
+            })
+          }
+        />
+      </TVFocusGuideView>
+      <TVFocusGuideView autoFocus style={styles.itemsPartStyle}>
         <FlatList
           contentContainerStyle={{paddingVertical: 100}}
           data={data}
@@ -62,7 +62,7 @@ export default function PlaylistScreen({playlistId}: PlaylistScreenProps) {
           onEndReached={fetchMore}
           onEndReachedThreshold={0.7}
         />
-      </View>
+      </TVFocusGuideView>
     </View>
   );
 }
@@ -73,5 +73,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     // backgroundColor: "red",
     alignItems: "center",
+  },
+  headerPartStyle: {
+    flex: 1,
+  },
+  itemsPartStyle: {
+    flex: 1,
+    height: "100%",
+    justifyContent: "center",
   },
 });

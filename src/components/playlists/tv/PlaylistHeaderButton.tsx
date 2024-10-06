@@ -1,6 +1,6 @@
 import {Icon, IconType} from "@rneui/base";
 import {useState} from "react";
-import {StyleSheet, Text, TouchableHighlight, View} from "react-native";
+import {Pressable, StyleSheet, Text, View} from "react-native";
 
 import {useAppStyle} from "@/context/AppStyleContext";
 
@@ -21,7 +21,7 @@ export function PlaylistHeaderButton({
   const [focus, setFocus] = useState(false);
 
   return (
-    <TouchableHighlight
+    <Pressable
       style={[
         styles.container,
         {backgroundColor: focus ? "#888888" : undefined},
@@ -33,7 +33,7 @@ export function PlaylistHeaderButton({
         <Icon name={iconName} type={iconType} color={"white"} />
         <Text style={[styles.textStyle, {color: style.textColor}]}>{text}</Text>
       </View>
-    </TouchableHighlight>
+    </Pressable>
   );
 }
 
