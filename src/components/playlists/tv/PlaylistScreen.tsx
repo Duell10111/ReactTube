@@ -24,7 +24,8 @@ interface PlaylistScreenProps {
 }
 
 export default function PlaylistScreen({playlistId}: PlaylistScreenProps) {
-  const {playlist, data, fetchMore} = usePlaylistDetails(playlistId);
+  const {playlist, data, fetchMore, liked, togglePlaylistLike} =
+    usePlaylistDetails(playlistId);
   const navigation = useNavigation<NativeStackProp>();
 
   const {style} = useAppStyle();
@@ -46,12 +47,14 @@ export default function PlaylistScreen({playlistId}: PlaylistScreenProps) {
       <TVFocusGuideView autoFocus style={styles.headerPartStyle}>
         <PlaylistHeader
           playlist={playlist}
+          saved={liked}
           onPlayAllPress={() =>
             navigation.navigate("VideoScreen", {
               navEndpoint: data?.[0]?.navEndpoint,
               videoId: data?.[0]?.id,
             })
           }
+          onSavePlaylist={() => togglePlaylistLike()}
         />
       </TVFocusGuideView>
       <TVFocusGuideView autoFocus style={styles.itemsPartStyle}>

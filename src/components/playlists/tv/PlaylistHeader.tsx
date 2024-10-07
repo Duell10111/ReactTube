@@ -6,21 +6,18 @@ import {YTPlaylist} from "@/extraction/Types";
 
 interface PlaylistHeaderProps {
   playlist: YTPlaylist;
+  saved?: boolean;
   onPlayAllPress?: () => void;
-  onPlaySavePlaylist?: (save: boolean) => void;
+  onSavePlaylist?: (save: boolean) => void;
 }
 
 export function PlaylistHeader({
+  saved,
   playlist,
   onPlayAllPress,
-  onPlaySavePlaylist,
+  onSavePlaylist,
 }: PlaylistHeaderProps) {
   const {style} = useAppStyle();
-
-  const saved =
-    playlist.menu.top_level_buttons.findIndex(
-      item => item.icon_type === "PLAYLIST_ADD",
-    ) > 0;
 
   return (
     <View style={styles.container}>
@@ -46,10 +43,10 @@ export function PlaylistHeader({
           onPress={onPlayAllPress}
         />
         <PlaylistHeaderButton
-          iconName={saved ? "bookmark-o" : "bookmark"}
-          iconType={"font-awesome-5"}
-          text={"Save playlist"}
-          onPress={() => onPlaySavePlaylist?.(saved)}
+          iconName={saved ? "bookmark" : "bookmark-o"}
+          iconType={"font-awesome"}
+          text={`${saved ? "Remove" : "Save"} playlist`}
+          onPress={() => onSavePlaylist?.(saved)}
         />
       </View>
     </View>

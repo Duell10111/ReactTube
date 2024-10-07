@@ -13,13 +13,19 @@ export default function usePlaylistDetails(playlistId: string) {
   const youtube = useYoutubeContext();
   const [playlist, setPlaylist] = useState<YTPlaylist>();
   const [data, setData] = useState<ElementData[]>([]);
+  const [liked, setLiked] = useState<boolean>();
 
   useEffect(() => {
     youtube
       ?.getPlaylist(playlistId)
       .then(p => {
-        setPlaylist(getElementDataFromYTPlaylist(p));
+        const parsedPlaylist = getElementDataFromYTPlaylist(p);
+        setPlaylist(parsedPlaylist);
         setData(parseObservedArray(p.items));
+        const saved = parsedPlaylist.menu.top_level_buttons.find(
+          item => item.icon_type === "PLAYLIST_ADD",
+        ).isToggled;
+        setLiked(saved);
       })
       .catch(LOGGER.warn);
   }, [youtube, playlistId]);
@@ -38,7 +44,19 @@ export default function usePlaylistDetails(playlistId: string) {
     }
   }, [playlist, data]);
 
+  const togglePlaylistLike = async () => {
+    console.log("Liked: ", liked);
+    if (liked) {
+      await youtube.playlist.removeLikePlaylist(playlistId);
+    } else {
+      await youtube.playlist.likePlaylist(playlistId);
+    }
+    setLiked(!liked);
+  };
+
   console.log("Playlist data: ", data);
 
-  return {playlist, data, fetchMore};
+  console.log("Playlist Like: ", liked);
+
+  return {playlist, data, fetchMore, liked, togglePlaylistLike};
 }
