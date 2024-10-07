@@ -445,6 +445,7 @@ class YTMusicPlaylistClass implements YTPlaylist {
           this.playEndpoint = v.endpoint;
         }
       });
+      // playlist.header.buttons.
     } else if (playlist.header.is(YTNodes.MusicDetailHeader)) {
       this.thumbnailImage = getThumbnail(playlist.header.thumbnails[0]);
       this.title = playlist.header.title?.text ?? "Empty title";
