@@ -2,21 +2,25 @@ import {Icon} from "@rneui/base";
 import React from "react";
 import {Image, StyleSheet, Text, View} from "react-native";
 
-import {useAppStyle} from "../../context/AppStyleContext";
-import {Thumbnail} from "../../extraction/Types";
+import {useAppStyle} from "@/context/AppStyleContext";
+import {Thumbnail} from "@/extraction/Types";
 
 interface MusicPlaylistHeaderProps {
   image: Thumbnail;
   title: string;
   subtitle: string;
+  saved?: boolean;
   onPlayPress?: () => void;
+  onSavePress?: () => void;
 }
 
 export function MusicPlaylistHeader({
   image,
   title,
   subtitle,
+  saved,
   onPlayPress,
+  onSavePress,
 }: MusicPlaylistHeaderProps) {
   const {style} = useAppStyle();
 
@@ -28,13 +32,21 @@ export function MusicPlaylistHeader({
         style={[styles.subtitleText, {fontSize: 15, color: style.textColor}]}>
         {subtitle}
       </Text>
-      <View>
+      <View style={styles.buttonContainer}>
         <Icon
           name={"play-sharp"}
           type={"ionicon"}
           raised
           onPress={onPlayPress}
         />
+        {saved !== undefined ? (
+          <Icon
+            name={saved ? "bookmark" : "bookmark-o"}
+            type={"font-awesome"}
+            raised
+            onPress={onSavePress}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -58,5 +70,9 @@ const styles = StyleSheet.create({
   subtitleText: {
     fontSize: 12,
     fontWeight: "200",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
   },
 });
