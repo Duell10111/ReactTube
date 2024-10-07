@@ -3,6 +3,7 @@ import {Button, ListItem} from "@rneui/base";
 import {Text} from "react-native";
 
 import {useDownloaderContext} from "@/context/DownloaderContext";
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {NativeStackProp} from "@/navigation/types";
 
 interface DownloadListItemProps {
@@ -13,6 +14,8 @@ interface DownloadListItemProps {
 export function DownloadListItem({id, name}: DownloadListItemProps) {
   const navigation = useNavigation<NativeStackProp>();
   const {uploadToWatch} = useDownloaderContext();
+  const {setPlaylistViaLocalDownload} = useMusikPlayerContext();
+
   return (
     <ListItem.Swipeable
       rightContent={reset => (
@@ -27,7 +30,7 @@ export function DownloadListItem({id, name}: DownloadListItemProps) {
         />
       )}
       containerStyle={{backgroundColor: "grey"}}
-      onPress={() => navigation.navigate("DownloadPlayer", {id})}>
+      onPress={() => setPlaylistViaLocalDownload(id)}>
       <ListItem.Title>{name ?? id}</ListItem.Title>
       <Text style={{color: "white"}}>{id}</Text>
     </ListItem.Swipeable>

@@ -14,6 +14,15 @@ export function useMigration() {
   return useMigrations(db, migrations);
 }
 
+export function findVideo(id: string) {
+  return db
+    .select()
+    .from(schema.videos)
+    .where(eq(schema.videos.id, id))
+    .limit(1)
+    .execute();
+}
+
 export function useVideo(id: string) {
   const [video, setVideo] = useState<{
     name: string;
@@ -98,4 +107,44 @@ export async function insertVideo(
     .execute();
 
   console.log("Inserted video");
+}
+
+export async function insertPlaylist(
+  id: string,
+  name: string,
+  videoIds: string[],
+) {
+  await db
+    .insert(schema.playlists)
+    .values({
+      id,
+      name,
+    })
+    .onConflictDoUpdate({
+      target: schema.videos.id,
+      set: {
+        id,
+        name,
+      },
+    })
+    .execute();
+
+  const videos = videoIds.map(videoId => {
+    return db
+      .insert(schema.playlistVideos)
+      .values({
+        videoId,
+        playlistId: id,
+      })
+      .onConflictDoUpdate({
+        target: schema.playlistVideos.videoId,
+        set: {
+          videoId,
+          playlistId: id,
+        },
+      })
+      .execute();
+  });
+
+  console.log("Inserted playlist");
 }
