@@ -21,9 +21,8 @@ export default function useDownloadProcessor() {
 
   const download = async (id: string) => {
     LOGGER.debug("Download video: ", id);
-    const info = getElementDataFromVideoInfo(await youtube.getBasicInfo(id));
-    const format = await youtube.getStreamingData(id, {
-      format: "mp4",
+    const info = getElementDataFromVideoInfo(await youtube.getInfo(id, "IOS"));
+    const format = info.originalData.chooseFormat({
       type: "audio",
     });
     LOGGER.debug("Download video: ", format);
@@ -40,21 +39,23 @@ export default function useDownloadProcessor() {
         LOGGER.debug(
           `Updating progress for ${id} with ${downloadRefs.current[id].process}`,
         );
-      }).then(value => {
-        downloadRefs.current[id] = value;
-        LOGGER.debug(`FileURL: ${value.fileURL}`);
-        value.download.downloadAsync().then(async result => {
-          LOGGER.debug(`Video downloaded to ${result.uri}`);
-          await insertVideo(
-            id,
-            info.title,
-            format.approx_duration_ms,
-            value.fileURL,
-          );
-          LOGGER.debug("Insert downloaded video");
-          delete downloadRefs.current[id];
-        });
-      });
+      })
+        .then(value => {
+          downloadRefs.current[id] = value;
+          LOGGER.debug(`FileURL: ${value.fileURL}`);
+          value.download.downloadAsync().then(async result => {
+            LOGGER.debug(`Video downloaded to ${result.uri}`);
+            await insertVideo(
+              id,
+              info.title,
+              format.approx_duration_ms,
+              value.fileURL,
+            );
+            LOGGER.debug("Insert downloaded video");
+            delete downloadRefs.current[id];
+          });
+        })
+        .catch(LOGGER.warn);
     }
   };
 

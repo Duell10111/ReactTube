@@ -1,11 +1,17 @@
-import {addMessageListener, sendMessage} from "expo-watch-connectivity";
+import {
+  addMessageListener,
+  sendMessage,
+  sendFile,
+  getCurrentFileTransfers,
+} from "expo-watch-connectivity";
 import {useEffect} from "react";
 
 import {handleWatchMessage} from "./WatchYoutubeAPI";
-import {useYoutubeContext} from "../../context/YoutubeContext";
-import {useVideos} from "../../downloader/DownloadDatabaseOperations";
 import LOGGER from "../../utils/Logger";
 import {getAbsoluteVideoURL} from "../downloader/useDownloadProcessor";
+
+import {useYoutubeContext} from "@/context/YoutubeContext";
+import {useVideos} from "@/downloader/DownloadDatabaseOperations";
 
 export default function useWatchSync() {
   const videos = useVideos();
@@ -129,7 +135,7 @@ async function sendDownloadDataToWatch(
 
   console.log(`Sending Download data to watch ${id}`);
 
-  sendMessage({
+  await sendMessage({
     type: "uploadFile",
     id,
     title: video.name,
@@ -152,13 +158,10 @@ async function sendDownloadToWatch(
 
   const metadata = {
     id,
+    title: video.name,
   };
   console.log("Starting file transfer");
-  // TODO: Enable File transfer again
-  // const {id: fileID} = await startFileTransfer(
-  //   getAbsoluteVideoURL(video.fileUrl),
-  //   metadata,
-  // );
+  await sendFile(getAbsoluteVideoURL(video.fileUrl), metadata);
 
   console.log(`Finished file transfer for video ${id}`);
 
@@ -169,11 +172,12 @@ async function sendDownloadToWatch(
 
 async function checkTransfers() {
   // TODO: Migrate to other library
-  // const fileTransfers = await getFileTransfers();
-  //
-  // Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
-  //   console.log("TransferInfo: ", transferInfo);
-  // });
+  const fileTransfers = await getCurrentFileTransfers();
+  console.log("File Transfers: ", fileTransfers);
+
+  Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
+    console.log("TransferInfo: ", transferInfo);
+  });
 }
 
 interface DownloadDB {
