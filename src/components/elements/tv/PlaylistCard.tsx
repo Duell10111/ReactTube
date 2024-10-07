@@ -44,6 +44,14 @@ export function PlaylistCard({
             uri: element.thumbnailImage.url,
           }}
         />
+        {element.videoCount ? (
+          <View style={styles.countContainer}>
+            <Text style={styles.countStyle}>
+              {element.videoCount}
+              {" Videos"}
+            </Text>
+          </View>
+        ) : null}
       </View>
       <Text style={[styles.titleStyle, {color: appStyle.textColor}]}>
         {element.title}
@@ -83,9 +91,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 10,
     bottom: 10,
-    color: "white",
     backgroundColor: "black",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 5,
+  },
+  countStyle: {
+    color: "white",
     fontSize: 20,
   },
 });

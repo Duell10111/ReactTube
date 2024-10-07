@@ -107,7 +107,7 @@ export default function RootStackNavigator() {
           {/*  name={"SubscriptionScreen"}*/}
           {/*  component={SubscriptionScreen}*/}
           {/*/>*/}
-          <Stack.Screen name={"HistoryScreen"} component={HistoryScreen} />
+          {/*<Stack.Screen name={"HistoryScreen"} component={HistoryScreen} />*/}
           <Stack.Screen
             name={"SettingsScreen"}
             component={SettingsNavigator}

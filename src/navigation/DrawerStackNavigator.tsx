@@ -4,6 +4,7 @@ import React from "react";
 import HomeScreen from "../screens/HomeScreen";
 import LibraryScreen from "../screens/LibraryScreen";
 
+import HistoryScreen from "@/screens/HistoryScreen";
 import SubscriptionScreen from "@/screens/SubscriptionScreen";
 import TrendingScreen from "@/screens/TrendingScreen";
 
@@ -13,6 +14,7 @@ export type RootDrawerParamList = {
   SubscriptionScreen: undefined;
   SearchScreen: undefined;
   LibraryScreen: undefined;
+  HistoryScreen: undefined;
 };
 
 const DrawerStack = createNativeStackNavigator<RootDrawerParamList>();
@@ -27,6 +29,7 @@ export default function DrawerStackNavigator() {
         component={SubscriptionScreen}
       />
       <DrawerStack.Screen name={"LibraryScreen"} component={LibraryScreen} />
+      <DrawerStack.Screen name={"HistoryScreen"} component={HistoryScreen} />
     </DrawerStack.Navigator>
   );
 }
