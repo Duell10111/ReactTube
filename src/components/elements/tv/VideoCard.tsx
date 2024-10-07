@@ -20,6 +20,10 @@ export function VideoCard({element, style, onPress, width}: VideoCardProps) {
   const {setSelectedVideo, onElementFocused} = useShelfVideoSelector();
   const [focus, setFocus] = useState(false);
 
+  const progressVideo = element?.thumbnailOverlays?.videoProgress
+    ? element.thumbnailOverlays.videoProgress * 100
+    : undefined;
+
   return (
     <VideoTouchable
       style={[styles.container, style, {width: width ?? 500}]}
@@ -54,11 +58,9 @@ export function VideoCard({element, style, onPress, width}: VideoCardProps) {
             <Icon name={"playlist-play"} color={"white"} />
           </View>
         ) : null}
-        {/*{element.thumbnailOverlays.progressPercentage ? (*/}
-        {/*  <View*/}
-        {/*    style={[styles.progressBar, {width: `${data.progressPercentage}%`}]}*/}
-        {/*  />*/}
-        {/*) : null}*/}
+        {progressVideo ? (
+          <View style={[styles.progressBar, {width: `${progressVideo}%`}]} />
+        ) : null}
       </View>
       <Text style={[styles.titleStyle, {color: appStyle.textColor}]}>
         {element.title}
@@ -137,5 +139,13 @@ const styles = StyleSheet.create({
     backgroundColor: "black",
     padding: 5,
     fontSize: 20,
+  },
+  progressBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    backgroundColor: "red",
+    width: "100%",
+    height: 3,
   },
 });

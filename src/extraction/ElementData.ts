@@ -269,7 +269,21 @@ export function getVideoData(
       id: ytNode.id,
       author,
       title: author.name,
-      thumbnailImage: author.thumbnail,
+      thumbnailImage: author.thumbnail
+        ? getThumbnail(author.thumbnail)
+        : undefined,
+    } as ChannelData;
+  } else if (ytNode.is(YTNodes.Channel)) {
+    const author = getAuthor(ytNode.author);
+    return {
+      type: "channel",
+      originalNode: ytNode,
+      id: ytNode.id,
+      author,
+      title: author.name,
+      thumbnailImage: author.thumbnail
+        ? getThumbnail(author.thumbnail)
+        : undefined,
     } as ChannelData;
   }
   // TODO: Maybe outsource in other file

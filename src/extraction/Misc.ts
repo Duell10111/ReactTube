@@ -4,10 +4,12 @@ import {Misc, Helpers, YTNodes} from "../utils/Youtube";
 import Logger from "@/utils/Logger";
 
 export function getThumbnail(thumbnail: Misc.Thumbnail) {
+  const url = thumbnail.url;
   return {
     height: thumbnail.height,
     width: thumbnail.width,
-    url: thumbnail.url,
+    // Workaround for url issue with Channel Thumbnails
+    url: url.startsWith("//") ? url.replace("//", "https://") : thumbnail.url,
   } as Thumbnail;
 }
 

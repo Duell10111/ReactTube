@@ -1,6 +1,7 @@
 import {CommonActions, useNavigation, useRoute} from "@react-navigation/native";
 import {StyleProp, ViewStyle} from "react-native";
 
+import ChannelCard from "@/components/elements/tv/ChannelCard";
 import {PlaylistCard} from "@/components/elements/tv/PlaylistCard";
 import {VideoCard} from "@/components/elements/tv/VideoCard";
 import {ElementData} from "@/extraction/Types";
@@ -83,6 +84,7 @@ export function ElementCard({element, ...props}: ElementCardProps) {
   ) {
     return <VideoCard element={element} {...props} onPress={onPress} />;
   } else if (element.type === "channel") {
+    return <ChannelCard element={element} {...props} />;
   } else if (element.type === "playlist") {
     return (
       <PlaylistCard
