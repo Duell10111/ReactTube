@@ -18,7 +18,7 @@ export default function usePlaylistDetails(playlistId: string) {
   const saved = playlist?.originalData?.header
     ?.as(YTNodes.MusicResponsiveHeader)
     ?.buttons?.filterType(YTNodes.ToggleButton)
-    ?.find(v => v.icon_type === "LIBRARY_ADD").endpoint;
+    ?.find(v => v.icon_type === "LIBRARY_ADD")?.endpoint;
   console.log("SAVED: ", saved);
 
   useEffect(() => {
