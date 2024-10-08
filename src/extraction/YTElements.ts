@@ -388,11 +388,19 @@ class YTPlaylistClass implements YTPlaylist {
   title: string;
   author?: Author;
 
+  saved?: {
+    status: boolean;
+    saveID: string;
+  };
+
   menu?: YTMenu;
 
   constructor(playlist: YT.Playlist) {
     this.originalData = playlist;
-    this.items = _.chain(playlist.items).map(getVideoData).compact().value();
+    this.items = _.chain(playlist.items)
+      .map(element => getVideoData(element))
+      .compact()
+      .value();
     this.thumbnailImage = getThumbnail(playlist.info.thumbnails[0]);
     this.title = playlist.info.title;
     this.author = getAuthor(playlist.info.author);
@@ -400,12 +408,22 @@ class YTPlaylistClass implements YTPlaylist {
     this.menu = playlist.menu.is(YTNodes.Menu)
       ? parseMenu(playlist.menu)
       : undefined;
+
+    const savedButton = this.menu.top_level_buttons.find(
+      item => item.icon_type === "PLAYLIST_ADD",
+    );
+    this.saved = {
+      status: savedButton.isToggled,
+      saveID: savedButton.endpoint?.payload?.target?.playlistId,
+    };
   }
 
   async loadMore() {
     if (this.originalData.has_continuation) {
       const updatedPlaylist = await this.originalData.getContinuation();
-      const newItems = updatedPlaylist.items.map(getVideoData);
+      const newItems = updatedPlaylist.items.map(element =>
+        getVideoData(element),
+      );
       this.items.push(...newItems);
       this.originalData = updatedPlaylist;
     } else {
@@ -425,12 +443,19 @@ class YTMusicPlaylistClass implements YTPlaylist {
   description?: string;
 
   playEndpoint?: YTNodes.NavigationEndpoint;
+  saved?: {
+    status: boolean;
+    saveID: string;
+  };
 
   backgroundThumbnail?: Thumbnail;
 
   constructor(playlist: YTMusic.Playlist) {
     this.originalData = playlist;
-    this.items = _.chain(playlist.items).map(getVideoData).compact().value();
+    this.items = _.chain(playlist.items)
+      .map(element => getVideoData(element))
+      .compact()
+      .value();
     this.backgroundThumbnail = playlist.background
       ? getThumbnail(playlist.background.contents[0])
       : undefined;
@@ -443,6 +468,14 @@ class YTMusicPlaylistClass implements YTPlaylist {
       playlist.header.buttons.forEach(v => {
         if (v.is(YTNodes.MusicPlayButton)) {
           this.playEndpoint = v.endpoint;
+        } else if (
+          v.is(YTNodes.ToggleButton) &&
+          v.icon_type === "LIBRARY_ADD"
+        ) {
+          this.saved = {
+            status: v.is_toggled,
+            saveID: v.endpoint?.payload?.target?.playlistId,
+          };
         }
       });
       // playlist.header.buttons.
@@ -461,11 +494,15 @@ class YTMusicPlaylistClass implements YTPlaylist {
   async loadMore() {
     if (this.originalData.has_continuation) {
       const updatedPlaylist = await this.originalData.getContinuation();
-      const newItems = updatedPlaylist.items.map(getVideoData);
+      const newItems = updatedPlaylist.items.map(element =>
+        getVideoData(element),
+      );
       this.items.push(...newItems);
       this.originalData = updatedPlaylist;
     } else {
       throw new Error("No continuation available");
     }
   }
+
+  // TODO: Add fkt to like or removelike based on parsed Data
 }

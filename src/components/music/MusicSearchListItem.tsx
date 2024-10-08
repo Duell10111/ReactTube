@@ -13,7 +13,7 @@ interface MusicSearchListItemProps {
 
 export function MusicSearchListItem({data}: MusicSearchListItemProps) {
   const {style} = useAppStyle();
-  const {navigate} = useNavigation<RootNavProp>();
+  const {navigate, push} = useNavigation<RootNavProp>();
 
   const {setCurrentItem} = useMusikPlayerContext();
 
@@ -29,13 +29,16 @@ export function MusicSearchListItem({data}: MusicSearchListItemProps) {
         playlistId: data.id,
       });
     } else if (data.type === "artist" || data.type === "channel") {
-      navigate("MusicChannelScreen", {
+      console.log("DATA ID: ", data.id);
+      push("MusicChannelScreen", {
         artistId: data.id,
       });
     } else if (data.type === "album") {
-      navigate("MusicAlbumScreen", {
+      push("MusicAlbumScreen", {
         albumId: data.id,
       });
+    } else {
+      console.warn(`Unknown type of MusicSearchListItem ${data.type}`);
     }
   };
 

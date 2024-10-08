@@ -1,10 +1,9 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import React from "react";
+import React, {useEffect} from "react";
 import {View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import LoadingComponent from "../../components/general/LoadingComponent";
-import usePlaylistDetails from "../../hooks/music/useMusicPlaylistDetails";
 import Logger from "../../utils/Logger";
 
 import {MusicChannelHeader} from "@/components/music/MusicChannelHeader";
@@ -22,6 +21,10 @@ export function MusicChannelScreen({navigation, route}: Props) {
   const {artist} = useMusicChannelDetails(artistId);
   const {bottom, left, right} = useSafeAreaInsets();
   const {setPlaylistViaEndpoint} = useMusikPlayerContext();
+
+  useEffect(() => {
+    navigation.setOptions({headerTitle: artist?.title});
+  }, [artist]);
 
   if (!artist) {
     return <LoadingComponent />;

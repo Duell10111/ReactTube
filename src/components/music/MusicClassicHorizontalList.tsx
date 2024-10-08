@@ -5,6 +5,8 @@ import {useAppStyle} from "../../context/AppStyleContext";
 import {HorizontalData} from "../../extraction/ShelfExtraction";
 import HorizontalVideoList from "../HorizontalVideoList";
 
+import {MusicHorizontalElementsList} from "@/components/music/MusicHorizontalElementsList";
+
 interface MusicClassicHorizontalListProps {
   data: HorizontalData;
 }
@@ -25,9 +27,9 @@ export function MusicClassicHorizontalList({
         ]}>
         {data.title}
       </Text>
-      <HorizontalVideoList
+      <MusicHorizontalElementsList
         containerStyle={{marginBottom: 0}}
-        nodes={data.parsedData}
+        elements={data.parsedData}
         videoSegmentStyle={{maxWidth: 100, marginHorizontal: 5}}
       />
       {/*<View style={styles.border} />*/}

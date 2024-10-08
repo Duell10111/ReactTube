@@ -22,10 +22,7 @@ export default function usePlaylistDetails(playlistId: string) {
         const parsedPlaylist = getElementDataFromYTPlaylist(p);
         setPlaylist(parsedPlaylist);
         setData(parseObservedArray(p.items));
-        const saved = parsedPlaylist.menu.top_level_buttons.find(
-          item => item.icon_type === "PLAYLIST_ADD",
-        ).isToggled;
-        setLiked(saved);
+        setLiked(parsedPlaylist.saved?.status);
       })
       .catch(LOGGER.warn);
   }, [youtube, playlistId]);
