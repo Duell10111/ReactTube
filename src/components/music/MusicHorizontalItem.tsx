@@ -1,6 +1,8 @@
 import {MusicClassicHorizontalList} from "./MusicClassicHorizontalList";
 import {MusicHorizontalNRowShelf} from "./horizontal/MusicHorizontalNRowShelf";
-import {HorizontalData} from "../../extraction/ShelfExtraction";
+
+import {MusicDescriptionHorizontalItem} from "@/components/music/MusicDescriptionHorizontalItem";
+import {HorizontalData} from "@/extraction/ShelfExtraction";
 
 interface MusicHorizontalItemProps {
   data: HorizontalData;
@@ -13,7 +15,9 @@ export default function MusicHorizontalItem({data}: MusicHorizontalItemProps) {
 
   // TODO: Add Shelf for related etc.
 
-  // TODO: Add text only list for description
+  if (data.parsedData.length === 0 && data.title.length > 0) {
+    return <MusicDescriptionHorizontalItem data={data} />;
+  }
 
   if (data.items_per_columns) {
     return (

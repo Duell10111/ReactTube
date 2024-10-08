@@ -27,11 +27,7 @@ export default function usePlaylistDetails(playlistId: string) {
       .then(p => {
         const parsedPlaylist = getElementDataFromYTMusicPlaylist(p);
         setPlaylist(parsedPlaylist);
-        const saved = parsedPlaylist?.originalData?.header
-          ?.as(YTNodes.MusicResponsiveHeader)
-          ?.buttons?.filterType(YTNodes.ToggleButton)
-          ?.find(v => v.icon_type === "LIBRARY_ADD")?.is_toggled;
-        setLiked(saved);
+        setLiked(parsedPlaylist.saved?.status);
       })
       .catch(LOGGER.warn);
   }, [youtube, playlistId]);
@@ -42,16 +38,15 @@ export default function usePlaylistDetails(playlistId: string) {
   }, [playlist]);
 
   const togglePlaylistLike = async () => {
-    const likeEndpointPID = playlist?.originalData?.header
-      ?.as(YTNodes.MusicResponsiveHeader)
-      ?.buttons?.filterType(YTNodes.ToggleButton)
-      ?.find(v => v.icon_type === "LIBRARY_ADD")?.endpoint?.payload
-      ?.target?.playlistId;
     console.log("Liked: ", liked);
     if (liked) {
-      await youtube.playlist.removeLikePlaylist(likeEndpointPID ?? playlistId);
+      await youtube.playlist.removeLikePlaylist(
+        playlist?.saved?.saveID ?? playlistId,
+      );
     } else {
-      await youtube.playlist.likePlaylist(likeEndpointPID ?? playlistId);
+      await youtube.playlist.likePlaylist(
+        playlist?.saved?.saveID ?? playlistId,
+      );
     }
     setLiked(!liked);
   };

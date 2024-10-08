@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useState} from "react";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
 import {YTMusicArtist} from "@/extraction/Types";
@@ -18,7 +18,7 @@ export default function useMusicChannelDetails(artistID: string) {
         setArtist(getElementDataFromYTMusicArtist(ytArtist, artistID));
       })
       .catch(LOGGER.warn);
-  }, []);
+  }, [artistID]);
 
   return {
     artist,

@@ -50,8 +50,10 @@ export interface PlaylistData {
   type: "playlist" | "album";
   id: string;
   title: string;
+  subtitle?: string;
   thumbnailImage: Thumbnail;
   author?: Author;
+  artists?: Author[];
   videoCount?: string;
   videos?: string[];
   music?: boolean;
@@ -248,6 +250,10 @@ export interface YTPlaylist {
   description?: string;
 
   playEndpoint?: YTNodes.NavigationEndpoint;
+  saved?: {
+    status: boolean;
+    saveID: string;
+  };
 
   menu?: YTMenu;
 
