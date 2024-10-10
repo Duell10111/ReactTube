@@ -2,15 +2,12 @@ import React, {useCallback} from "react";
 import {
   FlatList,
   ListRenderItem,
-  Platform,
   StyleProp,
   TextStyle,
   ViewStyle,
 } from "react-native";
 
-import ChannelSegment from "@/components/ChannelSegment";
 import {ElementCard} from "@/components/elements/phone/ElementCard";
-import {ElementCard as ElementCardTV} from "@/components/elements/tv/ElementCard";
 import {ElementData} from "@/extraction/Types";
 import Logger from "@/utils/Logger";
 
@@ -33,28 +30,13 @@ export function HorizontalElementsList({
 }: HorizontalElementsListProps) {
   const renderItem = useCallback<ListRenderItem<ElementData>>(
     ({item}: {item: ElementData}) => {
-      if (item.type === "channel") {
-        return <ChannelSegment element={item.originalNode} />;
-      } else {
-        // TODO: Remove isTV workaround once GridView not used anymore on Phone/Tablets?
-        if (Platform.isTV) {
-          return (
-            <ElementCardTV
-              element={item}
-              // textStyle={textStyle}
-              style={[videoSegmentStyle, {marginHorizontal: 10}]}
-            />
-          );
-        } else {
-          return (
-            <ElementCard
-              element={item}
-              // textStyle={textStyle}
-              style={[videoSegmentStyle, {marginHorizontal: 10}]}
-            />
-          );
-        }
-      }
+      return (
+        <ElementCard
+          element={item}
+          // textStyle={textStyle}
+          style={[videoSegmentStyle, {marginHorizontal: 10, width: 200}]}
+        />
+      );
     },
     [textStyle, videoSegmentStyle],
   );

@@ -1,6 +1,14 @@
 import {PlaylistPanelContinuation} from "youtubei.js";
 
-import {Helpers, Misc, YT, YTMusic, YTNodes} from "../utils/Youtube";
+import {
+  Helpers,
+  Misc,
+  YT,
+  YTMusic,
+  YTNodes,
+  Mixins,
+  IBrowseResponse,
+} from "../utils/Youtube";
 
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 
@@ -285,4 +293,18 @@ export function getAuthorMusic(author: AuthorMusic) {
     name: author.name,
     navEndpoint: author?.endpoint,
   } as Author;
+}
+
+export interface YTLibrary {
+  originalData: YT.Library;
+  sections: YTLibrarySection[];
+}
+
+export interface YTLibrarySection {
+  type: string;
+  title: string;
+  content: ElementData[];
+  getMoreData: () => Promise<
+    YT.Playlist | YT.History | Mixins.Feed<IBrowseResponse>
+  >;
 }

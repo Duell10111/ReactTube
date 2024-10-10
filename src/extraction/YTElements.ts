@@ -13,6 +13,8 @@ import {
   YTChipCloudChip,
   YTEndscreen,
   YTEndscreenElement,
+  YTLibrary,
+  YTLibrarySection,
   YTMenu,
   YTMusicAlbum,
   YTMusicArtist,
@@ -412,10 +414,12 @@ class YTPlaylistClass implements YTPlaylist {
     const savedButton = this.menu.top_level_buttons.find(
       item => item.icon_type === "PLAYLIST_ADD",
     );
-    this.saved = {
-      status: savedButton.isToggled,
-      saveID: savedButton.endpoint?.payload?.target?.playlistId,
-    };
+    this.saved = savedButton
+      ? {
+          status: savedButton.isToggled,
+          saveID: savedButton.endpoint?.payload?.target?.playlistId,
+        }
+      : undefined;
   }
 
   async loadMore() {
@@ -505,4 +509,35 @@ class YTMusicPlaylistClass implements YTPlaylist {
   }
 
   // TODO: Add fkt to like or removelike based on parsed Data
+}
+
+// YT.Library
+
+export async function getElementDataFromYTLibrary(library: YT.Library) {
+  return {
+    originalData: library,
+    sections: _.chain(
+      await Promise.allSettled(library.sections.map(parseYTLibrarySection)),
+    )
+      .map(result => {
+        console.log("Result: ", result);
+        if (result.status === "fulfilled") {
+          return result.value;
+        }
+      })
+      .compact()
+      .value(),
+  } as YTLibrary;
+}
+
+async function parseYTLibrarySection(section: YT.Library["sections"][number]) {
+  return {
+    type: section.type,
+    title: section.title.text,
+    content: _.chain(section.contents)
+      .map(element => getVideoData(element))
+      .compact()
+      .value(),
+    getMoreData: section.getAll,
+  } as YTLibrarySection;
 }

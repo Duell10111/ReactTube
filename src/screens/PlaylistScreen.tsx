@@ -11,6 +11,7 @@ import Logger from "../utils/Logger";
 import {recursiveTypeLogger} from "../utils/YTNodeLogger";
 
 import GridFeedView from "@/components/grid/GridFeedView";
+import PlaylistScreenPhone from "@/components/playlists/phone/PlaylistScreen";
 import PlaylistScreenTV from "@/components/playlists/tv/PlaylistScreen";
 
 const LOGGER = Logger.extend("PLAYLIST");
@@ -23,6 +24,8 @@ export default function PlaylistScreen({route}: Props) {
   if (Platform.isTV) {
     return <PlaylistScreenTV playlistId={playlistId} />;
   }
+
+  return <PlaylistScreenPhone playlistId={playlistId} />;
 
   const {playlist, data, fetchMore} = usePlaylistDetails(playlistId);
 
