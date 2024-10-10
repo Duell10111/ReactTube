@@ -5,6 +5,7 @@ import GridView from "../components/GridView";
 import useLibrary from "../hooks/useLibrary";
 
 import GridFeedView from "@/components/grid/GridFeedView";
+import {LibraryScreen} from "@/components/screens/phone/LibraryScreen";
 
 export default function LibraryDrawerItem() {
   const {content, fetchMore, parsedContent} = useLibrary();
@@ -21,6 +22,8 @@ export default function LibraryDrawerItem() {
       // </ShelfVideoSelectorProvider>
     );
   }
+
+  return <LibraryScreen items={parsedContent} />;
 
   return (
     <View>

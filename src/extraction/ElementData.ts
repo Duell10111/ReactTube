@@ -115,6 +115,7 @@ export function getVideoData(
       durationSeconds: ytNode.duration?.seconds,
       publishDate: publishment,
       short_views: views,
+      author: ytNode.author ? getAuthor(ytNode.author) : undefined,
     } as VideoData;
   } else if (ytNode.is(YTNodes.PlaylistPanelVideo)) {
     return {
