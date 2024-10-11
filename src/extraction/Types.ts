@@ -304,6 +304,7 @@ export interface YTLibrarySection {
   type: string;
   title: string;
   content: ElementData[];
+  playlistId?: string;
   getMoreData: () => Promise<
     YT.Playlist | YT.History | Mixins.Feed<IBrowseResponse>
   >;

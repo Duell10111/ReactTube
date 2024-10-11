@@ -27,6 +27,10 @@ export function VideoCard({element, style, onPress}: VideoCardProps) {
   const {style: appStyle} = useAppStyle();
   const {width} = useWindowDimensions();
 
+  const progressVideo = element?.thumbnailOverlays?.videoProgress
+    ? element.thumbnailOverlays.videoProgress * 100
+    : undefined;
+
   const subtitleContent = useMemo(() => {
     return _.chain([
       element.author?.name,
@@ -61,6 +65,9 @@ export function VideoCard({element, style, onPress}: VideoCardProps) {
             <View style={styles.bottomBorder}>
               <Icon name={"playlist-play"} color={"white"} />
             </View>
+          ) : null}
+          {progressVideo ? (
+            <View style={[styles.progressBar, {width: `${progressVideo}%`}]} />
           ) : null}
         </View>
       </TouchableNativeFeedback>
@@ -160,5 +167,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-start",
     paddingHorizontal: 15,
+  },
+  progressBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    backgroundColor: "red",
+    width: "100%",
+    height: 3,
   },
 });

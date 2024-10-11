@@ -77,7 +77,7 @@ export function getVideoData(
       short_views: ytNode.short_view_count.toString(),
       author: ytNode.author ? getAuthor(ytNode.author) : undefined,
       publishDate: ytNode.published.text,
-      type: "video",
+      type: ytNode.duration.text === "SHORTS" ? "reel" : "video",
       duration: ytNode.duration?.text,
       thumbnailOverlays: parseThumbnailOverlays(ytNode.thumbnail_overlays),
       originalNode: ytNode,
