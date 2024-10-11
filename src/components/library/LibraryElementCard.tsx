@@ -15,7 +15,7 @@ import {
 
 import ChannelIcon from "@/components/video/ChannelIcon";
 import {useAppStyle} from "@/context/AppStyleContext";
-import {ElementData, VideoData} from "@/extraction/Types";
+import {ElementData} from "@/extraction/Types";
 import {NativeStackProp, RootRouteProp} from "@/navigation/types";
 import Logger from "@/utils/Logger";
 
@@ -38,6 +38,13 @@ export function LibraryElementCard({
 
   const navigation = useNavigation<NativeStackProp>();
   const route = useRoute<RootRouteProp>();
+
+  const progressVideo =
+    element?.type === "video" && element?.thumbnailOverlays?.videoProgress
+      ? element.thumbnailOverlays.videoProgress
+      : undefined;
+
+  console.log("Progress: ", element.type);
 
   const onPress = () => {
     if (props.onPress) {
@@ -126,6 +133,9 @@ export function LibraryElementCard({
           />
           {element.type === "video" && element.duration ? (
             <Text style={styles.countContainer}>{element.duration}</Text>
+          ) : null}
+          {progressVideo ? (
+            <View style={[styles.progressBar, {width: `${progressVideo}%`}]} />
           ) : null}
         </View>
       </TouchableNativeFeedback>
@@ -225,5 +235,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-start",
     paddingHorizontal: 15,
+  },
+  progressBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    backgroundColor: "red",
+    width: "100%",
+    height: 3,
   },
 });

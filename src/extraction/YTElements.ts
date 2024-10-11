@@ -32,6 +32,7 @@ import {
   YTMusic,
   PlaylistPanelContinuation,
   Helpers,
+  Misc,
 } from "../utils/Youtube";
 
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
@@ -507,37 +508,49 @@ class YTMusicPlaylistClass implements YTPlaylist {
       throw new Error("No continuation available");
     }
   }
-
-  // TODO: Add fkt to like or removelike based on parsed Data
 }
 
 // YT.Library
 
+interface YT_LIBRARY_SECTION {
+  title: Misc.Text;
+  contents: Helpers.YTNode[];
+  endpoint?: YTNodes.NavigationEndpoint;
+}
+
 export async function getElementDataFromYTLibrary(library: YT.Library) {
+  const shelves = library.page.contents_memo.getType(YTNodes.Shelf);
+
+  // Manually parsing Sections as Library implementation currently broken. Needs to be refactored.
+  const sections = shelves.map(
+    shelf =>
+      ({
+        title: shelf.title,
+        contents: shelf.content?.key("items").array() || [],
+        endpoint: shelf.endpoint,
+      }) as YT_LIBRARY_SECTION,
+  );
+
   return {
     originalData: library,
-    sections: _.chain(
-      await Promise.allSettled(library.sections.map(parseYTLibrarySection)),
-    )
-      .map(result => {
-        console.log("Result: ", result);
-        if (result.status === "fulfilled") {
-          return result.value;
-        }
-      })
-      .compact()
-      .value(),
+    sections: _.chain(sections).map(parseYTLibrarySection).value(),
   } as YTLibrary;
 }
 
-async function parseYTLibrarySection(section: YT.Library["sections"][number]) {
+export function parseYTLibrarySection(section: YT_LIBRARY_SECTION) {
+  const playlistId = section.endpoint?.payload.browseId.startsWith("VL")
+    ? section.endpoint?.payload.browseId
+    : undefined;
   return {
-    type: section.type,
+    type: "", // TODO: Add type based on browseId?
     title: section.title.text,
     content: _.chain(section.contents)
       .map(element => getVideoData(element))
       .compact()
       .value(),
-    getMoreData: section.getAll,
+    playlistId,
+    getMoreData: async () => {
+      throw Error("Not implemented");
+    },
   } as YTLibrarySection;
 }
