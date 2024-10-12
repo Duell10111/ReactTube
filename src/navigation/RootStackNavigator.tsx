@@ -8,13 +8,11 @@ import {Platform} from "react-native";
 import SettingsNavigator from "./SettingsNavigator";
 import useAppInit from "../hooks/general/useAppInit";
 import ChannelScreen from "../screens/ChannelScreen";
-import HistoryScreen from "../screens/HistoryScreen";
 import HomeWrapperScreen from "../screens/HomeWrapperScreen";
 import LoadingScreen from "../screens/LoadingScreen";
 import LoginScreen from "../screens/LoginScreen";
 import PlaylistScreen from "../screens/PlaylistScreen";
 import SearchScreen from "../screens/SearchScreen";
-import SubscriptionScreen from "../screens/SubscriptionScreen";
 import VideoScreen from "../screens/VideoScreen";
 import {ActiveDownloadScreen} from "../screens/phone/ActiveDownloadScreen";
 import {DownloadPlayer} from "../screens/phone/DownloadPlayer";
@@ -24,6 +22,7 @@ import {MusicSearchScreen} from "../screens/phone/MusicSearchScreen";
 import VideoScreenWrapper from "../screens/phone/VideoScreenWrapper";
 import {YTNodes} from "../utils/Youtube";
 
+import {HistoryScreen} from "@/components/screens/phone/HistoryScreen";
 import TrendingScreen from "@/screens/TrendingScreen";
 import {MusicAlbumScreen} from "@/screens/phone/MusicAlbumScreen";
 import {MusicChannelScreen} from "@/screens/phone/MusicChannelScreen";
@@ -42,7 +41,7 @@ export type RootStackParamList = {
   PlaylistScreen: {playlistId: string};
   Search: undefined;
   SubscriptionScreen: undefined;
-  HistoryScreen: undefined;
+  History: undefined;
   SettingsScreen: undefined;
   LoginScreen: undefined;
   // Downloads
@@ -107,7 +106,7 @@ export default function RootStackNavigator() {
           {/*  name={"SubscriptionScreen"}*/}
           {/*  component={SubscriptionScreen}*/}
           {/*/>*/}
-          {/*<Stack.Screen name={"HistoryScreen"} component={HistoryScreen} />*/}
+          <Stack.Screen name={"History"} component={HistoryScreen} />
           <Stack.Screen
             name={"SettingsScreen"}
             component={SettingsNavigator}

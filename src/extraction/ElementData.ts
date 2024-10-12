@@ -178,7 +178,7 @@ export function getVideoData(
     }
   } else if (ytNode.is(YTNodes.MusicResponsiveListItem)) {
     if (ytNode.item_type === "playlist" || ytNode.item_type === "album") {
-      const [author, views] = ytNode.subtitle.text.split(" • ");
+      const [author, views] = ytNode.subtitle?.text?.split(" • ") ?? [];
       return {
         type: ytNode.item_type,
         originalNode: ytNode,

@@ -301,7 +301,7 @@ export interface YTLibrary {
 }
 
 export interface YTLibrarySection {
-  type: string;
+  type?: "playlists" | "history";
   title: string;
   content: ElementData[];
   playlistId?: string;

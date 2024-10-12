@@ -538,11 +538,11 @@ export async function getElementDataFromYTLibrary(library: YT.Library) {
 }
 
 export function parseYTLibrarySection(section: YT_LIBRARY_SECTION) {
-  const playlistId = section.endpoint?.payload.browseId.startsWith("VL")
+  const playlistId = section.endpoint?.payload?.browseId?.startsWith("VL")
     ? section.endpoint?.payload.browseId
     : undefined;
   return {
-    type: "", // TODO: Add type based on browseId?
+    type: parseYTLibrarySectionType(section),
     title: section.title.text,
     content: _.chain(section.contents)
       .map(element => getVideoData(element))
@@ -553,4 +553,15 @@ export function parseYTLibrarySection(section: YT_LIBRARY_SECTION) {
       throw Error("Not implemented");
     },
   } as YTLibrarySection;
+}
+
+function parseYTLibrarySectionType(section: YT_LIBRARY_SECTION) {
+  const browseId: string | undefined = section.endpoint?.payload?.browseId;
+
+  switch (browseId) {
+    case "FEhistory":
+      return "history";
+    case "FEplaylist_aggregation":
+      return "playlists";
+  }
 }
