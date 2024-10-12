@@ -12,16 +12,17 @@ export default function useVideoDataGenerator() {
   const videoExtractor = useCallback(
     async (videoData: VideoData) => {
       console.log("VideoExtractor", videoData);
+      // TODO: Check if navEndpoint contains at least a videoId as browseId only does not work. :/
+      // const useNav =
+      //   videoData.navEndpoint && videoData.navEndpoint?.payload?.videoId;
       const [info, classicInfo] = await Promise.all([
         youtube.music.getInfo(videoData.navEndpoint ?? videoData.id),
         youtube.getInfo(videoData.navEndpoint ?? videoData.id, "IOS"),
       ]);
       // Patch YT Music StreamingData
       info.streaming_data = classicInfo.streaming_data;
-      console.log("Info: ", info);
 
       const element = getElementDataFromTrackInfo(info);
-      console.log("Parsed: ", element);
       return element;
     },
     [youtube],
@@ -36,7 +37,6 @@ export default function useVideoDataGenerator() {
       ]);
       // Patch YT Music StreamingData
       info.streaming_data = classicInfo.streaming_data;
-      console.log("Info: ", info);
 
       return getElementDataFromTrackInfo(info);
     },
