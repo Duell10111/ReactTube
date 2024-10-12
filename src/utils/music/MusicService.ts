@@ -13,9 +13,9 @@ export default async function playbackService() {
 
   TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
 
-  TrackPlayer.addEventListener(Event.RemotePrevious, () =>
-    TrackPlayer.skipToPrevious(),
-  );
+  // TrackPlayer.addEventListener(Event.RemotePrevious, () =>
+  //   TrackPlayer.skipToPrevious(),
+  // );
 
   TrackPlayer.addEventListener(Event.RemoteSeek, event =>
     TrackPlayer.seekTo(event.position),
