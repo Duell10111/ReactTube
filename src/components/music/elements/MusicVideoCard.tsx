@@ -21,11 +21,10 @@ interface MusicVideoCardProps {
 
 export function MusicVideoCard({data, style}: MusicVideoCardProps) {
   const navigation = useNavigation<NativeStackProp>();
-  const {setPlaylistViaEndpoint} = useMusikPlayerContext();
+  const {setCurrentItem} = useMusikPlayerContext();
 
   const onPress = () => {
-    console.log(data.navEndpoint);
-    setPlaylistViaEndpoint(data.navEndpoint);
+    setCurrentItem(data);
     navigation.navigate("MusicPlayerScreen");
   };
 
