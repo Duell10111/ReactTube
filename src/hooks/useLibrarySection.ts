@@ -14,9 +14,12 @@ export default function useLibrarySection(sectionData: YTLibrarySection) {
   );
 
   useEffect(() => {
-    sectionData.getMoreData().then(moreData => {
-      section.current = moreData;
-    });
+    sectionData
+      .getMoreData()
+      .then(moreData => {
+        section.current = moreData;
+      })
+      .catch(console.warn);
   }, [sectionData]);
 
   const fetchMore = () => {

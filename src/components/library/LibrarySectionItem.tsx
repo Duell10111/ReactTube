@@ -32,19 +32,27 @@ export function LibrarySectionItem({section}: LibrarySectionItemProps) {
   console.log(section.title + " " + data);
   console.log("PlaylistID: ", section.playlistId);
 
+  const onPress = useMemo(() => {
+    if (section.playlistId) {
+      return () => {
+        navigation.navigate("PlaylistScreen", {
+          playlistId: section.playlistId,
+        });
+      };
+    } else if (section.type === "history") {
+      return () => {
+        navigation.navigate("History");
+      };
+    }
+  }, [section]);
+
   if (section.content.length === 0) {
     return null;
   }
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        disabled={!section.playlistId}
-        onPress={() => {
-          navigation.navigate("PlaylistScreen", {
-            playlistId: section.playlistId,
-          });
-        }}>
+      <TouchableOpacity disabled={!onPress} onPress={onPress}>
         <Text style={[styles.textStyle, {color: style.textColor}]}>
           {section.title}
         </Text>
