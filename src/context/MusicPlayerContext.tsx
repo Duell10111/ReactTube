@@ -245,8 +245,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
           videoExtractor(nextElement).then(setCurrentVideoData);
         }
       }
-    }
-    if (currentVideoData?.playlist) {
+    } else if (currentVideoData?.playlist) {
+      // TODO: Remove as not needed anymore?
       console.log(
         "Playlist",
         currentVideoData.playlist.content.map(v => v.title),
@@ -279,10 +279,27 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const previous = async () => {
-    if (
+    if (playlist) {
+      const currentIndex = playlist.items.findIndex(
+        v => v.id === currentVideoData.id,
+      );
+      if (currentIndex > 0) {
+        const newIndex = currentIndex - 1;
+        LOGGER.debug(`Switching to newIndex: ${newIndex}`);
+        if (newIndex >= playlist.items.length) {
+          // Fetch next playlist items?
+          const contData = await fetchMorePlaylistData();
+          videoExtractor(contData.items[0]).then(setCurrentVideoData);
+        } else {
+          const nextElement = playlist.items[newIndex];
+          videoExtractor(nextElement).then(setCurrentVideoData);
+        }
+      }
+    } else if (
       currentVideoData?.playlist &&
       currentVideoData.playlist.current_index > 0
     ) {
+      // TODO: Remove as not needed anymore?
       console.log(
         "Playlist",
         currentVideoData.playlist.content.map(v => v.title),
