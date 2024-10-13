@@ -91,6 +91,10 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
       video.durationMillis = duration
     }
     
+    if duration > 0 {
+      video.durationMillis = duration
+    }
+    
     if let vUntil = validUntil, let sURL = streamURL {
       video.validUntil = vUntil
       video.streamURL = sURL
@@ -266,7 +270,7 @@ func checkPlaylist(_ playlist: Playlist) {
   queue.async {
     let ids = playlist.videoIDs.filter { id in
       !playlist.videos.contains { video in
-        video.id == id && (video.downloaded || (video.validUntil != nil && video.validUntil! > Date()))
+        video.id == id && (video.downloaded || (video.validUntil != nil && video.validUntil! > Date())) && video.durationMillis > 0
       }
     }
     print("Fetching Playlist Ids: \(ids)")
