@@ -71,15 +71,10 @@ class DownloadManager {
     Task(priority: .background) {
       print("Checking downloads...")
       
-      do {
-        try await Task.sleep(nanoseconds: 60_000_000_000)
-      } catch {
-        print("Download Task Sleep Error: \(error)")
-      }
-      
       for video in pendingDownloads {
         while pendingDownloads.count > 4 {
           do {
+            print("More than 4 downloads active. Sleeping...")
             try await Task.sleep(nanoseconds: 60_000_000_000)
           } catch {
             print("Download Task Sleep Error: \(error)")

@@ -43,7 +43,7 @@ func saveDownloadFile(id: String, filePath: URL, fileExtension: String? = nil) -
 
   if created {
     do {
-      if FileManager.default.fileExists(atPath: destinationURL.absoluteString) {
+      if FileManager.default.fileExists(atPath: destinationURL.path()) {
         try FileManager.default.replaceItemAt(destinationURL, withItemAt: filePath)
       } else {
         try FileManager.default.moveItem(at: filePath, to: destinationURL)

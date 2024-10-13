@@ -68,9 +68,8 @@ struct LibraryPlaylistListItem: View {
       PlaylistListView(playlist: playlist)
     } label: {
       Text(playlist.title ?? "No title")
-        .tint(playlist.download == true ? .blue : nil)
+        .foregroundStyle(playlist.download == true ? .blue : .primary)
     }
-    .listRowBackground(playlist.download == true ? Color.blue : nil)
     .swipeActions {
       Button {
           print("Playing Playlist")

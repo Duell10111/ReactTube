@@ -32,6 +32,7 @@ struct PlaylistListView: View {
             VStack {
               HStack {
                 Text(video.title ?? "Unknown title")
+                  .foregroundStyle(video.downloaded == true ? .blue : .primary)
                 if let validUntil = video.validUntil, validUntil < Date() && video.downloaded != true {
                   Spacer()
                   Image(systemName: "clock.badge.exclamationmark")
@@ -47,7 +48,6 @@ struct PlaylistListView: View {
                 ProgressView(value: videoDownload)  { Text("\(formatter.string(from: NSNumber(value: videoDownload)) ?? String(videoDownload))  progress").font(.system(size: 12)) }
               }
             }
-            .listRowBackground(video.downloaded == true ? Color.blue : nil)
           }
         }
       }
