@@ -34,7 +34,7 @@ class DownloadManager {
     if let streamURL = video.downloadURL, let date = video.validUntil, let uri = URL(string: streamURL) {
       print("Started download \(video.id)")
       let request = URLRequest(url: uri)
-      let id = SDDownloadManager.shared.downloadFile(withRequest: request, onProgress: { progress in
+      let id = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
         print("Progrss: \(progress)")
         self.progressDownloads[video.id] = Double(progress)
       }) { error, fileUrl in
@@ -70,7 +70,21 @@ class DownloadManager {
   func checkDownloads() {
     Task(priority: .background) {
       print("Checking downloads...")
-      pendingDownloads.forEach { video in
+      
+      do {
+        try await Task.sleep(nanoseconds: 60_000_000_000)
+      } catch {
+        print("Download Task Sleep Error: \(error)")
+      }
+      
+      for video in pendingDownloads {
+        while pendingDownloads.count > 4 {
+          do {
+            try await Task.sleep(nanoseconds: 60_000_000_000)
+          } catch {
+            print("Download Task Sleep Error: \(error)")
+          }
+        }
         downloadVideo(video: video)
       }
     }
