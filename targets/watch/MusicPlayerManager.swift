@@ -15,6 +15,9 @@ import SwiftAudioEx
 @Observable
 class MusicPlayerManager {
     static let shared = MusicPlayerManager()
+  
+    var volume: Double = 0.0
+    var volumeObserver: NSKeyValueObservation?
 
     var trackIndex = 0
     private var currentTrackIndex = 0
@@ -67,6 +70,10 @@ class MusicPlayerManager {
       }
     }
   }
+  
+  func updateVolume(volume: Double) {
+    player?.volume = Float(volume)
+  }
 
   private func setupPlayer() {
       if player != nil {
@@ -88,7 +95,7 @@ class MusicPlayerManager {
       }
 
       let pItems = playlistManager.getFirstBatchOfAvailable()
-    print("Setup Videos: \(pItems)")
+      print("Setup Videos: \(pItems)")
 
       let (videoItems, playerItems) = unzip(pItems)
 //      self.playerItems = playerItems
@@ -116,6 +123,11 @@ class MusicPlayerManager {
 
     player?.event.stateChange.addListener(self, { state in
       print("State changed \(state)")
+      if state == .playing {
+        self.isPlaying = true
+      } else if state == .paused || state == .ended {
+        self.isPlaying = false
+      }
     })
 
 
@@ -128,6 +140,13 @@ class MusicPlayerManager {
       self?.player?.pause()
       return MPRemoteCommandHandlerStatus.success
     }
+    
+    self.volume = Double(AVAudioSession.sharedInstance().outputVolume)
+    
+    volumeObserver = AVAudioSession.sharedInstance().observe(\.outputVolume) { session, _ in
+          print("Output volume: \(session.outputVolume)")
+          self.volume = Double(session.outputVolume)
+    }
 
   }
 
@@ -136,6 +155,7 @@ class MusicPlayerManager {
     isPlaying = false
     isStalled = false
     currentTrackIndex = 0
+    volumeObserver?.invalidate()
   }
 
   // Event Listeners
