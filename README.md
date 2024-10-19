@@ -20,10 +20,13 @@ This project uses the [Youtube.js](https://github.com/LuanRT/YouTube.js) library
 | 1080p playback up to 4K                         | ✅ (using HLS toggle)          |
 | Youtube Login via QR Code                       | ✅                             |
 | History Page                                    | ✅                             |
-| Subscription Page                               | ⏳ WIP                         |
-| Social Interactions (Like, Subscribe etc.)      | ❌                             |
+| Subscription Page                               | ✅                             |
+| Social Interactions (Like, Subscribe etc.)      | ⏳(Partial support)            |
 | Chapter-Information                             | ✅ (works with non VLC Player) |
+| Youtube Music Support                           | ✅                             |
 | Basic Mobile Support                            | ✅                             |
+| Apple Watch Variant (Alpha)                     | ⏳(Working on it)              |
+| Android TV Support                              | ❌ (UI mostly broken)          |
 
 ### Building
 
