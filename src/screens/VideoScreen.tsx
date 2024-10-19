@@ -17,16 +17,15 @@ import ErrorComponent from "../components/general/ErrorComponent";
 import EndCard from "../components/video/EndCard";
 import VideoEndCard from "../components/video/VideoEndCard";
 import VideoPlayerNative from "../components/video/VideoPlayerNative";
-import VideoPlayerVLC from "../components/video/VideoPlayerVLC";
 import VideoPlayer, {
   VideoPlayerRefs,
 } from "../components/video/videoPlayer/VideoPlayer";
-import useChannelDetails from "../hooks/useChannelDetails";
 import useVideoDetails from "../hooks/useVideoDetails";
 import LOGGER from "../utils/Logger";
 
 import {useAppData} from "@/context/AppDataContext";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
+import useChannelDetails from "@/hooks/useChannelDetails";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
@@ -42,17 +41,17 @@ interface PlaybackInformation {
 
 export default function VideoScreen({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;
-  console.log("VideoID: ", videoId);
-  console.log("NavEndpoint: ", navEndpoint);
   const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(
     navEndpoint ?? videoId,
   );
+  const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id);
   const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components
   const [ended, setEnded] = useState(false);
 
   const {appSettings} = useAppData();
+  const videoPlayerRef = useRef<VideoPlayerRefs>();
 
   // TODO: Will be replaced once embed server is available on tvOS
   const hlsUrl = useMemo(() => {
@@ -64,6 +63,7 @@ export default function VideoScreen({route, navigation}: Props) {
   useEffect(() => {
     return navigation.addListener("blur", () => {
       setShowEndCard(false);
+      videoPlayerRef.current.pause();
     });
   }, [navigation]);
 
@@ -109,8 +109,6 @@ export default function VideoScreen({route, navigation}: Props) {
     [YTVideoInfo?.originalData?.watch_next_feed],
   );
 
-  const videoPlayerRef = useRef<VideoPlayerRefs>();
-
   if (!YTVideoInfo) {
     return (
       <View
@@ -139,18 +137,8 @@ export default function VideoScreen({route, navigation}: Props) {
 
   return (
     <View style={[StyleSheet.absoluteFill]}>
-      {appSettings.vlcEnabled ? (
-        <VideoPlayerVLC
-          videoInfo={YTVideoInfo.originalData}
-          url={videoUrl}
-          hlsUrl={hlsUrl}
-          onEndReached={() => {
-            setEnded(true);
-            setShowEndCard(true);
-          }}
-          disableControls={showEndCard}
-        />
-      ) : appSettings.ownOverlayEnabled ? (
+      {appSettings.ownOverlayEnabled || appSettings.vlcEnabled ? (
+        // TODO: Add VLC VideoComponent, once VLC Player is not broken anymore on XCode 16
         <VideoPlayer
           ref={videoPlayerRef}
           // @ts-ignore
@@ -166,7 +154,13 @@ export default function VideoScreen({route, navigation}: Props) {
           metadata={{
             title: YTVideoInfo.title,
             author: YTVideoInfo.author?.name,
-            authorUrl: YTVideoInfo.author?.id,
+            authorID: YTVideoInfo.channel_id,
+            authorThumbnailUrl:
+              YTVideoInfo.channel?.url ?? parsedChannel?.thumbnail?.url,
+            onAuthorPress: () =>
+              navigation.navigate("ChannelScreen", {
+                channelId: YTVideoInfo.channel_id,
+              }),
             views: YTVideoInfo.short_views,
             videoDate: YTVideoInfo.publishDate,
           }}

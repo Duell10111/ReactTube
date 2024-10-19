@@ -11,11 +11,6 @@ import {
   View,
 } from "react-native";
 import DeviceInfo from "react-native-device-info";
-import Orientation, {
-  ALL_ORIENTATIONS_BUT_UPSIDE_DOWN,
-  OrientationLocker,
-  useOrientationChange,
-} from "react-native-orientation-locker";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import GridView from "../../components/GridView";
@@ -25,14 +20,16 @@ import ErrorComponent from "../../components/general/ErrorComponent";
 import ChannelIcon from "../../components/video/ChannelIcon";
 import PlaylistBottomSheet from "../../components/video/playlistBottomSheet/PlaylistBottomSheet";
 import PlaylistBottomSheetContainer from "../../components/video/playlistBottomSheet/PlaylistBottomSheetContainer";
-import {useAppStyle} from "../../context/AppStyleContext";
-import {useDownloaderContext} from "../../context/DownloaderContext";
-import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
-import {parseObservedArray} from "../../extraction/ArrayExtraction";
 import {YTVideoInfo as YTVideoInfoType} from "../../extraction/Types";
 import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
 import useVideoDetails from "../../hooks/useVideoDetails";
-import {RootStackParamList} from "../../navigation/RootStackNavigator";
+
+import {useAppStyle} from "@/context/AppStyleContext";
+import {useDownloaderContext} from "@/context/DownloaderContext";
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {parseObservedArray} from "@/extraction/ArrayExtraction";
+import useOrientationChange from "@/hooks/ui/useOrientationChange";
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -69,13 +66,13 @@ export default function VideoScreen({route, navigation}: Props) {
   const [landscape, setLandscape] = useState(false);
   const focus = useIsFocused();
 
-  useEffect(() => {
-    Orientation.getOrientation(orientation => {
-      setLandscape(
-        orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
-      );
-    });
-  }, []);
+  // useEffect(() => {
+  //   Orientation.getOrientation(orientation => {
+  //     setLandscape(
+  //       orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
+  //     );
+  //   });
+  // }, []);
 
   useOrientationChange(orientation => {
     // Do not react if not focused
@@ -83,13 +80,9 @@ export default function VideoScreen({route, navigation}: Props) {
       return;
     }
     if (!DeviceInfo.isTablet()) {
-      setFullScreen(
-        orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
-      );
+      setFullScreen(orientation === "LANDSCAPE");
     }
-    setLandscape(
-      orientation === "LANDSCAPE-LEFT" || orientation === "LANDSCAPE-RIGHT",
-    );
+    setLandscape(orientation === "LANDSCAPE");
   });
 
   console.log("Landscape: ", landscape);
@@ -194,7 +187,6 @@ export default function VideoScreen({route, navigation}: Props) {
         styles.container,
         tabletLandscape ? styles.containerTabletLandscape : undefined,
       ]}>
-      <OrientationLocker orientation={ALL_ORIENTATIONS_BUT_UPSIDE_DOWN} />
       <View
         style={
           tabletLandscape

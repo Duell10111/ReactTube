@@ -1,14 +1,8 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {ButtonGroup, Icon} from "@rneui/base";
+import {ButtonGroup} from "@rneui/base";
 import {Duration} from "luxon";
-import {useMemo, useState} from "react";
+import React, {useMemo, useState} from "react";
 import {Image, StyleSheet, Text, View} from "react-native";
-import {Slider} from "react-native-awesome-slider";
-import Animated, {
-  runOnJS,
-  useDerivedValue,
-  useSharedValue,
-} from "react-native-reanimated";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {MusicBottomPlayerBar} from "../../components/music/MusicBottomPlayerBar";
@@ -20,6 +14,11 @@ import {MusicPlayerTitle} from "../../components/music/player/MusicPlayerTitle";
 import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
 
+import {MusicPlayerActionButton} from "@/components/music/player/MusicPlayerActionButton";
+import {useDownloaderContext} from "@/context/DownloaderContext";
+import {usePlaylistManagerContext} from "@/context/PlaylistManagerContext";
+import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
+
 type Tab = "Playlist" | "Lyrics" | "Related";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MusicPlayerScreen">;
@@ -27,8 +26,11 @@ type Props = NativeStackScreenProps<RootStackParamList, "MusicPlayerScreen">;
 export function MusicPlayerScreen({route, navigation}: Props) {
   const {bottom} = useSafeAreaInsets();
   const {currentItem} = useMusikPlayerContext();
+  const {download} = useDownloaderContext();
 
   const [openTab, setOpenTab] = useState<Tab>();
+
+  const {save} = usePlaylistManagerContext();
 
   const hlsAudio = useMemo(
     () => currentItem?.originalData?.streaming_data?.hls_manifest_url,
@@ -47,6 +49,8 @@ export function MusicPlayerScreen({route, navigation}: Props) {
   //   "VideoDataPlaylistData",
   //   currentItem?.playlist?.content?.map(v => v.title),
   // );
+
+  usePhoneOrientationLocker();
 
   if (openTab) {
     return (
@@ -100,7 +104,26 @@ export function MusicPlayerScreen({route, navigation}: Props) {
       <View style={styles.bottomContainer}>
         <MusicPlayerTitle />
         <MusicPlayerSlider />
-        <View style={styles.buttonContainer} />
+        <View style={styles.buttonContainer}>
+          <MusicPlayerActionButton
+            iconName={"playlist-add"}
+            iconType={"material"}
+            title={"Save"}
+            onPress={() => {
+              if (currentItem) {
+                save([currentItem.id]);
+              }
+            }}
+          />
+          {/*<MusicPlayerActionButton*/}
+          {/*  iconName={"download"}*/}
+          {/*  iconType={"antdesign"}*/}
+          {/*  title={"Download"}*/}
+          {/*  onPress={() => {*/}
+          {/*    download(currentItem.id);*/}
+          {/*  }}*/}
+          {/*/>*/}
+        </View>
         <MusicPlayerPlayerButtons />
         <View style={styles.bottomActionsContainer}>
           <Text
@@ -140,6 +163,9 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: "100%",
     minHeight: 50,
+    justifyContent: "flex-start",
+    flexDirection: "row",
+    paddingVertical: 10,
   },
   bottomActionsContainer: {
     width: "100%",

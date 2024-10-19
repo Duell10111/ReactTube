@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import SDDownloadManager
 
 func getDocumentsDirectory() -> URL {
     let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
@@ -42,7 +43,7 @@ func saveDownloadFile(id: String, filePath: URL, fileExtension: String? = nil) -
 
   if created {
     do {
-      if FileManager.default.fileExists(atPath: destinationURL.absoluteString) {
+      if FileManager.default.fileExists(atPath: destinationURL.path()) {
         try FileManager.default.replaceItemAt(destinationURL, withItemAt: filePath)
       } else {
         try FileManager.default.moveItem(at: filePath, to: destinationURL)
@@ -65,7 +66,7 @@ func removeURLPrefix(url: String, prefix: String) -> String {
 }
 
 // TODO: Rename to VideoData?
-func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, downloaded: Bool? = nil, duration: Int? = nil, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil) {
+func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, artist: String? = nil, downloaded: Bool? = nil, duration: Int, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil) {
 
   do {
     let descriptor = FetchDescriptor<Video>(
@@ -75,20 +76,28 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
 
     let existingEntry = !contents.isEmpty
 
-    let video = contents.first ?? Video(id: id, title: title, downloaded: downloaded ?? false)
+    let video = contents.first ?? Video(id: id, durationMillis: duration, title: title, downloaded: downloaded ?? false)
 
     if let d = downloaded {
       video.downloaded = d
     }
+    
+    if let artist = artist {
+      video.artist = artist
+    }
+    
     if let fURL = fileURL {
       video.fileURL = fURL
+      video.durationMillis = duration
     }
-//    if let d = duration {
-//      video.
-//    }
+    
+    if duration > 0 {
+      video.durationMillis = duration
+    }
+    
     if let vUntil = validUntil, let sURL = streamURL {
       video.validUntil = vUntil
-      video.streamURL = streamURL
+      video.streamURL = sURL
     }
 
     if let cURL = coverURL {
@@ -174,7 +183,31 @@ func addPlaylistData(_ modelContext: ModelContext, id: String, title: String? = 
   }
 }
 
-func addHomeScreenElement(_ modelContext: ModelContext, type: String, videoID: String?, playlistID: String?) -> HomeScreenElement? {
+func addHomeScreenSection(_ modelContext: ModelContext, title: String, date: Date) -> HomeScreenSection? {
+  do {
+    let descriptor = FetchDescriptor<HomeScreenSection>(
+      predicate: #Predicate { $0.title == title }
+        )
+    let contents = try modelContext.fetch(descriptor)
+
+    let existingEntry = !contents.isEmpty
+
+    let homeScreenElement = contents.first ?? HomeScreenSection(uuid: UUID().uuidString, title: title)
+    
+    homeScreenElement.date = date
+
+    if !existingEntry {
+      modelContext.insert(homeScreenElement)
+    }
+    
+    return homeScreenElement
+  } catch {
+    print("Error inserting HomeScreenSection: \(error)")
+  }
+  return nil
+}
+
+func addHomeScreenElement(_ modelContext: ModelContext, videoID: String?, playlistID: String?) -> HomeScreenElement? {
   if let id = videoID ?? playlistID {
     do {
       let descriptor = FetchDescriptor<HomeScreenElement>(
@@ -220,11 +253,29 @@ func addHomeScreenElement(_ modelContext: ModelContext, type: String, videoID: S
   return nil
 }
 
+let queue = DispatchQueue(label: "db.utils.queue")
+
 func checkVideosForExpiration(_ videos: [Video]) {
-  for video in videos {
-    if let validUntil = video.validUntil, validUntil < Date() {
-      print("Refetch expired videoID")
-      requestVideo(id: video.id)
+  queue.async {
+    for video in videos {
+      if let validUntil = video.validUntil, validUntil < Date() {
+        print("Refetch expired videoID")
+        requestVideo(id: video.id)
+      }
+    }
+  }
+}
+
+func checkPlaylist(_ playlist: Playlist) {
+  queue.async {
+    let ids = playlist.videoIDs.filter { id in
+      !playlist.videos.contains { video in
+        video.id == id && (video.downloaded || (video.validUntil != nil && video.validUntil! > Date())) && video.durationMillis > 0
+      }
+    }
+    print("Fetching Playlist Ids: \(ids)")
+    ids.forEach { id in
+      requestVideo(id: id)
     }
   }
 }
@@ -243,16 +294,18 @@ func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
   // TODO: Delete all files as well?
   clearDatabase(modelContext: modelContext)
   backupFile.videos.forEach { video in
-    let v = Video(id: video.id, title: video.title, downloaded: false)
+    let v = Video(id: video.id, durationMillis: video.duration, title: video.title, downloaded: false)
     modelContext.insert(v)
   }
 }
 
 func clearDownloads(modelContext: ModelContext) {
   do {
-    try FileManager.default.removeItem(at: getDownloadDirectory())
+    SDDownloadManager.shared.cancelAllDownloads()
+    if FileManager.default.fileExists(atPath: getDownloadDirectory().path()) {
+      try FileManager.default.removeItem(at: getDownloadDirectory())
+    }
 
-    let batchSize = 1000
     let descriptor = FetchDescriptor<Video>()
     let videos = try modelContext.fetch(descriptor)
 
@@ -260,8 +313,15 @@ func clearDownloads(modelContext: ModelContext) {
       video.downloaded = false
       video.fileURL = nil
     }
+    
+    let playlistDescriptor = FetchDescriptor<Playlist>()
+    let playlists = try modelContext.fetch(playlistDescriptor)
+    
+    for playlist in playlists {
+      playlist.download = false
+    }
   } catch {
-    print("Failed to clear all Downloads data.")
+    print("Failed to clear all Downloads data. \(error)")
   }
 }
 
@@ -269,9 +329,13 @@ func clearDatabase(modelContext: ModelContext) {
   do {
       try modelContext.delete(model: Video.self)
       try modelContext.delete(model: Playlist.self)
+      try modelContext.delete(model: HomeScreenSection.self)
       try modelContext.delete(model: HomeScreenElement.self)
-      try FileManager.default.removeItem(at: getDownloadDirectory())
+    
+      if FileManager.default.fileExists(atPath: getDownloadDirectory().path()) {
+        try FileManager.default.removeItem(at: getDownloadDirectory())
+      }
   } catch {
-      print("Failed to clear all Video and Playlist data.")
+      print("Failed to clear all Video and Playlist data. \(error)")
   }
 }

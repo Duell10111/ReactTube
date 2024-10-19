@@ -1,4 +1,16 @@
-import {Helpers, Misc, YT, YTMusic, YTNodes} from "../utils/Youtube";
+import {PlaylistPanelContinuation} from "youtubei.js";
+
+import {
+  Helpers,
+  Misc,
+  YT,
+  YTMusic,
+  YTNodes,
+  Mixins,
+  IBrowseResponse,
+} from "../utils/Youtube";
+
+import {HorizontalData} from "@/extraction/ShelfExtraction";
 
 export interface Thumbnail {
   url: string;
@@ -43,11 +55,13 @@ export interface Author {
 
 export interface PlaylistData {
   originalNode: Helpers.YTNode;
-  type: "playlist";
+  type: "playlist" | "album";
   id: string;
   title: string;
+  subtitle?: string;
   thumbnailImage: Thumbnail;
   author?: Author;
+  artists?: Author[];
   videoCount?: string;
   videos?: string[];
   music?: boolean;
@@ -55,12 +69,14 @@ export interface PlaylistData {
 
 export interface ChannelData {
   originalNode: Helpers.YTNode;
-  type: "channel";
+  type: "channel" | "artist" | "profile";
   id: string;
   title: string;
   thumbnailImage: Thumbnail;
   author?: Author;
   music?: boolean;
+  subscribers?: string;
+  subtitle?: string;
 }
 
 // YT.* Types
@@ -99,6 +115,81 @@ export interface YTVideoInfo {
   durationSeconds?: number;
 }
 
+// Make YTTrackInfo extend from VideoInfo or BasicVideoInfoType?
+export interface YTTrackInfo {
+  originalData: YTMusic.TrackInfo;
+  id: string;
+  thumbnailImage: Thumbnail;
+  title: string;
+  description?: string;
+  duration?: string;
+  short_views: string;
+  publishDate?: string;
+  quality?: string;
+  livestream?: boolean;
+  author?: Author;
+  channel_id?: string;
+  channel?: {
+    id: string;
+    name: string;
+    url: string;
+  };
+  playlist?: {
+    id: string;
+    title: string;
+    content: ElementData[];
+    author?: string | Author;
+    current_index: number;
+    is_infinite: boolean;
+  };
+  liked?: boolean;
+  disliked?: boolean;
+  endscreen?: YTEndscreen;
+  // Music Properties
+  durationSeconds?: number;
+}
+
+export interface YTPlaylistPanel {
+  originalData: YTNodes.PlaylistPanel;
+  title?: string;
+  items: YTPlaylistPanelItem[];
+}
+
+export interface YTPlaylistPanelContinuation {
+  originalData: PlaylistPanelContinuation;
+  items: YTPlaylistPanelItem[];
+}
+
+export interface YTPlaylistPanelItem extends VideoData {
+  selected: boolean;
+}
+
+export interface YTMenu {
+  originalData: YTNodes.Menu;
+  top_level_buttons: YTToggleButton[];
+}
+
+export interface YTToggleButton {
+  originalData: YTNodes.ToggleButton;
+  icon_type: string;
+  isToggled: boolean;
+  text?: string;
+  toggled_text?: string;
+  endpoint?: YTNodes.NavigationEndpoint;
+}
+
+export interface YTChipCloud {
+  originalData: YTNodes.ChipCloud;
+  chip_clouds: YTChipCloudChip[];
+}
+
+export interface YTChipCloudChip {
+  originalData: YTNodes.ChipCloudChip;
+  text: string;
+  isSelected: boolean;
+  endpoint?: YTNodes.NavigationEndpoint;
+}
+
 export interface YTChapter {
   originalData: YTNodes.Chapter;
   title: string;
@@ -112,6 +203,30 @@ export interface YTChannel {
   id: string;
   title?: string;
   description?: string;
+  thumbnail: Thumbnail;
+}
+
+export interface YTMusicArtist {
+  originalData: YTMusic.Artist;
+  id: string;
+  title: string;
+  description?: string;
+  thumbnail?: Thumbnail;
+  profileImage?: Thumbnail;
+  // Endpoints
+  playEndpoint?: YTNodes.NavigationEndpoint;
+  data: HorizontalData[];
+}
+
+export interface YTMusicAlbum {
+  originalData: YTMusic.Album;
+  id: string;
+  title: string;
+  subtitle?: string;
+  thumbnail?: Thumbnail;
+  // Endpoints
+  playEndpoint?: YTNodes.NavigationEndpoint;
+  data: ElementData[];
 }
 
 export interface YTEndscreen {
@@ -140,8 +255,15 @@ export interface YTPlaylist {
   title: string;
   thumbnailImage: Thumbnail;
   author?: Author;
+  description?: string;
 
   playEndpoint?: YTNodes.NavigationEndpoint;
+  saved?: {
+    status: boolean;
+    saveID: string;
+  };
+
+  menu?: YTMenu;
 
   items: ElementData[];
   loadMore: () => Promise<void>;
@@ -169,6 +291,21 @@ export function getAuthorMusic(author: AuthorMusic) {
   return {
     id: author.channel_id,
     name: author.name,
-    navEndpoint: author.endpoint,
+    navEndpoint: author?.endpoint,
   } as Author;
+}
+
+export interface YTLibrary {
+  originalData: YT.Library;
+  sections: YTLibrarySection[];
+}
+
+export interface YTLibrarySection {
+  type?: "playlists" | "history";
+  title: string;
+  content: ElementData[];
+  playlistId?: string;
+  getMoreData: () => Promise<
+    YT.Playlist | YT.History | Mixins.Feed<IBrowseResponse>
+  >;
 }

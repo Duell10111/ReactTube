@@ -17,3 +17,10 @@ export const playlists = sqliteTable("playlist", {
 });
 
 export type Playlist = typeof playlists.$inferSelect; // return type when queried
+
+export const playlistVideos = sqliteTable("playlist_videos", {
+  playlistId: text("playlist_id")
+    .primaryKey()
+    .references(() => playlists.id),
+  videoId: text("video_id").references(() => videos.id),
+});

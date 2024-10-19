@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 
 import {useYoutubeContext} from "../../context/YoutubeContext";
 import Logger from "../../utils/Logger";
@@ -9,6 +9,8 @@ import {
   Innertube,
   IBrowseResponse,
 } from "../../utils/Youtube";
+
+import {parseArrayHorizontalData} from "@/extraction/ArrayExtraction";
 
 const LOGGER = Logger.extend("FEED");
 
@@ -72,9 +74,14 @@ export function useFeedData(
     }
   }, [content, fetchMore, feed]);
 
+  const parsedContent = useMemo(() => {
+    return parseArrayHorizontalData(content);
+  }, [content]);
+
   return {
     content,
     contentFetched,
+    parsedContent,
     feed,
     setFeed,
     fetchMore,

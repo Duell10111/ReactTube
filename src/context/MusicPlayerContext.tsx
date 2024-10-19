@@ -10,6 +10,7 @@ import TrackPlayer, {
   Capability,
   Event,
   Track,
+  TrackType,
   useTrackPlayerEvents,
 } from "react-native-track-player";
 
@@ -17,12 +18,21 @@ import useVideoDataGenerator from "../hooks/music/useVideoDataGenerator";
 import Logger from "../utils/Logger";
 import {Innertube, YTNodes} from "../utils/Youtube";
 
+import {useAppData} from "@/context/AppDataContext";
+import {findVideo} from "@/downloader/DownloadDatabaseOperations";
+import {Video} from "@/downloader/schema";
 import {
-  ElementData,
   VideoData,
   YTPlaylist,
-  YTVideoInfo,
+  YTPlaylistPanel,
+  YTPlaylistPanelContinuation,
+  YTTrackInfo,
 } from "@/extraction/Types";
+import {
+  parseTrackInfoPlaylist,
+  parseTrackInfoPlaylistContinuation,
+} from "@/extraction/YTElements";
+import {getAbsoluteVideoURL} from "@/hooks/downloader/useDownloadProcessor";
 
 type PlayType = "Audio" | "Video";
 
@@ -30,8 +40,9 @@ interface MusicPlayerContextType {
   addPlaylist: (playlist: YTPlaylist) => void;
   setCurrentItem: (item: VideoData) => void;
   setPlaylistViaEndpoint: (endpoint: YTNodes.NavigationEndpoint) => void;
-  currentItem?: YTVideoInfo;
-  playlist: ElementData[];
+  setPlaylistViaLocalDownload: (id: string) => void;
+  currentItem?: YTTrackInfo;
+  playlist?: YTPlaylistPanel;
   currentTime: SharedValue<number>;
   duration: SharedValue<number>;
   playing: boolean;
@@ -44,6 +55,7 @@ interface MusicPlayerContextType {
     onProgress: (durationSeconds: number) => void;
     onEndReached: () => void;
   };
+  fetchMorePlaylistData: () => void;
 }
 
 const events = [
@@ -51,6 +63,8 @@ const events = [
   Event.PlaybackError,
   Event.PlaybackActiveTrackChanged,
   Event.PlaybackProgressUpdated,
+  Event.RemoteNext,
+  Event.RemotePrevious,
 ];
 
 const LOGGER = Logger.extend("MUSIC_CTX");
@@ -63,6 +77,7 @@ interface MusicPlayerProviderProps {
 }
 
 export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
+  const {appSettings} = useAppData();
   const {videoExtractor, videoExtractorNavigationEndpoint} =
     useVideoDataGenerator();
 
@@ -70,12 +85,13 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const [playing, setPlaying] = useState(false);
   const duration = useSharedValue(0);
   const currentTime = useSharedValue(0);
-  const playlist = useRef<VideoData[]>([]);
-  const [currentVideoData, setCurrentVideoData] = useState<YTVideoInfo>();
+  const [playlist, setPlaylist] = useState<YTPlaylistPanel>();
+  const playlistContinuation = useRef<YTPlaylistPanelContinuation>();
+  const [currentVideoData, setCurrentVideoData] = useState<YTTrackInfo>();
 
   useTrackPlayerEvents(events, event => {
     if (event.type === Event.PlaybackError) {
-      console.warn("An error occured while playing the current track.");
+      console.warn("An error occurred while playing the current track.");
     }
     if (event.type === Event.PlaybackState) {
       if (event.state === "playing") {
@@ -134,12 +150,53 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   useEffect(() => {
     if (playType === "Audio" && currentVideoData) {
+      console.log("Current video Data: ", currentVideoData);
       TrackPlayer.load(videoInfoToTrack(currentVideoData)).then(() => {
         TrackPlayer.play().catch(LOGGER.warn);
       });
     }
     duration.value = currentVideoData?.durationSeconds ?? 0;
   }, [currentVideoData]);
+
+  useEffect(() => {
+    // TODO: Only update on first VideoData or check if Up Next contains data?
+    if (currentVideoData) {
+      currentVideoData.originalData
+        .getUpNext()
+        .then(p => {
+          setPlaylist(parseTrackInfoPlaylist(p));
+          playlistContinuation.current = undefined;
+        })
+        .catch(() => LOGGER.debug("No new Track Playlist available"));
+    }
+  }, [currentVideoData]);
+
+  const fetchMorePlaylistData = async () => {
+    if (currentVideoData && playlist) {
+      const continuation =
+        await currentVideoData.originalData.getUpNextContinuation(
+          playlistContinuation.current?.originalData ?? playlist.originalData,
+        );
+
+      const parsedData = parseTrackInfoPlaylistContinuation(continuation);
+      setPlaylist({
+        ...playlist,
+        items: [...playlist.items, ...parsedData.items],
+      });
+      playlistContinuation.current = parsedData;
+      return parsedData;
+    }
+  };
+
+  const fetchPlaylistDataWrapper = () => {
+    fetchMorePlaylistData().catch(LOGGER.warn);
+  };
+
+  useEffect(() => {
+    if (appSettings.trackingEnabled && currentVideoData) {
+      currentVideoData.originalData.addToWatchHistory().catch(LOGGER.warn);
+    }
+  }, [currentVideoData, appSettings.trackingEnabled]);
 
   const addPlaylist = (p: YTPlaylist) => {
     const data = p.items.filter(v => v.type === "video") as VideoData[];
@@ -157,8 +214,39 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       .catch(LOGGER.warn);
   };
 
-  const onEndReached = () => {
-    if (currentVideoData?.playlist) {
+  const setPlaylistViaLocalDownload = async (id: string) => {
+    const localVideos = await findVideo(id);
+
+    if (localVideos[0]) {
+      const track = localVideoToTrack(localVideos[0]);
+      LOGGER.warn(track);
+      TrackPlayer.load(track)
+        .then(() => {
+          TrackPlayer.play().catch(LOGGER.warn);
+        })
+        .catch(LOGGER.warn);
+    }
+  };
+
+  const onEndReached = async () => {
+    if (playlist) {
+      const currentIndex = playlist.items.findIndex(
+        v => v.id === currentVideoData.id,
+      );
+      if (currentIndex >= 0) {
+        const newIndex = currentIndex + 1;
+        LOGGER.debug(`Switching to newIndex: ${newIndex}`);
+        if (newIndex >= playlist.items.length) {
+          // Fetch next playlist items?
+          const contData = await fetchMorePlaylistData();
+          videoExtractor(contData.items[0]).then(setCurrentVideoData);
+        } else {
+          const nextElement = playlist.items[newIndex];
+          videoExtractor(nextElement).then(setCurrentVideoData);
+        }
+      }
+    } else if (currentVideoData?.playlist) {
+      // TODO: Remove as not needed anymore?
       console.log(
         "Playlist",
         currentVideoData.playlist.content.map(v => v.title),
@@ -191,10 +279,27 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const previous = async () => {
-    if (
+    if (playlist) {
+      const currentIndex = playlist.items.findIndex(
+        v => v.id === currentVideoData.id,
+      );
+      if (currentIndex > 0) {
+        const newIndex = currentIndex - 1;
+        LOGGER.debug(`Switching to newIndex: ${newIndex}`);
+        if (newIndex >= playlist.items.length) {
+          // Fetch next playlist items?
+          const contData = await fetchMorePlaylistData();
+          videoExtractor(contData.items[0]).then(setCurrentVideoData);
+        } else {
+          const nextElement = playlist.items[newIndex];
+          videoExtractor(nextElement).then(setCurrentVideoData);
+        }
+      }
+    } else if (
       currentVideoData?.playlist &&
       currentVideoData.playlist.current_index > 0
     ) {
+      // TODO: Remove as not needed anymore?
       console.log(
         "Playlist",
         currentVideoData.playlist.content.map(v => v.title),
@@ -209,18 +314,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const next = async () => {
-    if (currentVideoData?.playlist) {
-      console.log(
-        "Playlist",
-        currentVideoData.playlist.content.map(v => v.title),
-      );
-      const newIndex = currentVideoData.playlist.current_index + 1;
-      LOGGER.debug(`Switching to newIndex: ${newIndex}`);
-      const nextElement = currentVideoData.playlist.content[newIndex];
-      if (nextElement.type === "video") {
-        videoExtractor(nextElement).then(setCurrentVideoData);
-      }
-    }
+    onEndReached();
   };
 
   return (
@@ -230,9 +324,10 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         currentItem: currentVideoData,
         setCurrentItem: setCurrentPlaylist,
         setPlaylistViaEndpoint,
+        setPlaylistViaLocalDownload,
         duration,
         currentTime,
-        playlist: currentVideoData?.playlist?.content ?? [],
+        playlist,
         playing,
         play,
         pause,
@@ -243,6 +338,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         callbacks: {
           onEndReached,
         },
+        fetchMorePlaylistData: fetchPlaylistDataWrapper,
       }}>
       {children}
     </MusicPlayerCtx.Provider>
@@ -257,12 +353,22 @@ export function useMusikPlayerContext() {
   return useContext(MusicPlayerCtx);
 }
 
-function videoInfoToTrack(vidoeInfo: YTVideoInfo) {
+function videoInfoToTrack(videoInfo: YTTrackInfo) {
   return {
-    url: vidoeInfo.originalData.streaming_data.hls_manifest_url,
-    title: vidoeInfo.title,
-    artist: vidoeInfo.author?.name,
-    artwork: vidoeInfo.thumbnailImage.url,
+    id: videoInfo.id, // Set id for later find in queue
+    url: videoInfo.originalData.streaming_data.hls_manifest_url,
+    title: videoInfo.title,
+    artist: videoInfo.author?.name,
+    artwork: videoInfo.thumbnailImage.url,
     type: "hls",
+  } as Track;
+}
+
+function localVideoToTrack(video: Video) {
+  return {
+    id: video.id,
+    url: getAbsoluteVideoURL(video.fileUrl),
+    title: video.name,
+    type: TrackType.Default,
   } as Track;
 }

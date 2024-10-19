@@ -2,7 +2,8 @@ import {ReactElement, useCallback} from "react";
 import {FlatList, ListRenderItem} from "react-native";
 
 import {MusicPlaylistItem} from "./MusicPlaylistItem";
-import {ElementData} from "../../extraction/Types";
+
+import {ElementData} from "@/extraction/Types";
 
 interface MusicPlaylistListProps {
   data: ElementData[];
@@ -15,12 +16,15 @@ export function MusicPlaylistList({
   onFetchMore,
   ListHeaderComponent,
 }: MusicPlaylistListProps): JSX.Element {
-  const renderItem = useCallback<ListRenderItem<ElementData>>(({item}) => {
-    if (item.type === "video") {
-      return <MusicPlaylistItem data={item} />;
-    }
-    return null;
-  }, []);
+  const renderItem = useCallback<ListRenderItem<ElementData>>(
+    ({item, index}) => {
+      if (item.type === "video") {
+        return <MusicPlaylistItem data={item} index={index} />;
+      }
+      return null;
+    },
+    [],
+  );
 
   const keyExtractor = useCallback((item: ElementData, index: number) => {
     return item.id;

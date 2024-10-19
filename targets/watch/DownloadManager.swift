@@ -6,54 +6,88 @@
 //
 
 import Foundation
+import SDDownloadManager
 
+@Observable
 class DownloadManager {
   static let shared = DownloadManager()
 
   var activeDownloads : [ActiveDownload] = []
+  var progressDownloads: [String: Double] = [:]
+  
+  var pendingDownloads: Set<Video> = []
+  
+  // TODO: Add function to download Playlist?
+  
+  func downloadPlaylist(_ playlist: Playlist) {
+    print("Downloading playlist \(playlist.id)")
+    playlist.download = true
+    playlist.videos.filter { video in
+      video.downloaded == false
+    }.forEach { video in
+      pendingDownloads.insert(video)
+    }
+    checkDownloads()
+  }
 
   func downloadVideo(video: Video) {
     if let streamURL = video.downloadURL, let date = video.validUntil, let uri = URL(string: streamURL) {
       print("Started download \(video.id)")
-      let downloadTask = URLSession.shared.downloadTask(with: URLRequest(url: uri)) { urlOrNil, responseOrNil, errorOrNil in
-        print("Response: \(responseOrNil.debugDescription)")
-        let ext = responseOrNil?.mimeType?.split(separator: "/")[1]
-
-        if let response = responseOrNil as? HTTPURLResponse, response.statusCode != 200 {
-          print("Download failed for \(video.id)")
-          self.activeDownloads.removeAll { download in
-            download.id == video.id
-          }
-        }
-
-        print("Extension: \(ext)")
-        guard let fileURL = urlOrNil else {
-          self.activeDownloads.removeAll { download in
-            download.id == video.id
-          }
-          return
-        }
-        // TODO: Remove hardcode fileExt
-        let saveDownload = saveDownloadFile(id: video.id, filePath: fileURL, fileExtension: "mp4")
-        print("Save Download \(saveDownload)")
-        if let saveURL = saveDownload {
-          Task {
-            await self.receiveFileUpload(id: video.id, fileURL: saveURL)
-            self.activeDownloads.removeAll { download in
-              download.id == video.id
+      let request = URLRequest(url: uri)
+      let id = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
+        print("Progrss: \(progress)")
+        self.progressDownloads[video.id] = Double(progress)
+      }) { error, fileUrl in
+        if let error = error {
+          print("Error is \(error as NSError)")
+        } else {
+          if let url = fileUrl {
+            print("Downloaded file's url is \(url.path)")
+            // TODO: Remove hardcode fileExt
+            let saveDownload = saveDownloadFile(id: video.id, filePath: url, fileExtension: "mp4")
+            if let saveURL = saveDownload {
+              Task {
+                await self.receiveFileUpload(id: video.id, fileURL: saveURL, duration: video.durationMillis)
+                self.activeDownloads.removeAll { download in
+                  download.id == video.id
+                }
+                print("Saved Download")
+              }
             }
-            print("Saved Download")
           }
         }
+        self.activeDownloads.removeAll { download in
+          download.id == video.id
+        }
+        self.progressDownloads.removeValue(forKey: video.id)
       }
-      downloadTask.resume()
-      activeDownloads.append(ActiveDownload(id: video.id, session: downloadTask))
+//      activeDownloads.append(ActiveDownload(id: video.id, session: downloadTask))
+    } else {
+      print("Video metadata not available needed for Download")
+    }
+  }
+  
+  func checkDownloads() {
+    Task(priority: .background) {
+      print("Checking downloads...")
+      
+      for video in pendingDownloads {
+        while pendingDownloads.count > 4 {
+          do {
+            print("More than 4 downloads active. Sleeping...")
+            try await Task.sleep(nanoseconds: 60_000_000_000)
+          } catch {
+            print("Download Task Sleep Error: \(error)")
+          }
+        }
+        downloadVideo(video: video)
+      }
     }
   }
 
   @MainActor
-  private func receiveFileUpload(id: String, fileURL: String) {
-    addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true, fileURL: fileURL)
+  private func receiveFileUpload(id: String, fileURL: String, duration: Int) {
+    addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true, duration: duration, fileURL: fileURL)
   }
 
 }

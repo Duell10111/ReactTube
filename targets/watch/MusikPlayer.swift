@@ -9,8 +9,12 @@ import SwiftUI
 
 struct MusikPlayer: View {
     @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
+    @State private var crownValue: Double = 0.0 // Der aktuelle Wert des Digital Crown
+
   
     var body: some View {
+      @Bindable var musicManager = musicManager
+      ZStack {
         VStack {
           // Causes app crashes if switching too fast :/
           if let cover = musicManager.currentCover, false {
@@ -65,15 +69,34 @@ struct MusikPlayer: View {
                       .frame(width: 30, height: 30)
               }.frame(width: 50, height: 50)
           }
+        }
+        HStack(alignment: .center, spacing: 0) {
+          Spacer()
+          VolumeControl()
+        }
       }.toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           NavigationLink(destination: PlaylistView()) {
               Label("Music", systemImage: "music.note.list")
             }
         }
-    }
+      }
+      .focusable(true)
+      .digitalCrownRotation(
+            $musicManager.volume,
+            from: 0.0, through: 1.0,
+            by: 0.01,
+            sensitivity: .low,
+            isContinuous: false,
+            isHapticFeedbackEnabled: true
+      )
+      .onChange(of: musicManager.volume, initial: false) {
+        musicManager.updateVolume(volume: musicManager.volume)
+      }
     }
 }
+
+// TODO: Migrate Forward/Backward to Circle Components
 
 #Preview {
   MusikPlayer()

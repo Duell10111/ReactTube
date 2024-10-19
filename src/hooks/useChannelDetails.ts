@@ -1,7 +1,10 @@
-import {useYoutubeContext} from "../context/YoutubeContext";
-import {useEffect, useState} from "react";
-import {YT} from "../utils/Youtube";
+import {useEffect, useMemo, useState} from "react";
+
 import Logger from "../utils/Logger";
+import {YT} from "../utils/Youtube";
+
+import {useYoutubeContext} from "@/context/YoutubeContext";
+import {getElementDataFromYTChannel} from "@/extraction/YTElements";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -9,9 +12,18 @@ export default function useChannelDetails(channelID: string) {
   const innerTube = useYoutubeContext();
   const [channel, setChannel] = useState<YT.Channel>();
 
+  const parsedChannel = useMemo(
+    () => (channel ? getElementDataFromYTChannel(channel) : undefined),
+    [channel],
+  );
+
   useEffect(() => {
     if (!innerTube) {
       LOGGER.warn("No Youtube Context available");
+      return;
+    }
+
+    if (!channelID) {
       return;
     }
 
@@ -23,5 +35,5 @@ export default function useChannelDetails(channelID: string) {
       .catch(LOGGER.warn);
   }, [innerTube, channelID]);
 
-  return {channel};
+  return {channel, parsedChannel};
 }

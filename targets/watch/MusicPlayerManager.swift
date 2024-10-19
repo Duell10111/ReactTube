@@ -15,6 +15,9 @@ import SwiftAudioEx
 @Observable
 class MusicPlayerManager {
     static let shared = MusicPlayerManager()
+  
+    var volume: Double = 0.0
+    var volumeObserver: NSKeyValueObservation?
 
     var trackIndex = 0
     private var currentTrackIndex = 0
@@ -27,7 +30,7 @@ class MusicPlayerManager {
     var currentCover: URL? = nil
 
     var isStalled: Bool = false
-  
+
     private var player: QueuedAudioPlayer? = nil
     var playerPlaylistItems: [Video] = []
     private var playlist: [Video] = []
@@ -49,12 +52,27 @@ class MusicPlayerManager {
     self.setupPlayer()
   }
 
-  func updatePlaylist(playlist: Playlist) {
+  func updatePlaylist(playlist: Playlist, index: Int? = nil) {
     queue.async {
       self.playlistManager.setPlaylist(playlist)
-
+      
       self.setupPlayer()
+      
+      if let index = index {
+        self.trackIndex = index
+        self.currentTrackIndex = index
+        // TODO: Could not work if index changes when elements not available, maybe better map to id
+        do {
+          try self.player?.jumpToItem(atIndex: index)
+        } catch {
+          print("Error jumping to init index: \(error)")
+        }
+      }
     }
+  }
+  
+  func updateVolume(volume: Double) {
+    player?.volume = Float(volume)
   }
 
   private func setupPlayer() {
@@ -77,7 +95,7 @@ class MusicPlayerManager {
       }
 
       let pItems = playlistManager.getFirstBatchOfAvailable()
-    print("Setup Videos: \(pItems)")
+      print("Setup Videos: \(pItems)")
 
       let (videoItems, playerItems) = unzip(pItems)
 //      self.playerItems = playerItems
@@ -89,31 +107,47 @@ class MusicPlayerManager {
       } catch {
         print("Error adding items")
       }
-    
+
       player?.remoteCommands = [
         .play,
         .pause,
         .previous,
         .next
       ]
-    
+
       player?.event.currentItem.addListener(self, handleAudioPlayerCurrentItemChange)
-    
+
     player?.event.fail.addListener(self, { data in
       print("Error occured in player \(data)")
     })
-    
-    
+
+    player?.event.stateChange.addListener(self, { state in
+      print("State changed \(state)")
+      if state == .playing {
+        self.isPlaying = true
+      } else if state == .paused || state == .ended {
+        self.isPlaying = false
+      }
+    })
+
+
     player?.remoteCommandController.handlePlayCommand = { [weak self] _ in
       self?.player?.play()
       return MPRemoteCommandHandlerStatus.success
     }
-    
+
     player?.remoteCommandController.handlePauseCommand = { [weak self] _ in
       self?.player?.pause()
       return MPRemoteCommandHandlerStatus.success
     }
     
+    self.volume = Double(AVAudioSession.sharedInstance().outputVolume)
+    
+    volumeObserver = AVAudioSession.sharedInstance().observe(\.outputVolume) { session, _ in
+          print("Output volume: \(session.outputVolume)")
+          self.volume = Double(session.outputVolume)
+    }
+
   }
 
   private func deinitPlayer() {
@@ -121,10 +155,11 @@ class MusicPlayerManager {
     isPlaying = false
     isStalled = false
     currentTrackIndex = 0
+    volumeObserver?.invalidate()
   }
-  
+
   // Event Listeners
-  
+
   func handleAudioPlayerCurrentItemChange(
           item: AudioItem?,
           index: Int?,
@@ -136,6 +171,7 @@ class MusicPlayerManager {
     currentTitle = item?.getTitle() ?? "Unknown Title"
     if let i = index {
       currentTrackIndex = i
+      trackIndex = i
     }
   }
 
@@ -158,7 +194,7 @@ class MusicPlayerManager {
               print("Playeritem: \(player?.currentItem?.getSourceUrl())")
               isPlaying = true
               isStalled = false
-            
+
               if let curItem = player?.currentItem, let title = curItem.getTitle(){
                 currentTitle = title
               }
@@ -174,6 +210,10 @@ class MusicPlayerManager {
               player?.play()
               isPlaying = true
               isStalled = false
+              
+              if let curItem = player?.currentItem, let title = curItem.getTitle(){
+                currentTitle = title
+              }
 //              updateTrackInfo()
 //              updateNowPlaying()
             }
@@ -182,6 +222,7 @@ class MusicPlayerManager {
           }
         }
       #endif
+      print("Player state: \(player?.playerState)")
   }
 
   @objc func pauseMusic() {
@@ -190,19 +231,28 @@ class MusicPlayerManager {
       } catch {
           print("Failed to start AVAudioSession: \(error)")
       }
+      print("Player state: \(player?.playerState)")
       player?.pause()
       isPlaying = false
   }
 
   func nextTrack() {
       // TODO: Add check if new items are available
-    
+
       player?.next()
   }
 
   // TODO: Fix this to make it more stable!!!
   func previousTrack() {
       player?.previous()
+  }
+  
+  func jumpToIndex(_ index: Int) {
+    do {
+      try player?.jumpToItem(atIndex: index)
+    } catch {
+      print("Failed to jump to index: \(error)")
+    }
   }
 
   // TODO: Add move playlist option

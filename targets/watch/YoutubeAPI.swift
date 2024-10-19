@@ -54,21 +54,51 @@ func processYoutubeAPIMessage(_ session: WCSession, message: [String: Any]) {
 @MainActor
 func saveVideoResponse(_ session: WCSession, message: [String: Any]) {
   print("VideoResponse: \(message)")
-  if let id = message["id"] as? String, let title = message["title"] as? String, let duration = message["duration"] as? Int, let streamURL = message["streamURL"] as? String, let validUntil = message["validUntil"] as? Int64, let coverURL = message["coverUrl"] as? String {
+  if let id = message["id"] as? String, let title = message["title"] as? String, let artist = message["artist"] as? String, let duration = message["duration"] as? Int, let streamURL = message["streamURL"] as? String, let validUntil = message["validUntil"] as? Int64, let coverURL = message["coverUrl"] as? String {
     print("Received Video Response for id: \(id)")
     let date = Date(timeIntervalSince1970: (Double(validUntil) / 1000.0))
-    addDownloadData(DataController.shared.container.mainContext, id: id, title: title, streamURL: streamURL, validUntil: date, coverURL: coverURL, temp: message["temp"] as? Bool, downloadURL: message["downloadURL"] as? String)
+    addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: duration, streamURL: streamURL, validUntil: date, coverURL: coverURL, temp: message["temp"] as? Bool, downloadURL: message["downloadURL"] as? String)
+  } else if let id = message["id"] as? String, let title = message["title"] as? String, let coverURL = message["coverUrl"] as? String {
+    addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, coverURL: coverURL, temp: message["temp"] as? Bool)
   } else {
     print("YT Video Response incomplete")
   }
 }
 
 @MainActor
-func savePlaylistResponse(_ session: WCSession, message: [String: Any]) {
-  if let id = message["id"] as? String, let title = message["title"] as? String, let videoIds = message["videoIds"] as? [String], let coverURL = message["coverUrl"] as? String {
+func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestVideos: Bool = false) {
+  if let id = message["id"] as? String, let title = message["title"] as? String, let coverURL = message["coverUrl"] as? String {
     print("Received Playlist Response for id: \(id)")
-    videoIds.forEach { id in
-      requestVideo(id: id)
+    let videos = message["videos"] as? [[String: Any]]
+    let vIds = message["videoIds"] as? [String]
+    
+    guard let videoIds = videos?.compactMap({ video in
+      if let id = video["id"] as? String {
+        return id
+      }
+      return nil
+    }) ?? vIds else {
+      print("Error saving Playlist. No Video IDs provided")
+      return
+    }
+    
+    print("Playlist Videos: \(videos)")
+    
+    if requestVideos {
+      videoIds.forEach { id in
+        requestVideo(id: id)
+      }
+    } else if let videos = videos {
+      videos.forEach { video in
+        if let id = video["id"] as? String, let title = video["title"] as? String, let coverURL = video["coverUrl"] as? String {
+          addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, validUntil: Date(), coverURL: coverURL)
+          print("Saving Playlist Video ID: \(id)")
+        } else {
+          print("Playlist VideoData incomplete")
+        }
+      }
+    } else {
+      print("No Video data provided or fetched")
     }
     addPlaylistData(DataController.shared.container.mainContext, id: id, title: title, videoIds: videoIds, coverURL: coverURL, temp: message["temp"] as? Bool)
   } else {
@@ -78,12 +108,17 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any]) {
 
 @MainActor
 func saveHomeScreenResponse(_ session: WCSession, message: [String: Any]) {
+  print("Received Home Screen Response")
   if let sections = message["sections"] as? [[String: Any]], !sections.isEmpty {
     sections.forEach { section in
       if let title = section["title"] as? String, let data = section["data"] as? [[String: Any]] {
-        data.forEach { sectionData in
-          parseHomeSectionData(session, data: sectionData)
+        let elements: [HomeScreenElement] = data.compactMap { sectionData in
+          return parseHomeSectionData(session, data: sectionData)
         }
+        print("Found elements: \(elements)")
+        let section = addHomeScreenSection(DataController.shared.container.mainContext, title: title, date: Date())
+        print("Section: \(section)")
+        section?.elements = elements
       } else {
         print("Section Data incomplete")
       }
@@ -94,12 +129,15 @@ func saveHomeScreenResponse(_ session: WCSession, message: [String: Any]) {
 }
 
 @MainActor
-func parseHomeSectionData(_ session: WCSession, data: [String: Any]) {
-  if let type = data["type"] as? String {
+func parseHomeSectionData(_ session: WCSession, data: [String: Any]) -> HomeScreenElement? {
+  if let type = data["type"] as? String, let id = data["id"] as? String {
     if type == "playlist" {
-      savePlaylistResponse(session, message: data)
+      savePlaylistResponse(session, message: data, requestVideos: false)
+      return addHomeScreenElement(DataController.shared.container.mainContext, videoID: nil, playlistID: id)
     } else if type == "video" {
       saveVideoResponse(session, message: data)
+      return addHomeScreenElement(DataController.shared.container.mainContext, videoID: id, playlistID: nil)
     }
   }
+  return nil
 }

@@ -2,17 +2,20 @@ import {useNavigation} from "@react-navigation/native";
 import {Icon} from "@rneui/base";
 import {Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
 
-import {useAppStyle} from "../../context/AppStyleContext";
-import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
-import {VideoData} from "../../extraction/Types";
-import {RootNavProp} from "../../navigation/RootStackNavigator";
-import {YTNodes} from "../../utils/Youtube";
+import {useAppStyle} from "@/context/AppStyleContext";
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {VideoData} from "@/extraction/Types";
+import {RootNavProp} from "@/navigation/RootStackNavigator";
 
 interface MusicPlaylistItemProps {
   data: VideoData;
+  index: number;
 }
 
-export function MusicPlaylistItem({data}: MusicPlaylistItemProps): JSX.Element {
+export function MusicPlaylistItem({
+  data,
+  index,
+}: MusicPlaylistItemProps): JSX.Element {
   const {style} = useAppStyle();
   const {navigate} = useNavigation<RootNavProp>();
 
@@ -32,11 +35,17 @@ export function MusicPlaylistItem({data}: MusicPlaylistItemProps): JSX.Element {
         });
       }}>
       <View style={styles.container}>
-        <Image
-          style={styles.image}
-          source={{uri: data.thumbnailImage.url}}
-          resizeMode={"cover"}
-        />
+        {data.thumbnailImage ? (
+          <Image
+            style={styles.image}
+            source={{uri: data.thumbnailImage.url}}
+            resizeMode={"cover"}
+          />
+        ) : (
+          <View style={[styles.image, styles.countImage]}>
+            <Text style={styles.countText}>{index + 1}</Text>
+          </View>
+        )}
         <View style={styles.textContainer}>
           <Text style={{color: style.textColor}}>{data.title}</Text>
           <Text
@@ -45,7 +54,7 @@ export function MusicPlaylistItem({data}: MusicPlaylistItemProps): JSX.Element {
                 color: style.textColor,
               },
               styles.subtitleText,
-            ]}>{`${data.type === "video" ? `${data.artists?.map(a => a.name)?.join(", ") ?? ""} - ${data.duration}` : ""} - ${data.originalNode.type}`}</Text>
+            ]}>{`${data.type === "video" ? `${data.artists?.map(a => a.name)?.join(", ") ?? data.author?.name ?? ""} - ${data.duration}` : ""} - ${data.originalNode.type}`}</Text>
         </View>
         <Icon
           name={"dots-vertical"}
@@ -67,6 +76,14 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     width: 60,
     height: 60,
+  },
+  countImage: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countText: {
+    color: "white",
+    fontSize: 17,
   },
   textContainer: {
     justifyContent: "center",

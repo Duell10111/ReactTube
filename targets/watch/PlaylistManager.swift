@@ -19,7 +19,7 @@ class PlaylistManager {
 
   }
 
-  func setPlaylist(_ playlist: Playlist?, videos: [Video]? = nil) {
+  func setPlaylist(_ playlist: Playlist?, videos: [Video]? = nil, shuffle: Bool = false) {
     if let p = playlist {
       self.playlist = p
       self.videos = p.videos
@@ -30,6 +30,10 @@ class PlaylistManager {
       self.playlistItems = Array(repeating: nil, count: v.count)
     } else {
       print("Setting playlist invalid")
+    }
+    
+    if shuffle {
+      self.videos?.shuffle()
     }
   }
 
@@ -100,7 +104,7 @@ class PlaylistManager {
     if let localFile = video.fileURL {
       let uri = getDownloadDirectory().appending(path: localFile)
       print("Local uri: \(uri)")
-      let item = DefaultAudioItem(audioUrl: uri.path(), sourceType: .file)
+      let item = DefaultAudioItemEndTime(audioUrl: uri.path(), artist: nil, title: video.title, albumTitle: nil, sourceType: .file, artwork: nil, endTiming: CMTime(value: Int64(video.durationMillis/1000), timescale: 1))
 
       // TODO: Outsource to skip duplicate code
       item.title = video.title
@@ -108,7 +112,7 @@ class PlaylistManager {
       // Set end for local files?
 //          item.forwardPlaybackEndTime =
       return item
-    } else if let sURL = video.streamURL, let uri = URL(string: sURL) {
+    } else if let sURL = video.streamURL, let validUntil = video.validUntil, validUntil > Date() {
       print("Remote uri: \(sURL)")
       let item = DefaultAudioItem(audioUrl: sURL, sourceType: .stream)
 

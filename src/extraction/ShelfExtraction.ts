@@ -75,7 +75,7 @@ export function gridCalculator(
     return newArray;
   } else {
     const list = _.chain(content)
-      .map(getVideoData)
+      .map(element => getVideoData(element))
       .filter(v => v !== undefined)
       .chunk(columns)
       .value() as ElementData[][];
@@ -88,6 +88,7 @@ export function gridCalculator(
 
 export function parseHorizontalNode(
   node: Helpers.YTNode,
+  suppressedError?: boolean,
 ): HorizontalData | undefined {
   if (!node) {
     LOGGER.warn("FALSE TYPE PROVIDED!");
@@ -193,7 +194,7 @@ export function parseHorizontalNode(
       data: content,
       parsedData,
       loadMore: () => {},
-      id: node.type, // TODO: Hash description?
+      id: node.type + node.title.text, // TODO: Hash description?
       title: node.title.text,
       originalNode: node,
       music: true,
@@ -214,14 +215,17 @@ export function parseHorizontalNode(
       music: true,
       shelf: true,
     };
-  } else {
+  } else if (!suppressedError) {
     console.warn("ShelfExtraction: Unknown horizontal type: ", node.type);
   }
 }
 
 function extractContent(node: Helpers.YTNode | Helpers.YTNode[]) {
   const content = Array.isArray(node) ? node : extractListContent(node);
-  const parsedData = _.chain(content).map(getVideoData).compact().value();
+  const parsedData = _.chain(content)
+    .map(element => getVideoData(element))
+    .compact()
+    .value();
   return {
     content,
     parsedData,

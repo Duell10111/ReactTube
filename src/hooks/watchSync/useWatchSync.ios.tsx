@@ -1,11 +1,17 @@
-import {addMessageListener, sendMessage} from "expo-watch-connectivity";
+import {
+  addMessageListener,
+  sendMessage,
+  sendFile,
+  getCurrentFileTransfers,
+} from "expo-watch-connectivity";
 import {useEffect} from "react";
 
 import {handleWatchMessage} from "./WatchYoutubeAPI";
-import {useYoutubeContext} from "../../context/YoutubeContext";
-import {useVideos} from "../../downloader/DownloadDatabaseOperations";
 import LOGGER from "../../utils/Logger";
 import {getAbsoluteVideoURL} from "../downloader/useDownloadProcessor";
+
+import {useYoutubeContext} from "@/context/YoutubeContext";
+import {useVideos} from "@/downloader/DownloadDatabaseOperations";
 
 export default function useWatchSync() {
   const videos = useVideos();
@@ -34,14 +40,18 @@ export default function useWatchSync() {
         );
         handleWatchMessage(innertube, messageFromWatch.payload)
           .catch(console.warn)
-          .then(response => {
-            const ytResponse = {
-              type: "youtubeAPI",
-              payload: response,
-            };
-            LOGGER.debug("Sending WATCH YT API response: ", ytResponse);
-            sendMessage(ytResponse);
-          });
+          .then(async response => {
+            if (Array.isArray(response)) {
+              await Promise.all(
+                response.map(res => {
+                  sendYTAPIMessage(res);
+                }),
+              );
+            } else if (response) {
+              await sendYTAPIMessage(response);
+            }
+          })
+          .catch(console.warn);
       }
       // reply({text: 'Thanks watch!'})
     });
@@ -64,6 +74,18 @@ export default function useWatchSync() {
   }, []);
 
   return {upload};
+}
+
+async function sendYTAPIMessage(response: any) {
+  const ytResponse = {
+    type: "youtubeAPI",
+    payload: response,
+  };
+  LOGGER.debug(
+    "Sending WATCH YT API response: ",
+    JSON.stringify(ytResponse, null, 2),
+  );
+  await sendMessage(ytResponse);
 }
 
 async function sendDownloadDB(videos: ReturnType<typeof useVideos>) {
@@ -113,7 +135,7 @@ async function sendDownloadDataToWatch(
 
   console.log(`Sending Download data to watch ${id}`);
 
-  sendMessage({
+  await sendMessage({
     type: "uploadFile",
     id,
     title: video.name,
@@ -136,13 +158,10 @@ async function sendDownloadToWatch(
 
   const metadata = {
     id,
+    title: video.name,
   };
   console.log("Starting file transfer");
-  // TODO: Enable File transfer again
-  // const {id: fileID} = await startFileTransfer(
-  //   getAbsoluteVideoURL(video.fileUrl),
-  //   metadata,
-  // );
+  await sendFile(getAbsoluteVideoURL(video.fileUrl), metadata);
 
   console.log(`Finished file transfer for video ${id}`);
 
@@ -153,11 +172,12 @@ async function sendDownloadToWatch(
 
 async function checkTransfers() {
   // TODO: Migrate to other library
-  // const fileTransfers = await getFileTransfers();
-  //
-  // Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
-  //   console.log("TransferInfo: ", transferInfo);
-  // });
+  const fileTransfers = await getCurrentFileTransfers();
+  console.log("File Transfers: ", fileTransfers);
+
+  Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
+    console.log("TransferInfo: ", transferInfo);
+  });
 }
 
 interface DownloadDB {

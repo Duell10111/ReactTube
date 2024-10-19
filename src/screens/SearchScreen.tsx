@@ -11,11 +11,18 @@ import useSearchScreen from "../hooks/useSearchScreen";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
 import Logger from "../utils/Logger";
 
+import {SearchBarScreen} from "@/components/search/tv/SearchBarScreen";
+
 const LOGGER = Logger.extend("SEARCH_SCREEN");
 
 export default function SearchScreen() {
-  const {search, searchResult, fetchMore, searchSuggestions} =
-    useSearchScreen();
+  const {
+    search,
+    searchResult,
+    fetchMore,
+    searchSuggestions,
+    parsedSearchResults,
+  } = useSearchScreen();
   const [searchText, setSearchText] = useState("");
   const [hints, setHints] = useState<string[]>([]);
 
@@ -86,6 +93,19 @@ export default function SearchScreen() {
     return () => TVEventControl.enableGestureHandlersCancelTouches();
   }, []);
 
+  if (Platform.isTV) {
+    return (
+      <SearchBarScreen
+        // @ts-ignore
+        data={parsedSearchResults}
+        hints={hints}
+        performSearch={performSearch}
+        // @ts-ignore
+        fetchMore={fetchMore}
+      />
+    );
+  }
+
   return (
     <View style={{flex: 1}}>
       {Platform.isTV ? (
@@ -121,16 +141,3 @@ export default function SearchScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-  },
-  searchView: {
-    width: 1920,
-    height: 500,
-    backgroundColor: "yellow",
-  },
-});

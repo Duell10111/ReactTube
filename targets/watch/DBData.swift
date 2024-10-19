@@ -12,7 +12,9 @@ import SwiftData
 final class Video {
     @Attribute(.unique) var id: String
     var title: String?
+    var artist: String?
     var downloaded: Bool
+    var durationMillis: Int
     var streamURL: String?
     var downloadURL: String? // Workaround for download issues
     var validUntil: Date?
@@ -20,8 +22,9 @@ final class Video {
     var coverURL: String?
     var temp: Bool?
 
-    init(id: String, title: String? = nil, downloaded: Bool = false) {
+  init(id: String, durationMillis: Int, title: String? = nil, downloaded: Bool = false) {
         self.id = id
+        self.durationMillis = durationMillis
         self.title = title
         self.downloaded = downloaded
     }
@@ -35,6 +38,8 @@ final class Playlist {
     var videoIDs: [String] = []
     var videos = [Video]()
     var temp: Bool?
+    // If set videos should be checked if downloaded
+    var download: Bool = false
 
     init(id: String, title: String? = nil) {
         self.id = id

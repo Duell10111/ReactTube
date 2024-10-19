@@ -29,7 +29,9 @@ export const EndCardCloseEvent = "EndCardClose";
 export interface VideoMetadata {
   title: string;
   author: string;
-  authorUrl: string;
+  authorID: string;
+  authorThumbnailUrl: string;
+  onAuthorPress: () => void;
   views: string;
   videoDate: string;
 }
@@ -53,6 +55,7 @@ export interface VideoComponentRefType {
 
 export interface VideoPlayerRefs {
   seek: (seconds: number) => void;
+  pause: () => void;
 }
 
 interface VideoPlayerProps<T> {
@@ -369,6 +372,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
 
     useImperativeHandle(ref, () => {
       return {
+        pause: () => setPaused(true),
         seek: seconds => _videoRef.current?.seek(seconds),
       };
     }, []);
@@ -414,6 +418,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
             metadata={props.metadata}
             resolution={resolution}
             showControls={showControls}
+            setPaused={setPaused}
           />
         </>
       </View>
