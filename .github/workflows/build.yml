@@ -1,0 +1,106 @@
+name: Build
+on:
+#  push:
+#    branches:
+#      - main
+  workflow_dispatch:  # Ermöglicht manuelle Auslöser
+  release:
+    types: [ published ]
+
+jobs:
+  build_ios_without_signing_tvos:
+    name: Build Expo (tvOS) Without Signing
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - name: Install sponge
+        run: brew install sponge
+      - name: Setup
+        uses: ./.github/actions/prebuild
+        with:
+          is-tv: 'true'
+          platform: "ios"
+      - name: Build Expo IPA
+        run: |
+          cd ios
+          xcodebuild -scheme reacttube -workspace reacttube.xcworkspace -configuration release archive -archivePath reacttube.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+          ../scripts/xcarchive_to_ipa.sh reacttube.xcarchive
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: tvos_ipa
+          path: ios/*.ipa
+      - name: Upload IPA to Release
+        if: ${{ github.event_name == 'release' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ios/*.ipa
+#  build_ios_without_signing_phone: # Disabled as the compile phase throws an error
+#    name: Build Expo (iOS) Without Signing
+#    runs-on: macos-latest
+#    steps:
+#      - name: Checkout repository
+#        uses: actions/checkout@v4
+#      - name: Set up Homebrew
+#        id: set-up-homebrew
+#        uses: Homebrew/actions/setup-homebrew@master
+#      - name: Install sponge
+#        run: brew install sponge
+#      - name: Setup
+#        uses: ./.github/actions/prebuild
+#        with:
+#          is-tv: 'false'
+#          platform: "ios"
+#      - name: Prebuild iOS
+#        run: npx expo prebuild -p ios --clean
+#      - name: Build Expo IPA
+#        run: |
+#          cd ios
+#          xcodebuild -scheme reacttube -workspace reacttube.xcworkspace -configuration release archive -archivePath reacttube.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+#          ../scripts/xcarchive_to_ipa.sh reacttube.xcarchive
+#      - name: Upload IPA
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ios_ipa
+#          path: ios/*.ipa
+#      - name: Upload IPA to Release
+#        if: ${{ github.event_name == 'release' }}
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          files: ios/*.ipa
+  build_apk_without_signing_phone:
+    name: Build Expo Android Phone
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Install moreutils
+        run: sudo apt-get install moreutils
+      - name: Setup
+        uses: ./.github/actions/prebuild
+        with:
+          is-tv: 'false'
+          platform: "android"
+      - name: Build Expo Android
+        run: |
+          cd android
+          ./gradlew assembleRelease
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: android_phone_apk
+          path: android/app/build/outputs/apk/release/*.apk
+      - name: Upload IPA to Release
+        if: ${{ github.event_name == 'release' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          files: android/app/build/outputs/apk/release/*.apk

@@ -1,0 +1,27 @@
+name: Set TV as parameter
+description: Configure isTV in app.json
+
+inputs:
+  is-tv:
+    description: 'Boolean if isTV prebuild is wanted'
+    required: true
+    default: 'false'
+  platform:
+    description: 'Platform to prebuild - android or ios'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup
+      uses: ./.github/actions/setup
+    - name: Configure isTV in app.json
+      run: jq --argjson variable $EXPO_TV '.expo.plugins[0][1].isTV |= $variable | .expo.plugins[2][1].isTV |= $variable' app.json | sponge app.json
+      shell: bash
+      env:
+        EXPO_TV: ${{ inputs.is-tv }}
+    - name: Prebuild native files
+      run: npx expo prebuild -p $EXPO_PLATFORM --clean
+      shell: bash
+      env:
+        EXPO_PLATFORM: ${{ inputs.platform }}
