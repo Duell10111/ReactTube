@@ -13,6 +13,7 @@ export interface AppSettings {
   hlsEnabled?: boolean;
   localHlsEnabled?: boolean;
   languageSelected?: string;
+  trackingEnabled?: boolean;
 }
 
 interface AppDataContext {

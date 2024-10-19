@@ -19,7 +19,7 @@ interface Props<K extends TouchableWithoutFeedbackProps>
 }
 
 const TouchableField = forwardRef<
-  TouchableOpacity,
+  React.ElementRef<typeof TouchableOpacity>,
   Props<TouchableOpacityProps>
 >(({style, containerStyle, children, ...props}, ref) => {
   return (

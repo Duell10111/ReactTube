@@ -60,7 +60,8 @@ export default function useAccountData() {
       const loginData: LoginData = {
         user_code: data.user_code,
         device_code: data.device_code,
-        verification_url: data.verification_url,
+        // Append user code so that the user does not have to input the user code
+        verification_url: `${data.verification_url}?user_code=${data.user_code}`,
       };
       LOGGER.debug("Auth Pending: " + JSON.stringify(data));
       setQRCodeData(loginData);
