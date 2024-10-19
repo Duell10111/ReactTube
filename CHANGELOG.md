@@ -1,3 +1,10 @@
+## [0.1.2](https://github.com/Duell10111/ReactTube/compare/v0.1.1...v0.1.2) (2024-10-19)
+
+### Minor changes
+
+* add github build for unsigned ipa (tvOS) and apk phone variant ([#26](https://github.com/Duell10111/ReactTube/issues/26)) ([5798f84](https://github.com/Duell10111/ReactTube/commit/5798f842fdf3be051b5a945d62c8dda2c5f85e09))
+* update dependencies, multiple design adaptions for tv and phones, added some minor features like adding playlists to library and new youtube music features ([#33](https://github.com/Duell10111/ReactTube/issues/33)) ([f096a04](https://github.com/Duell10111/ReactTube/commit/f096a0494d10542a04cf60f1e831b5d7906fc074))
+
 ## [0.1.1](https://github.com/Duell10111/ReactTube/compare/v0.1.0...v0.1.1) (2024-09-21)
 
 ### Minor changes
