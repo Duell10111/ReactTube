@@ -36,7 +36,7 @@
     "react-dom": "18.2.0",
     "react-native": "npm:react-native-tvos@^0.75.2-0",
     "react-native-awesome-slider": "^2.5.3",
-    "react-native-device-info": "13.1.0",
+    "react-native-device-info": "13.0.0",
     "react-native-flash-message": "^0.4.2",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "~2.18.1",
