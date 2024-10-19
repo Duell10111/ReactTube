@@ -30,10 +30,10 @@ export default function useLibrary() {
   }, []);
 
   // TODO: Remove below once migrated
-  const {content, fetchMore, parsedContent} = useFeedData(async youtube => {
-    const library = await youtube.getLibrary();
+  const {content, fetchMore, parsedContent} = useFeedData(async yt => {
+    const lib = await yt.getLibrary();
     // const rtn = library?.history() ?? library;
-    return library;
+    return lib;
   });
 
   // return {content: [], fetchMore: () => {}, parsedContent: [], data};

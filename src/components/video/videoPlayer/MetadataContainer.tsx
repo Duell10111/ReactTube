@@ -1,10 +1,8 @@
-import {Simulate} from "react-dom/test-utils";
 import {StyleSheet, Text, TVFocusGuideView, View} from "react-native";
 
 import {VideoMetadata} from "./VideoPlayer";
 
 import {MetadataButton} from "@/components/video/videoPlayer/metadata/MetadataButton";
-import pause = Simulate.pause;
 
 interface MetadataContainerProps {
   metadata: VideoMetadata;
