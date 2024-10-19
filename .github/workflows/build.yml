@@ -1,9 +1,9 @@
 name: Build
 on:
-  push:
-    branches:
-      - main
-      - github-build
+#  push:
+#    branches:
+#      - main
+  workflow_dispatch:  # Ermöglicht manuelle Auslöser
   release:
     types: [ published ]
 
@@ -39,39 +39,39 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: ios/*.ipa
-  build_ios_without_signing_phone:
-    name: Build Expo (iOS) Without Signing
-    runs-on: macos-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-      - name: Install sponge
-        run: brew install sponge
-      - name: Setup
-        uses: ./.github/actions/prebuild
-        with:
-          is-tv: 'false'
-          platform: "ios"
-      - name: Prebuild iOS
-        run: npx expo prebuild -p ios --clean
-      - name: Build Expo IPA
-        run: |
-          cd ios
-          xcodebuild -scheme reacttube -workspace reacttube.xcworkspace -configuration release archive -archivePath reacttube.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
-          ../scripts/xcarchive_to_ipa.sh reacttube.xcarchive
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios_ipa
-          path: ios/*.ipa
-      - name: Upload IPA to Release
-        if: ${{ github.event_name == 'release' }}
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ios/*.ipa
+#  build_ios_without_signing_phone: # Disabled as the compile phase throws an error
+#    name: Build Expo (iOS) Without Signing
+#    runs-on: macos-latest
+#    steps:
+#      - name: Checkout repository
+#        uses: actions/checkout@v4
+#      - name: Set up Homebrew
+#        id: set-up-homebrew
+#        uses: Homebrew/actions/setup-homebrew@master
+#      - name: Install sponge
+#        run: brew install sponge
+#      - name: Setup
+#        uses: ./.github/actions/prebuild
+#        with:
+#          is-tv: 'false'
+#          platform: "ios"
+#      - name: Prebuild iOS
+#        run: npx expo prebuild -p ios --clean
+#      - name: Build Expo IPA
+#        run: |
+#          cd ios
+#          xcodebuild -scheme reacttube -workspace reacttube.xcworkspace -configuration release archive -archivePath reacttube.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+#          ../scripts/xcarchive_to_ipa.sh reacttube.xcarchive
+#      - name: Upload IPA
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ios_ipa
+#          path: ios/*.ipa
+#      - name: Upload IPA to Release
+#        if: ${{ github.event_name == 'release' }}
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          files: ios/*.ipa
   build_apk_without_signing_phone:
     name: Build Expo Android Phone
     runs-on: ubuntu-latest
