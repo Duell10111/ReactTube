@@ -60,10 +60,11 @@ export function parseObservedArrayHorizontalDataFlatMap(
   array: Helpers.ObservedArray<Helpers.YTNode>,
 ) {
   return _.chain(Array.from(array.values()))
-    .map(parseHorizontalNode)
+    .map(element => parseHorizontalNode(element))
     .compact()
     .flatMap(v => {
-      return v.data.map(parseHorizontalNode);
+      // TODO: Fix to include non nested elements as well
+      return v.data.map(element => parseHorizontalNode(element));
     })
     .compact()
     .value();

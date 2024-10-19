@@ -20,6 +20,8 @@ export function HistoryScreen() {
         paddingRight: right,
       }}>
       <SectionFeedPhone
+        // TODO: Remove in future
+        // @ts-ignore
         items={parsedContent}
         onEndReached={() => fetchMore().catch(console.warn)}
       />

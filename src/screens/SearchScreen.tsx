@@ -96,9 +96,11 @@ export default function SearchScreen() {
   if (Platform.isTV) {
     return (
       <SearchBarScreen
+        // @ts-ignore
         data={parsedSearchResults}
         hints={hints}
         performSearch={performSearch}
+        // @ts-ignore
         fetchMore={fetchMore}
       />
     );

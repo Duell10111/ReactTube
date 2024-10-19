@@ -197,7 +197,7 @@ function parseVideoInfoPlaylist(videoInfo: YT.VideoInfo) {
     console.log("PlaylistData: ", JSON.stringify(videoInfo.playlist.contents));
 
     const content = _.chain(playlist.contents)
-      .map(getVideoData)
+      .map(element => getVideoData(element))
       .compact()
       .value();
 
@@ -339,7 +339,10 @@ export function getElementDataFromYTMusicArtist(
     title,
     description,
     thumbnail,
-    data: _.chain(artist.sections).map(parseHorizontalNode).compact().value(),
+    data: _.chain(artist.sections)
+      .map(section => parseHorizontalNode(section))
+      .compact()
+      .value(),
   } as YTMusicArtist;
 }
 

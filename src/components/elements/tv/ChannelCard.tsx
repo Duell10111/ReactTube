@@ -1,11 +1,10 @@
 import {useNavigation} from "@react-navigation/native";
 import {Image} from "expo-image";
 import React from "react";
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {StyleSheet, Text, TouchableOpacity} from "react-native";
 
 import {useAppStyle} from "@/context/AppStyleContext";
 import {ChannelData} from "@/extraction/Types";
-import useChannelDetails from "@/hooks/useChannelDetails";
 import {NativeStackProp} from "@/navigation/types";
 
 interface Props {
@@ -15,9 +14,6 @@ interface Props {
 export default function ChannelCard({element}: Props) {
   const {style} = useAppStyle();
   const navigation = useNavigation<NativeStackProp>();
-
-  console.log("Element: ", element.originalNode.author.thumbnails);
-  console.log("Element: ", element.thumbnailImage);
 
   return (
     <TouchableOpacity

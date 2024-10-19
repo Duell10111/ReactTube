@@ -4,11 +4,11 @@ import React, {useState} from "react";
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 
 import {useAppStyle} from "@/context/AppStyleContext";
-import {ElementData} from "@/extraction/Types";
+import {VideoData} from "@/extraction/Types";
 import {NativeStackProp} from "@/navigation/types";
 
 interface PlaylistListItem {
-  element: ElementData;
+  element: VideoData;
 }
 
 export function PlaylistListItem({element}: PlaylistListItem) {

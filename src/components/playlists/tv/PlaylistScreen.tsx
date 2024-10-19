@@ -12,7 +12,7 @@ import LoadingComponent from "@/components/general/LoadingComponent";
 import {PlaylistHeader} from "@/components/playlists/tv/PlaylistHeader";
 import {PlaylistListItem} from "@/components/playlists/tv/PlaylistListItem";
 import {useAppStyle} from "@/context/AppStyleContext";
-import {ElementData} from "@/extraction/Types";
+import {ElementData, VideoData} from "@/extraction/Types";
 import usePlaylistDetails from "@/hooks/usePlaylistDetails";
 import {NativeStackProp} from "@/navigation/types";
 import Logger from "@/utils/Logger";
@@ -29,12 +29,9 @@ export default function PlaylistScreen({playlistId}: PlaylistScreenProps) {
   const navigation = useNavigation<NativeStackProp>();
 
   const {style} = useAppStyle();
-
-  console.log("Playlist Menu : ", playlist?.originalData?.menu);
-  console.log("Playlist Menu : ", playlist?.menu);
   // LOGGER.debug("Playlist: ", JSON.stringify(playlist));
 
-  const renderItem = useCallback<ListRenderItem<ElementData>>(({item}) => {
+  const renderItem = useCallback<ListRenderItem<VideoData>>(({item}) => {
     return <PlaylistListItem element={item} />;
   }, []);
 
@@ -48,12 +45,14 @@ export default function PlaylistScreen({playlistId}: PlaylistScreenProps) {
         <PlaylistHeader
           playlist={playlist}
           saved={liked}
-          onPlayAllPress={() =>
-            navigation.navigate("VideoScreen", {
-              navEndpoint: data?.[0]?.navEndpoint,
-              videoId: data?.[0]?.id,
-            })
-          }
+          onPlayAllPress={() => {
+            if (data[0]?.type === "video") {
+              navigation.navigate("VideoScreen", {
+                navEndpoint: data?.[0]?.navEndpoint,
+                videoId: data?.[0]?.id,
+              });
+            }
+          }}
           onSavePlaylist={() => togglePlaylistLike()}
         />
       </TVFocusGuideView>

@@ -1,5 +1,4 @@
-import {CommonActions, useNavigation, useRoute} from "@react-navigation/native";
-import {Icon} from "@rneui/base";
+import {useNavigation, useRoute} from "@react-navigation/native";
 import {Image} from "expo-image";
 import _ from "lodash";
 import React, {useMemo} from "react";
@@ -16,6 +15,7 @@ import {
 import ChannelIcon from "@/components/video/ChannelIcon";
 import {useAppStyle} from "@/context/AppStyleContext";
 import {ElementData} from "@/extraction/Types";
+import useElementPressableHelper from "@/hooks/utils/useElementPressableHelper";
 import {NativeStackProp, RootRouteProp} from "@/navigation/types";
 import Logger from "@/utils/Logger";
 
@@ -46,57 +46,7 @@ export function LibraryElementCard({
 
   console.log("Progress: ", element.type);
 
-  const onPress = () => {
-    if (props.onPress) {
-      props.onPress();
-      return;
-    }
-
-    // TODO: Add init seconds params
-
-    LOGGER.debug("State: ", navigation.getState());
-    LOGGER.debug("Route name: ", route.name);
-    LOGGER.debug("Nav Endpoint: ", element.navEndpoint);
-    if (route.name === "VideoScreen") {
-      LOGGER.debug("Replacing Video Screen");
-      navigation.replace("VideoScreen", {
-        videoId: element.id,
-        navEndpoint: element.navEndpoint,
-        reel: element.type === "reel",
-      });
-    } else if (
-      // @ts-ignore
-      navigation.getState().routes.find(r => r.name === "VideoScreen")
-    ) {
-      LOGGER.debug("Remove all existing Video Screens");
-      navigation.dispatch(state => {
-        // @ts-ignore
-        const routes = state.routes.filter(r => r.name !== "VideoScreen");
-        routes.push({
-          // @ts-ignore
-          name: "VideoScreen",
-          // @ts-ignore
-          params: {
-            videoId: element.id,
-            navEndpoint: element.id,
-            reel: element.type === "reel",
-          },
-        });
-
-        return CommonActions.reset({
-          ...state,
-          routes,
-          index: routes.length - 1,
-        });
-      });
-    } else {
-      navigation.navigate("VideoScreen", {
-        videoId: element.id,
-        navEndpoint: element.navEndpoint,
-        reel: element.type === "reel",
-      });
-    }
-  };
+  const {onPress} = useElementPressableHelper();
 
   const onPressPlaylist = () => {
     const routeName = element.music ? "MusicPlaylistScreen" : "PlaylistScreen";
@@ -112,8 +62,16 @@ export function LibraryElementCard({
   const subtitleContent = useMemo(() => {
     return _.chain([
       element.author?.name,
-      element.short_views,
-      element.publishDate,
+      element.type === "video" ||
+      element.type === "reel" ||
+      element.type === "mix"
+        ? element.short_views
+        : undefined,
+      element.type === "video" ||
+      element.type === "reel" ||
+      element.type === "mix"
+        ? element.publishDate
+        : undefined,
     ])
       .compact()
       .value();
@@ -122,7 +80,9 @@ export function LibraryElementCard({
   return (
     <View style={[styles.container, {minWidth: 150, maxWidth: width}, style]}>
       <TouchableNativeFeedback
-        onPress={element.type === "playlist" ? onPressPlaylist : onPress}>
+        onPress={
+          element.type === "playlist" ? onPressPlaylist : () => onPress(element)
+        }>
         <View style={[styles.segmentContainer]}>
           <Image
             style={styles.imageStyle}

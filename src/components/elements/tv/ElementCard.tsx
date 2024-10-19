@@ -5,6 +5,7 @@ import ChannelCard from "@/components/elements/tv/ChannelCard";
 import {PlaylistCard} from "@/components/elements/tv/PlaylistCard";
 import {VideoCard} from "@/components/elements/tv/VideoCard";
 import {ElementData} from "@/extraction/Types";
+import useElementPressableHelper from "@/hooks/utils/useElementPressableHelper";
 import {NativeStackProp, RootRouteProp} from "@/navigation/types";
 import Logger from "@/utils/Logger";
 
@@ -15,66 +16,17 @@ interface ElementCardProps {
   style?: StyleProp<ViewStyle>;
   disabled?: boolean;
   onPress?: () => void;
+  width?: ViewStyle["width"];
 }
 
 export function ElementCard({element, ...props}: ElementCardProps) {
   const navigation = useNavigation<NativeStackProp>();
   const route = useRoute<RootRouteProp>();
 
+  const {onPress: onPressHelper} = useElementPressableHelper();
+
   const onPress = () => {
-    if (props.onPress) {
-      props.onPress();
-      return;
-    }
-
-    if (props.disabled) {
-      return;
-    }
-
-    // TODO: Add init seconds params
-
-    LOGGER.debug("State: ", navigation.getState());
-    LOGGER.debug("Route name: ", route.name);
-    LOGGER.debug("Nav Endpoint: ", element.navEndpoint);
-    if (route.name === "VideoScreen") {
-      LOGGER.debug("Replacing Video Screen");
-      navigation.replace("VideoScreen", {
-        videoId: element.id,
-        navEndpoint: element.navEndpoint,
-        reel: element.type === "reel",
-      });
-    } else if (
-      // @ts-ignore
-      navigation.getState().routes.find(r => r.name === "VideoScreen")
-    ) {
-      LOGGER.debug("Remove all existing Video Screens");
-      navigation.dispatch(state => {
-        // @ts-ignore
-        const routes = state.routes.filter(r => r.name !== "VideoScreen");
-        routes.push({
-          // @ts-ignore
-          name: "VideoScreen",
-          // @ts-ignore
-          params: {
-            videoId: element.id,
-            navEndpoint: element.id,
-            reel: element.type === "reel",
-          },
-        });
-
-        return CommonActions.reset({
-          ...state,
-          routes,
-          index: routes.length - 1,
-        });
-      });
-    } else {
-      navigation.navigate("VideoScreen", {
-        videoId: element.id,
-        navEndpoint: element.navEndpoint,
-        reel: element.type === "reel",
-      });
-    }
+    onPressHelper(element);
   };
 
   if (

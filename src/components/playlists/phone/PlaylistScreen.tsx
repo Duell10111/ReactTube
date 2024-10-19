@@ -29,6 +29,7 @@ export default function PlaylistScreen({playlistId}: PlaylistScreenProps) {
         paddingRight: right,
       }}>
       <PlaylistList
+        // @ts-ignore Only VideoData should be matched
         data={data}
         fetchMore={fetchMore}
         listHeader={

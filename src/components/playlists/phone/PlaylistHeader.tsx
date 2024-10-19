@@ -9,7 +9,7 @@ interface PlaylistHeaderProps {
   playlist: YTPlaylist;
   saved?: boolean;
   onPlayAllPress?: () => void;
-  onSavePlaylist?: (save: boolean) => void;
+  onSavePlaylist?: () => void;
 }
 
 export function PlaylistHeader({

@@ -23,15 +23,5 @@ export default function LibraryDrawerItem() {
     );
   }
 
-  return <LibraryScreen items={parsedContent} />;
-
-  return (
-    <View>
-      <GridView
-        shelfItem={content}
-        onEndReached={() => fetchMore().catch(console.warn)}
-        horizontalListSegmentStyle={!Platform.isTV ? {maxWidth: 50} : undefined}
-      />
-    </View>
-  );
+  return <LibraryScreen />;
 }
