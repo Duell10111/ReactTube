@@ -62,7 +62,7 @@ jobs:
 #          files: ios/*.ipa
   build_apk_without_signing_phone:
     name: Build Expo Android Phone
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -71,6 +71,8 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Install moreutils
+        run: sudo apt-get install moreutils
       - name: Setup
         uses: ./.github/actions/prebuild
         with:
