@@ -1,16 +1,17 @@
-import {useNavigation} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React from "react";
 import {View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import LoadingComponent from "../../components/general/LoadingComponent";
-import {MusicPlaylistHeader} from "../../components/music/MusicPlaylistHeader";
-import {MusicPlaylistList} from "../../components/music/MusicPlaylistList";
-import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
 import usePlaylistDetails from "../../hooks/music/useMusicPlaylistDetails";
-import {RootStackParamList} from "../../navigation/RootStackNavigator";
 import Logger from "../../utils/Logger";
+
+import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
+import {MusicPlaylistHeader} from "@/components/music/MusicPlaylistHeader";
+import {MusicPlaylistList} from "@/components/music/MusicPlaylistList";
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 const LOGGER = Logger.extend("PLAYLIST");
 
@@ -57,6 +58,7 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
           />
         }
       />
+      <MusicBottomPlayerBar />
     </View>
   );
 }

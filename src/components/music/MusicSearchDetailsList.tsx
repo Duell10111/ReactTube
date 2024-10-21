@@ -1,5 +1,5 @@
 import {useCallback} from "react";
-import {FlatList, ListRenderItem, StyleSheet, View} from "react-native";
+import {FlatList, ListRenderItem, Platform, StyleSheet} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 
 import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
@@ -28,7 +28,8 @@ export function MusicSearchDetailsList({
   );
 
   return (
-    <View style={{flex: 1, paddingTop: 100}}>
+    <SafeAreaView
+      style={[styles.container, Platform.OS === "ios" ? {paddingTop: 50} : {}]}>
       <FlatList
         data={data}
         renderItem={renderItem}
@@ -43,12 +44,15 @@ export function MusicSearchDetailsList({
           />
         }
       />
-      {/*<MusicBottomPlayerBar />*/}
-    </View>
+      <MusicBottomPlayerBar />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   headerContainer: {
     flexDirection: "row",
   },
