@@ -1,11 +1,13 @@
-import _ from "lodash";
 import {useCallback, useMemo} from "react";
 import {FlatList, ListRenderItem} from "react-native";
 
-import {MusicPlayerPlaylistListItem} from "./MusicPlayerPlaylistListItem";
+import {
+  ITEM_HEIGHT,
+  MusicPlayerPlaylistListItem,
+} from "./MusicPlayerPlaylistListItem";
 
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
-import {VideoData, YTPlaylistPanelItem} from "@/extraction/Types";
+import {YTPlaylistPanelItem} from "@/extraction/Types";
 
 interface MusicPlayerPlaylistListProps {
   // currentItem: YTVideoInfo;
@@ -18,16 +20,6 @@ export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
   const selectedItem = useMemo(
     () => playlist.items.findIndex(item => item.id === currentItem.id),
     [currentItem.id],
-  );
-
-  const videoElements = useMemo(
-    () =>
-      currentItem?.playlist
-        ? (_.chain(currentItem.playlist.content)
-            .filter(video => video.type === "video")
-            .value() as VideoData[])
-        : [],
-    [currentItem?.playlist?.content],
   );
 
   const renderItem = useCallback<ListRenderItem<YTPlaylistPanelItem>>(
@@ -46,6 +38,16 @@ export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
 
   return (
     <FlatList
+      // Select current playing item automatically
+      initialScrollIndex={selectedItem}
+      onScrollToIndexFailed={({index}) => {
+        console.warn(`PlaylistPanel: Error scrolling to index: ${index}`);
+      }}
+      getItemLayout={(data, index) => ({
+        length: ITEM_HEIGHT,
+        offset: ITEM_HEIGHT * index,
+        index,
+      })}
       data={playlist.items}
       renderItem={renderItem}
       onEndReached={fetchMorePlaylistData}
