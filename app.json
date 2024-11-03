@@ -50,6 +50,13 @@
           "appleTeamId": "XXXXXXXXXX",
           "isTV": true
         }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "duell10111",
+          "project": "reacttube"
+        }
       ]
     ],
     "name": "reacttube",
