@@ -8,6 +8,7 @@ import {
   getAuthor,
   Thumbnail,
   YTChannel,
+  YTChannelTabType,
   YTChapter,
   YTChipCloud,
   YTChipCloudChip,
@@ -310,13 +311,27 @@ export function getElementDataFromYTChannel(channel: YT.Channel) {
   return {
     originalData: channel,
     id: channel.metadata.external_id,
-    title: channel.title,
+    title: channel.metadata.title,
     description: channel.metadata.description,
     thumbnail: channel.metadata?.thumbnail
       ? getThumbnail(channel.metadata?.thumbnail[0])
       : undefined,
+    tabTypes: getAvailableYTChannelTypes(channel),
   } as YTChannel;
 }
+
+function getAvailableYTChannelTypes(channel: YT.Channel): YTChannelTabType[] {
+  return _.chain([
+    channel.has_home ? "Home" : undefined,
+    channel.has_videos ? "Videos" : undefined,
+    channel.has_shorts ? "Shorts" : undefined,
+    channel.has_playlists ? "Playlists" : undefined,
+  ] as YTChannelTabType[])
+    .compact()
+    .value();
+}
+
+// YTMusic.Artist
 
 export function getElementDataFromYTMusicArtist(
   artist: YTMusic.Artist,

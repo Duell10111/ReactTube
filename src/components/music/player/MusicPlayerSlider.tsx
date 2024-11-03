@@ -8,7 +8,7 @@ import Animated, {
 } from "react-native-reanimated";
 import {ReText} from "react-native-redash";
 
-import {useMusikPlayerContext} from "../../../context/MusicPlayerContext";
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 
 export function MusicPlayerSlider() {
   const {currentTime, duration, seek} = useMusikPlayerContext();
@@ -44,6 +44,7 @@ export function MusicPlayerSlider() {
           const dur = Duration.fromObject({seconds});
           return dur.toFormat("mm:ss");
         }}
+        disableTrackFollow
         onSlidingComplete={seconds => {
           // console.log(`Slide to ${seconds}`);
           seek(seconds);

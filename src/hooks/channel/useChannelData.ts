@@ -1,6 +1,9 @@
-import {YT, Helpers, YTNodes} from "../../utils/Youtube";
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+
 import Logger from "../../utils/Logger";
+import {YT, Helpers, YTNodes} from "../../utils/Youtube";
+
+import {parseArrayHorizontalAndElement} from "@/extraction/ArrayExtraction";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -41,6 +44,10 @@ export default function useChannelData(
   const [nodes, setNodes] = useState<Helpers.YTNode[]>([]);
   const ref = useRef<YT.ChannelListContinuation>();
 
+  const parsedData = useMemo(() => {
+    return parseArrayHorizontalAndElement(nodes);
+  }, [nodes]);
+
   // const getNewestData = () => (data ? data : channel);
 
   useEffect(() => {
@@ -78,5 +85,5 @@ export default function useChannelData(
   // LOGGER.debug("Data: ", JSON.stringify(data?.videos, null, 4));
   LOGGER.debug("Continue: ", data?.has_continuation);
 
-  return {data, nodes: nodes, grid: type === "Home", fetchMore};
+  return {data, nodes, grid: type === "Home", parsedData, fetchMore};
 }

@@ -198,12 +198,20 @@ export interface YTChapter {
   endDuration: number;
 }
 
+export type YTChannelTabType =
+  | "Home"
+  | "Videos"
+  | "Shorts"
+  | "Playlists"
+  | "About";
+
 export interface YTChannel {
   originalData: YT.Channel;
   id: string;
   title?: string;
   description?: string;
   thumbnail: Thumbnail;
+  tabTypes: YTChannelTabType[];
 }
 
 export interface YTMusicArtist {

@@ -8,10 +8,11 @@
     "@react-native-clipboard/clipboard": "^1.14.1",
     "@react-native-community/slider": "4.5.3",
     "@react-navigation/bottom-tabs": "^6.6.1",
+    "@react-navigation/material-top-tabs": "^6.6.14",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
-    "@rneui/base": "^4.0.0-rc.8",
-    "@rneui/themed": "^4.0.0-rc.8",
+    "@rneui/base": "4.0.0-rc.8",
+    "@rneui/themed": "4.0.0-rc.8",
     "crypto-browserify": "^3.12.0",
     "drizzle-orm": "^0.31.2",
     "eslint-config-universe": "^12.1.0",
@@ -42,6 +43,7 @@
     "react-native-gesture-handler": "~2.18.1",
     "react-native-logs": "^5.1.0",
     "react-native-mmkv": "^2.12.2",
+    "react-native-pager-view": "^6.4.1",
     "react-native-qrcode-svg": "^6.3.2",
     "react-native-quick-crypto": "^0.7.4",
     "react-native-reanimated": "~3.15.0",
@@ -51,6 +53,7 @@
     "react-native-screens": "3.34.0",
     "react-native-super-grid": "^6.0.1",
     "react-native-svg": "15.2.0",
+    "react-native-tab-view": "^3.5.2",
     "react-native-track-player": "^4.1.1",
     "react-native-url-polyfill": "^1.3.0",
     "react-native-video": "6.6.3",
@@ -89,8 +92,11 @@
       ]
     }
   },
-  "resolutions": {
-    "tslib": "2.6.2"
+  "overrides": {
+    "react-native": "npm:react-native-tvos@^0.75.2-0",
+    "@rneui/themed": "4.0.0-rc.8",
+    "@rneui/base": "4.0.0-rc.8",
+    "use-latest-callback": "0.1.9"
   },
   "private": true,
   "scripts": {

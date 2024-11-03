@@ -51,6 +51,7 @@ export function HorizontalElementsList({
               element={item}
               // textStyle={textStyle}
               style={[videoSegmentStyle, {marginHorizontal: 10}]}
+              width={300}
             />
           );
         }

@@ -1,4 +1,4 @@
-import {CommonActions, useNavigation, useRoute} from "@react-navigation/native";
+import {useNavigation, useRoute} from "@react-navigation/native";
 import {StyleProp, ViewStyle} from "react-native";
 
 import {PlaylistCard} from "@/components/elements/phone/PlaylistCard";

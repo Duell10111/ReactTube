@@ -2,6 +2,7 @@ import React, {useCallback} from "react";
 import {FlatList, ListRenderItem, StyleProp, ViewStyle} from "react-native";
 
 import {ElementCard} from "@/components/elements/phone/ElementCard";
+import {HorizontalSection} from "@/components/grid/HorizontalSection";
 import PageSectionList from "@/components/segments/PageSectionList";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 import {ElementData} from "@/extraction/Types";
@@ -18,7 +19,7 @@ export function GridFeedPhone({items, onEndReached}: GridFeedPhoneProps) {
     ({item}) => {
       if ("data" in item) {
         return (
-          <PageSectionList
+          <HorizontalSection
             headerText={item.title}
             content={item as HorizontalData}
             // horizontalListSegmentStyle={props.horizontalListSegmentStyle}
@@ -41,5 +42,11 @@ export function GridFeedPhone({items, onEndReached}: GridFeedPhoneProps) {
     [],
   );
 
-  return <FlatList data={items} renderItem={renderItem} />;
+  return (
+    <FlatList
+      data={items}
+      renderItem={renderItem}
+      onEndReached={onEndReached}
+    />
+  );
 }
