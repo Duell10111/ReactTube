@@ -6,6 +6,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import LoadingComponent from "../../components/general/LoadingComponent";
 import Logger from "../../utils/Logger";
 
+import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
 import {MusicPlaylistHeader} from "@/components/music/MusicPlaylistHeader";
 import {MusicPlaylistList} from "@/components/music/MusicPlaylistList";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
@@ -53,6 +54,7 @@ export function MusicAlbumScreen({navigation, route}: Props) {
           />
         }
       />
+      <MusicBottomPlayerBar />
     </View>
   );
 }
