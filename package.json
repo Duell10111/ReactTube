@@ -3,7 +3,7 @@
   "version": "0.1.2",
   "dependencies": {
     "@craftzdog/react-native-buffer": "6.0.5",
-    "@duell10111/apple-targets": "0.0.6-alpha.1",
+    "@duell10111/apple-targets": "0.0.6-alpha.2",
     "@gorhom/bottom-sheet": "4.6.4",
     "@react-native-clipboard/clipboard": "1.14.1",
     "@react-native-community/slider": "4.5.3",

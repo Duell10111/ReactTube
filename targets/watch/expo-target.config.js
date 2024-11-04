@@ -16,5 +16,10 @@ module.exports = {
       repository: "https://github.com/SagarSDagdu/SDDownloadManager.git",
       branch: "master",
     },
+    {
+      name: "Sentry",
+      repository: "https://github.com/getsentry/sentry-cocoa.git",
+      branch: "main", // Replace with a version once fixed in apple-targets
+    },
   ],
 };
