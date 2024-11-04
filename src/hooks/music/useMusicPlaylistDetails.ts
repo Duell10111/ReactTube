@@ -14,13 +14,6 @@ export default function usePlaylistDetails(playlistId: string) {
     useState<ReturnType<typeof getElementDataFromYTMusicPlaylist>>();
   const [liked, setLiked] = useState<boolean>();
 
-  // TODO: Outsource parse of button to extraction type! SAME FOR NORMAL Playlist!
-  const saved = playlist?.originalData?.header
-    ?.as(YTNodes.MusicResponsiveHeader)
-    ?.buttons?.filterType(YTNodes.ToggleButton)
-    ?.find(v => v.icon_type === "LIBRARY_ADD")?.endpoint;
-  console.log("SAVED: ", saved);
-
   useEffect(() => {
     youtube?.music
       ?.getPlaylist(playlistId)
