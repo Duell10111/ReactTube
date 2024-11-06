@@ -15,7 +15,6 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import GridView from "../../components/GridView";
 import VerticalVideoList from "../../components/VerticalVideoList";
-import VideoComponent from "../../components/VideoComponent";
 import ErrorComponent from "../../components/general/ErrorComponent";
 import ChannelIcon from "../../components/video/ChannelIcon";
 import PlaylistBottomSheet from "../../components/video/playlistBottomSheet/PlaylistBottomSheet";
@@ -24,6 +23,7 @@ import {YTVideoInfo as YTVideoInfoType} from "../../extraction/Types";
 import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
 import useVideoDetails from "../../hooks/useVideoDetails";
 
+import {VideoPlayerPhone} from "@/components/video/phone/VideoPlayerPhone";
 import {useAppStyle} from "@/context/AppStyleContext";
 import {useDownloaderContext} from "@/context/DownloaderContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
@@ -200,8 +200,8 @@ export default function VideoScreen({route, navigation}: Props) {
               ? styles.videoContainerTabletLandscape
               : styles.videoContainerTablet,
           ]}>
-          <VideoComponent
-            url={videoUrl}
+          <VideoPlayerPhone
+            sourceURL={httpVideoURL}
             style={[
               phoneLandscape
                 ? styles.videoComponentFullscreen
@@ -212,8 +212,6 @@ export default function VideoScreen({route, navigation}: Props) {
                       : undefined,
                   ],
             ]}
-            videoInfo={YTVideoInfo}
-            fullscreen={fullscreen}
           />
         </View>
         {tabletLandscape ? <ScrollView>{listHeader()}</ScrollView> : null}
