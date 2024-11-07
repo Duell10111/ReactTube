@@ -6,15 +6,20 @@ import type {
 
 import {CornerVideoProps} from "@/components/corner-video/types";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const SCREEN_HEIGHT = Dimensions.get("window").height;
+// const SCREEN_WIDTH = Dimensions.get("window").width;
+// const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 interface HandlerProps {
   e: GestureStateChangeEvent<PanGestureHandlerEventPayload>;
   props: CornerVideoProps;
+  dimensions: {width: number; height: number};
 }
 
-export const handler = ({e, props}: HandlerProps): {x: number; y: number} => {
+export const handler = ({
+  e,
+  props,
+  dimensions: {width: SCREEN_WIDTH, height: SCREEN_HEIGHT},
+}: HandlerProps): {x: number; y: number} => {
   "worklet";
 
   let x = 0;

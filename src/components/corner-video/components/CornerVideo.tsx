@@ -3,6 +3,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import React, {useEffect, useRef, useState} from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -16,7 +17,6 @@ import Animated, {
 } from "react-native-reanimated";
 import Video, {VideoRef} from "react-native-video";
 
-import {VideoProvider} from "../VideoProvider";
 import {handler} from "../handler";
 
 import {CornerVideoProps} from "@/components/corner-video/types";
@@ -41,6 +41,23 @@ const CornerVideo = ({currentTime, props, positions, onClose}: Props) => {
   const dragY = useSharedValue(0);
   const offsetX = useSharedValue(0);
   const offsetY = useSharedValue(0);
+
+  const screen_width = useSharedValue(Dimensions.get("window").width);
+  const screen_height = useSharedValue(Dimensions.get("window").height);
+
+  useEffect(() => {
+    const sub = Dimensions.addEventListener("change", ({window}) => {
+      screen_width.value = window.width;
+      screen_height.value = window.height;
+      // TODO: Adapt to not reset position
+      // Reset position on screen rotation
+      dragX.value = 0;
+      dragY.value = 0;
+      offsetX.value = 0;
+      offsetY.value = 0;
+    });
+    return () => sub.remove();
+  }, []);
 
   // Player Controls
   const [paused, setPaused] = useState(false);
@@ -72,6 +89,10 @@ const CornerVideo = ({currentTime, props, positions, onClose}: Props) => {
         props: {
           cornerProps,
           videoProps,
+        },
+        dimensions: {
+          height: screen_height.value,
+          width: screen_width.value,
         },
       });
       offsetX.value = x;
