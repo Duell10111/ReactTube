@@ -24,9 +24,8 @@ if (process.env?.EXPO_TV === '1') {
 }
  */
 
-// TODO: Load app.json and check if expoTV true?
-
 if (appJSONConfig.expo.plugins[0][1].isTV) {
+  console.log("---- Adding TV file extensions ----");
   config.resolver.sourceExts.unshift(
     ...config.resolver.sourceExts.map(e => `tv.${e}`),
   );

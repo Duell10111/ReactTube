@@ -1,7 +1,9 @@
 import _ from "lodash";
 import {Image, StyleSheet, Text, TouchableHighlight, View} from "react-native";
 
-import {VideoData} from "../../../extraction/Types";
+import {VideoData} from "@/extraction/Types";
+
+export const ITEM_HEIGHT = 50;
 
 interface MusicPlayerPlaylistListItemProps {
   data: VideoData;
@@ -44,6 +46,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
+    height: ITEM_HEIGHT, // Needed to fixed item size to scroll efficiently
   },
   selectedContainerStyle: {
     backgroundColor: "#77777777",

@@ -2,7 +2,7 @@ import {useNavigation} from "@react-navigation/native";
 import {NativeStackNavigationProp} from "@react-navigation/native-stack";
 import _ from "lodash";
 import React, {useCallback, useEffect, useLayoutEffect, useState} from "react";
-import {FlatList, ListRenderItem, View} from "react-native";
+import {FlatList, ListRenderItem, Platform, View} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 
 import {MusicBottomPlayerBar} from "../../components/music/MusicBottomPlayerBar";
@@ -127,15 +127,19 @@ export function MusicSearchScreen() {
   }
 
   return (
-    // TODO: Check margins for Android and Tablets?
-    <SafeAreaView style={{marginTop: 50, marginBottom: 100}}>
+    <SafeAreaView
+      style={[
+        {flex: 1},
+        Platform.OS === "ios"
+          ? {paddingTop: 50, paddingBottom: 0}
+          : {paddingTop: 0},
+      ]}>
       <MusicSearchFilterHeader
         data={cloudChip}
         onClick={chip => extendMusicShelfViaFilter(chip)}
       />
       <FlatList
         contentInsetAdjustmentBehavior={"automatic"}
-        style={{}}
         data={parsedData}
         renderItem={renderItem}
         // onEndReached={fetchContinuation}

@@ -15,7 +15,7 @@ import {RootStackParamList} from "@/navigation/RootStackNavigator";
 export function MusicHomeScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const {data, fetchContinuation} = useMusicHome();
+  const {data, fetchContinuation, refreshing, refresh} = useMusicHome();
   const {loginData} = useAccountContext();
 
   useEffect(() => {
@@ -55,6 +55,8 @@ export function MusicHomeScreen() {
       data={data}
       renderItem={renderItem}
       onEndReached={fetchContinuation}
+      refreshing={refreshing}
+      onRefresh={refresh}
     />
   );
 }

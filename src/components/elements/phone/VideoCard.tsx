@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   TouchableNativeFeedback,
-  useWindowDimensions,
   View,
   ViewStyle,
 } from "react-native";
@@ -23,9 +22,8 @@ interface VideoCardProps {
   width?: ViewStyle["width"];
 }
 
-export function VideoCard({element, style, onPress}: VideoCardProps) {
+export function VideoCard({element, style, onPress, width}: VideoCardProps) {
   const {style: appStyle} = useAppStyle();
-  const {width} = useWindowDimensions();
 
   const progressVideo = element?.thumbnailOverlays?.videoProgress
     ? element.thumbnailOverlays.videoProgress * 100
@@ -42,7 +40,13 @@ export function VideoCard({element, style, onPress}: VideoCardProps) {
   }, [element]);
 
   return (
-    <View style={[styles.container, {minWidth: 150, maxWidth: width}, style]}>
+    <View
+      style={[
+        styles.container,
+        {minWidth: 150, maxWidth: width},
+        {width},
+        style,
+      ]}>
       <TouchableNativeFeedback onPress={onPress}>
         <View style={[styles.segmentContainer]}>
           <Image

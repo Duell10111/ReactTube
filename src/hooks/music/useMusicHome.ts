@@ -1,25 +1,36 @@
 import {useEffect, useRef, useState} from "react";
 
-import {useYoutubeContext} from "../../context/YoutubeContext";
-import {parseObservedArrayHorizontalData} from "../../extraction/ArrayExtraction";
-import {HorizontalData} from "../../extraction/ShelfExtraction";
 import {YTMusic} from "../../utils/Youtube";
+
+import {useYoutubeContext} from "@/context/YoutubeContext";
+import {parseObservedArrayHorizontalData} from "@/extraction/ArrayExtraction";
+import {HorizontalData} from "@/extraction/ShelfExtraction";
 
 export default function useMusicHome() {
   const homeData = useRef<YTMusic.HomeFeed>();
   const youtube = useYoutubeContext();
   const [data, setData] = useState<HorizontalData[]>();
+  const [refreshing, setRefreshing] = useState(false);
 
   console.log(
     "Horizontal Data Types: ",
     data?.map(h => h.originalNode.type),
   );
 
+  const fetchData = () => {
+    youtube.music
+      .getHomeFeed()
+      .then(homeFeed => {
+        homeData.current = homeFeed;
+        setData(extractData(homeFeed));
+      })
+      .finally(() => {
+        setRefreshing(false);
+      });
+  };
+
   useEffect(() => {
-    youtube.music.getHomeFeed().then(homeFeed => {
-      homeData.current = homeFeed;
-      setData(extractData(homeFeed));
-    });
+    fetchData();
   }, []);
 
   const extractData = (homeFeed: YTMusic.HomeFeed) => {
@@ -35,8 +46,15 @@ export default function useMusicHome() {
     }
   };
 
+  const refresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
   return {
     data,
     fetchContinuation,
+    refreshing,
+    refresh,
   };
 }

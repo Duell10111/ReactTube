@@ -34,7 +34,8 @@ export function HorizontalElementsList({
         <ElementCard
           element={item}
           // textStyle={textStyle}
-          style={[videoSegmentStyle, {marginHorizontal: 10, width: 200}]}
+          style={[videoSegmentStyle, {marginHorizontal: 10}]}
+          width={300}
         />
       );
     },

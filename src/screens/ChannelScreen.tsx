@@ -1,13 +1,16 @@
+import {useFocusEffect} from "@react-navigation/native";
+import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React from "react";
 import {Platform, TVEventControl, View} from "react-native";
-import useChannelDetails from "../hooks/useChannelDetails";
-import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {RootStackParamList} from "../navigation/RootStackNavigator";
-import Logger from "../utils/Logger";
-import ChannelHeader from "../components/channel/ChannelHeader";
-import LoadingComponent from "../components/general/LoadingComponent";
+
 import Channel from "../components/channel/Channel";
-import {useFocusEffect} from "@react-navigation/native";
+import ChannelHeader from "../components/channel/ChannelHeader";
+import {Channel as ChannelPhone} from "../components/channel/phone/Channel";
+import LoadingComponent from "../components/general/LoadingComponent";
+import useChannelDetails from "../hooks/useChannelDetails";
+import Logger from "../utils/Logger";
+
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -15,7 +18,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "ChannelScreen">;
 
 export default function ChannelScreen({route}: Props) {
   const {channelId} = route.params;
-  const {channel} = useChannelDetails(channelId);
+  const {channel, parsedChannel} = useChannelDetails(channelId);
 
   // Workaround return issue
   useFocusEffect(() => {
@@ -25,6 +28,10 @@ export default function ChannelScreen({route}: Props) {
 
   if (!channel) {
     return <LoadingComponent />;
+  }
+
+  if (!Platform.isTV) {
+    return <ChannelPhone channel={parsedChannel} />;
   }
 
   return (
