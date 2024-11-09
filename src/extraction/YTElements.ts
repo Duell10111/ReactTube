@@ -12,6 +12,8 @@ import {
   YTChapter,
   YTChipCloud,
   YTChipCloudChip,
+  YTComments,
+  YTCommentThread,
   YTEndscreen,
   YTEndscreenElement,
   YTLibrary,
@@ -26,6 +28,7 @@ import {
   YTToggleButton,
   YTTrackInfo,
   YTVideoInfo,
+  YTVideoInfoCommentEntryPointHeader,
 } from "./Types";
 import {
   YT,
@@ -48,6 +51,8 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
 
   const chapters = extractChaptersFromVideoInfo(videoInfo);
 
+  videoInfo.comments_entry_point_header;
+
   // TODO: Check?
   // @ts-ignore
   return {
@@ -66,6 +71,11 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     channel_id:
       videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
     channel: videoInfo.basic_info.channel,
+    subscribed: videoInfo.secondary_info.subscribe_button.is(
+      YTNodes.SubscribeButton,
+    )
+      ? videoInfo.secondary_info.subscribe_button.subscribed
+      : undefined,
     playlist: parseVideoInfoPlaylist(videoInfo),
     liked: videoInfo.basic_info.is_liked,
     disliked: videoInfo.basic_info.is_disliked,
@@ -110,6 +120,16 @@ function parseEndScreenElements(element: YTNodes.EndscreenElement) {
     style: element.style,
     thumbnailImage: thumbnail,
   } as YTEndscreenElement;
+}
+
+function parseCommentsEntryPointHeader(
+  element: YTNodes.CommentsEntryPointHeader,
+) {
+  return {
+    originalData: element,
+    comments_count: element.comment_count?.text,
+    header_text: element.header?.text,
+  } as YTVideoInfoCommentEntryPointHeader;
 }
 
 export function getElementDataFromTrackInfo(trackInfo: YTMusic.TrackInfo) {
@@ -582,4 +602,21 @@ function parseYTLibrarySectionType(section: YT_LIBRARY_SECTION) {
     case "FEplaylist_aggregation":
       return "playlists";
   }
+}
+
+// YT.Comments
+
+function parseYTComments(comments: YT.Comments) {
+  return {
+    originalData: comments,
+    title: comments?.header?.title?.text,
+    comments_count: comments?.header?.comments_count?.text,
+  } as YTComments;
+}
+
+function parseCommentThread(commentThread: YTNodes.CommentThread) {
+  return {
+    originalData: commentThread,
+    has_replies: commentThread.has_replies,
+  } as YTCommentThread;
 }

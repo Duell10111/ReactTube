@@ -8,6 +8,7 @@ import {VideoRef} from "react-native-video";
 
 import VerticalVideoList from "@/components/VerticalVideoList";
 import ErrorComponent from "@/components/general/ErrorComponent";
+import VideoEndCard from "@/components/video/VideoEndCard";
 import {VideoMetadataContainer} from "@/components/video/phone/VideoMetadataContainer";
 import {VideoPlayerPhone} from "@/components/video/phone/VideoPlayerPhone";
 import PlaylistBottomSheet from "@/components/video/playlistBottomSheet/PlaylistBottomSheet";
@@ -104,8 +105,11 @@ export default function VideoScreenPhone({route, navigation}: Props) {
           ref={videoRef}
           onPipPress={() => {
             videoRef.current.pause();
-          }}
-        />
+          }}>
+          {/*{YTVideoInfo.endscreen ? (*/}
+          {/*  <VideoEndCard endcard={YTVideoInfo.endscreen} />*/}
+          {/*) : null}*/}
+        </VideoPlayerPhone>
       </View>
       <View style={[styles.bottomContainer]}>
         <VerticalVideoList

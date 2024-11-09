@@ -1,4 +1,4 @@
-import {forwardRef} from "react";
+import React, {forwardRef} from "react";
 import {ViewStyle} from "react-native";
 import {VideoRef} from "react-native-video";
 
@@ -8,10 +8,11 @@ interface VideoPlayerPhoneProps {
   sourceURL: string;
   style?: ViewStyle;
   onPipPress?: () => void;
+  children?: React.ReactElement;
 }
 
 export const VideoPlayerPhone = forwardRef<VideoRef, VideoPlayerPhoneProps>(
-  ({sourceURL, style, onPipPress}, ref) => {
+  ({sourceURL, style, onPipPress, children}, ref) => {
     return (
       <VideoWrapper
         style={style}
@@ -30,6 +31,7 @@ export const VideoPlayerPhone = forwardRef<VideoRef, VideoPlayerPhoneProps>(
         }}
         onPress={onPipPress}
         ref={ref}
+        children={children}
       />
     );
   },

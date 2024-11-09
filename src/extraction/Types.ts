@@ -100,6 +100,7 @@ export interface YTVideoInfo {
     name: string;
     url: string;
   };
+  subscribed?: boolean;
   playlist?: {
     id: string;
     title: string;
@@ -111,8 +112,19 @@ export interface YTVideoInfo {
   liked?: boolean;
   disliked?: boolean;
   endscreen?: YTEndscreen;
+  commentsEntryPointHeader?: YTVideoInfoCommentEntryPointHeader;
   // Music Properties
   durationSeconds?: number;
+}
+
+export interface YTVideoInfoCommentEntryPointHeader {
+  originalData: YTNodes.CommentsEntryPointHeader;
+  header_text: string;
+  comments_count: string;
+  preview_comment?: {
+    avatar_thumbnail?: Thumbnail;
+    text: string;
+  };
 }
 
 // Make YTTrackInfo extend from VideoInfo or BasicVideoInfoType?
@@ -316,4 +328,23 @@ export interface YTLibrarySection {
   getMoreData: () => Promise<
     YT.Playlist | YT.History | Mixins.Feed<IBrowseResponse>
   >;
+}
+
+export interface YTComments {
+  originalData: YT.Comments;
+  title?: string;
+  comments_count?: string;
+}
+
+export interface YTCommentThread {
+  originalData: YTNodes.CommentThread;
+  has_replies: boolean;
+  comment: YTComment;
+}
+
+export interface YTComment {
+  originalData: YTNodes.Comment | YTNodes.CommentThread;
+  id: string;
+  content: string;
+  author: Author;
 }

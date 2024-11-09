@@ -1,7 +1,7 @@
 import {Icon, IconType} from "@rneui/base";
 import {StyleSheet, Text, TouchableOpacity} from "react-native";
 
-interface MusicPlayerActionButtonProps {
+interface PlayerActionButtonProps {
   iconName?: string;
   iconType?: IconType;
   title?: string;
@@ -9,12 +9,12 @@ interface MusicPlayerActionButtonProps {
   onPress?: () => void;
 }
 
-export function MusicPlayerActionButton({
+export function PlayerActionButton({
   iconName,
   iconType,
   title,
   onPress,
-}: MusicPlayerActionButtonProps) {
+}: PlayerActionButtonProps) {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       {iconName && iconType ? (
@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 0,
     flexDirection: "row",
-    backgroundColor: "#444",
+    backgroundColor: "#222",
     borderRadius: 25,
     paddingVertical: 5,
     paddingHorizontal: 10,

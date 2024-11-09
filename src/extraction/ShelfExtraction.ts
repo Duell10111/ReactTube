@@ -80,7 +80,7 @@ export function gridCalculator(
       .chunk(columns)
       .value() as ElementData[][];
 
-    listPrint(list);
+    // listPrint(list);
 
     return list;
   }
