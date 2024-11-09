@@ -1,9 +1,10 @@
 import BottomSheet from "@gorhom/bottom-sheet";
 import {useIsFocused} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import React, {memo, useEffect, useMemo, useRef} from "react";
-import {ActivityIndicator, StyleSheet, Text, View} from "react-native";
-import {SafeAreaView, useSafeAreaInsets} from "react-native-safe-area-context";
+import React, {useEffect, useMemo, useRef} from "react";
+import {ActivityIndicator, StyleSheet, View} from "react-native";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {VideoRef} from "react-native-video";
 
 import VerticalVideoList from "@/components/VerticalVideoList";
 import ErrorComponent from "@/components/general/ErrorComponent";
@@ -14,7 +15,7 @@ import PlaylistBottomSheetContainer from "@/components/video/playlistBottomSheet
 import {useAppStyle} from "@/context/AppStyleContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
-import useOrientationChange from "@/hooks/ui/useOrientationChange";
+import useOrientationChangeMotionSensor from "@/hooks/ui/useOrientationChangeMotionSensor";
 import useVideoDetails from "@/hooks/useVideoDetails";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
@@ -43,17 +44,26 @@ export default function VideoScreenPhone({route, navigation}: Props) {
 
   const {style} = useAppStyle();
   const {bottom} = useSafeAreaInsets();
+  const videoRef = useRef<VideoRef>();
 
   const videoUrl = useMemo(
     () => hlsManifestUrl ?? httpVideoURL,
     [hlsManifestUrl, httpVideoURL],
   );
 
-  useOrientationChange(orientation => {
-    // Do not react if not focused
-    if (!focus) {
+  const {orientation} = useOrientationChangeMotionSensor();
+
+  useEffect(() => {
+    if (focus) {
+      console.log(
+        "Updating Fullscreen: ",
+        orientation === 90 || orientation === -90,
+      );
+      videoRef.current?.setFullScreen(
+        orientation === 90 || orientation === -90,
+      );
     }
-  });
+  }, [orientation]);
 
   const sheetRef = useRef<BottomSheet>(null);
 
@@ -89,12 +99,15 @@ export default function VideoScreenPhone({route, navigation}: Props) {
     <View style={styles.container}>
       <View style={styles.videoContainer}>
         <VideoPlayerPhone
-          sourceURL={httpVideoURL}
+          sourceURL={videoUrl}
           style={styles.videoComponent}
+          ref={videoRef}
+          onPipPress={() => {
+            videoRef.current.pause();
+          }}
         />
       </View>
-      <View
-        style={[styles.bottomContainer, {flex: 1, backgroundColor: "blue"}]}>
+      <View style={[styles.bottomContainer]}>
         <VerticalVideoList
           nodes={parseObservedArray(YTVideoInfo.originalData.watch_next_feed)}
           contentInsetAdjustmentBehavior={"always"}
@@ -144,6 +157,6 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   bottomContainer: {
-    // marginTop: 90,
+    flex: 1,
   },
 });
