@@ -58,7 +58,7 @@
     "rn-native-search-bar": "1.0.0-beta.10",
     "stream-browserify": "^3.0.0",
     "web-streams-polyfill": "3.3.3",
-    "youtubei.js": "github:Duell10111/YouTube.js#playlist-like"
+    "youtubei.js": "github:Duell10111/YouTube.js#fix-lockup-view-videos"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

@@ -1,8 +1,9 @@
 import React, {useCallback} from "react";
 import {FlatList, FlatListProps, StyleProp, TextStyle} from "react-native";
-import {ElementData} from "../extraction/Types";
+
 import ChannelSegment from "./ChannelSegment";
 import VideoSegment from "./VideoSegment";
+import {ElementData} from "../extraction/Types";
 
 interface Props
   extends Omit<FlatListProps<ElementData>, "data" | "renderItem"> {

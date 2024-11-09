@@ -320,16 +320,44 @@ export function getVideoData(
   // TODO: Maybe outsource in other file
   // Lookup Views
   else if (ytNode.is(YTNodes.LockupView)) {
+    const image = ytNode.content_image.is(YTNodes.CollectionThumbnailView)
+      ? getThumbnail(ytNode.content_image.primary_thumbnail.image[0])
+      : getThumbnail(ytNode.content_image.image[0]);
     if (ytNode.content_type === "PLAYLIST") {
       return {
         type: "playlist",
         originalNode: ytNode,
         id: ytNode.content_id,
-        thumbnailImage: getThumbnail(
-          ytNode.content_image.primary_thumbnail.image[0],
-        ),
+        thumbnailImage: image,
         title: ytNode.metadata.title.text ?? "Unknown Playlist title",
       } as PlaylistData;
+    } else if (ytNode.content_type === "VIDEO") {
+      // TODO: NEW Type not handled in lib?!
+      // return {
+      //   type: "playlist",
+      //   originalNode: ytNode,
+      //   id: ytNode.content_id,
+      //   thumbnailImage: getThumbnail(
+      //     ytNode.content_image.primary_thumbnail.image[0],
+      //   ),
+      //   title: ytNode.metadata.title.text ?? "Unknown Playlist title",
+      // } as PlaylistData;
+      console.log(ytNode);
+      console.log(ytNode.metadata.metadata.metadata_rows[1]?.metadata_parts);
+
+      return {
+        type: "video",
+        originalNode: ytNode,
+        id: ytNode.content_id,
+        thumbnailImage: image,
+        title: ytNode.metadata.title.text,
+        navEndpoint: ytNode.on_tap_endpoint,
+      } as VideoData;
+    } else {
+      LOGGER.warn(
+        "getVideoData: Unknown LookupView type: ",
+        ytNode.content_type,
+      );
     }
   }
   // Recursive Section

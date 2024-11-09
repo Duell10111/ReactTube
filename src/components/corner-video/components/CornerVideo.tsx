@@ -55,6 +55,27 @@ const CornerVideo = ({currentTime, props, positions, onClose}: Props) => {
       dragY.value = 0;
       offsetX.value = 0;
       offsetY.value = 0;
+
+      // const {x, y} = handler({
+      //   e: {
+      //     velocityX: 0,
+      //     velocityY: 0,
+      //     absoluteX: 0,
+      //     absoluteY: 0,
+      //   },
+      //   props: {
+      //     cornerProps,
+      //     videoProps,
+      //   },
+      //   dimensions: {
+      //     height: screen_height.value,
+      //     width: screen_width.value,
+      //   },
+      // });
+      // offsetX.value = x;
+      // offsetY.value = y;
+      // dragX.value = withSpring(x, {damping: 15});
+      // dragY.value = withSpring(y, {damping: 15});
     });
     return () => sub.remove();
   }, []);

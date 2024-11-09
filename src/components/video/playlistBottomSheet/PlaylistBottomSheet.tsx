@@ -1,16 +1,19 @@
-import React, {forwardRef, useCallback, useMemo} from "react";
 import BottomSheet, {BottomSheetFlatList} from "@gorhom/bottom-sheet";
-import {ElementData, YTVideoInfo} from "../../../extraction/Types";
-import {StyleSheet, Text} from "react-native";
+import React, {forwardRef, useCallback, useMemo} from "react";
+import {StyleProp, StyleSheet, Text, ViewStyle} from "react-native";
+
 import VideoSegment from "../../VideoSegment";
-import {useAppStyle} from "../../../context/AppStyleContext";
+
+import {useAppStyle} from "@/context/AppStyleContext";
+import {ElementData, YTVideoInfo} from "@/extraction/Types";
 
 interface Props {
   ytInfoPlaylist: Required<YTVideoInfo>["playlist"];
+  flatListContentContainerStyle?: StyleProp<ViewStyle>;
 }
 
 const PlaylistBottomSheet = forwardRef<BottomSheet, Props>(
-  ({ytInfoPlaylist}, ref) => {
+  ({ytInfoPlaylist, flatListContentContainerStyle}, ref) => {
     const {style} = useAppStyle();
 
     // Workaround for crash with only 100% index
@@ -50,7 +53,10 @@ const PlaylistBottomSheet = forwardRef<BottomSheet, Props>(
           data={ytInfoPlaylist.content}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
-          contentContainerStyle={[styles.contentContainer]}
+          contentContainerStyle={[
+            styles.contentContainer,
+            flatListContentContainerStyle,
+          ]}
           initialScrollIndex={ytInfoPlaylist.current_index}
           onScrollToIndexFailed={console.warn}
         />

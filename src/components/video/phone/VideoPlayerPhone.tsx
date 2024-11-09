@@ -25,7 +25,7 @@ export function VideoPlayerPhone({sourceURL, style}: VideoPlayerPhoneProps) {
       }}
       videoProps={{
         source: {uri: sourceURL},
-        resizeMode: "cover",
+        resizeMode: "contain",
         controls: true,
       }}
       onPress={() => {

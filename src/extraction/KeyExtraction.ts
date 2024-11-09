@@ -25,6 +25,8 @@ export function extractKeyNode(node: Helpers.YTNode): string {
     return node.title.text ?? "empty-title-recognition-shelf";
   } else if (node.is(YTNodes.ShortsLockupView)) {
     return node.entity_id;
+  } else if (node.is(YTNodes.LockupView)) {
+    return node.content_id;
   } else if (
     node.is(
       YTNodes.PlaylistVideoList,
