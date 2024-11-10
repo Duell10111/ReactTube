@@ -1,9 +1,10 @@
 import {useNavigation} from "@react-navigation/native";
 import _ from "lodash";
 import {useMemo} from "react";
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {Platform, StyleSheet, Text, TouchableOpacity, View} from "react-native";
 
 import {HorizontalElementsList} from "@/components/library/HorizontalElementsList";
+import {LibrarySectionMoreButtonTV} from "@/components/library/LibrarySectionMoreButtonTV";
 import {useAppStyle} from "@/context/AppStyleContext";
 import {YTLibrarySection} from "@/extraction/Types";
 import useLibrarySection from "@/hooks/useLibrarySection";
@@ -11,9 +12,13 @@ import {NativeStackProp} from "@/navigation/types";
 
 interface LibrarySectionItemProps {
   section: YTLibrarySection;
+  elementWidth?: number;
 }
 
-export function LibrarySectionItem({section}: LibrarySectionItemProps) {
+export function LibrarySectionItem({
+  section,
+  elementWidth,
+}: LibrarySectionItemProps) {
   const {style} = useAppStyle();
   const {data, fetchMore} = useLibrarySection(section);
   const navigation = useNavigation<NativeStackProp>();
@@ -41,7 +46,7 @@ export function LibrarySectionItem({section}: LibrarySectionItemProps) {
       };
     } else if (section.type === "history") {
       return () => {
-        navigation.navigate("History");
+        navigation.navigate(Platform.isTV ? "HistoryScreen" : "History");
       };
     }
   }, [section]);
@@ -50,16 +55,23 @@ export function LibrarySectionItem({section}: LibrarySectionItemProps) {
     return null;
   }
 
+  // Mock Touchable for TV as it does not support disabled atm
+  const Touchable = Platform.isTV && !onPress ? View : TouchableOpacity;
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity disabled={!onPress} onPress={onPress}>
+      <Touchable disabled={!onPress} onPress={onPress}>
         <Text style={[styles.textStyle, {color: style.textColor}]}>
           {section.title}
         </Text>
-      </TouchableOpacity>
+      </Touchable>
       <HorizontalElementsList
         elements={filteredData}
         onEndReached={fetchMore}
+        width={elementWidth}
+        endElement={
+          onPress ? <LibrarySectionMoreButtonTV onPress={onPress} /> : undefined
+        }
       />
     </View>
   );
