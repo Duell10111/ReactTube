@@ -7,6 +7,14 @@ export type Orientation = "LANDSCAPE" | "PORTRAIT" | "UNKNOWN";
 export default function useOrientationChange(
   listener: (orientation: Orientation) => void,
 ) {
+  // Return orientation on start once
+  useEffect(() => {
+    ScreenOrientation.getOrientationAsync().then(state => {
+      const o = getOrientation(state);
+      listener(o);
+    });
+  }, []);
+
   useEffect(() => {
     const sub = ScreenOrientation.addOrientationChangeListener(state => {
       const o: Orientation = getOrientation(state.orientationInfo.orientation);

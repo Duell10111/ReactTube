@@ -1,9 +1,8 @@
 import React, {useCallback} from "react";
 import {FlatList, FlatListProps, StyleProp, TextStyle} from "react-native";
 
-import ChannelSegment from "./ChannelSegment";
-import VideoSegment from "./VideoSegment";
-import {ElementData} from "../extraction/Types";
+import {ElementCard} from "@/components/elements/phone/ElementCard";
+import {ElementData} from "@/extraction/Types";
 
 interface Props
   extends Omit<FlatListProps<ElementData>, "data" | "renderItem"> {
@@ -18,17 +17,9 @@ export default function VerticalVideoList({
   onEndReached,
   ...props
 }: Props) {
-  const renderItem = useCallback(
-    ({item}: {item: ElementData}) => {
-      if (item.type === "channel") {
-        return <ChannelSegment element={item.originalNode} />;
-      } else {
-        return <VideoSegment element={item} textStyle={textStyle} />;
-      }
-      return null;
-    },
-    [textStyle],
-  );
+  const renderItem = useCallback(({item}: {item: ElementData}) => {
+    return <ElementCard element={item} />;
+  }, []);
 
   const keyExtractor = useCallback((item: ElementData) => {
     return item.id;

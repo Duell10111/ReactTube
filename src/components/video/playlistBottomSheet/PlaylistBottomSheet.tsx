@@ -2,8 +2,7 @@ import BottomSheet, {BottomSheetFlatList} from "@gorhom/bottom-sheet";
 import React, {forwardRef, useCallback, useMemo} from "react";
 import {StyleProp, StyleSheet, Text, ViewStyle} from "react-native";
 
-import VideoSegment from "../../VideoSegment";
-
+import {ElementCard} from "@/components/elements/phone/ElementCard";
 import {useAppStyle} from "@/context/AppStyleContext";
 import {ElementData, YTVideoInfo} from "@/extraction/Types";
 
@@ -22,7 +21,7 @@ const PlaylistBottomSheet = forwardRef<BottomSheet, Props>(
 
     const renderItem = useCallback(
       ({item, index}: {item: ElementData; index: number}) => (
-        <VideoSegment
+        <ElementCard
           element={item}
           style={
             index === ytInfoPlaylist.current_index
