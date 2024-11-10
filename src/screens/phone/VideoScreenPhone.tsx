@@ -52,19 +52,20 @@ export default function VideoScreenPhone({route, navigation}: Props) {
     [hlsManifestUrl, httpVideoURL],
   );
 
-  const {orientation} = useOrientationChangeMotionSensor();
-
-  useEffect(() => {
-    if (focus) {
-      console.log(
-        "Updating Fullscreen: ",
-        orientation === 90 || orientation === -90,
-      );
-      videoRef.current?.setFullScreen(
-        orientation === 90 || orientation === -90,
-      );
-    }
-  }, [orientation]);
+  // TODO: Currently causing more issues than it helps :/
+  // const {orientation} = useOrientationChangeMotionSensor();
+  //
+  // useEffect(() => {
+  //   if (focus) {
+  //     console.log(
+  //       "Updating Fullscreen: ",
+  //       orientation === 90 || orientation === -90,
+  //     );
+  //     videoRef.current?.setFullScreen(
+  //       orientation === 90 || orientation === -90,
+  //     );
+  //   }
+  // }, [orientation]);
 
   const sheetRef = useRef<BottomSheet>(null);
 
