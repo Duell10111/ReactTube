@@ -1,10 +1,12 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 
-import {useYoutubeContext} from "../../context/YoutubeContext";
-import {getElementDataFromYTMusicPlaylist} from "../../extraction/YTElements";
 import Logger from "../../utils/Logger";
 
-import {YTNodes} from "@/utils/Youtube";
+import {useYoutubeContext} from "@/context/YoutubeContext";
+import {isLocalPlaylist, usePlaylistAsYTPlaylist} from "@/downloader/DBData";
+import {ElementData} from "@/extraction/Types";
+import {getElementDataFromYTMusicPlaylist} from "@/extraction/YTElements";
+import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
 
 const LOGGER = Logger.extend("PLAYLIST");
 
@@ -13,6 +15,11 @@ export default function usePlaylistDetails(playlistId: string) {
   const [playlist, setPlaylist] =
     useState<ReturnType<typeof getElementDataFromYTMusicPlaylist>>();
   const [liked, setLiked] = useState<boolean>();
+
+  const {removeVideoFromPlaylist} = usePlaylistManager();
+
+  // Local version
+  const localData = usePlaylistAsYTPlaylist(playlistId);
 
   useEffect(() => {
     youtube?.music
@@ -44,5 +51,17 @@ export default function usePlaylistDetails(playlistId: string) {
     setLiked(!liked);
   };
 
-  return {playlist, fetchMore, liked, togglePlaylistLike};
+  const deleteItemFromPlaylist = async (item: ElementData) => {
+    await removeVideoFromPlaylist([item.id], playlistId);
+  };
+
+  console.log("Local Playlist: ", localData);
+
+  return {
+    playlist: isLocalPlaylist(playlistId) ? localData : playlist,
+    fetchMore,
+    liked,
+    togglePlaylistLike,
+    deleteItemFromPlaylist,
+  };
 }

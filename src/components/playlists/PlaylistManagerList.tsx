@@ -1,3 +1,4 @@
+import {Button} from "@rneui/base";
 import React, {useCallback} from "react";
 import {FlatList, ListRenderItem, Text} from "react-native";
 

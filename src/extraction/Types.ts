@@ -282,6 +282,7 @@ export interface YTPlaylist {
     status: boolean;
     saveID: string;
   };
+  editable?: boolean;
 
   menu?: YTMenu;
 
@@ -343,7 +344,7 @@ export interface YTCommentThread {
 }
 
 export interface YTComment {
-  originalData: YTNodes.Comment | YTNodes.CommentThread;
+  originalData: YTNodes.CommentView;
   id: string;
   content: string;
   author: Author;

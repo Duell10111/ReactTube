@@ -51,8 +51,6 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
 
   const chapters = extractChaptersFromVideoInfo(videoInfo);
 
-  videoInfo.comments_entry_point_header;
-
   // TODO: Check?
   // @ts-ignore
   return {
@@ -64,8 +62,8 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     title: videoInfo.basic_info.title,
     description: videoInfo.basic_info.short_description,
     short_views:
-      videoInfo.primary_info?.short_view_count.text ??
-      videoInfo.primary_info?.view_count.text,
+      videoInfo.primary_info?.view_count?.short_view_count?.text ??
+      videoInfo.primary_info?.view_count.original_view_count,
     publishDate: videoInfo.primary_info?.relative_date.text,
     chapters,
     channel_id:
@@ -490,6 +488,7 @@ class YTMusicPlaylistClass implements YTPlaylist {
     status: boolean;
     saveID: string;
   };
+  editable?: boolean;
 
   backgroundThumbnail?: Thumbnail;
 

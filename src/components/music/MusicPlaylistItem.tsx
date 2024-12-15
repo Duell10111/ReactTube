@@ -1,20 +1,26 @@
 import {useNavigation} from "@react-navigation/native";
-import {Icon} from "@rneui/base";
+import {useState} from "react";
 import {Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {IconButton, Menu} from "react-native-paper";
 
 import {useAppStyle} from "@/context/AppStyleContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {usePlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import {VideoData} from "@/extraction/Types";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
 
 interface MusicPlaylistItemProps {
   data: VideoData;
   index: number;
+  editable?: boolean;
+  onDeleteItem?: () => void;
 }
 
 export function MusicPlaylistItem({
   data,
   index,
+  editable,
+  onDeleteItem,
 }: MusicPlaylistItemProps): JSX.Element {
   const {style} = useAppStyle();
   const {navigate} = useNavigation<RootNavProp>();
@@ -24,6 +30,9 @@ export function MusicPlaylistItem({
   // console.log("ORG: ", originalItem.overlay.content.endpoint);
 
   const {setCurrentItem} = useMusikPlayerContext();
+  const {save} = usePlaylistManagerContext();
+
+  const [showMenu, setShowMenu] = useState(false);
 
   return (
     <TouchableOpacity
@@ -56,12 +65,44 @@ export function MusicPlaylistItem({
               styles.subtitleText,
             ]}>{`${data.type === "video" ? `${data.artists?.map(a => a.name)?.join(", ") ?? data.author?.name ?? ""} - ${data.duration}` : ""} - ${data.originalNode.type}`}</Text>
         </View>
-        <Icon
-          name={"dots-vertical"}
-          type={"material-community"}
-          color={"white"}
-          size={16}
-        />
+        <Menu
+          visible={showMenu}
+          onDismiss={() => setShowMenu(false)}
+          anchor={
+            // <Icon
+            //   name={"dots-vertical"}
+            //   type={"material-community"}
+            //   color={"white"}
+            //   size={16}
+            //   onPress={() => setShowMenu(true)}
+            // />
+            <IconButton
+              icon={"dots-vertical"}
+              iconColor={"white"}
+              size={20}
+              onPress={() => setShowMenu(true)}
+              // disabled={!editable}
+            />
+          }>
+          {editable ? (
+            <Menu.Item
+              onPress={() => {
+                setShowMenu(false);
+                onDeleteItem?.();
+              }}
+              title={"Remove"}
+              leadingIcon={"delete"}
+            />
+          ) : null}
+          <Menu.Item
+            onPress={() => {
+              setShowMenu(false);
+              save([data.id]);
+            }}
+            title={"Add to Playlist"}
+            leadingIcon={"playlist-plus"}
+          />
+        </Menu>
       </View>
     </TouchableOpacity>
   );

@@ -1,8 +1,7 @@
 import _ from "lodash";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {DeviceEventEmitter} from "react-native";
 
-import {useYoutubeContext} from "../context/YoutubeContext";
 import Logger from "../utils/Logger";
 import {
   YT,
@@ -11,14 +10,23 @@ import {
   AppendContinuationItemsAction,
 } from "../utils/Youtube";
 
+import {useYoutubeContext} from "@/context/YoutubeContext";
+import {parseArrayHorizontalAndElement} from "@/extraction/ArrayExtraction";
+
 const LOGGER = Logger.extend("HOOKS");
 
 export default function useHomeScreen() {
   const youtube = useYoutubeContext();
   const [homePage, setHomePage] = useState<YT.HomeFeed>();
   const [content, setContent] = useState<Helpers.YTNode[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   // console.log("MEMO: ", homePage?.memo.size);
+
+  // TODO: Optimize
+  // const parsedData = useMemo(() => {
+  //   return parseArrayHorizontalAndElement(content);
+  // }, [content]);
 
   const fetchHomeContent = useCallback(() => {
     if (youtube) {
@@ -39,7 +47,8 @@ export default function useHomeScreen() {
         })
         .catch(reason => {
           LOGGER.warn("Error fetching HomeFeed: ", reason);
-        });
+        })
+        .finally(() => setRefreshing(false));
     }
   }, [youtube]);
 
@@ -85,5 +94,10 @@ export default function useHomeScreen() {
     return listener.remove();
   }, [fetchHomeContent]);
 
-  return {homePage, content, fetchMore, refresh: fetchHomeContent};
+  const refresh = () => {
+    setRefreshing(true);
+    fetchHomeContent();
+  };
+
+  return {homePage, content, fetchMore, refresh, refreshing};
 }

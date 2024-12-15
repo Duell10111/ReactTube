@@ -20,18 +20,15 @@ export function MusicHomeScreen() {
 
   useEffect(() => {
     navigation.setOptions({
-      headerLeft:
-        loginData.accounts.length > 0
-          ? () => (
-              <Icon
-                name={"library-music"}
-                type={"material"}
-                onPress={() => navigation.navigate("MusicLibraryScreen")}
-                color={"white"}
-                style={{marginStart: 10}}
-              />
-            )
-          : undefined,
+      headerLeft: () => (
+        <Icon
+          name={"library-music"}
+          type={"material"}
+          onPress={() => navigation.navigate("MusicLibraryScreen")}
+          color={"white"}
+          style={{marginStart: 10}}
+        />
+      ),
       headerRight: () => (
         <Icon
           name={"search"}

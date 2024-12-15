@@ -6,6 +6,7 @@ import React from "react";
 import {StatusBar, useColorScheme} from "react-native";
 import FlashMessage from "react-native-flash-message";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
+import {PaperProvider} from "react-native-paper";
 import {btoa, atob} from "react-native-quick-base64";
 
 import AccountContextProvider from "./src/context/AccountContext";
@@ -36,32 +37,34 @@ const App = () => {
 
   return (
     <GestureHandlerRootView style={{flex: 1}}>
-      <AppStyleProvider>
-        <BackgroundWrapper>
-          <AppDataContextProvider>
-            <YoutubeContextProvider>
-              <AccountContextProvider>
-                <DownloaderContext>
-                  <PlaylistManagerContext>
-                    <MusicPlayerContext>
-                      <StatusBar
-                        // TODO: Currently only dark-mode exists
-                        barStyle={
-                          isDarkMode ? "light-content" : "light-content"
-                        }
-                      />
-                      <VideoProvider>
-                        <Navigation />
-                      </VideoProvider>
-                      <FlashMessage position={"top"} />
-                    </MusicPlayerContext>
-                  </PlaylistManagerContext>
-                </DownloaderContext>
-              </AccountContextProvider>
-            </YoutubeContextProvider>
-          </AppDataContextProvider>
-        </BackgroundWrapper>
-      </AppStyleProvider>
+      <PaperProvider>
+        <AppStyleProvider>
+          <BackgroundWrapper>
+            <AppDataContextProvider>
+              <YoutubeContextProvider>
+                <AccountContextProvider>
+                  <DownloaderContext>
+                    <PlaylistManagerContext>
+                      <MusicPlayerContext>
+                        <StatusBar
+                          // TODO: Currently only dark-mode exists
+                          barStyle={
+                            isDarkMode ? "light-content" : "light-content"
+                          }
+                        />
+                        <VideoProvider>
+                          <Navigation />
+                        </VideoProvider>
+                        <FlashMessage position={"top"} />
+                      </MusicPlayerContext>
+                    </PlaylistManagerContext>
+                  </DownloaderContext>
+                </AccountContextProvider>
+              </YoutubeContextProvider>
+            </AppDataContextProvider>
+          </BackgroundWrapper>
+        </AppStyleProvider>
+      </PaperProvider>
     </GestureHandlerRootView>
   );
 };

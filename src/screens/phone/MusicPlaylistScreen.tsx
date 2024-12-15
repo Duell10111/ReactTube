@@ -19,8 +19,13 @@ type Props = NativeStackScreenProps<RootStackParamList, "PlaylistScreen">;
 
 export function MusicPlaylistScreen({navigation, route}: Props) {
   const {playlistId} = route.params;
-  const {playlist, fetchMore, liked, togglePlaylistLike} =
-    usePlaylistDetails(playlistId);
+  const {
+    playlist,
+    fetchMore,
+    liked,
+    togglePlaylistLike,
+    deleteItemFromPlaylist,
+  } = usePlaylistDetails(playlistId);
   const {bottom, left, right} = useSafeAreaInsets();
   const {setPlaylistViaEndpoint} = useMusikPlayerContext();
 
@@ -42,6 +47,8 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
       <MusicPlaylistList
         data={playlist.items}
         onFetchMore={() => fetchMore()}
+        editable={playlist.editable}
+        onDeleteItem={item => deleteItemFromPlaylist(item)}
         ListHeaderComponent={
           <MusicPlaylistHeader
             image={playlist.thumbnailImage}

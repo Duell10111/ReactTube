@@ -23,15 +23,12 @@ interface DownloaderContextProps {
 }
 
 export function DownloaderContext({children}: DownloaderContextProps) {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const {downloadRefs, download} = useDownloadProcessor();
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const {success, error} = useMigration();
   console.log("Success: ", success);
   console.log("Error: ", error);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const {upload} = useWatchSync();
 
   return (

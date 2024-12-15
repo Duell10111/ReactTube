@@ -21,7 +21,7 @@ const LOGGER = Logger.extend("HOME");
 
 export default function HomeScreen() {
   const [fetchDate, setFetchDate] = useState(Date.now());
-  const {content, fetchMore, refresh} = useHomeScreen();
+  const {content, fetchMore, refresh, refreshing} = useHomeScreen();
 
   const {onScreenFocused} = useDrawerContext();
 
@@ -76,6 +76,8 @@ export default function HomeScreen() {
           fetchMore().catch(console.warn);
         }}
         onElementFocused={onScreenFocused}
+        onRefresh={refresh}
+        refreshing={refreshing}
       />
     </>
   );

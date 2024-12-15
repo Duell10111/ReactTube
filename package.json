@@ -43,6 +43,7 @@
     "react-native-logs": "5.1.0",
     "react-native-mmkv": "2.12.2",
     "react-native-pager-view": "^6.4.1",
+    "react-native-paper": "^5.12.5",
     "react-native-qrcode-svg": "6.3.2",
     "react-native-quick-crypto": "0.7.4",
     "react-native-reanimated": "~3.15.0",
@@ -59,7 +60,7 @@
     "rn-native-search-bar": "1.0.0-beta.10",
     "stream-browserify": "^3.0.0",
     "web-streams-polyfill": "3.3.3",
-    "youtubei.js": "github:Duell10111/YouTube.js#fix-lockup-view-videos"
+    "youtubei.js": "github:Duell10111/YouTube.js#playlist-like"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
