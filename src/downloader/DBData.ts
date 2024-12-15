@@ -37,7 +37,7 @@ export function usePlaylistAsYTPlaylist(id: string): YTMusicPlaylist {
   const playlistImage = localData.find(item => item.coverUrl);
 
   return {
-    originalData: {} as any,
+    originalData: {type: "Local"} as any,
     title: playlist?.name,
     description: undefined,
     editable: true,
@@ -49,7 +49,7 @@ export function usePlaylistAsYTPlaylist(id: string): YTMusicPlaylist {
 
 function mapPlaylistToElementData(localPlaylist: Playlist): ElementData {
   return {
-    originalNode: {} as any,
+    originalNode: {type: "Local"} as any,
     type: "playlist",
     id: localPlaylist.id,
     title: localPlaylist.name,
@@ -63,16 +63,14 @@ function mapPlaylistToElementData(localPlaylist: Playlist): ElementData {
 
 function mapVideoToElementData(videoData: Video): ElementData {
   return {
-    originalNode: {} as any,
+    originalNode: {type: "Local"} as any,
     type: "video",
     id: videoData.id,
     title: videoData.name,
     // @ts-ignore ID currently not known
     author: {name: videoData.author},
     duration: videoData.duration
-      ? Duration.fromMillis(videoData.duration)
-          .shiftTo("hours", "minutes", "seconds")
-          .toHuman()
+      ? Duration.fromObject({seconds: videoData.duration}).toFormat("mm:ss")
       : undefined,
     durationSeconds: videoData.duration,
     // @ts-ignore No height or width available

@@ -2,6 +2,7 @@ import {CompositeScreenProps} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {Icon} from "@rneui/base";
 import React, {useEffect} from "react";
+import {ScrollView} from "react-native";
 
 import {DownloadListItem} from "@/components/downloader/DownloadListItem";
 import {useVideos} from "@/downloader/DownloadDatabaseOperations";
@@ -32,10 +33,10 @@ export function DownloadScreen({navigation}: Props) {
   }, []);
 
   return (
-    <>
+    <ScrollView>
       {videos.map(v => (
         <DownloadListItem key={v.id} id={v.id} />
       ))}
-    </>
+    </ScrollView>
   );
 }
