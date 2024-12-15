@@ -1,7 +1,7 @@
 import {and, desc, eq, getTableColumns, sql} from "drizzle-orm";
 import {drizzle, useLiveQuery} from "drizzle-orm/expo-sqlite";
 import {useMigrations} from "drizzle-orm/expo-sqlite/migrator";
-import {openDatabaseSync} from "expo-sqlite/next";
+import {openDatabaseSync} from "expo-sqlite";
 import {useEffect, useState} from "react";
 
 import migrations from "./drizzle/migrations";
