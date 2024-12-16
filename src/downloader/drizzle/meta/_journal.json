@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1717942671666,
+      "tag": "0000_aromatic_fantastic_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1718122764933,
+      "tag": "0001_hot_gabe_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1734364558106,
+      "tag": "0002_slippery_husk",
+      "breakpoints": true
+    }
+  ]
+}
