@@ -130,7 +130,7 @@ export default function SearchScreen() {
   return (
     <View style={{flex: 1}}>
       <GridView
-        style={{marginTop: 100}} // TODO: Maybe adapt for Android?
+        style={{marginTop: Platform.OS === "ios" ? 100 : 0}}
         columns={columns}
         shelfItem={searchResult}
         onEndReached={() => fetchMore().catch(console.warn)}

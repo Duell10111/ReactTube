@@ -2,7 +2,7 @@ import BottomSheet from "@gorhom/bottom-sheet";
 import {useIsFocused} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React, {useEffect, useMemo, useRef} from "react";
-import {ActivityIndicator, StyleSheet, View} from "react-native";
+import {ActivityIndicator, Platform, StyleSheet, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {VideoRef} from "react-native-video";
 
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   container: {
     height: "100%",
     width: "100%",
-    marginTop: 95, // Workaround as video seems not on right place otherwise at start and glitches down on-screen switch :/ https://github.com/TheWidlarzGroup/react-native-video/issues/4091
+    marginTop: Platform.OS === "ios" ? 95 : 0, // Workaround as video seems not on right place otherwise at start and glitches down on-screen switch :/ https://github.com/TheWidlarzGroup/react-native-video/issues/4091
   },
   videoContainer: {
     width: "100%",

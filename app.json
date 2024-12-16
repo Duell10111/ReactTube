@@ -30,6 +30,7 @@
           "tvosDeploymentTarget": "13.4",
           "removeFlipperOnAndroid": false,
           "androidTVBanner": "./assets/images/tv/tv_banner.png",
+          "androidTVIcon": "assets/images/tv/app_store_icon.png",
           "appleTVImages": {
             "icon": "./assets/images/tv/app_store_icon.png",
             "iconSmall": "./assets/images/tv/app_store_icon_400.png",
@@ -43,6 +44,14 @@
       ],
       [
         "expo-build-properties"
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#000000",
+          "image": "./assets/images/ios_icon.png",
+          "imageWidth": 200
+        }
       ],
       [
         "@duell10111/apple-targets",
