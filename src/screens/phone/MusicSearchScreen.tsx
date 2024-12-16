@@ -109,7 +109,7 @@ export function MusicSearchScreen() {
 
   console.log("Bar open: ", searchBarOpen);
 
-  // TODO: Disable suggestions as search bar can not be closed manually atm after clicking Maybe use focus of resul list?
+  // TODO: Adapt to use music specific suggestions
   if (searchBarOpen) {
     return (
       <SearchBarSuggestions

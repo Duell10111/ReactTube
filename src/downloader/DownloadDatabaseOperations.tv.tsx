@@ -1,5 +1,10 @@
 // Empty file
 
+// TV Mock for migrations
+export function useMigration() {
+  return {success: true, error: undefined};
+}
+
 export async function insertVideo(
   id: string,
   name: string,

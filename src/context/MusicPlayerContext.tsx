@@ -39,7 +39,10 @@ type PlayType = "Audio" | "Video";
 interface MusicPlayerContextType {
   addPlaylist: (playlist: YTPlaylist) => void;
   setCurrentItem: (item: VideoData) => void;
-  setPlaylistViaEndpoint: (endpoint: YTNodes.NavigationEndpoint) => void;
+  setPlaylistViaEndpoint: (
+    endpoint: YTNodes.NavigationEndpoint,
+    upNextUpdate?: boolean,
+  ) => void;
   setPlaylistViaLocalDownload: (id: string) => void;
   currentItem?: YTTrackInfo;
   playlist?: YTPlaylistPanel;
@@ -158,18 +161,29 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     duration.value = currentVideoData?.durationSeconds ?? 0;
   }, [currentVideoData]);
 
-  useEffect(() => {
-    // TODO: Only update on first VideoData or check if Up Next contains data?
-    if (currentVideoData) {
-      currentVideoData.originalData
-        .getUpNext()
-        .then(p => {
-          setPlaylist(parseTrackInfoPlaylist(p));
-          playlistContinuation.current = undefined;
-        })
-        .catch(() => LOGGER.debug("No new Track Playlist available"));
-    }
-  }, [currentVideoData]);
+  // useEffect(() => {
+  //   // TODO: Only update on first VideoData or check if Up Next contains data?
+  //   // if (currentVideoData) {
+  //   //   currentVideoData.originalData
+  //   //     .getUpNext(false)
+  //   //     .then(p => {
+  //   //       setPlaylist(parseTrackInfoPlaylist(p));
+  //   //       playlistContinuation.current = undefined;
+  //   //     })
+  //   //     .catch(() => LOGGER.debug("No new Track Playlist available"));
+  //   // }
+  // }, [currentVideoData]);
+
+  const fetchUpNextPlaylist = (curVideoData: YTTrackInfo) => {
+    LOGGER.debug("Fetching up next playlist: ", curVideoData.title);
+    curVideoData.originalData
+      .getUpNext(false) // TODO: Add flag on Context to allow automix?
+      .then(p => {
+        setPlaylist(parseTrackInfoPlaylist(p));
+        playlistContinuation.current = undefined;
+      })
+      .catch(() => LOGGER.debug("No new Track Playlist available"));
+  };
 
   const fetchMorePlaylistData = async () => {
     if (currentVideoData && playlist) {
@@ -179,9 +193,14 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         );
 
       const parsedData = parseTrackInfoPlaylistContinuation(continuation);
+      // Filter out already existing data in queue, as it continue sometimes start at current playing item causing duplicate issues
+      const newItems = parsedData.items.filter(item => {
+        return playlist.items.findIndex(i => i.id === item.id) === -1;
+      });
+
       setPlaylist({
         ...playlist,
-        items: [...playlist.items, ...parsedData.items],
+        items: [...playlist.items, ...newItems],
       });
       playlistContinuation.current = parsedData;
       return parsedData;
@@ -205,12 +224,25 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const setCurrentPlaylist = (videoData: VideoData) => {
-    videoExtractor(videoData).then(setCurrentVideoData).catch(LOGGER.warn);
+    videoExtractor(videoData)
+      .then(curVideoData => {
+        setCurrentVideoData(curVideoData);
+        fetchUpNextPlaylist(curVideoData);
+      })
+      .catch(LOGGER.warn);
   };
 
-  const setPlaylistViaEndpoint = (endpoint: YTNodes.NavigationEndpoint) => {
+  const setPlaylistViaEndpoint = (
+    endpoint: YTNodes.NavigationEndpoint,
+    upNextUpdate = true,
+  ) => {
     videoExtractorNavigationEndpoint(endpoint)
-      .then(setCurrentVideoData)
+      .then(curVideoData => {
+        setCurrentVideoData(curVideoData);
+        if (upNextUpdate) {
+          fetchUpNextPlaylist(curVideoData);
+        }
+      })
       .catch(LOGGER.warn);
   };
 

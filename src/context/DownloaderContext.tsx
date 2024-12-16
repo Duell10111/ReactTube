@@ -1,4 +1,10 @@
-import {createContext, MutableRefObject, ReactNode, useContext} from "react";
+import {
+  createContext,
+  MutableRefObject,
+  ReactNode,
+  useContext,
+  useEffect,
+} from "react";
 
 import useDownloadProcessor, {
   DownloadRef,
@@ -7,6 +13,7 @@ import useDownloadProcessor, {
 import useWatchSync from "../hooks/watchSync/useWatchSync";
 
 import {useMigration} from "@/downloader/DownloadDatabaseOperations";
+import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 interface DownloaderContextValue {
   currentDownloads: MutableRefObject<DownloadRef>;
@@ -28,6 +35,16 @@ export function DownloaderContext({children}: DownloaderContextProps) {
   const {success, error} = useMigration();
   console.log("Success: ", success);
   console.log("Error: ", error);
+
+  useEffect(() => {
+    if (error !== undefined) {
+      showMessage({
+        type: "danger",
+        message: "Local DB Migration failed!",
+        description: "Try deleting and reinstalling your app",
+      });
+    }
+  }, [error]);
 
   const {upload} = useWatchSync();
 

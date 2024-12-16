@@ -13,20 +13,20 @@ This project uses the [Youtube.js](https://github.com/LuanRT/YouTube.js) library
 
 ## Features
 
-| Feature                                         | Available                     |
-|-------------------------------------------------|-------------------------------|
-| Basic UI (including Channel and Playlist Views) | ✅                             |
-| Video Playback up until 720p                    | ✅                             |
-| 1080p playback up to 4K                         | ✅ (using HLS toggle)          |
-| Youtube Login via QR Code                       | ✅                             |
-| History Page                                    | ✅                             |
-| Subscription Page                               | ✅                             |
-| Social Interactions (Like, Subscribe etc.)      | ⏳(Partial support)            |
-| Chapter-Information                             | ✅ (works with non VLC Player) |
-| Youtube Music Support                           | ✅                             |
-| Basic Mobile Support                            | ✅                             |
-| Apple Watch Variant (Alpha)                     | ⏳(Working on it)              |
-| Android TV Support                              | ❌ (UI mostly broken)          |
+| Feature                                         | Available                                                |
+|-------------------------------------------------|----------------------------------------------------------|
+| Basic UI (including Channel and Playlist Views) | ✅                                                        |
+| Video Playback up until 720p                    | ✅                                                        |
+| 1080p playback up to 4K                         | ✅ (using HLS toggle)                                     |
+| Youtube Login via QR Code                       | ❌ (Login broken because of backend changed from Youtube) |
+| History Page                                    | ✅                                                        |
+| Subscription Page                               | ✅                                                        |
+| Social Interactions (Like, Subscribe etc.)      | ⏳(Partial support)                                       |
+| Chapter-Information                             | ✅ (works with non VLC Player)                            |
+| Youtube Music Support                           | ✅                                                        |
+| Basic Mobile Support                            | ✅                                                        |
+| Apple Watch Variant (Alpha)                     | ⏳(Working on it)                                         |
+| Android TV Support                              | ❌ (UI mostly broken)                                     |
 
 ### Building
 
