@@ -2,9 +2,15 @@ import React, {createContext, useContext} from "react";
 
 import useAccountData from "../hooks/account/useAccountData";
 
-const accountContext = createContext<
-  ReturnType<typeof useAccountData> | undefined
->(undefined);
+const accountContext = createContext<ReturnType<typeof useAccountData>>({
+  loginSuccess: false,
+  autoLoginFinished: false,
+  loginData: {accounts: []},
+  clearAllData: () => {},
+  login: () => {},
+  logout: () => {},
+  qrCode: undefined,
+});
 
 interface Props {
   children: React.ReactNode;

@@ -44,6 +44,8 @@ export interface VideoData {
   // Music Properties
   durationSeconds?: number;
   artists?: Author[];
+  // Local Properties
+  localPlaylistId?: string;
 }
 
 export interface Author {
@@ -159,12 +161,14 @@ export interface YTTrackInfo {
   endscreen?: YTEndscreen;
   // Music Properties
   durationSeconds?: number;
+  localPlaylistId?: string;
 }
 
 export interface YTPlaylistPanel {
   originalData: YTNodes.PlaylistPanel;
   title?: string;
   items: YTPlaylistPanelItem[];
+  localPlaylist?: boolean;
 }
 
 export interface YTPlaylistPanelContinuation {

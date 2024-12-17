@@ -101,7 +101,7 @@ function parseEndScreen(endScreen: YTNodes.Endscreen) {
 function parseEndScreenElements(element: YTNodes.EndscreenElement) {
   console.log("EndScreen: ", JSON.stringify(element));
 
-  const thumbnail = element.image.map(getThumbnail)[0];
+  const thumbnail = element.image?.map(getThumbnail)?.[0];
   // .find(thumb => !thumb.url.endsWith("webp")); // Do not use webp for iOS!;
 
   return {
@@ -145,14 +145,16 @@ export function getElementDataFromTrackInfo(trackInfo: YTMusic.TrackInfo) {
     thumbnailImage: thumbnail,
     title: trackInfo.basic_info.title,
     description: trackInfo.basic_info.short_description,
-    short_views: trackInfo.basic_info?.view_count.toString(),
+    short_views: trackInfo.basic_info?.view_count?.toString(),
     channel_id:
       trackInfo.basic_info.channel_id ?? trackInfo.basic_info.channel?.id,
     channel: trackInfo.basic_info.channel,
     // playlist: parseVideoInfoPlaylist(trackInfo),
     liked: trackInfo.basic_info.is_liked,
     disliked: trackInfo.basic_info.is_disliked,
-    endscreen: parseEndScreen(trackInfo.endscreen),
+    endscreen: trackInfo.endscreen
+      ? parseEndScreen(trackInfo.endscreen)
+      : undefined,
     // TODO: Adapt author to only contain name
     author: {name: trackInfo.basic_info.author},
     durationSeconds: trackInfo.basic_info.duration,

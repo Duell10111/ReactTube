@@ -19,6 +19,7 @@ import Logger from "../utils/Logger";
 import {Innertube, YTNodes} from "../utils/Youtube";
 
 import {useAppData} from "@/context/AppDataContext";
+import {getUpNextForVideoWithPlaylist} from "@/downloader/DBData";
 import {findVideo} from "@/downloader/DownloadDatabaseOperations";
 import {Video} from "@/downloader/schema";
 import {
@@ -84,6 +85,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const {videoExtractor, videoExtractorNavigationEndpoint} =
     useVideoDataGenerator();
 
+  // Currently only support audio play type
   const [playType, setPlayType] = useState<PlayType>("Audio");
   const [playing, setPlaying] = useState(false);
   const duration = useSharedValue(0);
@@ -175,17 +177,39 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   // }, [currentVideoData]);
 
   const fetchUpNextPlaylist = (curVideoData: YTTrackInfo) => {
-    LOGGER.debug("Fetching up next playlist: ", curVideoData.title);
-    curVideoData.originalData
-      .getUpNext(false) // TODO: Add flag on Context to allow automix?
-      .then(p => {
-        setPlaylist(parseTrackInfoPlaylist(p));
-        playlistContinuation.current = undefined;
-      })
-      .catch(() => LOGGER.debug("No new Track Playlist available"));
+    if (curVideoData.localPlaylistId) {
+      LOGGER.debug("Fetching local up next playlist");
+      getUpNextForVideoWithPlaylist(
+        curVideoData.id,
+        curVideoData.localPlaylistId,
+      )
+        .then(p => {
+          LOGGER.debug("UPNEXt Playlist: ", JSON.stringify(p));
+          setPlaylist(p);
+          playlistContinuation.current = undefined;
+        })
+        .catch(error =>
+          LOGGER.debug(`Error fetching local playlist: ${error}`),
+        );
+    } else {
+      LOGGER.debug("Fetching up next playlist: ", curVideoData.title);
+      curVideoData.originalData
+        .getUpNext(false) // TODO: Add flag on Context to allow automix?
+        .then(p => {
+          setPlaylist(parseTrackInfoPlaylist(p));
+          playlistContinuation.current = undefined;
+        })
+        .catch(() => LOGGER.debug("No new Track Playlist available"));
+    }
   };
 
   const fetchMorePlaylistData = async () => {
+    // TODO: Check for local
+    if (playlist?.localPlaylist) {
+      LOGGER.debug("Skipping fetch more for local playlist");
+      return;
+    }
+
     if (currentVideoData && playlist) {
       const continuation =
         await currentVideoData.originalData.getUpNextContinuation(
@@ -217,6 +241,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     }
   }, [currentVideoData, appSettings.trackingEnabled]);
 
+  // TODO: Remove?!
   const addPlaylist = (p: YTPlaylist) => {
     const data = p.items.filter(v => v.type === "video") as VideoData[];
     // playlist.current.push(data);
@@ -249,8 +274,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const setPlaylistViaLocalDownload = async (id: string) => {
     const localVideos = await findVideo(id);
 
-    if (localVideos[0]) {
-      const track = localVideoToTrack(localVideos[0]);
+    if (localVideos) {
+      const track = localVideoToTrack(localVideos);
       LOGGER.warn(track);
       TrackPlayer.load(track)
         .then(() => {
@@ -263,7 +288,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const onEndReached = async () => {
     if (playlist) {
       const currentIndex = playlist.items.findIndex(
-        v => v.id === currentVideoData.id,
+        v => v.id === currentVideoData?.id,
       );
       if (currentIndex >= 0) {
         const newIndex = currentIndex + 1;
@@ -271,7 +296,13 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         if (newIndex >= playlist.items.length) {
           // Fetch next playlist items?
           const contData = await fetchMorePlaylistData();
-          videoExtractor(contData.items[0]).then(setCurrentVideoData);
+          if (contData) {
+            videoExtractor(contData.items[0]).then(setCurrentVideoData);
+          } else {
+            LOGGER.warn(
+              "Fetching playlist continuation failed. Skipping setting next song!",
+            );
+          }
         } else {
           const nextElement = playlist.items[newIndex];
           videoExtractor(nextElement).then(setCurrentVideoData);
@@ -313,7 +344,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const previous = async () => {
     if (playlist) {
       const currentIndex = playlist.items.findIndex(
-        v => v.id === currentVideoData.id,
+        v => v.id === currentVideoData?.id,
       );
       if (currentIndex > 0) {
         const newIndex = currentIndex - 1;
@@ -345,8 +376,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     }
   };
 
-  const next = async () => {
-    onEndReached();
+  const next = () => {
+    return onEndReached();
   };
 
   return (

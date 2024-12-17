@@ -6,6 +6,7 @@ import {useEffect, useState} from "react";
 
 import migrations from "./drizzle/migrations";
 import * as schema from "./schema";
+import {Video} from "./schema";
 
 const expoDb = openDatabaseSync("downloadDB.db", {enableChangeListener: true});
 export const db = drizzle(expoDb);
@@ -14,7 +15,7 @@ export function useMigration() {
   return useMigrations(db, migrations);
 }
 
-export async function findVideo(id: string) {
+export async function findVideo(id: string): Promise<Video | undefined> {
   const result = await db
     .select()
     .from(schema.videos)
@@ -264,6 +265,19 @@ export async function insertPlaylist(
 
 export async function getAllPlaylists() {
   return db.select().from(schema.playlists).execute();
+}
+
+export async function getPlaylistVideos(id: string) {
+  return await db
+    .select(getTableColumns(schema.videos))
+    .from(schema.videos)
+    .innerJoin(
+      schema.playlistVideos,
+      eq(schema.videos.id, schema.playlistVideos.videoId),
+    )
+    .where(eq(schema.playlistVideos.playlistId, id))
+    .orderBy(desc(schema.playlistVideos.playlistOrder))
+    .execute();
 }
 
 export function usePlaylists() {

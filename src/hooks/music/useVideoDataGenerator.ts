@@ -16,13 +16,15 @@ export default function useVideoDataGenerator() {
       // const useNav =
       //   videoData.navEndpoint && videoData.navEndpoint?.payload?.videoId;
       const [info, classicInfo] = await Promise.all([
-        youtube.music.getInfo(videoData.navEndpoint ?? videoData.id),
-        youtube.getInfo(videoData.navEndpoint ?? videoData.id, "IOS"),
+        youtube!.music.getInfo(videoData.navEndpoint ?? videoData.id),
+        youtube!.getInfo(videoData.navEndpoint ?? videoData.id, "IOS"),
       ]);
       // Patch YT Music StreamingData
       info.streaming_data = classicInfo.streaming_data;
 
+      // Set Local Playlist ID if a local element called
       const element = getElementDataFromTrackInfo(info);
+      element.localPlaylistId = videoData.localPlaylistId;
       return element;
     },
     [youtube],
@@ -32,8 +34,8 @@ export default function useVideoDataGenerator() {
     async (navigationEndpoint: YTNodes.NavigationEndpoint) => {
       console.log("videoExtractorNavigationEndpoint");
       const [info, classicInfo] = await Promise.all([
-        youtube.music.getInfo(navigationEndpoint),
-        youtube.getInfo(navigationEndpoint, "IOS"),
+        youtube!.music.getInfo(navigationEndpoint),
+        youtube!.getInfo(navigationEndpoint, "IOS"),
       ]);
       // Patch YT Music StreamingData
       info.streaming_data = classicInfo.streaming_data;
