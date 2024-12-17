@@ -39,7 +39,7 @@ type PlayType = "Audio" | "Video";
 
 interface MusicPlayerContextType {
   addPlaylist: (playlist: YTPlaylist) => void;
-  setCurrentItem: (item: VideoData) => void;
+  setCurrentItem: (item: VideoData, upNextUpdate?: boolean) => void;
   setPlaylistViaEndpoint: (
     endpoint: YTNodes.NavigationEndpoint,
     upNextUpdate?: boolean,
@@ -248,11 +248,13 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     // TrackPlayer.TrackPlayer.add({});
   };
 
-  const setCurrentPlaylist = (videoData: VideoData) => {
+  const setCurrentPlaylist = (videoData: VideoData, upNextUpdate = true) => {
     videoExtractor(videoData)
       .then(curVideoData => {
         setCurrentVideoData(curVideoData);
-        fetchUpNextPlaylist(curVideoData);
+        if (upNextUpdate) {
+          fetchUpNextPlaylist(curVideoData);
+        }
       })
       .catch(LOGGER.warn);
   };
@@ -303,6 +305,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
               "Fetching playlist continuation failed. Skipping setting next song!",
             );
           }
+          // TODO: Additionally check if autoplay is active and try to use autoplay data?
         } else {
           const nextElement = playlist.items[newIndex];
           videoExtractor(nextElement).then(setCurrentVideoData);

@@ -14,12 +14,12 @@ interface MusicPlayerPlaylistListProps {
 }
 
 export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
-  const {currentItem, setPlaylistViaEndpoint, playlist, fetchMorePlaylistData} =
+  const {currentItem, playlist, setCurrentItem, fetchMorePlaylistData} =
     useMusikPlayerContext();
 
   const selectedItem = useMemo(
-    () => playlist.items.findIndex(item => item.id === currentItem.id),
-    [currentItem.id],
+    () => playlist?.items?.findIndex(item => item.id === currentItem?.id),
+    [currentItem?.id],
   );
 
   const renderItem = useCallback<ListRenderItem<YTPlaylistPanelItem>>(
@@ -29,7 +29,7 @@ export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
         currentItem={selectedItem === index}
         onPress={() => {
           console.log("Endpoint Item: ", item.navEndpoint);
-          setPlaylistViaEndpoint(item.navEndpoint, false);
+          setCurrentItem(item, false);
         }}
       />
     ),
@@ -48,7 +48,7 @@ export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
         offset: ITEM_HEIGHT * index,
         index,
       })}
-      data={playlist.items}
+      data={playlist?.items ?? []}
       renderItem={renderItem}
       onEndReached={fetchMorePlaylistData}
     />
