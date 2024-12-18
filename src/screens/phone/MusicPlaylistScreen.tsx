@@ -53,7 +53,7 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
           <MusicPlaylistHeader
             image={playlist.thumbnailImage}
             title={playlist.title}
-            subtitle={playlist.description}
+            subtitle={playlist.description ?? ""}
             saved={liked}
             onSavePress={togglePlaylistLike}
             onPlayPress={() => {

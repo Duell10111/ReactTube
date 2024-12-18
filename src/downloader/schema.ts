@@ -45,3 +45,5 @@ export const playlistVideos = sqliteTable(
     };
   },
 );
+
+export type PlaylistVideo = typeof playlistVideos.$inferSelect;

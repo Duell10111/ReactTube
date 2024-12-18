@@ -1,17 +1,17 @@
 import * as Asset from "expo-asset";
 import {Duration} from "luxon";
-import {useMemo} from "react";
+import {useEffect, useMemo, useState} from "react";
 
 import {
   getAllPlaylists,
+  getPlaylist,
   getPlaylistVideos,
-  usePlaylist,
   usePlaylists,
-  usePlaylistVideos,
 } from "@/downloader/DownloadDatabaseOperations";
 import {Playlist, Video} from "@/downloader/schema";
 import {
   ElementData,
+  VideoData,
   YTMusicPlaylist,
   YTPlaylistPanel,
   YTPlaylistPanelItem,
@@ -53,21 +53,67 @@ export async function getUpNextForVideoWithPlaylist(
   } as YTPlaylistPanel;
 }
 
-export function usePlaylistAsYTPlaylist(id: string): YTMusicPlaylist {
-  const playlist = usePlaylist(id);
-  const localData = usePlaylistVideos(id);
-  console.log("LD: ", localData);
+export async function getPlaylistAsYTPlaylist(id: string) {
+  const playlist = await getPlaylist(id);
+  const localData = await getPlaylistVideos(id);
 
-  const playlistImage = localData.find(item => item.coverUrl);
+  const playlistImage =
+    playlist?.coverUrl || localData?.find(item => item.coverUrl)?.coverUrl;
 
   return {
     originalData: {type: "Local"} as any,
     title: playlist?.name ?? "Unknown Playlist",
-    description: undefined,
+    description: playlist.description ?? undefined,
     editable: true,
-    items: localData.map(item => mapVideoToElementData(item, id)),
+    items: localData?.map(item => mapVideoToElementData(item, id)) ?? [],
     loadMore: async () => {},
-    thumbnailImage: playlistImage ? {url: playlistImage.coverUrl} : ({} as any),
+    thumbnailImage: playlistImage ? {url: playlistImage} : ({} as any),
+    saved: {
+      saveID: id,
+      status: true, // Local playlist is always saved on this point
+    },
+  };
+}
+
+export function usePlaylistAsYTPlaylist(
+  id: string,
+  onFetchPlaylist: (playlist: Playlist) => void,
+): YTMusicPlaylist | null {
+  // const playlist = usePlaylist(id);
+  // const localData = usePlaylistVideos(id);
+  const [playlist, setPlaylist] = useState<Playlist>();
+  const [localData, setPlaylistVideos] = useState<Video[]>();
+
+  useEffect(() => {
+    getPlaylist(id).then(p => {
+      setPlaylist(p);
+      onFetchPlaylist(p);
+    });
+    getPlaylistVideos(id).then(setPlaylistVideos);
+  }, []);
+
+  const playlistImage = useMemo(() => {
+    return (
+      playlist?.coverUrl || localData?.find(item => item.coverUrl)?.coverUrl
+    );
+  }, [playlist, localData]);
+
+  if (!playlist) {
+    return null;
+  }
+
+  return {
+    originalData: {type: "Local"} as any,
+    title: playlist?.name ?? "Unknown Playlist",
+    description: playlist.description ?? undefined,
+    editable: true,
+    items: localData?.map(item => mapVideoToElementData(item, id)) ?? [],
+    loadMore: async () => {},
+    thumbnailImage: playlistImage ? {url: playlistImage} : ({} as any),
+    saved: {
+      saveID: id,
+      status: true, // Local playlist is always saved on this point
+    },
   };
 }
 
@@ -77,18 +123,22 @@ function mapPlaylistToElementData(localPlaylist: Playlist): ElementData {
     type: "playlist",
     id: localPlaylist.id,
     title: localPlaylist.name ?? "Unknown Playlist",
-    thumbnailImage: {
-      url: defaultImageUri.uri,
-      height: defaultImageUri.height,
-      width: defaultImageUri.width,
-    },
+    thumbnailImage: localPlaylist.coverUrl
+      ? {
+          url: localPlaylist.coverUrl,
+        }
+      : {
+          url: defaultImageUri.uri,
+          height: defaultImageUri.height,
+          width: defaultImageUri.width,
+        },
   };
 }
 
 function mapVideoToElementData(
   videoData: Video,
   playlistId?: string,
-): ElementData {
+): VideoData {
   return {
     originalNode: {type: "Local"} as any,
     type: "video",

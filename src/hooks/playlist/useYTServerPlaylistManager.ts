@@ -66,6 +66,16 @@ export default function useYTServerPlaylistManager() {
     await youtube.playlist.removeVideos(playlistId, videoIds);
   };
 
+  const addPlaylistToLibrary = async (playlistId: string) => {
+    LOGGER.debug(`Adding playlist ${playlistId} to library`);
+    await youtube.playlist.likePlaylist(playlistId);
+  };
+
+  const removePlaylistFromLibrary = async (playlistId: string) => {
+    LOGGER.debug(`Removing playlist ${playlistId} to library`);
+    await youtube.playlist.removeLikePlaylist(playlistId);
+  };
+
   return {
     playlists,
     fetchPlaylists: fetchMusicPlaylists,
@@ -73,6 +83,8 @@ export default function useYTServerPlaylistManager() {
     createPlaylist,
     saveVideoToPlaylist,
     removeVideoFromPlaylist,
+    addPlaylistToLibrary,
+    removePlaylistFromLibrary,
   };
 }
 

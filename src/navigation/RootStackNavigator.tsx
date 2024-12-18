@@ -53,10 +53,7 @@ export type RootStackParamList = {
   MusicAlbumScreen: {albumId: string};
   MusicSearchScreen: undefined;
   MusicLibraryScreen: undefined;
-  MusicPlayerScreen: {
-    videoId: string;
-    navEndpoint?: YTNodes.NavigationEndpoint;
-  };
+  MusicPlayerScreen: undefined;
 };
 
 export type RootNavProp = NativeStackNavigationProp<RootStackParamList>;

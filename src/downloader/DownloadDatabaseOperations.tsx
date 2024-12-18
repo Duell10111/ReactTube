@@ -60,18 +60,30 @@ export function useVideos() {
   return data;
 }
 
-export async function createPlaylist(id: string, name: string) {
+export async function createPlaylist(
+  id: string,
+  name: string,
+  description?: string,
+  coverUrl?: string,
+  downloaded?: boolean,
+) {
   await db
     .insert(schema.playlists)
     .values({
       id,
       name,
+      description,
+      coverUrl,
+      download: downloaded,
     })
     .onConflictDoUpdate({
       target: schema.playlists.id,
       set: {
         id,
         name,
+        description,
+        coverUrl,
+        download: downloaded,
       },
     })
     .execute();
@@ -263,8 +275,24 @@ export async function insertPlaylist(
   console.log("Inserted playlist");
 }
 
+export function deletePlaylist(id: string) {
+  return db
+    .delete(schema.playlists)
+    .where(eq(schema.playlists.id, id))
+    .execute();
+}
+
 export async function getAllPlaylists() {
   return db.select().from(schema.playlists).execute();
+}
+
+export async function getPlaylist(id: string) {
+  const result = await db
+    .select()
+    .from(schema.playlists)
+    .where(eq(schema.playlists.id, id))
+    .execute();
+  return result[0];
 }
 
 export async function getPlaylistVideos(id: string) {

@@ -3,7 +3,7 @@ import {useCallback, useEffect, useState} from "react";
 import Logger from "../../utils/Logger";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
-import {isLocalPlaylist, usePlaylistAsYTPlaylist} from "@/downloader/DBData";
+import {getPlaylistAsYTPlaylist, isLocalPlaylist} from "@/downloader/DBData";
 import {ElementData} from "@/extraction/Types";
 import {getElementDataFromYTMusicPlaylist} from "@/extraction/YTElements";
 import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
@@ -16,37 +16,45 @@ export default function usePlaylistDetails(playlistId: string) {
     useState<ReturnType<typeof getElementDataFromYTMusicPlaylist>>();
   const [liked, setLiked] = useState<boolean>();
 
-  const {removeVideoFromPlaylist} = usePlaylistManager();
-
-  // Local version
-  const localData = usePlaylistAsYTPlaylist(playlistId);
+  const {
+    removeVideoFromPlaylist,
+    addPlaylistToLibrary,
+    removePlaylistFromLibrary,
+  } = usePlaylistManager();
 
   useEffect(() => {
-    youtube?.music
-      ?.getPlaylist(playlistId)
-      .then(p => {
-        const parsedPlaylist = getElementDataFromYTMusicPlaylist(p);
-        setPlaylist(parsedPlaylist);
-        setLiked(parsedPlaylist.saved?.status);
-      })
-      .catch(LOGGER.warn);
+    if (isLocalPlaylist(playlistId)) {
+      getPlaylistAsYTPlaylist(playlistId).then(p => {
+        setPlaylist(p);
+        setLiked(p.saved.status);
+      });
+    } else {
+      youtube?.music
+        ?.getPlaylist(playlistId)
+        .then(p => {
+          const parsedPlaylist = getElementDataFromYTMusicPlaylist(p);
+          setPlaylist(parsedPlaylist);
+          setLiked(parsedPlaylist.saved?.status);
+        })
+        .catch(LOGGER.warn);
+    }
   }, [youtube, playlistId]);
 
   const fetchMore = useCallback(async () => {
-    await playlist.loadMore();
-    setPlaylist(playlist);
+    if (playlist) {
+      await playlist.loadMore();
+      setPlaylist(playlist);
+    } else {
+      LOGGER.warn("No Playlist available for fetchMore!");
+    }
   }, [playlist]);
 
   const togglePlaylistLike = async () => {
     console.log("Liked: ", liked);
     if (liked) {
-      await youtube.playlist.removeLikePlaylist(
-        playlist?.saved?.saveID ?? playlistId,
-      );
+      await removePlaylistFromLibrary(playlist?.saved?.saveID ?? playlistId);
     } else {
-      await youtube.playlist.likePlaylist(
-        playlist?.saved?.saveID ?? playlistId,
-      );
+      await addPlaylistToLibrary(playlist?.saved?.saveID ?? playlistId);
     }
     setLiked(!liked);
   };
@@ -55,10 +63,8 @@ export default function usePlaylistDetails(playlistId: string) {
     await removeVideoFromPlaylist([item.id], playlistId);
   };
 
-  console.log("Local Playlist: ", localData);
-
   return {
-    playlist: isLocalPlaylist(playlistId) ? localData : playlist,
+    playlist,
     fetchMore,
     liked,
     togglePlaylistLike,

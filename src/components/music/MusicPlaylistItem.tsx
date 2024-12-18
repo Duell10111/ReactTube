@@ -21,7 +21,7 @@ export function MusicPlaylistItem({
   index,
   editable,
   onDeleteItem,
-}: MusicPlaylistItemProps): JSX.Element {
+}: MusicPlaylistItemProps) {
   const {style} = useAppStyle();
   const {navigate} = useNavigation<RootNavProp>();
 
@@ -38,10 +38,7 @@ export function MusicPlaylistItem({
     <TouchableOpacity
       onPress={() => {
         setCurrentItem(data);
-        navigate("MusicPlayerScreen", {
-          videoId: data.id,
-          navEndpoint: data.navEndpoint,
-        });
+        navigate("MusicPlayerScreen");
       }}>
       <View style={styles.container}>
         {data.thumbnailImage ? (

@@ -1,6 +1,5 @@
 // TODO: Save Playlists in local database
 
-import {useMemo} from "react";
 import Crypto from "react-native-quick-crypto";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
@@ -8,16 +7,14 @@ import {usePlaylistsAsElementData} from "@/downloader/DBData";
 import {
   insertVideosIntoPlaylist,
   removeVideosIntoPlaylist,
-  usePlaylists,
   createPlaylist as createPlaylistDB,
   findVideo,
   insertVideo,
+  deletePlaylist,
 } from "@/downloader/DownloadDatabaseOperations";
-import {Playlist} from "@/downloader/schema";
-import {ElementData} from "@/extraction/Types";
 import {
   getElementDataFromTrackInfo,
-  getElementDataFromVideoInfo,
+  getElementDataFromYTPlaylist,
 } from "@/extraction/YTElements";
 import Logger from "@/utils/Logger";
 
@@ -51,7 +48,7 @@ export default function useLocalPlaylistManager() {
         console.log("Processing ", videoId);
         if ((await findVideo(videoId)) === undefined) {
           console.log("Creating: ", videoId);
-          const info = await youtube.music.getInfo(videoId);
+          const info = await youtube!.music.getInfo(videoId);
           const ytInfo = getElementDataFromTrackInfo(info);
           console.log(ytInfo.author);
           await insertVideo(
@@ -79,6 +76,37 @@ export default function useLocalPlaylistManager() {
     await removeVideosIntoPlaylist(playlistId, videoIds);
   };
 
+  const addPlaylistToLibrary = async (playlistId: string) => {
+    LOGGER.debug(`Adding playlist ${playlistId} to library`);
+    const localPlaylistId = `LC-R-${playlistId}`;
+
+    const playlist = await youtube!.getPlaylist(playlistId);
+
+    const ytData = getElementDataFromYTPlaylist(playlist);
+
+    // TODO: Download image as remote one gets invalid after some time
+
+    await createPlaylistDB(
+      localPlaylistId,
+      ytData.title,
+      undefined,
+      ytData.thumbnailImage?.url,
+      undefined,
+    );
+
+    const ids = ytData.items.map(item => item.id);
+    await saveVideoToPlaylist(ids, localPlaylistId);
+    LOGGER.debug("Added playlist!");
+  };
+
+  const removePlaylistFromLibrary = async (playlistId: string) => {
+    LOGGER.debug(`Removing playlist ${playlistId} to library`);
+    // TODO: Check if playlist is not downloaded?
+    return deletePlaylist(playlistId);
+  };
+
+  // TODO: Move handlers to save a playlist here
+
   return {
     fetchPlaylists: fetchMusicPlaylists,
     fetchMorePlaylists: fetchMusicPlaylistContinuation,
@@ -86,5 +114,7 @@ export default function useLocalPlaylistManager() {
     createPlaylist,
     saveVideoToPlaylist,
     removeVideoFromPlaylist,
+    addPlaylistToLibrary,
+    removePlaylistFromLibrary,
   };
 }

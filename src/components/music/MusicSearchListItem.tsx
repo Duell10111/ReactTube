@@ -20,10 +20,7 @@ export function MusicSearchListItem({data}: MusicSearchListItemProps) {
   const onPress = () => {
     if (data.type === "video" || data.type === "mix") {
       setCurrentItem(data);
-      navigate("MusicPlayerScreen", {
-        videoId: data.id,
-        navEndpoint: data.navEndpoint,
-      });
+      navigate("MusicPlayerScreen");
     } else if (data.type === "playlist") {
       navigate("MusicPlaylistScreen", {
         playlistId: data.id,

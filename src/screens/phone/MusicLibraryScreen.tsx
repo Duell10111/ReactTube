@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect} from "react";
 import {FlatList, ListRenderItem} from "react-native";
 
-import {HorizontalListItem} from "@/components/music/horizontal/HorizontalListItem";
+import {MusicLibraryListItem} from "@/components/music/MusicLibraryListItem";
 import {ElementData} from "@/extraction/Types";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
 
@@ -15,7 +15,7 @@ export function MusicLibraryScreen() {
   }, [data]);
 
   const renderItem = useCallback<ListRenderItem<ElementData>>(({item}) => {
-    return <HorizontalListItem data={item} />;
+    return <MusicLibraryListItem data={item} />;
   }, []);
 
   return (

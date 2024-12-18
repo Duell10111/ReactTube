@@ -1,7 +1,7 @@
 import {Icon} from "@rneui/base";
 import {StyleSheet, View} from "react-native";
 
-import {useMusikPlayerContext} from "../../../context/MusicPlayerContext";
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 
 export function MusicPlayerPlayerButtons() {
   const {playing, play, pause, next, previous} = useMusikPlayerContext();
