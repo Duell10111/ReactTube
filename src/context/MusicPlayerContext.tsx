@@ -119,6 +119,14 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       duration.value = event.duration;
       currentTime.value = event.position;
       // LOGGER.debug("CurrentTime: ", event.position);
+
+      // if (
+      //   currentVideoData?.durationSeconds &&
+      //   currentVideoData.durationSeconds > event.position
+      // ) {
+      //   LOGGER.debug("Music Track end reached! Triggering onEndReached!");
+      //   onEndReached();
+      // }
     }
 
     if (event.type === Event.RemotePlay) {
@@ -273,10 +281,13 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       .catch(LOGGER.warn);
   };
 
+  // TODO: Depreacted? as now done via setCurrentPlaylist
   const setPlaylistViaLocalDownload = async (id: string) => {
     const localVideos = await findVideo(id);
 
     if (localVideos) {
+      // TODO: set currentVideoData?
+
       const track = localVideoToTrack(localVideos);
       LOGGER.warn(track);
       TrackPlayer.load(track)
@@ -324,6 +335,9 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         videoExtractor(nextElement).then(setCurrentVideoData);
       }
     }
+
+    // // Only needed for local playlist files
+    // TrackPlayer.pause().catch(LOGGER.warn);
   };
 
   const play = async () => {
@@ -436,5 +450,6 @@ function localVideoToTrack(video: Video) {
     url: getAbsoluteVideoURL(video.fileUrl),
     title: video.name,
     type: TrackType.Default,
+    endTime: video.duration,
   } as Track;
 }

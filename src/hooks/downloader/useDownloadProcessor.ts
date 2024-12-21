@@ -1,6 +1,7 @@
 import * as FileSystem from "expo-file-system";
 import {DownloadResumable} from "expo-file-system";
 import {useRef} from "react";
+import {DeviceEventEmitter} from "react-native";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
 import {insertVideo} from "@/downloader/DownloadDatabaseOperations";
@@ -12,6 +13,12 @@ const downloadDir = FileSystem.documentDirectory + "downloads/";
 export const videoDir = downloadDir + "videos/";
 
 const LOGGER = Logger.extend("DOWNLOADER");
+
+const VideoDownloadUpdate = "VideoDownloadUpdate";
+
+export function getVideoDownloadEventUpdate(id: string) {
+  return `${VideoDownloadUpdate}-${id}`;
+}
 
 export type DownloadRef = {[id: string]: DownloadObject};
 
@@ -57,6 +64,10 @@ export default function useDownloadProcessor() {
           }
           LOGGER.debug(
             `Updating progress for ${id} video with ${downloadRefs.current[id].process}`,
+          );
+          DeviceEventEmitter.emit(
+            getVideoDownloadEventUpdate(id),
+            downloadRefs.current[id].process,
           );
         },
         info.thumbnailImage.url,
@@ -129,6 +140,7 @@ export interface DownloadObject {
   download: FileSystem.DownloadResumable[];
   progressDownloads: number[];
   process: number;
+  // TODO: Add Download Metadata?
 }
 
 async function downloadVideo(

@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useState} from "react";
-import {FlatList, ListRenderItem, Text, View} from "react-native";
+import {FlatList, ListRenderItem, StyleSheet, Text, View} from "react-native";
 
-import ActiveDownloadListItem from "../../components/downloader/ActiveDownloadListItem";
-import {useDownloaderContext} from "../../context/DownloaderContext";
-import {DownloadObject} from "../../hooks/downloader/useDownloadProcessor";
+import ActiveDownloadListItem from "@/components/downloader/ActiveDownloadListItem";
+import {useDownloaderContext} from "@/context/DownloaderContext";
+import {DownloadObject} from "@/hooks/downloader/useDownloadProcessor";
 
 export function ActiveDownloadScreen() {
   const {currentDownloads} = useDownloaderContext();
@@ -25,18 +25,23 @@ export function ActiveDownloadScreen() {
 
   if (activeDownloads.length === 0) {
     return (
-      <View>
-        <Text
-          style={{
-            flex: 1,
-            color: "white",
-            textAlign: "center",
-          }}>
-          {"No active downloads"}
-        </Text>
+      <View style={styles.noDownloadsContainer}>
+        <Text style={styles.noDownloadsText}>{"No active downloads"}</Text>
       </View>
     );
   }
 
   return <FlatList data={activeDownloads} renderItem={renderItem} />;
 }
+
+const styles = StyleSheet.create({
+  noDownloadsContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  noDownloadsText: {
+    color: "white",
+    textAlign: "center",
+    fontSize: 20,
+  },
+});
