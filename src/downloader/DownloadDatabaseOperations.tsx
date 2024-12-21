@@ -1,4 +1,4 @@
-import {and, desc, eq, getTableColumns, sql} from "drizzle-orm";
+import {and, desc, eq, getTableColumns, isNotNull, sql} from "drizzle-orm";
 import {drizzle, useLiveQuery} from "drizzle-orm/expo-sqlite";
 import {useMigrations} from "drizzle-orm/expo-sqlite/migrator";
 import {openDatabaseSync} from "expo-sqlite";
@@ -56,6 +56,14 @@ export function useVideos() {
 
   updatedAt && console.log("Updated at: ", updatedAt);
   error && console.error(error);
+
+  return data;
+}
+
+export function useDownloadedVideos() {
+  const {data} = useLiveQuery(
+    db.select().from(schema.videos).where(isNotNull(schema.videos.fileUrl)),
+  );
 
   return data;
 }
@@ -177,6 +185,40 @@ export async function insertVideo(
   });
 
   console.log("Inserted video");
+}
+
+export async function checkIfVideoIsInPlaylist(id: string) {
+  const results = await db
+    .select({count: sql`count(*)`.mapWith(Number)})
+    .from(schema.videos)
+    .innerJoin(
+      schema.playlistVideos,
+      eq(schema.videos.id, schema.playlistVideos.videoId),
+    )
+    .where(eq(schema.videos.id, id))
+    .execute();
+
+  console.log("VideoInPlaylist Result: ", results);
+
+  return results[0].count > 0;
+}
+
+export async function deleteVideo(id: string) {
+  await db.delete(schema.videos).where(eq(schema.videos.id, id)).execute();
+}
+
+export async function deleteVideoLocalFileReferences(
+  id: string,
+  coverURLReplacement?: string,
+) {
+  await db
+    .update(schema.videos)
+    .set({
+      fileUrl: null,
+      coverUrl: coverURLReplacement ?? null,
+    })
+    .where(eq(schema.videos.id, id))
+    .execute();
 }
 
 export async function insertVideosIntoPlaylist(

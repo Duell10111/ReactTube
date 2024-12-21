@@ -1,7 +1,7 @@
 import {ListItem} from "@rneui/base";
 import {Text} from "react-native";
 
-import {DownloadObject} from "../../hooks/downloader/useDownloadProcessor";
+import {DownloadObject} from "@/hooks/downloader/useDownloadProcessor";
 
 interface Props {
   download: DownloadObject;

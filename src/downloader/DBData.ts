@@ -7,19 +7,68 @@ import {
   getPlaylist,
   getPlaylistVideos,
   usePlaylists,
+  useVideos as useVideosDB,
+  useDownloadedVideos as useDownloadedVideosDB,
+  findVideo,
+  deleteVideo as deleteVideoDB,
+  deleteVideoLocalFileReferences,
+  checkIfVideoIsInPlaylist,
 } from "@/downloader/DownloadDatabaseOperations";
 import {Playlist, Video} from "@/downloader/schema";
 import {
   ElementData,
+  Thumbnail,
   VideoData,
   YTMusicPlaylist,
   YTPlaylistPanel,
   YTPlaylistPanelItem,
+  YTTrackInfo,
 } from "@/extraction/Types";
+import {
+  deleteVideoFilesIfExists,
+  getAbsoluteVideoURL,
+} from "@/hooks/downloader/useDownloadProcessor";
 
 const defaultImageUri = Asset.Asset.fromModule(
   require("../../assets/images/ios_icon.png"),
 );
+
+const defaultThumbnail: Thumbnail = {
+  url: defaultImageUri.uri,
+  // @ts-ignore Ignore not available
+  height: defaultImageUri.height,
+  // @ts-ignore Ignore not available
+  width: defaultImageUri.width,
+};
+
+export async function getTrackInfoForVideo(id: string) {
+  const video = await findVideo(id);
+  return video ? mapVideoToTrackInfo(video) : video;
+}
+
+export function useVideos() {
+  const videos = useVideosDB();
+  return videos.map(video => mapVideoToElementData(video));
+}
+
+export function useDownloadedVideos() {
+  const videos = useDownloadedVideosDB();
+  return videos.map(video => mapVideoToElementData(video));
+}
+
+export async function deleteVideo(id: string, deleteVideoRecursive = false) {
+  // TODO: Create option to only delete Video file version
+  const inPlaylist = await checkIfVideoIsInPlaylist(id);
+
+  await deleteVideoFilesIfExists(id);
+  if (deleteVideoRecursive || !inPlaylist) {
+    await deleteVideoDB(id);
+  } else {
+    await deleteVideoLocalFileReferences(id);
+  }
+}
+
+// Playlists
 
 export function usePlaylistsAsElementData() {
   const playlists = usePlaylists();
@@ -117,6 +166,8 @@ export function usePlaylistAsYTPlaylist(
   };
 }
 
+// Mappers
+
 function mapPlaylistToElementData(localPlaylist: Playlist): ElementData {
   return {
     originalNode: {type: "Local"} as any,
@@ -125,13 +176,9 @@ function mapPlaylistToElementData(localPlaylist: Playlist): ElementData {
     title: localPlaylist.name ?? "Unknown Playlist",
     thumbnailImage: localPlaylist.coverUrl
       ? {
-          url: localPlaylist.coverUrl,
+          url: mapCoverURLToImageURL(localPlaylist.coverUrl),
         }
-      : {
-          url: defaultImageUri.uri,
-          height: defaultImageUri.height,
-          width: defaultImageUri.width,
-        },
+      : defaultThumbnail,
   };
 }
 
@@ -151,9 +198,11 @@ function mapVideoToElementData(
       : undefined,
     durationSeconds: videoData.duration ?? undefined,
     // @ts-ignore No height or width available
-    thumbnailImage: {
-      url: videoData.coverUrl,
-    },
+    thumbnailImage: videoData.coverUrl
+      ? {
+          url: mapCoverURLToImageURL(videoData.coverUrl),
+        }
+      : defaultThumbnail,
     localPlaylistId: playlistId,
   };
 }
@@ -168,4 +217,35 @@ function mapVideoToYTPlaylistPanelItem(
     ...data,
     selected: false,
   };
+}
+
+function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
+  return {
+    // @ts-ignore Ignore missing data
+    originalData: {
+      type: "Local",
+      // @ts-ignore Ignore missing data
+      streaming_data: {
+        hls_manifest_url: videoData.fileUrl
+          ? getAbsoluteVideoURL(videoData.fileUrl)
+          : undefined,
+      },
+    },
+    id: videoData.id,
+    title: videoData.name ?? "Unknown title",
+    durationSeconds: videoData.duration ?? undefined,
+    // @ts-ignore Ignore issue with no height and width for cover available
+    thumbnailImage: videoData.coverUrl
+      ? {
+          url: mapCoverURLToImageURL(videoData.coverUrl),
+        }
+      : defaultThumbnail,
+  };
+}
+
+function mapCoverURLToImageURL(coverUrl: string) {
+  if (coverUrl.startsWith("http")) {
+    return coverUrl;
+  }
+  return getAbsoluteVideoURL(coverUrl);
 }

@@ -1,11 +1,12 @@
 import {CompositeScreenProps} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {Icon} from "@rneui/base";
-import React, {useEffect} from "react";
-import {ScrollView} from "react-native";
+import React, {useCallback, useEffect} from "react";
+import {FlatList, ListRenderItem} from "react-native";
 
 import {DownloadListItem} from "@/components/downloader/DownloadListItem";
-import {useVideos} from "@/downloader/DownloadDatabaseOperations";
+import {useDownloadedVideos} from "@/downloader/DBData";
+import {ElementData} from "@/extraction/Types";
 import {RootBottomTabParamList} from "@/navigation/BottomTabBarNavigator";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
@@ -15,7 +16,7 @@ type Props = CompositeScreenProps<
 >;
 
 export function DownloadScreen({navigation}: Props) {
-  const videos = useVideos();
+  const videos = useDownloadedVideos();
 
   console.log(videos);
 
@@ -32,11 +33,9 @@ export function DownloadScreen({navigation}: Props) {
     });
   }, []);
 
-  return (
-    <ScrollView>
-      {videos.map(v => (
-        <DownloadListItem key={v.id} id={v.id} />
-      ))}
-    </ScrollView>
-  );
+  const renderItem = useCallback<ListRenderItem<ElementData>>(({item}) => {
+    return <DownloadListItem data={item} />;
+  }, []);
+
+  return <FlatList data={videos} renderItem={renderItem} />;
 }
