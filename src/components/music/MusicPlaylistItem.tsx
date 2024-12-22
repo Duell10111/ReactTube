@@ -4,6 +4,7 @@ import {Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {IconButton, Menu, Icon} from "react-native-paper";
 
 import {useAppStyle} from "@/context/AppStyleContext";
+import {useDownloaderContext} from "@/context/DownloaderContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {usePlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import {VideoData} from "@/extraction/Types";
@@ -31,6 +32,7 @@ export function MusicPlaylistItem({
 
   const {setCurrentItem} = useMusikPlayerContext();
   const {save} = usePlaylistManagerContext();
+  const {download} = useDownloaderContext();
 
   const [showMenu, setShowMenu] = useState(false);
 
@@ -101,6 +103,14 @@ export function MusicPlaylistItem({
             }}
             title={"Add to Playlist"}
             leadingIcon={"playlist-plus"}
+          />
+          <Menu.Item
+            onPress={() => {
+              setShowMenu(false);
+              download(data.id);
+            }}
+            title={"Download"}
+            leadingIcon={"download"}
           />
         </Menu>
       </View>
