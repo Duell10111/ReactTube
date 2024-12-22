@@ -26,6 +26,7 @@ import {
 } from "@/extraction/Types";
 import {
   deleteVideoFilesIfExists,
+  getAbsolutePlaylistURL,
   getAbsoluteVideoURL,
 } from "@/hooks/downloader/useDownloadProcessor";
 
@@ -106,8 +107,9 @@ export async function getPlaylistAsYTPlaylist(id: string) {
   const playlist = await getPlaylist(id);
   const localData = await getPlaylistVideos(id);
 
-  const playlistImage =
-    playlist?.coverUrl || localData?.find(item => item.coverUrl)?.coverUrl;
+  const playlistImage = playlist.coverUrl
+    ? getAbsolutePlaylistURL(playlist.coverUrl)
+    : localData?.find(item => item.coverUrl)?.coverUrl;
 
   return {
     originalData: {type: "Local"} as any,
@@ -176,7 +178,7 @@ function mapPlaylistToElementData(localPlaylist: Playlist): ElementData {
     title: localPlaylist.name ?? "Unknown Playlist",
     thumbnailImage: localPlaylist.coverUrl
       ? {
-          url: mapCoverURLToImageURL(localPlaylist.coverUrl),
+          url: mapCoverURLToImageURL(localPlaylist.coverUrl, "playlist"),
         }
       : defaultThumbnail,
   };
@@ -204,6 +206,7 @@ function mapVideoToElementData(
         }
       : defaultThumbnail,
     localPlaylistId: playlistId,
+    downloaded: !!videoData.fileUrl,
   };
 }
 
@@ -233,6 +236,10 @@ function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
     },
     id: videoData.id,
     title: videoData.name ?? "Unknown title",
+    author: {
+      id: videoData.author,
+      name: videoData.author,
+    },
     durationSeconds: videoData.duration ?? undefined,
     // @ts-ignore Ignore issue with no height and width for cover available
     thumbnailImage: videoData.coverUrl
@@ -243,9 +250,14 @@ function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
   };
 }
 
-function mapCoverURLToImageURL(coverUrl: string) {
+function mapCoverURLToImageURL(
+  coverUrl: string,
+  type: "video" | "playlist" = "video",
+) {
   if (coverUrl.startsWith("http")) {
     return coverUrl;
   }
-  return getAbsoluteVideoURL(coverUrl);
+  return type === "playlist"
+    ? getAbsolutePlaylistURL(coverUrl)
+    : getAbsoluteVideoURL(coverUrl);
 }

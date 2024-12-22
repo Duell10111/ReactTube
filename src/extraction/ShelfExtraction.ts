@@ -1,4 +1,5 @@
 import _ from "lodash";
+import Crypto from "react-native-quick-crypto";
 
 import {getVideoData} from "./ElementData";
 import {extractKeyNode} from "./KeyExtraction";
@@ -165,13 +166,13 @@ export function parseHorizontalNode(
     const twoRowItem = parsedData.find(v =>
       v.originalNode.is(YTNodes.MusicTwoRowItem),
     );
-    console.log("Header: ", node.header);
+    // console.log("Header: ", node.header);
     return {
       data: content,
       parsedData,
       loadMore: () => {},
-      id: node.header.title?.text,
-      title: node.header.title?.text,
+      id: node.header?.title?.text ?? Crypto.randomUUID(),
+      title: node.header?.title?.text,
       items_per_columns: node.num_items_per_column,
       music: true,
       shelf: true,

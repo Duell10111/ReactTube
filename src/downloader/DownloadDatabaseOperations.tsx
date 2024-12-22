@@ -1,4 +1,12 @@
-import {and, desc, eq, getTableColumns, isNotNull, sql} from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  isNotNull,
+  isNull,
+  sql,
+} from "drizzle-orm";
 import {drizzle, useLiveQuery} from "drizzle-orm/expo-sqlite";
 import {useMigrations} from "drizzle-orm/expo-sqlite/migrator";
 import {openDatabaseSync} from "expo-sqlite";
@@ -219,6 +227,20 @@ export async function deleteVideoLocalFileReferences(
     })
     .where(eq(schema.videos.id, id))
     .execute();
+}
+
+export async function deleteZombieVideos() {
+  const zombieResult = await db
+    .select()
+    .from(schema.videos)
+    .leftJoin(
+      schema.playlistVideos,
+      eq(schema.videos.id, schema.playlistVideos.videoId),
+    )
+    .where(isNull(schema.playlistVideos.videoId))
+    .execute();
+
+  console.log("Zombie Videos: ", zombieResult);
 }
 
 export async function insertVideosIntoPlaylist(

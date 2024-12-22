@@ -22,6 +22,7 @@ export function ActiveDownloadScreen() {
   }, []);
 
   console.log(currentDownloads);
+  console.log(activeDownloads);
 
   if (activeDownloads.length === 0) {
     return (

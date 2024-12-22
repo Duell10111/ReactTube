@@ -6,6 +6,7 @@ export const videos = sqliteTable("video", {
   name: text("name"),
   // Music Properties
   author: text("author"),
+  // TODO: Add Author ID?
   album: text("album"),
   coverUrl: text("coverUrl"),
   fileUrl: text("fileUrl"),

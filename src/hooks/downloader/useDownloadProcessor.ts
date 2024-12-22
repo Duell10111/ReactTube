@@ -4,13 +4,23 @@ import {useRef} from "react";
 import {DeviceEventEmitter} from "react-native";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
-import {insertVideo} from "@/downloader/DownloadDatabaseOperations";
-import {getElementDataFromVideoInfo} from "@/extraction/YTElements";
+import {
+  createPlaylist,
+  findVideo,
+  insertVideo,
+} from "@/downloader/DownloadDatabaseOperations";
+import {YTTrackInfo, YTVideoInfo} from "@/extraction/Types";
+import {
+  getElementDataFromTrackInfo,
+  getElementDataFromVideoInfo,
+  getElementDataFromYTPlaylist,
+} from "@/extraction/YTElements";
 import Logger from "@/utils/Logger";
 
 const downloadDir = FileSystem.documentDirectory + "downloads/";
 
 export const videoDir = downloadDir + "videos/";
+export const playlistDir = downloadDir + "playlist/";
 
 const LOGGER = Logger.extend("DOWNLOADER");
 
@@ -27,9 +37,27 @@ export default function useDownloadProcessor() {
 
   const downloadRefs = useRef<DownloadRef>({});
 
-  const download = async (id: string) => {
+  const download = async (id: string, type: "audio" | "video" = "audio") => {
+    const video = await findVideo(id);
+    if (video && video.fileUrl) {
+      console.log("Video: ", video);
+      LOGGER.debug("Video already downloaded");
+      return;
+    }
+
     LOGGER.debug("Download video: ", id);
-    const info = getElementDataFromVideoInfo(await youtube!.getInfo(id, "IOS"));
+    let info: YTTrackInfo | YTVideoInfo;
+    if (type === "audio") {
+      info = getElementDataFromTrackInfo(await youtube!.music.getInfo(id));
+
+      // Patch originalData
+      const orgData = await youtube!.getInfo(id, "IOS");
+      info.originalData = orgData;
+    } else {
+      info = getElementDataFromVideoInfo(await youtube!.getInfo(id, "IOS"));
+    }
+
+    // const info = getElementDataFromVideoInfo(await youtube!.getInfo(id, "IOS"));
     const format = info.originalData.chooseFormat({
       type: "audio",
     });
@@ -117,12 +145,68 @@ export default function useDownloadProcessor() {
     }
   };
 
-  return {downloadRefs, download};
+  const downloadPlaylistCoverWrapper = async (
+    id: string,
+    overridePlaylistOverride?: {
+      title: string;
+      description?: string;
+      coverUrl: string;
+    },
+  ) => {
+    LOGGER.debug(`Download playlist cover: ${id}`);
+
+    let info = overridePlaylistOverride;
+    if (!info) {
+      LOGGER.debug(`Fetching playlist data for ${id}`);
+      const playlistData = getElementDataFromYTPlaylist(
+        await youtube!.getPlaylist(id),
+      );
+      info = {
+        coverUrl: playlistData.thumbnailImage.url,
+        title: playlistData.title,
+      };
+    }
+
+    const value = await downloadPlaylistCover(id, info.coverUrl, data => {
+      if (downloadRefs.current[id]) {
+        downloadRefs.current[id].process =
+          data.totalBytesWritten / data.totalBytesExpectedToWrite;
+      } else {
+        LOGGER.warn(
+          "Error updating cover progress: ",
+          downloadRefs.current[id],
+        );
+      }
+      LOGGER.debug(
+        `Updating progress for ${id} cover with ${downloadRefs.current[id].process}`,
+      );
+    });
+    downloadRefs.current[id] = value;
+
+    const result = await value.download[0].downloadAsync();
+    if (result) {
+      LOGGER.debug(`Playlist cover downloaded to ${result.uri}`);
+      await createPlaylist(id, info.title, info.description, value.fileURL[0]);
+      LOGGER.debug(`Insert downloaded playlist cover for ${value.id}`);
+    } else {
+      LOGGER.warn(`Downloaded playlist cover ${value.id} canceled`);
+    }
+  };
+
+  return {
+    downloadRefs,
+    download,
+    downloadPlaylistCover: downloadPlaylistCoverWrapper,
+  };
 }
 
 // TODO: Rename to getAbsoluteDownloadURL?
 export function getAbsoluteVideoURL(url: string) {
   return videoDir + url;
+}
+
+export function getAbsolutePlaylistURL(url: string) {
+  return playlistDir + url;
 }
 
 async function ensureDirExists(directory = downloadDir) {
@@ -136,6 +220,7 @@ async function ensureDirExists(directory = downloadDir) {
 export interface DownloadObject {
   id: string;
   fileURL: string[];
+  contentType: "video" | "playlist";
   type: "audio" | "video" | "cover_only";
   download: FileSystem.DownloadResumable[];
   progressDownloads: number[];
@@ -188,8 +273,70 @@ async function downloadVideo(
   } as DownloadObject;
 }
 
+async function downloadVideoCover(
+  id: string,
+  coverUrl: string,
+  coverUrlCallback?: FileSystem.FileSystemNetworkTaskProgressCallback<FileSystem.DownloadProgressData>,
+) {
+  await ensureDirExists();
+  await ensureDirExists(`${videoDir}${id}`);
+
+  console.log("Download cover as well!");
+  const coverFileURL = `${id}/cover.jpg`;
+  const coverFileFullURL = `${videoDir}${coverFileURL}`;
+  const coverDownload = FileSystem.createDownloadResumable(
+    coverUrl,
+    coverFileFullURL,
+    undefined,
+    coverUrlCallback,
+  );
+
+  return {
+    id,
+    download: [coverDownload],
+    fileURL: [coverFileURL],
+    process: 0,
+    progressDownloads: [0],
+    type: "cover_only",
+    contentType: "video",
+  } as DownloadObject;
+}
+
+async function downloadPlaylistCover(
+  id: string,
+  coverUrl: string,
+  coverUrlCallback?: FileSystem.FileSystemNetworkTaskProgressCallback<FileSystem.DownloadProgressData>,
+) {
+  const parentDir = getPlaylistDir(id);
+  await ensureDirExists();
+  await ensureDirExists(parentDir);
+
+  const coverFileURL = `${id}/cover.jpg`;
+  const coverFileFullURL = `${playlistDir}${coverFileURL}`;
+  const coverDownload = FileSystem.createDownloadResumable(
+    coverUrl,
+    coverFileFullURL,
+    undefined,
+    coverUrlCallback,
+  );
+
+  return {
+    id,
+    download: [coverDownload],
+    fileURL: [coverFileURL],
+    process: 0,
+    progressDownloads: [0],
+    type: "cover_only",
+    contentType: "playlist",
+  } as DownloadObject;
+}
+
 function getVideoDir(id: string) {
   return `${videoDir}${id}`;
+}
+
+function getPlaylistDir(id: string) {
+  return `${playlistDir}${id}`;
 }
 
 export async function deleteVideoFilesIfExists(id: string) {

@@ -1,5 +1,3 @@
-// TODO: Save Playlists in local database
-
 import Crypto from "react-native-quick-crypto";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
@@ -16,12 +14,14 @@ import {
   getElementDataFromTrackInfo,
   getElementDataFromYTPlaylist,
 } from "@/extraction/YTElements";
+import useDownloadProcessor from "@/hooks/downloader/useDownloadProcessor";
 import Logger from "@/utils/Logger";
 
 const LOGGER = Logger.extend("PLAYLIST_MANAGER");
 
 export default function useLocalPlaylistManager() {
   const youtube = useYoutubeContext();
+  const {downloadPlaylistCover} = useDownloadProcessor();
   // const [playlists, setPlaylists] = useState<ElementData[]>();
 
   const playlists = usePlaylistsAsElementData();
@@ -84,19 +84,54 @@ export default function useLocalPlaylistManager() {
 
     const ytData = getElementDataFromYTPlaylist(playlist);
 
-    // TODO: Download image as remote one gets invalid after some time
-
     await createPlaylistDB(
       localPlaylistId,
       ytData.title,
       undefined,
-      ytData.thumbnailImage?.url,
+      undefined,
       undefined,
     );
 
-    const ids = ytData.items.map(item => item.id);
-    await saveVideoToPlaylist(ids, localPlaylistId);
+    await Promise.all(
+      ytData.items.map(async item => {
+        if (item.type === "video" && (await findVideo(item.id)) === undefined) {
+          console.log("Creating video: ", item.id);
+          await insertVideo(
+            item.id,
+            item.title,
+            item.durationSeconds ?? 0,
+            item.thumbnailImage.url,
+            undefined,
+            localPlaylistId,
+            item.author?.name,
+          );
+        } else {
+          console.log("Updating video: ", item.id);
+          await insertVideo(
+            item.id,
+            item.title,
+            undefined, // Do not update existing data if undefined specified
+            item.thumbnailImage.url,
+            undefined,
+            localPlaylistId,
+            item.author?.name,
+          );
+        }
+
+        LOGGER.debug(`Adding video ${item.id} to playlist ${playlistId}`);
+        await insertVideosIntoPlaylist(localPlaylistId, [item.id]);
+      }),
+    );
     LOGGER.debug("Added playlist!");
+
+    try {
+      await downloadPlaylistCover(localPlaylistId, {
+        title: ytData.title,
+        coverUrl: ytData.thumbnailImage.url,
+      });
+    } catch (e) {
+      LOGGER.error("Error downloading playlist cover: ", e);
+    }
   };
 
   const removePlaylistFromLibrary = async (playlistId: string) => {

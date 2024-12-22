@@ -46,6 +46,7 @@ export interface VideoData {
   artists?: Author[];
   // Local Properties
   localPlaylistId?: string;
+  downloaded?: boolean;
 }
 
 export interface Author {

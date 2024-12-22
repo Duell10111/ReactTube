@@ -99,8 +99,6 @@ function parseEndScreen(endScreen: YTNodes.Endscreen) {
 }
 
 function parseEndScreenElements(element: YTNodes.EndscreenElement) {
-  console.log("EndScreen: ", JSON.stringify(element));
-
   const thumbnail = element.image?.map(getThumbnail)?.[0];
   // .find(thumb => !thumb.url.endsWith("webp")); // Do not use webp for iOS!;
 

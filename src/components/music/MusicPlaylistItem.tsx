@@ -1,7 +1,7 @@
 import {useNavigation} from "@react-navigation/native";
 import {useState} from "react";
 import {Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import {IconButton, Menu} from "react-native-paper";
+import {IconButton, Menu, Icon} from "react-native-paper";
 
 import {useAppStyle} from "@/context/AppStyleContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
@@ -62,6 +62,9 @@ export function MusicPlaylistItem({
               styles.subtitleText,
             ]}>{`${data.type === "video" ? `${data.artists?.map(a => a.name)?.join(", ") ?? data.author?.name ?? ""} - ${data.duration}` : ""} - ${data.originalNode.type}`}</Text>
         </View>
+        {data.downloaded ? (
+          <Icon source={"download"} color={"#34deeb"} size={22} />
+        ) : null}
         <Menu
           visible={showMenu}
           onDismiss={() => setShowMenu(false)}
