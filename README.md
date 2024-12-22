@@ -26,6 +26,8 @@ This project uses the [Youtube.js](https://github.com/LuanRT/YouTube.js) library
 | Youtube Music Support                           | ✅                                                        |
 | Basic Mobile Support                            | ✅                                                        |
 | Apple Watch Variant (Alpha)                     | ⏳(Working on it)                                         |
+| Local Database Storage without login            | ✅                                                        |
+| Download videos for offline usage               | ⏳(Working on it)                                         |
 | Android TV Support                              | ❌ (UI mostly broken)                                     |
 
 ### Building
