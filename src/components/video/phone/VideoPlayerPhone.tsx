@@ -28,6 +28,9 @@ export const VideoPlayerPhone = forwardRef<VideoRef, VideoPlayerPhoneProps>(
           source: {uri: sourceURL},
           resizeMode: "contain",
           controls: true,
+          playInBackground: true,
+          pictureInPicture: true,
+          ignoreSilentSwitch: "ignore",
         }}
         onPress={onPipPress}
         ref={ref}

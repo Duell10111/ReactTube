@@ -33,6 +33,7 @@ import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
+// TODO: Remove?!
 export default function VideoScreen({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;
   const {
