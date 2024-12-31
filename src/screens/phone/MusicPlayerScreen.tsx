@@ -124,6 +124,18 @@ export function MusicPlayerScreen({route, navigation}: Props) {
               }
             }}
           />
+          {/* TODO: Adapt UI for author press */}
+          <MusicPlayerActionButton
+            iconName={"user"}
+            iconType={"antdesign"}
+            title={"Author"}
+            onPress={() => {
+              const id = currentItem?.channel_id ?? currentItem?.channel?.id;
+              if (id) {
+                navigation.navigate("MusicChannelScreen", {artistId: id});
+              }
+            }}
+          />
         </View>
         <MusicPlayerPlayerButtons />
         <View style={styles.bottomActionsContainer}>

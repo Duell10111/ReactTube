@@ -44,6 +44,7 @@ export interface VideoData {
   // Music Properties
   durationSeconds?: number;
   artists?: Author[];
+  album?: Album;
   // Local Properties
   localPlaylistId?: string;
   downloaded?: boolean;
@@ -53,6 +54,12 @@ export interface Author {
   id: string;
   name: string;
   thumbnail?: Thumbnail;
+  navEndpoint?: YTNodes.NavigationEndpoint;
+}
+
+export interface Album {
+  id: string;
+  name: string;
   navEndpoint?: YTNodes.NavigationEndpoint;
 }
 

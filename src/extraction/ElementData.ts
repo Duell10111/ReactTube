@@ -227,6 +227,7 @@ export function getVideoData(
           : ytNode.authors && ytNode.authors?.length > 0
             ? getAuthorMusic(ytNode.authors[0])
             : undefined,
+        album: ytNode.album ? ytNode.album : undefined,
       } as VideoData;
     } else if (ytNode.item_type === "artist") {
       return {

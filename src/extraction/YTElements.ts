@@ -355,21 +355,31 @@ export function getElementDataFromYTMusicArtist(
   artist: YTMusic.Artist,
   id: string,
 ) {
-  let title: string, description: string;
-  let thumbnail: Thumbnail;
+  let title: string | undefined,
+    description: string | undefined = undefined;
+  let thumbnail: Thumbnail | undefined = undefined;
   const header = artist.header;
-  if (header.is(YTNodes.MusicImmersiveHeader)) {
+  if (header?.is(YTNodes.MusicImmersiveHeader)) {
     title = header.title.text;
     description = header.description.text;
-    thumbnail = getThumbnail(header.thumbnail.contents[0]);
+    thumbnail = header.thumbnail?.contents?.[0]
+      ? getThumbnail(header.thumbnail?.contents?.[0])
+      : undefined;
+  } else if (header?.is(YTNodes.MusicVisualHeader)) {
+    title = header.title.text;
+    // TODO: Add support for background thumbnail?
+    // Currently only foreground thumbnail used
+    thumbnail = header.foreground_thumbnail?.[0]
+      ? getThumbnail(header.foreground_thumbnail[0])
+      : undefined;
   } else {
-    console.warn(`Unknown YTMusicArtist Header type: ${header.type}`);
+    console.warn(`Unknown YTMusicArtist Header type: ${header?.type}`);
   }
 
   return {
     originalData: artist,
     id,
-    title,
+    title: title ?? "Untitled",
     description,
     thumbnail,
     data: _.chain(artist.sections)
@@ -383,20 +393,21 @@ export function getElementDataFromYTMusicArtist(
 
 export function getElementDataFromYTAlbum(album: YTMusic.Album, id: string) {
   console.log("YTAlbum", album);
-  let title: string, subtitle: string;
-  let thumbnail: Thumbnail;
-  let endpoint: YTNodes.NavigationEndpoint;
+  let title: string | undefined, subtitle: string | undefined;
+  let thumbnail: Thumbnail | undefined;
+  let endpoint: YTNodes.NavigationEndpoint | undefined;
 
   const header = album.header;
-  if (header.is(YTNodes.MusicResponsiveHeader)) {
+  if (header?.is(YTNodes.MusicResponsiveHeader)) {
     title = header.title.text;
     subtitle = header.subtitle.text;
-    thumbnail = getThumbnail(header.thumbnail.contents[0]);
-    endpoint = header.buttons.firstOfType(YTNodes.MusicPlayButton).endpoint;
+    thumbnail = header.thumbnail?.contents?.[0]
+      ? getThumbnail(header.thumbnail.contents[0])
+      : undefined;
+    endpoint = header.buttons?.firstOfType(YTNodes.MusicPlayButton)?.endpoint;
   } else {
-    console.warn(`Unknown YTMusicArtist Header type: ${header.type}`);
+    console.warn(`Unknown YTMusicArtist Header type: ${header?.type}`);
   }
-  console.log("Contents: ", album.contents);
 
   return {
     originalData: album,

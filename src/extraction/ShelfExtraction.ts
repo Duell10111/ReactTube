@@ -3,9 +3,11 @@ import Crypto from "react-native-quick-crypto";
 
 import {getVideoData} from "./ElementData";
 import {extractKeyNode} from "./KeyExtraction";
-import {ElementData} from "./Types";
+import {ElementData, Thumbnail} from "./Types";
 import Logger from "../utils/Logger";
 import {Helpers, YTNodes} from "../utils/Youtube";
+
+import {getThumbnail} from "@/extraction/Misc";
 
 const LOGGER = Logger.extend("SHELF-EXTRACTION");
 
@@ -21,9 +23,19 @@ export interface HorizontalData {
   loadMore: () => void;
   id: string;
   title?: string;
+  subtitle?: string;
   items_per_columns?: number;
   shelf?: boolean; // Needed?
   music?: boolean;
+  thumbnail?: Thumbnail;
+  buttons?: HorizontalDataButton[];
+  on_tab?: YTNodes.NavigationEndpoint;
+}
+
+export interface HorizontalDataButton {
+  type: "PLAY" | "PLAYLIST_ADD";
+  title?: string;
+  endpoint?: YTNodes.NavigationEndpoint;
 }
 
 export function gridCalculatorExtract(
@@ -47,7 +59,6 @@ export function gridCalculator(
   const sectionsAvailable = _.intersection(types, sectionItems);
 
   if (sectionsAvailable.length > 0) {
-    console.log("Sections Found");
     const items = _.chain(videoItems)
       .intersection(types)
       .map(type => (type ? groups[type] : []))
@@ -113,8 +124,8 @@ export function parseHorizontalNode(
     // TODO: Currently producing warnings in extractContent?
     // For Channel Homescreen
     if (content.length === 1 && parsedData.length === 0) {
-      console.log("Nested Shelf?");
-      console.log(node.header);
+      // console.log("Nested Shelf?");
+      // console.log(node.header);
       return parseHorizontalNode(content[0]);
     }
 
@@ -161,12 +172,7 @@ export function parseHorizontalNode(
   }
   // Music types
   else if (node.is(YTNodes.MusicCarouselShelf)) {
-    console.log(node.contents);
     const {content, parsedData} = extractContent(Array.from(node.contents));
-    const twoRowItem = parsedData.find(v =>
-      v.originalNode.is(YTNodes.MusicTwoRowItem),
-    );
-    // console.log("Header: ", node.header);
     return {
       data: content,
       parsedData,
@@ -212,9 +218,15 @@ export function parseHorizontalNode(
       loadMore: () => {},
       id: node.type, // TODO: Hash description?
       title: node.title.text,
+      subtitle: node.subtitle.text,
       originalNode: node,
       music: true,
       shelf: true,
+      buttons: _.chain(node.buttons).map(extractButton).compact().value(),
+      thumbnail: node.thumbnail
+        ? getThumbnail(node.thumbnail.contents[0])
+        : undefined,
+      on_tab: node.on_tap,
     };
   } else if (!suppressedError) {
     console.warn("ShelfExtraction: Unknown horizontal type: ", node.type);
@@ -256,6 +268,33 @@ function extractHeader(node: Helpers.YTNode) {
     return node.title.toString();
   } else {
     LOGGER.warn("Unknown Header type: ", node.type);
+  }
+}
+
+function extractButton(node: Helpers.YTNode) {
+  if (node.is(YTNodes.Button)) {
+    let type: HorizontalDataButton["type"] | undefined = undefined;
+    switch (node.icon_type) {
+      case "PLAY_ARROW":
+        type = "PLAY";
+        break;
+      // case "PLAYLIST_ADD":
+      //   type = "PLAYLIST_ADD";
+      //   break;
+    }
+
+    // Only return if an icon type is supported
+    if (type) {
+      return {
+        type,
+        title: node.text,
+        endpoint: node.endpoint,
+      } as HorizontalDataButton;
+    } else {
+      LOGGER.warn("Unknown Button icon type: ", node.icon_type);
+    }
+  } else {
+    LOGGER.warn("Unknown Button type: ", node.type);
   }
 }
 

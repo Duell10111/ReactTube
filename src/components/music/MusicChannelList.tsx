@@ -1,11 +1,8 @@
 import {ReactElement, useCallback} from "react";
 import {FlatList, ListRenderItem} from "react-native";
 
-import {MusicPlaylistItem} from "./MusicPlaylistItem";
-
 import MusicSearchSectionItem from "@/components/music/MusicSearchSectionItem";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
-import {ElementData} from "@/extraction/Types";
 
 interface MusicPlaylistListProps {
   data: HorizontalData[];

@@ -28,7 +28,6 @@ export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
         data={item}
         currentItem={selectedItem === index}
         onPress={() => {
-          console.log("Endpoint Item: ", item.navEndpoint);
           setCurrentItem(item, false);
         }}
       />

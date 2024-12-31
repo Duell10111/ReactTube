@@ -1,9 +1,12 @@
 import {useNavigation} from "@react-navigation/native";
-import {Icon} from "@rneui/base";
+import {useState} from "react";
 import {Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {IconButton, Menu} from "react-native-paper";
 
 import {useAppStyle} from "@/context/AppStyleContext";
+import {useDownloaderContext} from "@/context/DownloaderContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {usePlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import {ElementData} from "@/extraction/Types";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
 
@@ -16,6 +19,10 @@ export function MusicSearchListItem({data}: MusicSearchListItemProps) {
   const {navigate, push} = useNavigation<RootNavProp>();
 
   const {setCurrentItem} = useMusikPlayerContext();
+  const {save} = usePlaylistManagerContext();
+  const {download} = useDownloaderContext();
+
+  const [showMenu, setShowMenu] = useState(false);
 
   const onPress = () => {
     if (data.type === "video" || data.type === "mix") {
@@ -26,7 +33,6 @@ export function MusicSearchListItem({data}: MusicSearchListItemProps) {
         playlistId: data.id,
       });
     } else if (data.type === "artist" || data.type === "channel") {
-      console.log("DATA ID: ", data.id);
       push("MusicChannelScreen", {
         artistId: data.id,
       });
@@ -57,12 +63,62 @@ export function MusicSearchListItem({data}: MusicSearchListItemProps) {
               styles.subtitleText,
             ]}>{`${data.type === "video" ? `${data.artists?.map(a => a.name)?.join(", ") ?? data.author?.name ?? ""} - ${data.duration}` : ""} - ${data.originalNode.type} `}</Text>
         </View>
-        <Icon
-          name={"dots-vertical"}
-          type={"material-community"}
-          color={"white"}
-          size={16}
-        />
+        <Menu
+          visible={showMenu}
+          onDismiss={() => setShowMenu(false)}
+          anchor={
+            <IconButton
+              icon={"dots-vertical"}
+              iconColor={"white"}
+              size={20}
+              onPress={() => setShowMenu(true)}
+            />
+          }>
+          {data.type === "video" ? (
+            <>
+              <Menu.Item
+                onPress={() => {
+                  setShowMenu(false);
+                  save([data.id]);
+                }}
+                title={"Add to Playlist"}
+                leadingIcon={"playlist-plus"}
+              />
+              <Menu.Item
+                onPress={() => {
+                  setShowMenu(false);
+                  download(data.id);
+                }}
+                title={"Download"}
+                leadingIcon={"download"}
+              />
+            </>
+          ) : null}
+          {data.author?.id ? (
+            <Menu.Item
+              onPress={() => {
+                setShowMenu(false);
+                push("MusicChannelScreen", {
+                  artistId: data.author!.id,
+                });
+              }}
+              title={"Go to author"}
+              leadingIcon={"account-music"}
+            />
+          ) : null}
+          {data.type === "video" && data.artists && data.artists.length > 0 ? (
+            <Menu.Item
+              onPress={() => {
+                setShowMenu(false);
+                push("MusicChannelScreen", {
+                  artistId: data.artists![0].id,
+                });
+              }}
+              title={"Go to author"}
+              leadingIcon={"account-music"}
+            />
+          ) : null}
+        </Menu>
       </View>
     </TouchableOpacity>
   );

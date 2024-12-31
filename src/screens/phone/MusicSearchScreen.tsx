@@ -8,20 +8,18 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {FlatList, ListRenderItem, Platform, View} from "react-native";
+import {FlatList, ListRenderItem, Platform} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {SearchBarCommands} from "react-native-screens";
 
-import {MusicBottomPlayerBar} from "../../components/music/MusicBottomPlayerBar";
-import MusicHorizontalItem from "../../components/music/MusicHorizontalItem";
-import {SearchBarSuggestions} from "../../components/search/SearchBarSuggestions";
-import useMusicSearch from "../../hooks/music/useMusicSearch";
-
+import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
 import {MusicSearchDetailsList} from "@/components/music/MusicSearchDetailsList";
 import {MusicSearchFilterHeader} from "@/components/music/MusicSearchFilterHeader";
 import MusicSearchSectionItem from "@/components/music/MusicSearchSectionItem";
+import {SearchBarSuggestions} from "@/components/search/SearchBarSuggestions";
 import {SearchNoResultsScreen} from "@/components/search/SearchNoResultsScreen";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
+import useMusicSearch from "@/hooks/music/useMusicSearch";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 export function MusicSearchScreen() {
@@ -42,7 +40,7 @@ export function MusicSearchScreen() {
   const [searchText, setSearchText] = useState("");
   const [suggestions, setSearchSuggestions] = useState<string[]>([]);
   const [searchBarOpen, setSearchBarOpen] = useState(false);
-  const searchBarRef = useRef<SearchBarCommands>();
+  const searchBarRef = useRef<SearchBarCommands>(null);
 
   const debouncedOnChange = useCallback(
     _.debounce(text => {
@@ -115,7 +113,7 @@ export function MusicSearchScreen() {
       <SearchBarSuggestions
         suggestions={suggestions}
         onSuggestionClick={text => {
-          searchBarRef.current.setText(text);
+          searchBarRef.current?.setText(text);
           searchBarRef.current?.blur();
           performSearch(text);
         }}

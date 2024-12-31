@@ -33,6 +33,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingVertical: 5,
     paddingHorizontal: 10,
+    marginHorizontal: 5,
   },
   title: {
     marginStart: 5,
