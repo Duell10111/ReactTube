@@ -6,12 +6,11 @@ import {
   MusicPlayerPlaylistListItem,
 } from "./MusicPlayerPlaylistListItem";
 
+import {MusicPlayerPlaylistAutomixList} from "@/components/music/player/MusicPlayerPlaylistAutomixList";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {YTPlaylistPanelItem} from "@/extraction/Types";
 
-interface MusicPlayerPlaylistListProps {
-  // currentItem: YTVideoInfo;
-}
+interface MusicPlayerPlaylistListProps {}
 
 export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
   const {currentItem, playlist, setCurrentItem, fetchMorePlaylistData} =
@@ -50,6 +49,7 @@ export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
       data={playlist?.items ?? []}
       renderItem={renderItem}
       onEndReached={fetchMorePlaylistData}
+      ListFooterComponent={MusicPlayerPlaylistAutomixList}
     />
   );
 }

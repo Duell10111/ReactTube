@@ -26,9 +26,6 @@ export function MusicLibraryListItem({data}: MusicLibraryListItemProps) {
       : data.author?.name;
   }, [data]);
 
-  console.log("Data Thumbnail: ", data.thumbnailImage);
-  console.log("Data Type: ", data.type);
-
   return (
     <TouchableHighlight
       onPress={() => {
