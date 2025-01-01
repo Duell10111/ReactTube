@@ -325,51 +325,48 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     }
   }, [currentVideoData, appSettings.trackingEnabled]);
 
-  const setCurrentPlaylist = useCallback(
-    (videoData: VideoData, upNextUpdate = true, addToUpNext = false) => {
-      videoExtractor(videoData)
-        .then(curVideoData => {
-          setCurrentVideoData(curVideoData);
-          if (upNextUpdate) {
-            fetchUpNextPlaylist(curVideoData);
-            automix && fetchUpNextAutomixPlaylist(curVideoData);
-          } else if (addToUpNext && playlist) {
-            const playlistItem: YTPlaylistPanelItem = {
-              ...videoData,
-              selected: false,
-            };
-            setPlaylist(prevState => {
-              // Fallback for typechecks
-              if (!prevState) {
-                return undefined;
-              }
-              return {
-                ...prevState,
-                items: [...prevState?.items, playlistItem],
-              };
-            });
-
-            // Update Automix Playlist to remove selected item
-            if (automixPlaylist) {
-              setAutomixPlaylist(prevState => {
-                if (!prevState) {
-                  return undefined;
-                }
-                return {
-                  ...prevState,
-                  items: [
-                    ...prevState.items.filter(i => i.id !== playlistItem.id),
-                  ],
-                };
-              });
+  const setCurrentPlaylist = (
+    videoData: VideoData,
+    upNextUpdate = true,
+    addToUpNext = false,
+  ) => {
+    videoExtractor(videoData)
+      .then(curVideoData => {
+        setCurrentVideoData(curVideoData);
+        if (upNextUpdate) {
+          fetchUpNextPlaylist(curVideoData);
+          automix && fetchUpNextAutomixPlaylist(curVideoData);
+        } else if (addToUpNext && playlist) {
+          const playlistItem: YTPlaylistPanelItem = {
+            ...videoData,
+            selected: false,
+          };
+          setPlaylist(prevState => {
+            // Fallback for typechecks
+            if (!prevState) {
+              return undefined;
             }
-          }
-        })
-        .catch(LOGGER.warn);
-    },
-    [playlist, automixPlaylist],
-  );
+            return {
+              ...prevState,
+              items: [...prevState?.items, playlistItem],
+            };
+          });
 
+          // Update Automix Playlist to remove selected item
+          setAutomixPlaylist(prevState => {
+            // Skip if automix not fetched
+            if (!prevState) {
+              return undefined;
+            }
+            return {
+              ...prevState,
+              items: [...prevState.items.filter(i => i.id !== playlistItem.id)],
+            };
+          });
+        }
+      })
+      .catch(LOGGER.warn);
+  };
   const setPlaylistViaEndpoint = (
     endpoint: YTNodes.NavigationEndpoint,
     upNextUpdate = true,

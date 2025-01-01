@@ -45,6 +45,7 @@
       [
         "expo-build-properties"
       ],
+      "expo-sqlite",
       [
         "expo-splash-screen",
         {
