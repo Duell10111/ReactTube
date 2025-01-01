@@ -13,3 +13,11 @@ export async function insertVideo(
 ) {
   console.warn("Used empty TV variant of insertVideo");
 }
+
+export function usePlaylistVideos(id: string) {
+  return [];
+}
+
+export function usePlaylists() {
+  return [];
+}

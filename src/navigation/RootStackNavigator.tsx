@@ -6,27 +6,27 @@ import React from "react";
 import {Platform} from "react-native";
 
 import SettingsNavigator from "./SettingsNavigator";
-import useAppInit from "../hooks/general/useAppInit";
-import ChannelScreen from "../screens/ChannelScreen";
-import HomeWrapperScreen from "../screens/HomeWrapperScreen";
-import LoadingScreen from "../screens/LoadingScreen";
-import LoginScreen from "../screens/LoginScreen";
-import PlaylistScreen from "../screens/PlaylistScreen";
-import SearchScreen from "../screens/SearchScreen";
-import VideoScreen from "../screens/VideoScreen";
-import {ActiveDownloadScreen} from "../screens/phone/ActiveDownloadScreen";
-import {DownloadPlayer} from "../screens/phone/DownloadPlayer";
-import {MusicPlayerScreen} from "../screens/phone/MusicPlayerScreen";
-import {MusicPlaylistScreen} from "../screens/phone/MusicPlaylistScreen";
-import {MusicSearchScreen} from "../screens/phone/MusicSearchScreen";
-import VideoScreenWrapper from "../screens/phone/VideoScreenWrapper";
-import {YTNodes} from "../utils/Youtube";
 
 import {HistoryScreen} from "@/components/screens/phone/HistoryScreen";
+import useAppInit from "@/hooks/general/useAppInit";
+import ChannelScreen from "@/screens/ChannelScreen";
+import HomeWrapperScreen from "@/screens/HomeWrapperScreen";
+import LoadingScreen from "@/screens/LoadingScreen";
+import LoginScreen from "@/screens/LoginScreen";
+import PlaylistScreen from "@/screens/PlaylistScreen";
+import SearchScreen from "@/screens/SearchScreen";
 import TrendingScreen from "@/screens/TrendingScreen";
+import VideoScreen from "@/screens/VideoScreen";
+import {ActiveDownloadScreen} from "@/screens/phone/ActiveDownloadScreen";
+import {DownloadPlayer} from "@/screens/phone/DownloadPlayer";
 import {MusicAlbumScreen} from "@/screens/phone/MusicAlbumScreen";
 import {MusicChannelScreen} from "@/screens/phone/MusicChannelScreen";
 import {MusicLibraryScreen} from "@/screens/phone/MusicLibraryScreen";
+import {MusicPlayerScreen} from "@/screens/phone/MusicPlayerScreen";
+import {MusicPlaylistScreen} from "@/screens/phone/MusicPlaylistScreen";
+import {MusicSearchScreen} from "@/screens/phone/MusicSearchScreen";
+import VideoScreenWrapper from "@/screens/phone/VideoScreenWrapper";
+import {YTNodes} from "@/utils/Youtube";
 
 export type RootStackParamList = {
   LoadingScreen: undefined;

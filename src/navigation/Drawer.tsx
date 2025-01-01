@@ -56,7 +56,9 @@ export default function Drawer({open, onOpen, onClose}: Props) {
           title={"Home"}
           onFocus={() => onOpen()}
           start
-          onPress={navigationWrapper(() => navigation.navigate("HomeFeed"))}
+          onPress={navigationWrapper(() =>
+            navigation.navigate("Home", {screen: "HomeFeed"}),
+          )}
           open={open}
           iconTitle={"home"}
         />
@@ -64,7 +66,7 @@ export default function Drawer({open, onOpen, onClose}: Props) {
           title={"Trending"}
           onFocus={() => onOpen()}
           onPress={navigationWrapper(() =>
-            navigation.navigate("TrendingScreen"),
+            navigation.navigate("Home", {screen: "TrendingScreen"}),
           )}
           open={open}
           iconTitle={"trending-up"}
