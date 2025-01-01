@@ -262,8 +262,10 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   const fetchUpNextAutomixPlaylist = (curVideoData: YTTrackInfo) => {
     // TODO: Add proper local type indicator
-    (curVideoData.originalData?.type === "Local" && youtube
-      ? youtube?.music.getUpNext(curVideoData.id, true)
+    (curVideoData.originalData?.type &&
+    curVideoData.originalData.type === "Local" &&
+    youtube?.music
+      ? youtube.music.getUpNext(curVideoData.id, true)
       : curVideoData.originalData.getUpNext(true)
     )
       .then(p => {
