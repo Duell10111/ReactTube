@@ -276,7 +276,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
           if (playlist) {
             return playlist.items.findIndex(i => i.id === item.id) === -1;
           }
-          return true;
+          // Do not include current video in automix playlist to probit duplicate of "normal" up-next playlist
+          return item.id !== curVideoData.id;
         });
 
         setAutomixPlaylist({
@@ -399,6 +400,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     }
   };
 
+  // TODO: Maybe use useCallback to trigger update on automixPlaylist change?
   const onEndReached = async () => {
     if (playlist) {
       const currentIndex = playlist.items.findIndex(
@@ -420,7 +422,6 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
               "Fetching playlist continuation failed. Skipping setting next song!",
             );
           }
-          // TODO: Additionally check if autoplay is active and try to use autoplay data?
         } else {
           const nextElement = playlist.items[newIndex];
           videoExtractor(nextElement).then(setCurrentVideoData);
