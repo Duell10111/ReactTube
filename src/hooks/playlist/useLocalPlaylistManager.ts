@@ -16,6 +16,7 @@ import {
 } from "@/extraction/YTElements";
 import useDownloadProcessor from "@/hooks/downloader/useDownloadProcessor";
 import Logger from "@/utils/Logger";
+import {YTNodes} from "@/utils/Youtube";
 
 const LOGGER = Logger.extend("PLAYLIST_MANAGER");
 
@@ -141,6 +142,13 @@ export default function useLocalPlaylistManager() {
     return deletePlaylist(playlistId);
   };
 
+  const executeNavEndpoint = async (
+    navEndpoint: YTNodes.NavigationEndpoint,
+  ) => {
+    // Skipping calling nav endpoint without login
+    LOGGER.warn("Skipping call on local mode!");
+  };
+
   // TODO: Move handlers to save a playlist here
 
   return {
@@ -152,5 +160,6 @@ export default function useLocalPlaylistManager() {
     removeVideoFromPlaylist,
     addPlaylistToLibrary,
     removePlaylistFromLibrary,
+    executeNavEndpoint,
   };
 }

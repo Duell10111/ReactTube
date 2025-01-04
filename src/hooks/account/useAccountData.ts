@@ -2,7 +2,7 @@ import {useEffect, useState} from "react";
 
 import Logger from "../../utils/Logger";
 
-import {useYoutubeContext} from "@/context/YoutubeContext";
+import {useYoutubeTVContext} from "@/context/YoutubeContext";
 import {useSettings} from "@/utils/SettingsWrapper";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
@@ -43,7 +43,8 @@ export default function useAccountData() {
   const [loginSuccess, setLoginSuccess] = useState(false);
   const [autoLoginFinished, setAutoLoginFinished] = useState(false);
 
-  const youtube = useYoutubeContext();
+  // Use TV Context for OAuth2 Login !!!
+  const youtube = useYoutubeTVContext();
 
   // Register listener for auth events
   useEffect(() => {

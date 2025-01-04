@@ -34,6 +34,10 @@ export interface VideoMetadata {
   onAuthorPress: () => void;
   views: string;
   videoDate: string;
+  liked?: boolean;
+  disliked?: boolean;
+  onLike?: () => void;
+  onDislike?: () => void;
 }
 
 // TODO: Use own types
@@ -70,6 +74,7 @@ interface VideoPlayerProps<T> {
   endCardStartSeconds?: number;
   // Callbacks
   onAuthorClick?: () => void;
+  onProgress?: (progressData: OnProgressData) => void;
   onEnd?: () => void;
 
   // Custom Props
@@ -85,7 +90,14 @@ const sponsorSeekReplacement = (seconds: number) => {
 
 const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
   (
-    {VideoComponent, bottomContainer, endCardContainer, onEnd, ...props},
+    {
+      VideoComponent,
+      bottomContainer,
+      endCardContainer,
+      onProgress,
+      onEnd,
+      ...props
+    },
     ref,
   ) => {
     const animations = useAnimations(450);
@@ -157,6 +169,8 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       // console.log("Progress: ", data);
       if (!seeking) {
         setCurrentTime(data.currentTime);
+
+        onProgress?.(data);
 
         // if (typeof onProgress === 'function') {
         //   onProgress(data);

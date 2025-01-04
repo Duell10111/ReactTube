@@ -16,11 +16,13 @@ import {
   YTCommentThread,
   YTEndscreen,
   YTEndscreenElement,
+  YTFormat,
   YTLibrary,
   YTLibrarySection,
   YTMenu,
   YTMusicAlbum,
   YTMusicArtist,
+  YTMyYoutubeTab,
   YTPlaylist,
   YTPlaylistPanel,
   YTPlaylistPanelContinuation,
@@ -32,6 +34,7 @@ import {
 } from "./Types";
 import {
   YT,
+  YTTV,
   YTNodes,
   YTMusic,
   PlaylistPanelContinuation,
@@ -39,9 +42,13 @@ import {
   Misc,
 } from "../utils/Youtube";
 
-import {parseObservedArray} from "@/extraction/ArrayExtraction";
+import {
+  parseArrayHorizontalData,
+  parseObservedArray,
+} from "@/extraction/ArrayExtraction";
 import {parseHorizontalNode} from "@/extraction/ShelfExtraction";
 
+// TODO: Also parse buttons available, if available?!
 export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
   const thumbnail = videoInfo.basic_info.thumbnail
     ? videoInfo.basic_info.thumbnail
@@ -50,6 +57,22 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     : undefined;
 
   const chapters = extractChaptersFromVideoInfo(videoInfo);
+
+  let best_format: Misc.Format | undefined = undefined;
+
+  try {
+    best_format =
+      videoInfo.chooseFormat({
+        type: "video+audio",
+        quality: "best",
+      }) ??
+      videoInfo.chooseFormat({
+        type: "audio",
+        quality: "best",
+      });
+  } catch (e) {
+    console.warn("Error while matching formats: ", e);
+  }
 
   // TODO: Check?
   // @ts-ignore
@@ -85,8 +108,104 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
       name: videoInfo.basic_info.author,
       id: videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
     },
+    watchNextFeed: videoInfo.watch_next_feed
+      ? parseObservedArray(videoInfo.watch_next_feed)
+      : undefined,
     durationSeconds: videoInfo.basic_info.duration,
+    playability: videoInfo.playability_status
+      ? {
+          reason: videoInfo.playability_status.reason,
+        }
+      : undefined,
+    hls_manifest_url: videoInfo.streaming_data?.hls_manifest_url,
+    best_format: best_format ? parseFormat(best_format) : undefined,
   } as YTVideoInfo;
+}
+
+export function getElementDataFromTVVideoInfo(videoInfo: YTTV.VideoInfo) {
+  const thumbnail = videoInfo.basic_info.thumbnail
+    ? videoInfo.basic_info.thumbnail
+        .map(getThumbnail)
+        .find(thumb => !thumb.url.endsWith("webp")) // Do not use webp for iOS!
+    : undefined;
+
+  let best_format: Misc.Format | undefined = undefined;
+
+  try {
+    best_format =
+      videoInfo.chooseFormat({
+        type: "video+audio",
+        quality: "best",
+      }) ??
+      videoInfo.chooseFormat({
+        type: "audio",
+        quality: "best",
+      });
+  } catch (e) {
+    console.warn("Error while matching formats: ", e);
+  }
+
+  console.log("TVVVVV");
+
+  // TODO: Check?
+  // @ts-ignore
+  return {
+    originalData: videoInfo,
+    id: videoInfo.basic_info.id,
+    duration: videoInfo.basic_info.duration,
+    livestream: videoInfo.basic_info.is_live,
+    thumbnailImage: thumbnail,
+    title: videoInfo.basic_info.title,
+    description: videoInfo.basic_info.short_description,
+    short_views:
+      videoInfo.primary_info?.view_count?.short_view_count?.text ??
+      videoInfo?.primary_info?.view_count?.original_view_count,
+    publishDate: videoInfo.primary_info?.date_text?.text,
+    channel_id:
+      videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
+    channel: videoInfo.basic_info.channel,
+    subscribed: videoInfo?.secondary_info?.subscribe_button?.is(
+      YTNodes.SubscribeButton,
+    )
+      ? videoInfo.secondary_info.subscribe_button.subscribed
+      : undefined,
+    playlist: parseVideoInfoPlaylist(videoInfo),
+    liked: videoInfo.basic_info.is_liked,
+    disliked: videoInfo.basic_info.is_disliked,
+    endscreen: videoInfo.endscreen
+      ? parseEndScreen(videoInfo.endscreen)
+      : undefined,
+    // TODO: Adapt author to only contain name
+    author: {
+      name: videoInfo.basic_info.author,
+      id: videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
+    },
+    watchNextSections: videoInfo.watch_next_feed
+      ? parseArrayHorizontalData(videoInfo.watch_next_feed)
+      : undefined,
+    durationSeconds: videoInfo.basic_info.duration,
+    playability: videoInfo.playability_status
+      ? {
+          reason: videoInfo.playability_status.reason,
+        }
+      : undefined,
+    hls_manifest_url: videoInfo.streaming_data?.hls_manifest_url,
+    best_format: best_format ? parseFormat(best_format) : undefined,
+  } as YTVideoInfo;
+}
+
+function parseFormat(format: Misc.Format) {
+  const type: YTFormat["type"] =
+    format.has_video && format.has_audio
+      ? "audio+video"
+      : format.has_video
+        ? "video"
+        : "audio";
+  return {
+    originalFormat: format,
+    durationSeconds: format.approx_duration_ms,
+    type,
+  } as YTFormat;
 }
 
 function parseEndScreen(endScreen: YTNodes.Endscreen) {
@@ -211,7 +330,7 @@ function parseTrackInfoPlaylistItems(
   }
 }
 
-function parseVideoInfoPlaylist(videoInfo: YT.VideoInfo) {
+function parseVideoInfoPlaylist(videoInfo: YT.VideoInfo | YTTV.VideoInfo) {
   if (videoInfo.playlist) {
     const playlist = videoInfo.playlist;
 
@@ -428,6 +547,10 @@ export function getElementDataFromYTPlaylist(playlist: YT.Playlist) {
   return new YTPlaylistClass(playlist);
 }
 
+export function getElementDataFromYTTVPlaylist(playlist: YTTV.Playlist) {
+  return new YTTVPlaylistClass(playlist);
+}
+
 export function getElementDataFromYTMusicPlaylist(playlist: YTMusic.Playlist) {
   return new YTMusicPlaylistClass(playlist);
 }
@@ -470,6 +593,62 @@ class YTPlaylistClass implements YTPlaylist {
           saveID: savedButton.endpoint?.payload?.target?.playlistId,
         }
       : undefined;
+  }
+
+  async loadMore() {
+    if (this.originalData.has_continuation) {
+      const updatedPlaylist = await this.originalData.getContinuation();
+      const newItems = _.chain(updatedPlaylist.items)
+        .map(element => getVideoData(element))
+        .compact()
+        .value();
+      this.items.push(...newItems);
+      this.originalData = updatedPlaylist;
+    } else {
+      throw new Error("No continuation available");
+    }
+  }
+}
+
+class YTTVPlaylistClass implements YTPlaylist {
+  items: ElementData[];
+
+  originalData: YTTV.Playlist;
+  thumbnailImage?: Thumbnail;
+  title: string;
+  description?: string;
+  author?: Author;
+
+  // saved?: {
+  //   status: boolean;
+  //   saveID: string;
+  // };
+  //
+  // menu?: YTMenu;
+
+  constructor(playlist: YTTV.Playlist) {
+    this.originalData = playlist;
+    this.items = _.chain(playlist.items)
+      .map(element => getVideoData(element))
+      .compact()
+      .value();
+    // this.thumbnailImage = getThumbnail(playlist.[0]);
+    this.title = playlist.header?.title.text ?? "Unknown title";
+    this.description = playlist.header?.description?.text;
+
+    // this.menu = playlist.menu.is(YTNodes.Menu)
+    //   ? parseMenu(playlist.menu)
+    //   : undefined;
+
+    // const savedButton = this.menu.top_level_buttons.find(
+    //   item => item.icon_type === "PLAYLIST_ADD",
+    // );
+    // this.saved = savedButton
+    //   ? {
+    //     status: savedButton.isToggled,
+    //     saveID: savedButton.endpoint?.payload?.target?.playlistId,
+    //   }
+    //   : undefined;
   }
 
   async loadMore() {
@@ -636,4 +815,31 @@ function parseCommentThread(commentThread: YTNodes.CommentThread) {
     originalData: commentThread,
     has_replies: commentThread.has_replies,
   } as YTCommentThread;
+}
+
+// YTTV.MyYoutubeFeed
+
+// TODO: Parse tabs
+
+export function parseYTMyYoutubeTab(tab: YTNodes.Tab) {
+  const type = parseYTTabType(tab);
+  console.log("Tab type: ", tab.type);
+  return {
+    originalData: tab,
+    title: tab.title,
+    type,
+    selected: tab.selected,
+  } as YTMyYoutubeTab;
+}
+
+function parseYTTabType(tab: YTNodes.Tab) {
+  const browseId: string | undefined = tab.endpoint?.payload?.browseId;
+
+  switch (browseId) {
+    case "FEhistory":
+      return "history";
+    case "FEplaylist_aggregation":
+      return "playlists";
+  }
+  console.log("BrowseID: ", browseId);
 }

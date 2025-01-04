@@ -4,9 +4,11 @@ import React from "react";
 import HomeScreen from "../screens/HomeScreen";
 import LibraryScreen from "../screens/LibraryScreen";
 
-import HistoryScreen from "@/screens/HistoryScreen";
+import {MyYoutubeScreenTV} from "@/screens/MyYoutubeScreenTV";
 import SubscriptionScreen from "@/screens/SubscriptionScreen";
 import TrendingScreen from "@/screens/TrendingScreen";
+import HistoryScreen from "@/screens/tv/HistoryScreen";
+import {PlaylistsScreen} from "@/screens/tv/PlaylistsScreen";
 
 export type RootDrawerParamList = {
   HomeFeed: undefined;
@@ -15,6 +17,8 @@ export type RootDrawerParamList = {
   SearchScreen: undefined;
   LibraryScreen: undefined;
   HistoryScreen: undefined;
+  PlaylistsScreen: undefined;
+  MyYoutubeScreen: undefined;
 };
 
 const DrawerStack = createNativeStackNavigator<RootDrawerParamList>();
@@ -30,6 +34,14 @@ export default function DrawerStackNavigator() {
       />
       <DrawerStack.Screen name={"LibraryScreen"} component={LibraryScreen} />
       <DrawerStack.Screen name={"HistoryScreen"} component={HistoryScreen} />
+      <DrawerStack.Screen
+        name={"MyYoutubeScreen"}
+        component={MyYoutubeScreenTV}
+      />
+      <DrawerStack.Screen
+        name={"PlaylistsScreen"}
+        component={PlaylistsScreen}
+      />
     </DrawerStack.Navigator>
   );
 }

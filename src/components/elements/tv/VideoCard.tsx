@@ -34,7 +34,7 @@ export function VideoCard({element, style, onPress, width}: VideoCardProps) {
       }}
       onBlur={() => setFocus(false)}
       onLongPress={() => {
-        setSelectedVideo(element.id);
+        setSelectedVideo(element);
       }}>
       <View
         style={[styles.segmentContainer, focus ? {borderColor: "white"} : {}]}>
@@ -65,17 +65,27 @@ export function VideoCard({element, style, onPress, width}: VideoCardProps) {
       <Text style={[styles.titleStyle, {color: appStyle.textColor}]}>
         {element.title}
       </Text>
-      {element.author ? (
-        <Text style={[{color: appStyle.textColor}]}>
-          {element.author?.name}
-        </Text>
-      ) : null}
-      {element.short_views ? (
-        <Text style={[{color: appStyle.textColor}]}>{element.short_views}</Text>
-      ) : null}
-      {element.publishDate ? (
-        <Text style={[{color: appStyle.textColor}]}>{element.publishDate}</Text>
-      ) : null}
+      {element.subtitle ? (
+        <Text style={[{color: appStyle.textColor}]}>{element.subtitle}</Text>
+      ) : (
+        <>
+          {element.author ? (
+            <Text style={[{color: appStyle.textColor}]}>
+              {element.author?.name}
+            </Text>
+          ) : null}
+          {element.short_views ? (
+            <Text style={[{color: appStyle.textColor}]}>
+              {element.short_views}
+            </Text>
+          ) : null}
+          {element.publishDate ? (
+            <Text style={[{color: appStyle.textColor}]}>
+              {element.publishDate}
+            </Text>
+          ) : null}
+        </>
+      )}
     </VideoTouchable>
   );
 }

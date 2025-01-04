@@ -11,6 +11,7 @@ import {
 import {HorizontalElementsList} from "@/components/elements/tv/HorizontalElementsList";
 import {useAppStyle} from "@/context/AppStyleContext";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
+import useHorizontalData from "@/hooks/tv/useHorizontalData";
 
 interface Props {
   headerText?: string;
@@ -26,6 +27,7 @@ export default function PageSectionList({
   horizontalListSegmentStyle,
 }: Props) {
   const {style} = useAppStyle();
+  const {elements, fetchMore} = useHorizontalData(content);
 
   return (
     <View style={styles.containerStyle}>
@@ -42,9 +44,10 @@ export default function PageSectionList({
       ) : null}
       <HorizontalElementsList
         // containerStyle={{marginBottom: 0}}
-        elements={content.parsedData}
+        elements={elements}
         containerStyle={horizontalListContainerStyle}
         videoSegmentStyle={horizontalListSegmentStyle}
+        onEndReached={fetchMore}
       />
       {/*<View style={styles.border} />*/}
     </View>

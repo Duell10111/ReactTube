@@ -1,15 +1,15 @@
 import {useNavigation} from "@react-navigation/native";
-import {Icon} from "@rneui/base";
 import React, {useMemo} from "react";
 import {Modal, ScrollView, StyleSheet, Text, View} from "react-native";
 
 import ChannelIcon from "./ChannelIcon";
 import NextVideo from "./endcard/NextVideo";
-import {parseObservedArray} from "../../extraction/ArrayExtraction";
-import {YTVideoInfo} from "../../extraction/Types";
 import useVideoElementData from "../../hooks/video/useVideoElementData";
-import {NativeStackProp} from "../../navigation/types";
-import HorizontalVideoList from "../HorizontalVideoList";
+
+import {RelatedVideos} from "@/components/video/tv/RelatedVideos";
+import {parseObservedArray} from "@/extraction/ArrayExtraction";
+import {YTVideoInfo} from "@/extraction/Types";
+import {NativeStackProp} from "@/navigation/types";
 
 interface Props {
   video: YTVideoInfo;
@@ -101,25 +101,7 @@ export default function EndCard({
         </View>
         <View style={styles.bottomContainer}>
           <ScrollView>
-            {video.playlist ? (
-              <>
-                <View style={styles.bottomPlaylistTextContainer}>
-                  <Icon name={"book"} color={"white"} />
-                  <Text style={styles.bottomPlaylistText}>
-                    {video.playlist.title}
-                  </Text>
-                </View>
-                <HorizontalVideoList
-                  nodes={video.playlist.content}
-                  textStyle={styles.text}
-                />
-              </>
-            ) : null}
-            <Text style={styles.bottomText}>{"Related Videos"}</Text>
-            <HorizontalVideoList
-              nodes={watchNextList}
-              textStyle={styles.text}
-            />
+            <RelatedVideos YTVideoInfo={video} />
           </ScrollView>
         </View>
       </View>

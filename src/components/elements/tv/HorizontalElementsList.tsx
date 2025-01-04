@@ -20,6 +20,7 @@ interface HorizontalElementsListProps {
   videoSegmentStyle?: StyleProp<ViewStyle>;
   containerStyle?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  width?: ViewStyle["width"];
   elements: ElementData[];
   onEndReached?: () => void;
 }
@@ -30,11 +31,12 @@ export function HorizontalElementsList({
   textStyle,
   onEndReached,
   containerStyle,
+  width,
 }: HorizontalElementsListProps) {
   const renderItem = useCallback<ListRenderItem<ElementData>>(
     ({item}: {item: ElementData}) => {
       if (item.type === "channel") {
-        return <ChannelSegment element={item.originalNode} />;
+        return <ChannelSegment element={item} />;
       } else {
         // TODO: Remove isTV workaround once GridView not used anymore on Phone/Tablets?
         if (Platform.isTV) {
@@ -43,6 +45,7 @@ export function HorizontalElementsList({
               element={item}
               // textStyle={textStyle}
               style={[videoSegmentStyle, {marginHorizontal: 10}]}
+              width={width}
             />
           );
         } else {
@@ -61,19 +64,19 @@ export function HorizontalElementsList({
   );
 
   const keyExtractor = useCallback((item: ElementData) => {
-    return item.id;
+    return item.id + item.originalNode.type;
   }, []);
 
   return (
     <FlatList
       style={{alignSelf: "flex-start"}}
-      contentContainerStyle={{alignItems: "flex-start"}}
+      contentContainerStyle={[{alignItems: "flex-start"}, containerStyle]}
       horizontal
       data={elements}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       onEndReached={onEndReached}
-      onEndReachedThreshold={0.7}
+      onEndReachedThreshold={0.8}
     />
   );
 }

@@ -1,6 +1,6 @@
 import React, {useCallback, useMemo} from "react";
 import {ListRenderItem, StyleProp, ViewStyle} from "react-native";
-import {FlatGrid} from "react-native-super-grid";
+import {FlatGrid, FlatGridProps} from "react-native-super-grid";
 
 import {ElementCard} from "@/components/elements/tv/ElementCard";
 import PageSectionList from "@/components/segments/PageSectionList";
@@ -12,6 +12,8 @@ interface GridFeedViewProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
   items: (ElementData | HorizontalData)[];
   onEndReached?: () => void;
+  ListHeaderComponent?: FlatGridProps["ListHeaderComponent"];
+  ListFooterComponent?: FlatGridProps["ListFooterComponent"];
 }
 
 interface GridDataItem {
@@ -24,6 +26,8 @@ export default function GridFeedView({
   contentContainerStyle,
   items,
   onEndReached,
+  ListHeaderComponent,
+  ListFooterComponent,
 }: GridFeedViewProps) {
   const data = useMemo(
     () =>
@@ -76,6 +80,8 @@ export default function GridFeedView({
       itemDimension={500}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
+      ListHeaderComponent={ListHeaderComponent}
+      ListFooterComponent={ListFooterComponent}
     />
   );
 }
