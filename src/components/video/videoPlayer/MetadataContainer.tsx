@@ -40,8 +40,18 @@ export default function MetadataContainer({
               metadata.onAuthorPress();
             }}
           />
-          <MetadataButton iconType={"antdesign"} iconName={"like2"} />
-          <MetadataButton iconType={"antdesign"} iconName={"dislike2"} />
+          <MetadataButton
+            iconType={"antdesign"}
+            iconName={"like2"}
+            onPress={metadata.onLike}
+            active={metadata.liked}
+          />
+          <MetadataButton
+            iconType={"antdesign"}
+            iconName={"dislike2"}
+            onPress={metadata.onDislike}
+            active={metadata.disliked}
+          />
         </View>
       </View>
     </TVFocusGuideView>

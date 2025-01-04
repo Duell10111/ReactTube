@@ -1,4 +1,3 @@
-import {CommonActions, useNavigation, useRoute} from "@react-navigation/native";
 import React from "react";
 import {Platform, StyleProp, TextStyle, ViewStyle} from "react-native";
 import DeviceInfo from "react-native-device-info";
@@ -7,114 +6,43 @@ import ReelCardPhone from "./phone/ReelCardPhone";
 import VideoCardPhone from "./phone/VideoCardPhone";
 import VideoCardTV from "./tv/VideoCardTV";
 import Logger from "../../utils/Logger";
-import {YTNodes} from "../../utils/Youtube";
 
-import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
-import {Author, Thumbnail} from "@/extraction/Types";
-import {NativeStackProp, RootRouteProp} from "@/navigation/types";
+import {VideoData} from "@/extraction/Types";
+import useElementPressableHelper from "@/hooks/utils/useElementPressableHelper";
 
 const LOGGER = Logger.extend("VIDEOCARD");
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
   style?: StyleProp<ViewStyle>;
-  videoId: string;
-  navEndpoint?: YTNodes.NavigationEndpoint;
-  title: string;
-  views?: string;
-  reel?: boolean;
-  duration?: string;
-  thumbnail?: Thumbnail;
-  author?: Author;
-  date?: string;
+  data: VideoData;
   disabled?: boolean;
-  livestream?: boolean;
-  mix?: boolean;
-  progressPercentage?: number;
-  music?: boolean;
   onPress?: () => void;
 }
 
-export default function VideoCard({style, ...data}: Props) {
-  const navigation = useNavigation<NativeStackProp>();
-  const route = useRoute<RootRouteProp>();
-  const {setPlaylistViaEndpoint} = useMusikPlayerContext();
+// OLD WAY: Should be replaced with VideoCard in elements/tv
+export default function VideoCard({style, data, disabled}: Props) {
+  const {onPress: onPressWrapper} = useElementPressableHelper();
 
   const onPress = () => {
-    if (data.disabled) {
+    if (disabled) {
       return;
     }
 
-    if (data.music) {
-      // @ts-ignore
-      setPlaylistViaEndpoint(data.navEndpoint);
-      navigation.navigate("MusicPlayerScreen");
-      return;
-    }
-
-    // TODO: Add init seconds params
-
-    LOGGER.debug("State: ", navigation.getState());
-    LOGGER.debug("Route name: ", route.name);
-    LOGGER.debug("Nav Endpoint: ", data.navEndpoint);
-    if (route.name === "VideoScreen") {
-      LOGGER.debug("Replacing Video Screen");
-      navigation.replace("VideoScreen", {
-        videoId: data.videoId,
-        navEndpoint: data.navEndpoint,
-        reel: data.reel,
-      });
-    } else if (
-      // @ts-ignore
-      navigation.getState().routes.find(r => r.name === "VideoScreen")
-    ) {
-      LOGGER.debug("Remove all existing Video Screens");
-      navigation.dispatch(state => {
-        // @ts-ignore
-        const routes = state.routes.filter(r => r.name !== "VideoScreen");
-        routes.push({
-          // @ts-ignore
-          name: "VideoScreen",
-          // @ts-ignore
-          params: {
-            videoId: data.videoId,
-            navEndpoint: data.navEndpoint,
-            reel: data.reel,
-          },
-        });
-
-        return CommonActions.reset({
-          ...state,
-          routes,
-          index: routes.length - 1,
-        });
-      });
-    } else {
-      navigation.navigate("VideoScreen", {
-        videoId: data.videoId,
-        navEndpoint: data.navEndpoint,
-        reel: data.reel,
-      });
-    }
+    onPressWrapper(data);
   };
 
   if (Platform.isTV) {
-    return (
-      <VideoCardTV
-        {...data}
-        thumbnailURL={data.thumbnail?.url}
-        onPress={onPress}
-      />
-    );
+    return <VideoCardTV data={data} onPress={onPress} />;
   }
 
-  if (data.reel) {
-    return <ReelCardPhone {...data} onPress={onPress} />;
+  if (data.type === "reel") {
+    return <ReelCardPhone data={data} onPress={onPress} />;
   }
 
   return (
     <VideoCardPhone
-      {...data}
+      data={data}
       onPress={onPress}
       style={[
         style,

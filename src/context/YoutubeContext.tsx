@@ -1,9 +1,13 @@
 import React, {createContext, useContext} from "react";
+
 import useYoutube from "../hooks/useYoutube";
 
-const Context = createContext<ReturnType<typeof useYoutube> | undefined>(
-  undefined,
-);
+interface YoutubeContext {
+  classicInnertube?: ReturnType<typeof useYoutube>;
+  tvInnertube?: ReturnType<typeof useYoutube>;
+}
+
+const Context = createContext<YoutubeContext>({});
 
 interface Props {
   children: React.ReactNode;
@@ -11,10 +15,23 @@ interface Props {
 
 export default function YoutubeContextProvider({children}: Props) {
   const youtube = useYoutube();
+  const tvInnertube = useYoutube();
 
-  return <Context.Provider value={youtube}>{children}</Context.Provider>;
+  return (
+    <Context.Provider
+      value={{
+        classicInnertube: youtube,
+        tvInnertube,
+      }}>
+      {children}
+    </Context.Provider>
+  );
 }
 
 export function useYoutubeContext() {
-  return useContext(Context);
+  return useContext(Context).classicInnertube;
+}
+
+export function useYoutubeTVContext() {
+  return useContext(Context).tvInnertube;
 }

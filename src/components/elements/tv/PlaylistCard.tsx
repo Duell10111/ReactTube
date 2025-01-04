@@ -34,7 +34,7 @@ export function PlaylistCard({
       }}
       onBlur={() => setFocus(false)}
       onLongPress={() => {
-        setSelectedVideo(element.id);
+        setSelectedVideo(element);
       }}>
       <View
         style={[styles.segmentContainer, focus ? {borderColor: "white"} : {}]}>

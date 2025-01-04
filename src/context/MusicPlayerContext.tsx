@@ -432,6 +432,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       }
     }
 
+    // TODO: Add option for repeatOne/repeatPlaylist
     // // Only needed for local playlist files
     // TrackPlayer.pause().catch(LOGGER.warn);
   }, [currentVideoData, playlist, automixPlaylist, automix]);

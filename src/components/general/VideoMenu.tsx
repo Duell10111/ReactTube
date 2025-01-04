@@ -1,63 +1,134 @@
-import React, {useState} from "react";
-import {Modal, StyleSheet, View} from "react-native";
-import {ListItem} from "@rneui/base";
 import {useNavigation} from "@react-navigation/native";
-import {NativeStackProp} from "../../navigation/types";
-import {useShelfVideoSelector} from "../../context/ShelfVideoSelector";
-import LOGGER from "../../utils/Logger";
-import useVideoElementData from "../../hooks/video/useVideoElementData";
+import {NativeStackScreenProps} from "@react-navigation/native-stack";
+import {ListItem} from "@rneui/base";
+import {Image} from "expo-image";
+import _ from "lodash";
+import React, {useMemo, useState} from "react";
+import {Pressable, StyleSheet, Text, View} from "react-native";
 
-const Logger = LOGGER.extend("VIDEOMENU");
+import Logger from "../../utils/Logger";
+
+import {VideoMenuContainer} from "@/components/general/VideoMenuContainer";
+import {ElementData} from "@/extraction/Types";
+import useElementData from "@/hooks/general/useElementData";
+import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
+import {NativeStackProp} from "@/navigation/types";
+
+const LOGGER = Logger.extend("VIDEOMENU");
 
 // TODO: Add focus feedback
 
-export default function VideoMenu() {
-  const {selectedVideo, setSelectedVideo} = useShelfVideoSelector();
-
+// TODO: Outsource in other file
+export function VideoMenuScreen({
+  route,
+}: NativeStackScreenProps<RootStackParamList, "VideoMenuContext">) {
   return (
-    <Modal
-      visible={selectedVideo !== undefined}
-      transparent
-      onRequestClose={() => setSelectedVideo()}>
-      <View style={styles.touchContainer}>
-        {selectedVideo ? (
-          <VideoMenuContent
-            videoId={selectedVideo}
-            onCloseModal={() => setSelectedVideo(undefined)}
-          />
-        ) : null}
-      </View>
-    </Modal>
+    <VideoMenuContainer>
+      <VideoMenuContent data={route.params.element} />
+    </VideoMenuContainer>
   );
 }
 
-function VideoMenuContent({
-  videoId,
-  onCloseModal,
-}: {
-  videoId: string;
-  onCloseModal: () => void;
-}) {
+function VideoMenuContent({data: orgData}: {data: ElementData}) {
   const navigation = useNavigation<NativeStackProp>();
-  const {Video} = useVideoElementData(videoId);
-  // console.log("VideoInfo: ", JSON.stringify(Video?.basic_info, null, 4));
+  const data = useElementData(orgData);
+  const {executeNavEndpoint} = usePlaylistManager();
+
+  const contextMenu = useMemo(() => {
+    return "contextMenu" in data && data.contextMenu
+      ? _.chain(data.contextMenu)
+          .filter(
+            c =>
+              c.type !== "browse" &&
+              c.type !== "watch" &&
+              c.type !== "channel" &&
+              c.type !== "feedback",
+          )
+          .value()
+      : [];
+  }, [data]);
+
+  const channelID = useMemo(() => {
+    const contextMenuChannelId =
+      "contextMenu" in data
+        ? data.contextMenu?.find(c => c.type === "channel")?.navEndpoint
+            ?.payload.browseId
+        : undefined;
+    if (contextMenuChannelId) {
+      return contextMenuChannelId;
+    }
+
+    return data.type === "video" || data.type === "reel"
+      ? data?.author?.id
+      : data.type === "channel"
+        ? data.id
+        : null;
+  }, [data]);
+
   return (
-    <VideoMenuItem
-      title={"To Channel"}
-      onPress={() => {
-        // Sometimes the information is propagated in a different location
-        const channelID =
-          Video?.basic_info.channel_id ?? Video?.basic_info.channel?.id;
-        if (channelID) {
-          navigation.navigate("ChannelScreen", {
-            channelId: channelID,
-          });
-          onCloseModal();
-        } else {
-          Logger.warn("No channel data available!");
-        }
-      }}
-    />
+    <>
+      <View style={styles.infoContainer}>
+        <Image
+          style={styles.infoImage}
+          source={{
+            uri: data?.thumbnailImage?.url,
+          }}
+          contentFit={"contain"}
+        />
+        <Text style={styles.infoText}>{data?.title}</Text>
+        <Text style={styles.infoSubtitle}>{data?.author?.name}</Text>
+      </View>
+      {channelID ? (
+        <VideoMenuItem
+          title={"To Channel"}
+          onPress={() => {
+            navigation.replace("ChannelScreen", {
+              channelId: channelID,
+            });
+          }}
+        />
+      ) : null}
+      {contextMenu.map(menu => (
+        <VideoMenuItem
+          key={menu.text}
+          title={menu.text}
+          onPress={() => {
+            if (menu.navEndpoint && menu.type !== "addToPlaylist") {
+              executeNavEndpoint(menu.navEndpoint)
+                .then(() => {
+                  LOGGER.debug("Executed nav endpoint for menu", menu.type);
+                  navigation.goBack();
+                })
+                .catch(LOGGER.warn);
+            } else if (menu.type === "addToPlaylist") {
+              navigation.replace("PlaylistManagerContextMenu", {
+                videoId: data.id,
+              });
+            } else {
+              LOGGER.warn("No supported type");
+            }
+          }}
+        />
+      ))}
+      {/* TODO: Add actions as add to watch later etc.*/}
+      {/*<VideoMenuItem*/}
+      {/*  title={"To Channel"}*/}
+      {/*  onPress={() => {*/}
+      {/*    // Sometimes the information is propagated in a different location*/}
+      {/*    const channelID =*/}
+      {/*      videoElement?.channel?.id ?? videoElement?.channel_id;*/}
+      {/*    if (channelID) {*/}
+      {/*      navigation.replace("ChannelScreen", {*/}
+      {/*        channelId: channelID,*/}
+      {/*      });*/}
+      {/*      onCloseModal();*/}
+      {/*    } else {*/}
+      {/*      Logger.warn("No channel data available!");*/}
+      {/*    }*/}
+      {/*  }}*/}
+      {/*/>*/}
+    </>
   );
 }
 
@@ -69,29 +140,69 @@ interface ItemProps {
 function VideoMenuItem({title, onPress}: ItemProps) {
   const [focus, setFocus] = useState(false);
   return (
-    <ListItem
+    <Pressable
       onFocus={() => setFocus(true)}
       onBlur={() => setFocus(false)}
-      containerStyle={styles.listItemContainer}
       onPress={onPress}>
-      <ListItem.Title
-        style={[styles.listItemTitle, {color: focus ? "white" : "black"}]}>
-        {title}
-      </ListItem.Title>
-      <ListItem.Chevron />
-    </ListItem>
+      <ListItem
+        containerStyle={[
+          styles.listItemContainer,
+          {
+            backgroundColor: focus
+              ? "white"
+              : styles.listItemContainer["backgroundColor"],
+          },
+        ]}>
+        <ListItem.Title
+          style={[styles.listItemTitle, {color: focus ? "black" : "white"}]}>
+          {title}
+        </ListItem.Title>
+        <ListItem.Chevron />
+      </ListItem>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+  },
   touchContainer: {
     backgroundColor: "#222222",
-    width: "20%",
-    height: "100%",
+    borderRadius: 25,
+    width: "25%",
+    height: "95%",
     alignSelf: "flex-end",
+    marginEnd: 20,
+    padding: 20,
+  },
+  infoContainer: {
+    alignSelf: "center",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  infoImage: {
+    width: "100%",
+    aspectRatio: 1.5,
+    alignSelf: "center",
+  },
+  infoText: {
+    color: "white",
+    fontSize: 25,
+    fontWeight: "bold",
+    flexShrink: 1,
+  },
+  infoSubtitle: {
+    color: "white",
+    fontSize: 20,
+    flexShrink: 1,
   },
   listItemContainer: {
-    backgroundColor: "transparent",
+    backgroundColor: "#999",
+    borderRadius: 15,
+    marginVertical: 3,
   },
   listItemTitle: {
     flex: 1,

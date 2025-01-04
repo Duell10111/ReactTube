@@ -9,7 +9,6 @@ import {
 } from "react-native";
 
 import VideoSegment from "./VideoSegment";
-import VideoMenu from "./general/VideoMenu";
 import PageSectionList from "./segments/PageSectionList";
 import ShelfVideoSelectorProvider from "../context/ShelfVideoSelector";
 import useGrid from "../hooks/home/useGrid";
@@ -83,7 +82,6 @@ export default function GridView({
           onEndReachedThreshold={0.7}
           onEndReached={onEndReached}
         />
-        <VideoMenu />
       </>
     </ShelfVideoSelectorProvider>
   );

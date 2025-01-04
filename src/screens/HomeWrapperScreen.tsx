@@ -1,5 +1,6 @@
 import React, {useState} from "react";
 import {Platform, View} from "react-native";
+import {useSharedValue} from "react-native-reanimated";
 
 import BottomTabBarNavigator from "@/navigation/BottomTabBarNavigator";
 import Drawer from "@/navigation/Drawer";
@@ -16,13 +17,21 @@ export default function HomeWrapperScreen() {
 
 function TVVariant() {
   const [open, setOpen] = useState(false);
+  const hideDrawer = useSharedValue(false);
 
   return (
     <View style={{flexDirection: "row", flex: 1}}>
-      <DrawerContextProvider onScreenFocused={() => setOpen(false)}>
+      <DrawerContextProvider
+        onScreenFocused={() => setOpen(false)}
+        setHideDrawer={hide => (hideDrawer.value = hide)}>
         <Drawer
           open={open}
-          onOpen={() => setOpen(true)}
+          hideDrawer={hideDrawer}
+          onOpen={() => {
+            setOpen(true);
+            hideDrawer.value = false;
+            console.log("Open drawer");
+          }}
           onClose={() => setOpen(false)}
         />
         <DrawerStackNavigator />

@@ -1,7 +1,10 @@
+import _ from "lodash";
+
 import {getThumbnail, parseThumbnailOverlays} from "./Misc";
 import {
   Author,
   ChannelData,
+  ContextMenu,
   ElementData,
   getAuthor,
   getAuthorMusic,
@@ -9,7 +12,7 @@ import {
   VideoData,
 } from "./Types";
 import Logger from "../utils/Logger";
-import {Helpers, YTNodes} from "../utils/Youtube";
+import {Helpers, YTNodes, Parser} from "../utils/Youtube";
 
 // TODO: Add ChannelData
 
@@ -93,7 +96,8 @@ export function getVideoData(
     } as VideoData;
   } else if (ytNode.is(YTNodes.ShortsLockupView)) {
     return {
-      id: ytNode.entity_id,
+      // Use Video ID from Nav Endpoint or as fallback entity_id
+      id: ytNode.on_tap_endpoint?.payload?.videoId ?? ytNode.entity_id,
       title: ytNode.overlay_metadata?.primary_text?.text ?? "Unknown title",
       thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
       short_views: ytNode.overlay_metadata.secondary_text?.text,
@@ -127,7 +131,176 @@ export function getVideoData(
       thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
       duration: ytNode.duration.text,
     } as VideoData;
-  } else if (ytNode.is(YTNodes.MusicTwoRowItem)) {
+  } else if (ytNode.is(YTNodes.Tile)) {
+    // Skip contents without id
+    if (!ytNode.content_id) {
+      return undefined;
+    }
+
+    let author: string | undefined,
+      views: string | undefined,
+      published: string | undefined;
+    const lines = ytNode.metadata?.lines?.filterType(YTNodes.Line);
+    // Extract metadata in lines
+    if (lines) {
+      author = lines[0]?.items?.[0]?.as(YTNodes.LineItem)?.text?.text;
+      views = lines[1]?.items?.[0]?.as(YTNodes.LineItem)?.text?.text;
+      published = lines[1]?.items?.[2]?.as(YTNodes.LineItem)?.text?.text;
+    }
+
+    const title =
+      ytNode.metadata?.title?.text ??
+      ytNode.header?.thumbnail_overlays?.firstOfType(YTNodes.TileMetadata)
+        ?.title?.text ??
+      "Unknown title";
+
+    const thumbnail = ytNode.header?.thumbnail?.[0]
+      ? getThumbnail(ytNode.header.thumbnail[0])
+      : undefined;
+    // Skip nodes without images as they mostly are only buttons
+    if (!thumbnail) {
+      return;
+    }
+
+    // TODO: Maybe outsource this?
+    // Parser fkt for context menu
+    const parseContextMenu = (menu: Record<string, any>) => {
+      const parsedMenu = Parser.parse(menu).item();
+
+      const typeEval = (
+        navEndpoint: YTNodes.NavigationEndpoint,
+      ): ContextMenu["type"] | undefined => {
+        if (navEndpoint.name === "browseEndpoint") {
+          return navEndpoint.payload.browseId?.startsWith("UC")
+            ? "channel"
+            : "browse";
+        } else if (navEndpoint.name === "watchEndpoint") {
+          return "watch";
+        } else if (navEndpoint.name === "addToPlaylistEndpoint") {
+          return "addToPlaylist";
+        } else if (navEndpoint.name === "playlistEditEndpoint") {
+          return "addToWatchLater";
+        } else if (navEndpoint.name === "feedbackEndpoint") {
+          return "feedback";
+        }
+      };
+
+      if (parsedMenu.is(YTNodes.MenuNavigationItem)) {
+        const type = typeEval(parsedMenu.endpoint);
+        return {
+          originalNode: parsedMenu,
+          type,
+          text: parsedMenu.text,
+          navEndpoint: parsedMenu.endpoint,
+        } as ContextMenu;
+      } else if (parsedMenu.is(YTNodes.MenuServiceItem)) {
+        const type = typeEval(parsedMenu.endpoint);
+        return {
+          originalNode: parsedMenu,
+          type,
+          text: parsedMenu.text,
+          navEndpoint: parsedMenu.endpoint,
+        };
+      } else {
+        console.warn(`Unknown context menu item ${parsedMenu.type}`);
+      }
+    };
+
+    // @ts-ignore Ignore as not updated in lib from me :)
+    if (ytNode.content_type === "TILE_CONTENT_TYPE_CHANNEL") {
+      return {
+        type: "channel",
+        originalNode: ytNode,
+        id: ytNode.content_id,
+        title,
+        thumbnailImage: thumbnail,
+        author: author
+          ? {
+              name: author,
+              id: "",
+            }
+          : undefined,
+        subscribers: views,
+      } as ChannelData;
+    } else if (
+      ytNode.content_type === "TILE_CONTENT_TYPE_VIDEO" ||
+      ytNode.content_type === "TILE_CONTENT_TYPE_SHORTS"
+    ) {
+      return {
+        type:
+          ytNode.content_type === "TILE_CONTENT_TYPE_SHORTS" ? "reel" : "video",
+        originalNode: ytNode,
+        id: ytNode.content_id,
+        navEndpoint: ytNode.on_select_endpoint,
+        title,
+        // TODO: Fix issue with N/A Text (empty text)
+        subtitle: ytNode.metadata?.lines
+          ?.map(
+            line =>
+              line.items
+                ?.filter(text => text.text !== undefined)
+                ?.map(item => item.text.text)
+                ?.join(" ")
+                ?.trim() ?? "",
+          )
+          .join("\n"),
+        thumbnailImage: thumbnail,
+        duration:
+          ytNode.content_type === "TILE_CONTENT_TYPE_SHORTS"
+            ? "SHORT"
+            : ytNode.header?.thumbnail_overlays?.firstOfType(
+                YTNodes.ThumbnailOverlayTimeStatus,
+              )?.text,
+        author: author
+          ? {
+              name: author,
+              id: "",
+            }
+          : undefined,
+        short_views: views,
+        publishDate: published,
+        contextMenu: ytNode.on_long_press_endpoint.payload?.menu?.menuRenderer
+          ?.items
+          ? _.chain(
+              ytNode.on_long_press_endpoint.payload.menu.menuRenderer.items,
+            )
+              .map(parseContextMenu)
+              .compact()
+              .value()
+          : undefined,
+        thumbnailOverlays: ytNode.header?.thumbnail_overlays?.firstOfType(
+          YTNodes.ThumbnailOverlayResumePlayback,
+        )?.percent_duration_watched
+          ? {
+              videoProgress:
+                ytNode.header.thumbnail_overlays.firstOfType(
+                  YTNodes.ThumbnailOverlayResumePlayback,
+                )!.percent_duration_watched / 100,
+            }
+          : undefined,
+      } as VideoData;
+    } else if (ytNode.content_type === "TILE_CONTENT_TYPE_PLAYLIST") {
+      return {
+        type: "playlist",
+        originalNode: ytNode,
+        id: ytNode.content_id,
+        navEndpoint: ytNode.on_select_endpoint,
+        title,
+        thumbnailImage: thumbnail,
+        author: author
+          ? {
+              name: author,
+              id: "",
+            }
+          : undefined,
+        publishDate: published,
+      } as PlaylistData;
+    } else {
+      LOGGER.warn(`Unknown Tile type provided ${ytNode.content_type}`);
+    }
+  }
+  // Music Types
+  else if (ytNode.is(YTNodes.MusicTwoRowItem)) {
     // console.log("Music two row ", JSON.stringify(ytNode));
     if (ytNode.item_type === "playlist" || ytNode.item_type === "album") {
       return {

@@ -121,7 +121,7 @@ export function parseHorizontalNode(
       loadMore: () => {},
       id: extractKeyNode(node),
       originalNode: node,
-      title: node.title.text,
+      title: node.header?.avatar_lockup?.title?.text ?? node.title.text,
     };
   } else if (node.is(YTNodes.ItemSection)) {
     const {content, parsedData} = extractContent(Array.from(node.contents));
