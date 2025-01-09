@@ -1,5 +1,6 @@
 import {
   addMessageListener,
+  addFileTransferFinishedListener,
   sendMessage,
   sendFile,
   getCurrentFileTransfers,
@@ -7,12 +8,15 @@ import {
 import {useEffect} from "react";
 
 import {handleWatchMessage} from "./WatchYoutubeAPI";
-import LOGGER from "../../utils/Logger";
 import {getAbsoluteVideoURL} from "../downloader/useDownloadProcessor";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
 import {useVideos} from "@/downloader/DownloadDatabaseOperations";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
+import Logger from "@/utils/Logger";
+import {showMessage} from "@/utils/ShowFlashMessageHelper";
+
+const LOGGER = Logger.extend("WATCH_SYNC");
 
 export default function useWatchSync() {
   const videos = useVideos();
@@ -43,7 +47,6 @@ export default function useWatchSync() {
           messageFromWatch,
         );
         handleWatchMessage(innertube, messageFromWatch.payload, library)
-          .catch(console.warn)
           .then(async response => {
             if (Array.isArray(response)) {
               await Promise.all(
@@ -55,7 +58,7 @@ export default function useWatchSync() {
               await sendYTAPIMessage(response);
             }
           })
-          .catch(console.warn);
+          .catch(LOGGER.warn);
       }
       // reply({text: 'Thanks watch!'})
     });
@@ -63,18 +66,38 @@ export default function useWatchSync() {
   }, [innertube]);
 
   const upload = (id: string) => {
-    sendDownloadDataToWatch(id, videos).catch(console.warn);
+    sendDownloadDataToWatch(id, videos).catch(LOGGER.warn);
   };
 
   useEffect(() => {
     const interval = setInterval(() => {
-      checkTransfers().catch(console.warn);
+      // TODO: Add UI to show progress
+      checkTransfers().catch(LOGGER.warn);
     }, 10000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    sendMessage({test: "test"}).catch(console.warn);
+    sendMessage({test: "test"}).catch(LOGGER.warn);
+  }, []);
+
+  useEffect(() => {
+    const sub = addFileTransferFinishedListener(info => {
+      LOGGER.debug(`Finished file transfer with info: ${info}`);
+      if (info.error) {
+        showMessage({
+          type: "danger",
+          message: "Error sending file to watch!",
+          description: info.error,
+        });
+      } else {
+        showMessage({
+          type: "success",
+          message: "Successfully uploaded to watch",
+        });
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   return {upload};
@@ -137,7 +160,7 @@ async function sendDownloadDataToWatch(
     return;
   }
 
-  console.log(`Sending Download data to watch ${id}`);
+  LOGGER.debug(`Sending Download data to watch ${id}`);
 
   await sendMessage({
     type: "uploadFile",
@@ -183,10 +206,10 @@ async function sendDownloadToWatch(
 async function checkTransfers() {
   // TODO: Migrate to other library
   const fileTransfers = await getCurrentFileTransfers();
-  console.log("File Transfers: ", fileTransfers);
+  LOGGER.debug("File Transfers: ", fileTransfers);
 
   Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
-    console.log("TransferInfo: ", transferInfo);
+    LOGGER.debug("TransferInfo: ", transferInfo);
   });
 }
 
