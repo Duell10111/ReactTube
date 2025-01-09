@@ -49,9 +49,9 @@ export default function MusicSearchSectionButtonItem({
           {data.buttons?.map(button => {
             const iconType = "entypo";
             const iconName = "controller-play";
-            let onPress: () => void = () => {};
+            let onPressActionBtn: () => void = () => {};
             if (button.type === "PLAY") {
-              onPress = () => {
+              onPressActionBtn = () => {
                 console.log(button.endpoint);
                 button.endpoint && setPlaylistViaEndpoint(button.endpoint);
               };
@@ -61,7 +61,7 @@ export default function MusicSearchSectionButtonItem({
               <MusicPlayerActionButton
                 key={button.type}
                 title={button.title}
-                onPress={onPress}
+                onPress={onPressActionBtn}
                 iconType={iconType}
                 iconName={iconName}
               />
