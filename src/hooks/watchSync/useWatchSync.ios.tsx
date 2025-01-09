@@ -162,6 +162,7 @@ async function sendDownloadDataToWatch(
 
   LOGGER.debug(`Sending Download data to watch ${id}`);
 
+  // TODO: Include data in file upload metadata instead of extra message?
   await sendMessage({
     type: "uploadFile",
     id,
