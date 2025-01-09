@@ -36,7 +36,7 @@ export default function useHomeScreen() {
           LOGGER.debug("Fetched HomeFeed");
           // console.log("Value: ", JSON.stringify(value, null, 2));
           setHomePage(value);
-          if (value.contents.is(YTNodes.RichGrid)) {
+          if (value.contents?.is(YTNodes.RichGrid)) {
             setContent(value.contents.contents);
           }
           console.log("Page Content: ", value.page_contents.type);
@@ -72,7 +72,7 @@ export default function useHomeScreen() {
     }
     const nextContent = await homePage.getContinuation();
     // LOGGER.debug("Fetched Content: ", JSON.stringify(nextContent, null, 4));
-    if (nextContent.contents.is(AppendContinuationItemsAction)) {
+    if (nextContent.contents?.is(AppendContinuationItemsAction)) {
       LOGGER.debug("Append Item Fetched");
       if (nextContent.contents.contents) {
         const newValues = _.concat(content, nextContent.contents.contents);

@@ -262,7 +262,9 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   const fetchUpNextAutomixPlaylist = (curVideoData: YTTrackInfo) => {
     // TODO: Add proper local type indicator
+    // @ts-ignore SHOW ABOVE
     (curVideoData.originalData?.type &&
+    // @ts-ignore SHOW ABOVE
     curVideoData.originalData.type === "Local" &&
     youtube?.music
       ? youtube.music.getUpNext(curVideoData.id, true)
@@ -462,7 +464,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         if (newIndex >= playlist.items.length) {
           // Fetch next playlist items?
           const contData = await fetchMorePlaylistData();
-          videoExtractor(contData.items[0]).then(setCurrentVideoData);
+          contData &&
+            videoExtractor(contData.items[0]).then(setCurrentVideoData);
         } else {
           const nextElement = playlist.items[newIndex];
           videoExtractor(nextElement).then(setCurrentVideoData);
@@ -528,7 +531,8 @@ export function useMusikPlayerContext() {
 function videoInfoToTrack(videoInfo: YTTrackInfo) {
   return {
     id: videoInfo.id, // Set id for later find in queue
-    url: videoInfo.originalData.streaming_data.hls_manifest_url,
+    // TODO: fix
+    url: videoInfo.originalData.streaming_data?.hls_manifest_url,
     title: videoInfo.title,
     artist: videoInfo.author?.name,
     artwork: videoInfo.thumbnailImage.url,
@@ -539,6 +543,7 @@ function videoInfoToTrack(videoInfo: YTTrackInfo) {
 function localVideoToTrack(video: Video) {
   return {
     id: video.id,
+    // @ts-ignore TODO: fix
     url: getAbsoluteVideoURL(video.fileUrl),
     title: video.name,
     type: TrackType.Default,

@@ -6,7 +6,7 @@ import {useAppStyle} from "@/context/AppStyleContext";
 import {Thumbnail} from "@/extraction/Types";
 
 interface MusicPlaylistHeaderProps {
-  image: Thumbnail;
+  image?: Thumbnail;
   title: string;
   subtitle: string;
   saved?: boolean;
@@ -26,7 +26,7 @@ export function MusicPlaylistHeader({
 
   return (
     <View style={styles.metadataContainer}>
-      <Image style={styles.imageStyle} source={{uri: image.url}} />
+      <Image style={styles.imageStyle} source={{uri: image?.url}} />
       <Text style={[styles.titleText, {color: style.textColor}]}>{title}</Text>
       <Text
         style={[styles.subtitleText, {fontSize: 15, color: style.textColor}]}>

@@ -48,7 +48,7 @@ export default function EndCard({
     );
   }, [video]);
 
-  const {videoElement} = useVideoElementData(nextVideoID);
+  const {videoElement} = useVideoElementData(nextVideoID ?? undefined);
 
   if (!video.originalData.watch_next_feed) {
     // TODO: Add warning or debug message
@@ -66,6 +66,7 @@ export default function EndCard({
             <NextVideo
               nextVideo={videoElement}
               onPress={videoId => {
+                // @ts-ignore TODO: fix
                 navigation.replace("VideoScreen", {
                   videoId,
                   navEndpoint: video.originalData.autoplay_video_endpoint,

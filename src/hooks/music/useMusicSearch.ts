@@ -28,21 +28,22 @@ export default function useMusicSearch() {
   }, [searchResult]);
 
   const search = (query: string) => {
-    youtube.music
-      .search(query)
+    youtube?.music
+      ?.search(query)
       .then(searchObj => {
         searchObject.current = searchObj;
         setCloudChip(
           searchObj.header ? parseChipCloud(searchObj.header) : undefined,
         );
-        setSearchResult(Array.from(searchObj.contents.values()));
+        searchObj.contents &&
+          setSearchResult(Array.from(searchObj.contents.values()));
         clearDetailsData();
       })
       .catch(LOGGER.warn);
   };
 
   const fetchMore = () => {
-    if (searchObject.current.has_continuation) {
+    if (searchObject.current?.has_continuation) {
     } else {
       LOGGER.debug("No Search Continuation available!");
     }
@@ -57,18 +58,24 @@ export default function useMusicSearch() {
   const extendMusicShelf = (horizontalData: HorizontalData) => {
     if (horizontalData.originalNode.is(YTNodes.MusicShelf)) {
       searchObject.current
-        .getMore(horizontalData.originalNode)
+        ?.getMore(horizontalData.originalNode)
         .then(shelfContent => {
           shelfSearch.current = shelfContent;
           shelfCont.current = undefined;
-          setShelfData(
-            shelfContent.contents.firstOfType(YTNodes.MusicShelf).contents,
+
+          const musicShelf = shelfContent.contents?.firstOfType(
+            YTNodes.MusicShelf,
           );
-          setCloudChip(
-            shelfContent.header
-              ? parseChipCloud(shelfContent.header)
-              : undefined,
-          );
+          if (musicShelf) {
+            setShelfData(musicShelf.contents);
+            setCloudChip(
+              shelfContent.header
+                ? parseChipCloud(shelfContent.header)
+                : undefined,
+            );
+          } else {
+            LOGGER.warn("No Music Shelf found.");
+          }
         })
         .catch(LOGGER.warn);
     } else {
@@ -78,12 +85,18 @@ export default function useMusicSearch() {
 
   const extendMusicShelfViaFilter = (chip: YTChipCloudChip) => {
     searchObject.current
-      .applyFilter(chip.originalData)
+      ?.applyFilter(chip.originalData)
       .then(obj => {
         shelfSearch.current = obj;
         shelfCont.current = undefined;
-        setShelfData(obj.contents.firstOfType(YTNodes.MusicShelf).contents);
-        setCloudChip(obj.header ? parseChipCloud(obj.header) : undefined);
+
+        const musicShelf = obj.contents?.firstOfType(YTNodes.MusicShelf);
+        if (musicShelf) {
+          setShelfData(musicShelf.contents);
+          setCloudChip(obj.header ? parseChipCloud(obj.header) : undefined);
+        } else {
+          LOGGER.warn("No Music Shelf found.");
+        }
       })
       .catch(LOGGER.warn);
   };
@@ -97,7 +110,8 @@ export default function useMusicSearch() {
     if (shelf?.has_continuation) {
       shelf.getContinuation().then(s => {
         shelfCont.current = s;
-        setShelfData([...shelfData, ...s.contents.contents]);
+        s.contents?.contents &&
+          setShelfData([...(shelfData ?? []), ...s.contents.contents]);
       });
     } else {
       LOGGER.debug("No Search Continuation available!");
@@ -109,7 +123,7 @@ export default function useMusicSearch() {
     shelfSearch.current = undefined;
     shelfCont.current = undefined;
     setCloudChip(
-      searchObject.current.header
+      searchObject.current?.header
         ? parseChipCloud(searchObject.current.header)
         : undefined,
     );

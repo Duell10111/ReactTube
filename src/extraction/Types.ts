@@ -285,7 +285,7 @@ export interface YTEndscreenElement {
 export interface YTPlaylist {
   originalData: YT.Playlist | YTMusic.Playlist;
   title: string;
-  thumbnailImage: Thumbnail;
+  thumbnailImage?: Thumbnail;
   author?: Author;
   description?: string;
 

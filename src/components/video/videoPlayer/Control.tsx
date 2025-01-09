@@ -29,7 +29,9 @@ export const Control = ({
 
   return (
     <TouchableHighlight
+      // @ts-ignore TODO: fix
       onFocus={setFocusedState}
+      // @ts-ignore TODO: fix
       onBlur={cancelFocusedState}
       disabled={disabled}
       ref={controlRef}

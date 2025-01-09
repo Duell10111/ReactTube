@@ -20,6 +20,7 @@ import {
   Thumbnail,
   VideoData,
   YTMusicPlaylist,
+  YTPlaylist,
   YTPlaylistPanel,
   YTPlaylistPanelItem,
   YTTrackInfo,
@@ -176,6 +177,7 @@ function mapPlaylistToElementData(localPlaylist: Playlist): ElementData {
     type: "playlist",
     id: localPlaylist.id,
     title: localPlaylist.name ?? "Unknown Playlist",
+    // @ts-ignore TODO: fix
     thumbnailImage: localPlaylist.coverUrl
       ? {
           url: mapCoverURLToImageURL(localPlaylist.coverUrl, "playlist"),
@@ -237,7 +239,9 @@ function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
     id: videoData.id,
     title: videoData.name ?? "Unknown title",
     author: {
+      // @ts-ignore TODO: Fix to allow no author?!
       id: videoData.author,
+      // @ts-ignore TODO: Fix to allow no author?!
       name: videoData.author,
     },
     durationSeconds: videoData.duration ?? undefined,

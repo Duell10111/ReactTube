@@ -60,8 +60,10 @@ export default function useTVSeekControl({
   const handleLongPress = (pos: number) => {
     if (!longPressInterval.current) {
       seekerPos.current = seekerPosition;
+      // @ts-ignore TODO: fix
       setPressStartTime(new Date().getTime());
       setInterval(() => {
+        // @ts-ignore TODO: fix
         const pressDuration = new Date().getTime() - pressStartTime;
         let speedFactor = 1;
         if (pressDuration > 2000) {
@@ -73,6 +75,7 @@ export default function useTVSeekControl({
         }
         const skipForward = seekerWidth * 0.05;
         setSeeking(true);
+        // @ts-ignore TODO: fix
         const newPosition = seekerPos.current + pos * skipForward;
         console.log("New Position: ", newPosition);
         seekerPos.current = newPosition;

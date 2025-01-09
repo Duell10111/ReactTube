@@ -114,7 +114,7 @@ export default function VideoScreen({route, navigation}: Props) {
     return (
       <ErrorComponent
         text={
-          YTVideoInfo.originalData.playability_status.reason ??
+          YTVideoInfo.originalData.playability_status?.reason ??
           "Video source is not available"
         }
       />
@@ -174,7 +174,7 @@ export default function VideoScreen({route, navigation}: Props) {
           raised
           reverse
           size={15}
-          onPress={() => download(actionData.id)}
+          onPress={() => actionData && download(actionData.id)}
         />
       </View>
     </View>
@@ -202,7 +202,9 @@ export default function VideoScreen({route, navigation}: Props) {
               : styles.videoContainerTablet,
           ]}>
           <VideoPlayerPhone
+            // @ts-ignore TODO: fix
             sourceURL={httpVideoURL}
+            // @ts-ignore TODO: fix
             style={[
               phoneLandscape
                 ? styles.videoComponentFullscreen

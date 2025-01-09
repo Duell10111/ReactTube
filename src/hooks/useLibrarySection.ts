@@ -25,10 +25,14 @@ export default function useLibrarySection(sectionData: YTLibrarySection) {
   const fetchMore = () => {
     if (section.current?.has_continuation) {
       section.current.getContinuation().then(contData => {
-        setData([
-          ...data,
-          ...parseArrayHorizontalAndElement(contData.page.contents.array()),
-        ]);
+        if (contData.page.contents) {
+          setData([
+            ...data,
+            ...parseArrayHorizontalAndElement(contData.page.contents.array()),
+          ]);
+        } else {
+          console.warn("No Library section continue content found!");
+        }
       });
     }
   };

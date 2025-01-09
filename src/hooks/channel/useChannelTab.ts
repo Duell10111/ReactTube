@@ -38,10 +38,8 @@ export default function useChannelTab(
       }
     }
 
-    console.log(`${type} : ${elements}`);
-
     if (elements.length > 0) {
-      setData(expandExistingData ? [...data, ...elements] : elements);
+      setData(expandExistingData ? [...(data ?? []), ...elements] : elements);
     }
   };
 
@@ -79,6 +77,7 @@ export default function useChannelTab(
       })
       .catch(error => console.warn("ERROR: ", error));
 
+    // @ts-ignore TODO: fix
     if (fetchFkt) {
       channel.originalData[fetchFkt]()
         .then((tab: YT.Channel) => {
@@ -96,9 +95,13 @@ export default function useChannelTab(
 
   const fetchMore = async () => {
     console.log("FetchMore");
-    const continuation = await channelContinuation.current.getContinuation();
-    channelContinuation.current = continuation;
-    updateData(continuation, true);
+    const continuation = await channelContinuation.current?.getContinuation();
+    if (continuation) {
+      channelContinuation.current = continuation;
+      updateData(continuation, true);
+    } else {
+      LOGGER.warn("ERROR: No continuation retrieved for channel tab.");
+    }
   };
 
   return {data, fetchMore};

@@ -26,7 +26,7 @@ export default function ChannelScreen({route}: Props) {
     TVEventControl.enableTVMenuKey();
   });
 
-  if (!channel) {
+  if (!channel || !parsedChannel) {
     return <LoadingComponent />;
   }
 

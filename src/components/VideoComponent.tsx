@@ -62,9 +62,9 @@ export default function VideoComponent({
 
   useEffect(() => {
     if (fullscreen) {
-      playerRef.current.presentFullscreenPlayer();
+      playerRef.current?.presentFullscreenPlayer();
     } else {
-      playerRef.current.dismissFullscreenPlayer();
+      playerRef.current?.dismissFullscreenPlayer();
     }
   }, [fullscreen]);
 
@@ -87,6 +87,7 @@ export default function VideoComponent({
       <ActivityIndicator style={styles.activityIndicator} size={"large"} />
       <Video
         key={videoURL}
+        // @ts-ignore
         ref={playerRef}
         source={{
           // uri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",

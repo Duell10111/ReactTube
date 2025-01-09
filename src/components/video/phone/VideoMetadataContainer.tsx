@@ -61,16 +61,22 @@ export function VideoMetadataContainer({
         <View style={styles.rightChannelContainer}>
           <SubscribeButton
             onPress={() => {
-              if (subscribe) {
-                unsubscribe(YTVideoInfo.channel_id)
-                  .then(() => setSubscribe(false))
-                  .catch(console.warn);
+              if (YTVideoInfo.channel_id) {
+                if (subscribe) {
+                  unsubscribe(YTVideoInfo.channel_id)
+                    ?.then(() => setSubscribe(false))
+                    .catch(console.warn);
+                } else {
+                  subscribeChannel(YTVideoInfo.channel_id)
+                    ?.then(() => setSubscribe(true))
+                    .catch(console.warn);
+                }
+                setSubscribe(!subscribe);
               } else {
-                subscribeChannel(YTVideoInfo.channel_id)
-                  .then(() => setSubscribe(true))
-                  .catch(console.warn);
+                console.warn(
+                  "No channel id provided for Subscription Button to function",
+                );
               }
-              setSubscribe(!subscribe);
             }}
             subscribed={subscribe}
           />

@@ -54,6 +54,7 @@ export default function useLocalPlaylistManager() {
           await insertVideo(
             videoId,
             ytInfo.title,
+            // @ts-ignore TODO: Fix to get duration somehow as needed for downloads?
             ytInfo.durationSeconds,
             ytInfo.thumbnailImage.url,
             undefined,

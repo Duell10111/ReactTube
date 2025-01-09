@@ -38,6 +38,7 @@ export interface HorizontalDataButton {
   endpoint?: YTNodes.NavigationEndpoint;
 }
 
+// TODO: deprecate remove?
 export function gridCalculatorExtract(
   content: Helpers.YTNode,
   columns: number,
@@ -45,6 +46,7 @@ export function gridCalculatorExtract(
   return gridCalculator(extractListContent(content), columns);
 }
 
+// TODO: deprecate?
 export function gridCalculator(
   content: Helpers.YTNode[],
   columns: number,
@@ -78,10 +80,13 @@ export function gridCalculator(
 
     for (const sections of sectionsItems) {
       for (let i = 0; i < firstRows; i++) {
+        // @ts-ignore
         newArray.push(items.splice(0, columns));
       }
+      // @ts-ignore
       newArray.push(sections);
     }
+    // @ts-ignore
     newArray.push(..._.chunk(items, columns));
 
     return newArray;

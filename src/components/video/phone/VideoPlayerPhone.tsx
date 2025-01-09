@@ -25,6 +25,7 @@ export const VideoPlayerPhone = forwardRef<VideoRef, VideoPlayerPhoneProps>(
           right: 7,
         }}
         videoProps={{
+          // @ts-ignore
           source: {uri: sourceURL},
           resizeMode: "contain",
           controls: true,

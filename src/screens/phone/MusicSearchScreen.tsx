@@ -65,7 +65,9 @@ export function MusicSearchScreen() {
 
   useEffect(() => {
     searchSuggestions(searchText)
-      .then(setSearchSuggestions)
+      .then(new_suggestions => {
+        setSearchSuggestions(_.compact(new_suggestions));
+      })
       .catch(console.warn);
   }, [searchText]);
 
@@ -145,10 +147,12 @@ export function MusicSearchScreen() {
           ? {paddingTop: 50, paddingBottom: 0}
           : {paddingTop: 0},
       ]}>
-      <MusicSearchFilterHeader
-        data={cloudChip}
-        onClick={chip => extendMusicShelfViaFilter(chip)}
-      />
+      {cloudChip ? (
+        <MusicSearchFilterHeader
+          data={cloudChip}
+          onClick={chip => extendMusicShelfViaFilter(chip)}
+        />
+      ) : null}
       <FlatList
         contentInsetAdjustmentBehavior={"automatic"}
         data={parsedData}

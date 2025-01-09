@@ -12,10 +12,14 @@ import {getAbsoluteVideoURL} from "../downloader/useDownloadProcessor";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
 import {useVideos} from "@/downloader/DownloadDatabaseOperations";
+import useMusicLibrary from "@/hooks/music/useMusicLibrary";
 
 export default function useWatchSync() {
   const videos = useVideos();
   const innertube = useYoutubeContext();
+
+  // Hook data providing hybrid data access
+  const library = useMusicLibrary();
 
   useEffect(() => {
     const sub = addMessageListener(messageFromWatch => {
@@ -38,7 +42,7 @@ export default function useWatchSync() {
           "Received youtubeAPI message from watch: ",
           messageFromWatch,
         );
-        handleWatchMessage(innertube, messageFromWatch.payload)
+        handleWatchMessage(innertube, messageFromWatch.payload, library)
           .catch(console.warn)
           .then(async response => {
             if (Array.isArray(response)) {
@@ -156,11 +160,17 @@ async function sendDownloadToWatch(
     return;
   }
 
+  if (!video.fileUrl) {
+    LOGGER.warn("You must specify a video with a fileURL to watch");
+    return;
+  }
+
   const metadata = {
     id,
     title: video.name,
   };
   console.log("Starting file transfer");
+  console.log(`Uploading file ${getAbsoluteVideoURL(video.fileUrl)}`);
   await sendFile(getAbsoluteVideoURL(video.fileUrl), metadata);
 
   console.log(`Finished file transfer for video ${id}`);
@@ -191,13 +201,13 @@ interface JSONVideos {
   playlistId?: string;
 }
 
+// TODO: Migrate to new database schema?
 function generateDownloadDB(videos: ReturnType<typeof useVideos>) {
   const JSONVideos = videos.map(
     v =>
       ({
         id: v.id,
         duration: v.duration,
-        playlistId: v.playlistId,
         title: v.name,
       }) as JSONVideos,
   );

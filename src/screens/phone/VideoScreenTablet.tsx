@@ -21,12 +21,13 @@ import PlaylistBottomSheetContainer from "@/components/video/playlistBottomSheet
 import {useAppStyle} from "@/context/AppStyleContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
-import useGridColumnsPreferred from "@/hooks/home/useGridColumnsPreferred";
 import useOrientationChange from "@/hooks/ui/useOrientationChange";
 import useVideoDetails from "@/hooks/useVideoDetails";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
+
+// TODO: Tablet version hangs after orientation change :/
 
 export default function VideoScreenTablet({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;
@@ -68,11 +69,10 @@ export default function VideoScreenTablet({route, navigation}: Props) {
   });
 
   const sheetRef = useRef<BottomSheet>(null);
-  const columns = useGridColumnsPreferred();
 
   // TODO: Outsource in hook with continuation?
   const parsedWatchNext = useMemo(() => {
-    return YTVideoInfo
+    return YTVideoInfo?.originalData?.watch_next_feed
       ? parseObservedArray(YTVideoInfo.originalData.watch_next_feed)
       : [];
   }, [YTVideoInfo?.originalData?.watch_next_feed]);
@@ -98,7 +98,7 @@ export default function VideoScreenTablet({route, navigation}: Props) {
     return (
       <ErrorComponent
         text={
-          YTVideoInfo.originalData.playability_status.reason ??
+          YTVideoInfo.originalData.playability_status?.reason ??
           "Video source is not available"
         }
       />
@@ -106,7 +106,7 @@ export default function VideoScreenTablet({route, navigation}: Props) {
   }
 
   console.log("Landscape: ", landscape);
-  console.log("Playlist: ", YTVideoInfo.playlist);
+  // console.log("Playlist: ", YTVideoInfo.playlist);
 
   return (
     <View
@@ -125,9 +125,10 @@ export default function VideoScreenTablet({route, navigation}: Props) {
           <VideoPlayerPhone
             sourceURL={videoUrl}
             style={styles.videoComponent}
+            // @ts-ignore
             ref={videoRef}
             onPipPress={() => {
-              videoRef.current.pause();
+              videoRef.current?.pause();
             }}>
             {/*{YTVideoInfo.endscreen ? (*/}
             {/*  <VideoEndCard endcard={YTVideoInfo.endscreen} />*/}
@@ -137,6 +138,7 @@ export default function VideoScreenTablet({route, navigation}: Props) {
         {landscape ? (
           <Animated.ScrollView entering={FlipInEasyY} exiting={FlipOutEasyX}>
             <VideoMetadataContainer
+              // @ts-ignore Ignore issue for now
               actionData={actionData}
               YTVideoInfo={YTVideoInfo}
               dislike={dislike}
@@ -158,7 +160,9 @@ export default function VideoScreenTablet({route, navigation}: Props) {
             ListHeaderComponent={
               !landscape ? (
                 <VideoMetadataContainer
+                  // @ts-ignore TODO: fix
                   actionData={actionData}
+                  // @ts-ignore TODO: fix
                   YTVideoInfo={YTVideoInfo}
                   dislike={dislike}
                   like={like}
@@ -177,6 +181,7 @@ export default function VideoScreenTablet({route, navigation}: Props) {
             ListHeaderComponent={
               !landscape ? (
                 <VideoMetadataContainer
+                  // @ts-ignore TODO: fix
                   actionData={actionData}
                   YTVideoInfo={YTVideoInfo}
                   dislike={dislike}

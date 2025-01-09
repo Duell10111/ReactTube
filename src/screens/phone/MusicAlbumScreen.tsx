@@ -42,8 +42,10 @@ export function MusicAlbumScreen({navigation, route}: Props) {
         data={album.data}
         ListHeaderComponent={
           <MusicPlaylistHeader
+            // @ts-ignore TODO: fix
             image={album.thumbnail}
             title={album.title}
+            // @ts-ignore TODO: fix
             subtitle={album.subtitle}
             onPlayPress={() => {
               if (album.playEndpoint) {

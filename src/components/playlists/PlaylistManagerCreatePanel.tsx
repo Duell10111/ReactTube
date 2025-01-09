@@ -23,7 +23,7 @@ export function PlaylistManagerCreatePanel({
         style={styles.createButton}
         mode={"contained"}
         dark
-        onPress={() => onPlaylistCreate(name)}>
+        onPress={() => name && name.length > 0 && onPlaylistCreate(name)}>
         {"Create Playlist"}
       </Button>
     </View>

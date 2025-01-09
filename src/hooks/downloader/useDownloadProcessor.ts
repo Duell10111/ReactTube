@@ -52,6 +52,7 @@ export default function useDownloadProcessor() {
 
       // Patch originalData
       const orgData = await youtube!.getInfo(id, "IOS");
+      // @ts-ignore TODO: Fix
       info.originalData = orgData;
     } else {
       info = getElementDataFromVideoInfo(await youtube!.getInfo(id, "IOS"));
