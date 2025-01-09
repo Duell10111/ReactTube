@@ -1,3 +1,4 @@
+import {Icon} from "@rneui/base";
 import React, {useEffect} from "react";
 import {View, StyleProp, ViewStyle} from "react-native";
 import Animated, {
@@ -7,7 +8,6 @@ import Animated, {
   withTiming,
   withSequence,
 } from "react-native-reanimated";
-import {Icon} from "@rneui/base";
 
 interface Props {
   style: StyleProp<ViewStyle>;

@@ -1,5 +1,5 @@
 import {Icon, IconType} from "@rneui/base";
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {StyleSheet, Text, TouchableOpacity} from "react-native";
 
 interface MusicPlayerActionButtonProps {
   iconName?: string;
@@ -29,10 +29,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 0,
     flexDirection: "row",
-    backgroundColor: "#555",
+    backgroundColor: "#444",
     borderRadius: 25,
     paddingVertical: 5,
     paddingHorizontal: 10,
+    marginHorizontal: 5,
   },
   title: {
     marginStart: 5,

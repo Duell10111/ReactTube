@@ -1,13 +1,13 @@
 import {useNavigation, useRoute} from "@react-navigation/native";
 import {Image} from "expo-image";
 import _ from "lodash";
-import React, {useMemo} from "react";
+import React, {useMemo, useState} from "react";
 import {
+  Platform,
   StyleProp,
   StyleSheet,
   Text,
-  TouchableNativeFeedback,
-  useWindowDimensions,
+  TouchableHighlight,
   View,
   ViewStyle,
 } from "react-native";
@@ -25,7 +25,7 @@ interface LibraryElementCardProps {
   element: ElementData;
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
-  width?: ViewStyle["width"];
+  width: ViewStyle["width"];
 }
 
 export function LibraryElementCard({
@@ -34,7 +34,7 @@ export function LibraryElementCard({
   ...props
 }: LibraryElementCardProps) {
   const {style: appStyle} = useAppStyle();
-  const {width} = useWindowDimensions();
+  const [focused, setFocused] = useState(false);
 
   const navigation = useNavigation<NativeStackProp>();
   const route = useRoute<RootRouteProp>();
@@ -78,12 +78,24 @@ export function LibraryElementCard({
   }, [element]);
 
   return (
-    <View style={[styles.container, {minWidth: 150, maxWidth: width}, style]}>
-      <TouchableNativeFeedback
+    <View style={[styles.container, style]}>
+      <TouchableHighlight
+        onBlur={() => setFocused(false)}
+        onFocus={() => setFocused(true)}
         onPress={
           element.type === "playlist" ? onPressPlaylist : () => onPress(element)
         }>
-        <View style={[styles.segmentContainer]}>
+        <View
+          style={[
+            styles.segmentContainer,
+            Platform.isTV
+              ? {
+                  borderRadius: 25,
+                  borderWidth: 3,
+                  borderColor: focused ? "white" : "black",
+                }
+              : null,
+          ]}>
           <Image
             style={styles.imageStyle}
             resizeMode={"cover"}
@@ -98,7 +110,7 @@ export function LibraryElementCard({
             <View style={[styles.progressBar, {width: `${progressVideo}%`}]} />
           ) : null}
         </View>
-      </TouchableNativeFeedback>
+      </TouchableHighlight>
       <View style={styles.metadataContainer}>
         {element.author?.thumbnail ? (
           <ChannelIcon

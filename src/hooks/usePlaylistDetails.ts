@@ -6,6 +6,7 @@ import {useYoutubeContext} from "@/context/YoutubeContext";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import {ElementData, YTPlaylist} from "@/extraction/Types";
 import {getElementDataFromYTPlaylist} from "@/extraction/YTElements";
+import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
 
 const LOGGER = Logger.extend("PLAYLIST");
 
@@ -14,6 +15,8 @@ export default function usePlaylistDetails(playlistId: string) {
   const [playlist, setPlaylist] = useState<YTPlaylist>();
   const [data, setData] = useState<ElementData[]>([]);
   const [liked, setLiked] = useState<boolean>();
+  const {addPlaylistToLibrary, removePlaylistFromLibrary} =
+    usePlaylistManager();
 
   useEffect(() => {
     youtube
@@ -45,9 +48,9 @@ export default function usePlaylistDetails(playlistId: string) {
   const togglePlaylistLike = async () => {
     console.log("Liked: ", liked);
     if (liked) {
-      await youtube.playlist.removeLikePlaylist(playlistId);
+      await removePlaylistFromLibrary(playlistId);
     } else {
-      await youtube.playlist.likePlaylist(playlistId);
+      await addPlaylistToLibrary(playlistId);
     }
     setLiked(!liked);
   };

@@ -4,7 +4,6 @@ import {FlatGrid} from "react-native-super-grid";
 
 import {ElementCard} from "@/components/elements/phone/ElementCard";
 import {HorizontalSection} from "@/components/grid/HorizontalSection";
-import PageSectionList from "@/components/segments/PageSectionList";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 import {ElementData} from "@/extraction/Types";
 
@@ -14,6 +13,7 @@ interface GridFeedViewProps {
   items: (ElementData | HorizontalData)[];
   onEndReached?: () => void;
   itemDimension?: number;
+  ListHeaderComponent?: React.ReactElement;
 }
 
 interface GridDataItem {
@@ -27,6 +27,7 @@ export default function GridFeedViewPhone({
   items,
   onEndReached,
   itemDimension,
+  ListHeaderComponent,
 }: GridFeedViewProps) {
   const itemWidth = itemDimension ?? 200;
 
@@ -42,19 +43,24 @@ export default function GridFeedViewPhone({
     [items],
   );
 
-  const renderItem = useCallback<ListRenderItem<GridDataItem>>(({item}) => {
-    if (item._fullWidth && "data" in item.item) {
+  const renderItem = useCallback<ListRenderItem<GridDataItem>>(
+    ({item}) => {
+      if (item._fullWidth && "data" in item.item) {
+        return (
+          <HorizontalSection
+            headerText={item.item.title}
+            content={item.item as HorizontalData}
+            // horizontalListSegmentStyle={props.horizontalListSegmentStyle}
+          />
+        );
+      }
+      // return null;
       return (
-        <HorizontalSection
-          headerText={item.item.title}
-          content={item.item as HorizontalData}
-          // horizontalListSegmentStyle={props.horizontalListSegmentStyle}
-        />
+        <ElementCard element={item.item as ElementData} width={itemDimension} />
       );
-    }
-    // return null;
-    return <ElementCard element={item.item as ElementData} width={itemWidth} />;
-  }, []);
+    },
+    [itemDimension],
+  );
 
   return (
     <FlatGrid
@@ -71,6 +77,7 @@ export default function GridFeedViewPhone({
       itemDimension={itemWidth}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
+      ListHeaderComponent={ListHeaderComponent}
     />
   );
 }

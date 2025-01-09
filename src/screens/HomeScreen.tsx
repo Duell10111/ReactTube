@@ -11,6 +11,7 @@ import {useDrawerContext} from "../navigation/DrawerContext";
 import {RootNavProp} from "../navigation/RootStackNavigator";
 import Logger from "../utils/Logger";
 
+import GridFeedView from "@/components/grid/GridFeedView";
 import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
 
 const LOGGER = Logger.extend("HOME");
@@ -20,7 +21,7 @@ const LOGGER = Logger.extend("HOME");
 
 export default function HomeScreen() {
   const [fetchDate, setFetchDate] = useState(Date.now());
-  const {content, fetchMore, refresh} = useHomeScreen();
+  const {content, fetchMore, refresh, refreshing} = useHomeScreen();
 
   const {onScreenFocused} = useDrawerContext();
 
@@ -65,6 +66,8 @@ export default function HomeScreen() {
 
   return (
     <>
+      {/*TODO: Replace with GridFeedView on Phone and maybe create a variant for TV and Tablet also?*/}
+      {/*<GridFeedView items={parsedData} />*/}
       <GridView
         columns={columns}
         shelfItem={content}
@@ -73,6 +76,8 @@ export default function HomeScreen() {
           fetchMore().catch(console.warn);
         }}
         onElementFocused={onScreenFocused}
+        onRefresh={refresh}
+        refreshing={refreshing}
       />
     </>
   );

@@ -6,20 +6,19 @@ import {
   MusicPlayerPlaylistListItem,
 } from "./MusicPlayerPlaylistListItem";
 
+import {MusicPlayerPlaylistAutomixList} from "@/components/music/player/MusicPlayerPlaylistAutomixList";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {YTPlaylistPanelItem} from "@/extraction/Types";
 
-interface MusicPlayerPlaylistListProps {
-  // currentItem: YTVideoInfo;
-}
+interface MusicPlayerPlaylistListProps {}
 
 export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
-  const {currentItem, setPlaylistViaEndpoint, playlist, fetchMorePlaylistData} =
+  const {currentItem, playlist, setCurrentItem, fetchMorePlaylistData} =
     useMusikPlayerContext();
 
   const selectedItem = useMemo(
-    () => playlist.items.findIndex(item => item.id === currentItem.id),
-    [currentItem.id],
+    () => playlist?.items?.findIndex(item => item.id === currentItem?.id),
+    [currentItem?.id],
   );
 
   const renderItem = useCallback<ListRenderItem<YTPlaylistPanelItem>>(
@@ -28,8 +27,7 @@ export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
         data={item}
         currentItem={selectedItem === index}
         onPress={() => {
-          console.log("Endpoint Item: ", item.navEndpoint);
-          setPlaylistViaEndpoint(item.navEndpoint);
+          setCurrentItem(item, false);
         }}
       />
     ),
@@ -48,9 +46,10 @@ export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
         offset: ITEM_HEIGHT * index,
         index,
       })}
-      data={playlist.items}
+      data={playlist?.items ?? []}
       renderItem={renderItem}
       onEndReached={fetchMorePlaylistData}
+      ListFooterComponent={MusicPlayerPlaylistAutomixList}
     />
   );
 }

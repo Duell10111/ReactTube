@@ -12,7 +12,7 @@ export default function useMusicChannelDetails(artistID: string) {
   const [artist, setArtist] = useState<YTMusicArtist>();
 
   useEffect(() => {
-    youtube.music
+    youtube?.music
       .getArtist(artistID)
       .then(ytArtist => {
         setArtist(getElementDataFromYTMusicArtist(ytArtist, artistID));

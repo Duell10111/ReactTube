@@ -44,12 +44,22 @@ export interface VideoData {
   // Music Properties
   durationSeconds?: number;
   artists?: Author[];
+  album?: Album;
+  // Local Properties
+  localPlaylistId?: string;
+  downloaded?: boolean;
 }
 
 export interface Author {
   id: string;
   name: string;
   thumbnail?: Thumbnail;
+  navEndpoint?: YTNodes.NavigationEndpoint;
+}
+
+export interface Album {
+  id: string;
+  name: string;
   navEndpoint?: YTNodes.NavigationEndpoint;
 }
 
@@ -100,6 +110,7 @@ export interface YTVideoInfo {
     name: string;
     url: string;
   };
+  subscribed?: boolean;
   playlist?: {
     id: string;
     title: string;
@@ -111,8 +122,19 @@ export interface YTVideoInfo {
   liked?: boolean;
   disliked?: boolean;
   endscreen?: YTEndscreen;
+  commentsEntryPointHeader?: YTVideoInfoCommentEntryPointHeader;
   // Music Properties
   durationSeconds?: number;
+}
+
+export interface YTVideoInfoCommentEntryPointHeader {
+  originalData: YTNodes.CommentsEntryPointHeader;
+  header_text: string;
+  comments_count: string;
+  preview_comment?: {
+    avatar_thumbnail?: Thumbnail;
+    text: string;
+  };
 }
 
 // Make YTTrackInfo extend from VideoInfo or BasicVideoInfoType?
@@ -147,12 +169,14 @@ export interface YTTrackInfo {
   endscreen?: YTEndscreen;
   // Music Properties
   durationSeconds?: number;
+  localPlaylistId?: string;
 }
 
 export interface YTPlaylistPanel {
   originalData: YTNodes.PlaylistPanel;
   title?: string;
   items: YTPlaylistPanelItem[];
+  localPlaylist?: boolean;
 }
 
 export interface YTPlaylistPanelContinuation {
@@ -270,6 +294,7 @@ export interface YTPlaylist {
     status: boolean;
     saveID: string;
   };
+  editable?: boolean;
 
   menu?: YTMenu;
 
@@ -316,4 +341,23 @@ export interface YTLibrarySection {
   getMoreData: () => Promise<
     YT.Playlist | YT.History | Mixins.Feed<IBrowseResponse>
   >;
+}
+
+export interface YTComments {
+  originalData: YT.Comments;
+  title?: string;
+  comments_count?: string;
+}
+
+export interface YTCommentThread {
+  originalData: YTNodes.CommentThread;
+  has_replies: boolean;
+  comment: YTComment;
+}
+
+export interface YTComment {
+  originalData: YTNodes.CommentView;
+  id: string;
+  content: string;
+  author: Author;
 }

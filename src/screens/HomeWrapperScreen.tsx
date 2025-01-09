@@ -1,9 +1,10 @@
-import {Platform, View} from "react-native";
 import React, {useState} from "react";
-import Drawer from "../navigation/Drawer";
-import DrawerContextProvider from "../navigation/DrawerContext";
-import DrawerStackNavigator from "../navigation/DrawerStackNavigator";
-import BottomTabBarNavigator from "../navigation/BottomTabBarNavigator";
+import {Platform, View} from "react-native";
+
+import BottomTabBarNavigator from "@/navigation/BottomTabBarNavigator";
+import Drawer from "@/navigation/Drawer";
+import DrawerContextProvider from "@/navigation/DrawerContext";
+import DrawerStackNavigator from "@/navigation/DrawerStackNavigator";
 
 export default function HomeWrapperScreen() {
   if (Platform.isTV) {

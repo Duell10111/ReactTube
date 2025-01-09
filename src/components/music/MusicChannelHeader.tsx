@@ -6,7 +6,7 @@ import {useAppStyle} from "@/context/AppStyleContext";
 import {Thumbnail} from "@/extraction/Types";
 
 interface MusicChannelHeaderProps {
-  image: Thumbnail;
+  image?: Thumbnail;
   title: string;
   subtitle?: string;
   showPlayEndpoint?: boolean;
@@ -24,7 +24,7 @@ export function MusicChannelHeader({
 
   return (
     <View style={styles.metadataContainer}>
-      <Image style={styles.imageStyle} source={{uri: image.url}} />
+      <Image style={styles.imageStyle} source={{uri: image?.url}} />
       <Text style={[styles.titleText, {color: style.textColor}]}>{title}</Text>
       {subtitle ? (
         <Text

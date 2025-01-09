@@ -77,7 +77,7 @@ export function getVideoData(
       short_views: ytNode.short_view_count.toString(),
       author: ytNode.author ? getAuthor(ytNode.author) : undefined,
       publishDate: ytNode.published.text,
-      type: ytNode.duration.text === "SHORTS" ? "reel" : "video",
+      type: ytNode.duration?.text === "SHORTS" ? "reel" : "video",
       duration: ytNode.duration?.text,
       thumbnailOverlays: parseThumbnailOverlays(ytNode.thumbnail_overlays),
       originalNode: ytNode,
@@ -94,7 +94,7 @@ export function getVideoData(
   } else if (ytNode.is(YTNodes.ShortsLockupView)) {
     return {
       id: ytNode.entity_id,
-      title: ytNode.overlay_metadata.primary_text.text,
+      title: ytNode.overlay_metadata?.primary_text?.text ?? "Unknown title",
       thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
       short_views: ytNode.overlay_metadata.secondary_text?.text,
       navEndpoint: ytNode.on_tap_endpoint,
@@ -102,7 +102,7 @@ export function getVideoData(
       originalNode: ytNode,
     } as VideoData;
   } else if (ytNode.is(YTNodes.PlaylistVideo)) {
-    const [views, publishment] = ytNode.video_info.text.split(" • ");
+    const [views, publishment] = ytNode.video_info?.text?.split(" • ") ?? [];
     return {
       type: "video",
       originalNode: ytNode,
@@ -171,7 +171,7 @@ export function getVideoData(
         music: true,
         author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
         subscribers: ytNode.subscribers,
-        subtitle: ytNode.subtitle.runs.toReversed()[0].text,
+        subtitle: ytNode.subtitle.runs?.toReversed()?.[0]?.text,
       } as ChannelData;
     } else {
       LOGGER.warn(`Unknown Music two row item type: ${ytNode.item_type}`);
@@ -224,9 +224,10 @@ export function getVideoData(
         ),
         author: ytNode.author
           ? getAuthorMusic(ytNode.author)
-          : ytNode.authors?.length > 0
+          : ytNode.authors && ytNode.authors?.length > 0
             ? getAuthorMusic(ytNode.authors[0])
             : undefined,
+        album: ytNode.album ? ytNode.album : undefined,
       } as VideoData;
     } else if (ytNode.item_type === "artist") {
       return {
@@ -241,7 +242,7 @@ export function getVideoData(
         music: true,
         author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
         subscribers: ytNode.subscribers,
-        subtitle: ytNode.subtitle.runs.toReversed()[0].text,
+        subtitle: ytNode.subtitle?.runs?.toReversed()?.[0]?.text,
       } as ChannelData;
     } else {
       LOGGER.warn(
@@ -320,16 +321,44 @@ export function getVideoData(
   // TODO: Maybe outsource in other file
   // Lookup Views
   else if (ytNode.is(YTNodes.LockupView)) {
+    const image = ytNode.content_image?.is(YTNodes.CollectionThumbnailView)
+      ? getThumbnail(ytNode.content_image.primary_thumbnail.image[0])
+      : getThumbnail(ytNode.content_image.image[0]);
     if (ytNode.content_type === "PLAYLIST") {
       return {
         type: "playlist",
         originalNode: ytNode,
         id: ytNode.content_id,
-        thumbnailImage: getThumbnail(
-          ytNode.content_image.primary_thumbnail.image[0],
-        ),
-        title: ytNode.metadata.title.text ?? "Unknown Playlist title",
+        thumbnailImage: image,
+        title: ytNode.metadata?.title?.text ?? "Unknown Playlist title",
       } as PlaylistData;
+    } else if (ytNode.content_type === "VIDEO") {
+      // TODO: NEW Type not handled in lib?!
+      // return {
+      //   type: "playlist",
+      //   originalNode: ytNode,
+      //   id: ytNode.content_id,
+      //   thumbnailImage: getThumbnail(
+      //     ytNode.content_image.primary_thumbnail.image[0],
+      //   ),
+      //   title: ytNode.metadata.title.text ?? "Unknown Playlist title",
+      // } as PlaylistData;
+      // console.log(ytNode);
+      // console.log(ytNode.metadata.metadata.metadata_rows[1]?.metadata_parts);
+
+      return {
+        type: "video",
+        originalNode: ytNode,
+        id: ytNode.content_id,
+        thumbnailImage: image,
+        title: ytNode.metadata?.title?.text,
+        navEndpoint: ytNode.on_tap_endpoint,
+      } as VideoData;
+    } else {
+      LOGGER.warn(
+        "getVideoData: Unknown LookupView type: ",
+        ytNode.content_type,
+      );
     }
   }
   // Recursive Section

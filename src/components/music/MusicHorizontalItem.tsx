@@ -15,7 +15,7 @@ export default function MusicHorizontalItem({data}: MusicHorizontalItemProps) {
 
   // TODO: Add Shelf for related etc.
 
-  if (data.parsedData.length === 0 && data.title.length > 0) {
+  if (data.parsedData.length === 0 && data.title && data.title.length > 0) {
     return <MusicDescriptionHorizontalItem data={data} />;
   }
 

@@ -1,6 +1,7 @@
 import React, {useCallback} from "react";
 import {
   FlatList,
+  FlatListProps,
   ListRenderItem,
   StyleProp,
   TextStyle,
@@ -19,6 +20,8 @@ interface HorizontalElementsListProps {
   textStyle?: StyleProp<TextStyle>;
   elements: ElementData[];
   onEndReached?: () => void;
+  width?: number;
+  endElement?: FlatListProps<ElementData>["ListFooterComponent"];
 }
 
 export function HorizontalElementsList({
@@ -27,6 +30,8 @@ export function HorizontalElementsList({
   textStyle,
   onEndReached,
   containerStyle,
+  width,
+  endElement,
 }: HorizontalElementsListProps) {
   const renderItem = useCallback<ListRenderItem<ElementData>>(
     ({item}: {item: ElementData}) => {
@@ -34,11 +39,12 @@ export function HorizontalElementsList({
         <LibraryElementCard
           element={item}
           // textStyle={textStyle}
-          style={[videoSegmentStyle, {marginHorizontal: 10, width: 200}]}
+          style={[videoSegmentStyle, {marginHorizontal: 10, width}]}
+          width={width}
         />
       );
     },
-    [textStyle, videoSegmentStyle],
+    [textStyle, videoSegmentStyle, width],
   );
 
   const keyExtractor = useCallback((item: ElementData) => {
@@ -55,6 +61,7 @@ export function HorizontalElementsList({
       keyExtractor={keyExtractor}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.7}
+      ListFooterComponent={endElement}
     />
   );
 }

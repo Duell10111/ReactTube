@@ -1,17 +1,24 @@
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackNavigationProp} from "@react-navigation/native-stack";
 import _ from "lodash";
-import React, {useCallback, useEffect, useLayoutEffect, useState} from "react";
-import {Platform, StyleSheet, TVEventControl, View} from "react-native";
-import {RnNativeSearchBarView} from "rn-native-search-bar";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {Platform, View} from "react-native";
+import {SearchBarCommands} from "react-native-screens";
 
 import GridView from "../components/GridView";
 import useGridColumnsPreferred from "../hooks/home/useGridColumnsPreferred";
 import useSearchScreen from "../hooks/useSearchScreen";
-import {RootStackParamList} from "../navigation/RootStackNavigator";
 import Logger from "../utils/Logger";
 
+import {SearchBarSuggestions} from "@/components/search/SearchBarSuggestions";
 import {SearchBarScreen} from "@/components/search/tv/SearchBarScreen";
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 const LOGGER = Logger.extend("SEARCH_SCREEN");
 
@@ -56,18 +63,19 @@ export default function SearchScreen() {
     }
   };
 
+  // Phone device specific hooks
+  const [searchBarOpen, setSearchBarOpen] = useState(false);
+  const searchBarRef = useRef<SearchBarCommands>();
+
   // console.log("Searchtext: ", searchText);
   // console.log("Hints: ", hints);
 
-  if (Platform.isTV) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useEffect(() => {
-      console.log("Trigger Search Suggestions!");
-      if (searchText.trim().length >= 1) {
-        searchSuggestions(searchText).then(setHints).catch(LOGGER.warn);
-      }
-    }, [searchText]);
-  }
+  useEffect(() => {
+    console.log("Trigger Search Suggestions!");
+    if (searchText.trim().length >= 1) {
+      searchSuggestions(searchText).then(setHints).catch(LOGGER.warn);
+    }
+  }, [searchText]);
 
   if (!Platform.isTV) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -83,15 +91,15 @@ export default function SearchScreen() {
           headerIconColor: "white",
           hintTextColor: "white",
           hideWhenScrolling: false,
+          ref: searchBarRef,
+          onOpen: () => setSearchBarOpen(true),
+          onFocus: () => setSearchBarOpen(true),
+          onClose: () => setSearchBarOpen(false),
+          onBlur: () => setSearchBarOpen(false),
         },
       });
     }, [navigation]);
   }
-
-  useEffect(() => {
-    TVEventControl.disableGestureHandlersCancelTouches();
-    return () => TVEventControl.enableGestureHandlersCancelTouches();
-  }, []);
 
   if (Platform.isTV) {
     return (
@@ -106,38 +114,27 @@ export default function SearchScreen() {
     );
   }
 
+  if (searchBarOpen) {
+    return (
+      <SearchBarSuggestions
+        suggestions={hints}
+        onSuggestionClick={text => {
+          searchBarRef.current.setText(text);
+          searchBarRef.current?.blur();
+          performSearch(text);
+        }}
+      />
+    );
+  }
+
   return (
     <View style={{flex: 1}}>
-      {Platform.isTV ? (
-        <RnNativeSearchBarView
-          style={{width: "100%", height: "100%", backgroundColor: "#555555"}}
-          placeholder={"Search"}
-          searchHints={hints}
-          onSearchTextChanged={event => performSearch(event.nativeEvent.text)}
-          onSearchButtonClicked={event => performSearch(event.nativeEvent.text)}
-          onSearchTextEditEndedEvent={event => {
-            console.log("SearchTextEdit Ended!");
-            performSearch(event.nativeEvent.text);
-          }}>
-          <View style={{flex: 1}}>
-            <GridView
-              columns={columns}
-              shelfItem={searchResult}
-              onEndReached={() => fetchMore().catch(console.warn)}
-            />
-          </View>
-        </RnNativeSearchBarView>
-      ) : null}
-      {!Platform.isTV ? (
-        <View style={{flex: 1}}>
-          <GridView
-            style={{marginTop: 100}} // TODO: Maybe adapt for Android?
-            columns={columns}
-            shelfItem={searchResult}
-            onEndReached={() => fetchMore().catch(console.warn)}
-          />
-        </View>
-      ) : null}
+      <GridView
+        style={{marginTop: Platform.OS === "ios" ? 100 : 0}}
+        columns={columns}
+        shelfItem={searchResult}
+        onEndReached={() => fetchMore().catch(console.warn)}
+      />
     </View>
   );
 }

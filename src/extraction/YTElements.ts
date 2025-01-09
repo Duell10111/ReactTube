@@ -12,6 +12,8 @@ import {
   YTChapter,
   YTChipCloud,
   YTChipCloudChip,
+  YTComments,
+  YTCommentThread,
   YTEndscreen,
   YTEndscreenElement,
   YTLibrary,
@@ -26,6 +28,7 @@ import {
   YTToggleButton,
   YTTrackInfo,
   YTVideoInfo,
+  YTVideoInfoCommentEntryPointHeader,
 } from "./Types";
 import {
   YT,
@@ -59,13 +62,18 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     title: videoInfo.basic_info.title,
     description: videoInfo.basic_info.short_description,
     short_views:
-      videoInfo.primary_info?.short_view_count.text ??
-      videoInfo.primary_info?.view_count.text,
+      videoInfo.primary_info?.view_count?.short_view_count?.text ??
+      videoInfo.primary_info?.view_count.original_view_count,
     publishDate: videoInfo.primary_info?.relative_date.text,
     chapters,
     channel_id:
       videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
     channel: videoInfo.basic_info.channel,
+    subscribed: videoInfo.secondary_info.subscribe_button.is(
+      YTNodes.SubscribeButton,
+    )
+      ? videoInfo.secondary_info.subscribe_button.subscribed
+      : undefined,
     playlist: parseVideoInfoPlaylist(videoInfo),
     liked: videoInfo.basic_info.is_liked,
     disliked: videoInfo.basic_info.is_disliked,
@@ -91,9 +99,7 @@ function parseEndScreen(endScreen: YTNodes.Endscreen) {
 }
 
 function parseEndScreenElements(element: YTNodes.EndscreenElement) {
-  console.log("EndScreen: ", JSON.stringify(element));
-
-  const thumbnail = element.image.map(getThumbnail)[0];
+  const thumbnail = element.image?.map(getThumbnail)?.[0];
   // .find(thumb => !thumb.url.endsWith("webp")); // Do not use webp for iOS!;
 
   return {
@@ -112,6 +118,16 @@ function parseEndScreenElements(element: YTNodes.EndscreenElement) {
   } as YTEndscreenElement;
 }
 
+function parseCommentsEntryPointHeader(
+  element: YTNodes.CommentsEntryPointHeader,
+) {
+  return {
+    originalData: element,
+    comments_count: element.comment_count?.text,
+    header_text: element.header?.text,
+  } as YTVideoInfoCommentEntryPointHeader;
+}
+
 export function getElementDataFromTrackInfo(trackInfo: YTMusic.TrackInfo) {
   const thumbnail = trackInfo.basic_info.thumbnail
     ? trackInfo.basic_info.thumbnail
@@ -127,14 +143,16 @@ export function getElementDataFromTrackInfo(trackInfo: YTMusic.TrackInfo) {
     thumbnailImage: thumbnail,
     title: trackInfo.basic_info.title,
     description: trackInfo.basic_info.short_description,
-    short_views: trackInfo.basic_info?.view_count.toString(),
+    short_views: trackInfo.basic_info?.view_count?.toString(),
     channel_id:
       trackInfo.basic_info.channel_id ?? trackInfo.basic_info.channel?.id,
     channel: trackInfo.basic_info.channel,
     // playlist: parseVideoInfoPlaylist(trackInfo),
     liked: trackInfo.basic_info.is_liked,
     disliked: trackInfo.basic_info.is_disliked,
-    endscreen: parseEndScreen(trackInfo.endscreen),
+    endscreen: trackInfo.endscreen
+      ? parseEndScreen(trackInfo.endscreen)
+      : undefined,
     // TODO: Adapt author to only contain name
     author: {name: trackInfo.basic_info.author},
     durationSeconds: trackInfo.basic_info.duration,
@@ -337,21 +355,31 @@ export function getElementDataFromYTMusicArtist(
   artist: YTMusic.Artist,
   id: string,
 ) {
-  let title: string, description: string;
-  let thumbnail: Thumbnail;
+  let title: string | undefined,
+    description: string | undefined = undefined;
+  let thumbnail: Thumbnail | undefined = undefined;
   const header = artist.header;
-  if (header.is(YTNodes.MusicImmersiveHeader)) {
+  if (header?.is(YTNodes.MusicImmersiveHeader)) {
     title = header.title.text;
     description = header.description.text;
-    thumbnail = getThumbnail(header.thumbnail.contents[0]);
+    thumbnail = header.thumbnail?.contents?.[0]
+      ? getThumbnail(header.thumbnail?.contents?.[0])
+      : undefined;
+  } else if (header?.is(YTNodes.MusicVisualHeader)) {
+    title = header.title.text;
+    // TODO: Add support for background thumbnail?
+    // Currently only foreground thumbnail used
+    thumbnail = header.foreground_thumbnail?.[0]
+      ? getThumbnail(header.foreground_thumbnail[0])
+      : undefined;
   } else {
-    console.warn(`Unknown YTMusicArtist Header type: ${header.type}`);
+    console.warn(`Unknown YTMusicArtist Header type: ${header?.type}`);
   }
 
   return {
     originalData: artist,
     id,
-    title,
+    title: title ?? "Untitled",
     description,
     thumbnail,
     data: _.chain(artist.sections)
@@ -365,20 +393,21 @@ export function getElementDataFromYTMusicArtist(
 
 export function getElementDataFromYTAlbum(album: YTMusic.Album, id: string) {
   console.log("YTAlbum", album);
-  let title: string, subtitle: string;
-  let thumbnail: Thumbnail;
-  let endpoint: YTNodes.NavigationEndpoint;
+  let title: string | undefined, subtitle: string | undefined;
+  let thumbnail: Thumbnail | undefined;
+  let endpoint: YTNodes.NavigationEndpoint | undefined;
 
   const header = album.header;
-  if (header.is(YTNodes.MusicResponsiveHeader)) {
+  if (header?.is(YTNodes.MusicResponsiveHeader)) {
     title = header.title.text;
     subtitle = header.subtitle.text;
-    thumbnail = getThumbnail(header.thumbnail.contents[0]);
-    endpoint = header.buttons.firstOfType(YTNodes.MusicPlayButton).endpoint;
+    thumbnail = header.thumbnail?.contents?.[0]
+      ? getThumbnail(header.thumbnail.contents[0])
+      : undefined;
+    endpoint = header.buttons?.firstOfType(YTNodes.MusicPlayButton)?.endpoint;
   } else {
-    console.warn(`Unknown YTMusicArtist Header type: ${header.type}`);
+    console.warn(`Unknown YTMusicArtist Header type: ${header?.type}`);
   }
-  console.log("Contents: ", album.contents);
 
   return {
     originalData: album,
@@ -470,6 +499,7 @@ class YTMusicPlaylistClass implements YTPlaylist {
     status: boolean;
     saveID: string;
   };
+  editable?: boolean;
 
   backgroundThumbnail?: Thumbnail;
 
@@ -582,4 +612,21 @@ function parseYTLibrarySectionType(section: YT_LIBRARY_SECTION) {
     case "FEplaylist_aggregation":
       return "playlists";
   }
+}
+
+// YT.Comments
+
+function parseYTComments(comments: YT.Comments) {
+  return {
+    originalData: comments,
+    title: comments?.header?.title?.text,
+    comments_count: comments?.header?.comments_count?.text,
+  } as YTComments;
+}
+
+function parseCommentThread(commentThread: YTNodes.CommentThread) {
+  return {
+    originalData: commentThread,
+    has_replies: commentThread.has_replies,
+  } as YTCommentThread;
 }

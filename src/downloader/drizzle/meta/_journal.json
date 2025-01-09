@@ -15,6 +15,13 @@
       "when": 1718122764933,
       "tag": "0001_hot_gabe_jones",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1734364558106,
+      "tag": "0002_slippery_husk",
+      "breakpoints": true
     }
   ]
 }

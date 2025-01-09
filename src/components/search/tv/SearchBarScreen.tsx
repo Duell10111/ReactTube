@@ -1,11 +1,9 @@
-import React, {useState} from "react";
-import {Platform, View} from "react-native";
+import React, {useEffect} from "react";
+import {TVEventControl, View} from "react-native";
 import {RnNativeSearchBarView} from "rn-native-search-bar";
 
-import GridView from "@/components/GridView";
 import GridFeedView from "@/components/grid/GridFeedView";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
-import useSearchScreen from "@/hooks/useSearchScreen";
 
 interface SearchBarScreenProps {
   data: HorizontalData[];
@@ -21,6 +19,11 @@ export function SearchBarScreen({
   fetchMore,
 }: SearchBarScreenProps) {
   console.log("Data: ", data);
+
+  useEffect(() => {
+    TVEventControl.disableGestureHandlersCancelTouches();
+    return () => TVEventControl.enableGestureHandlersCancelTouches();
+  }, []);
 
   return (
     <View style={{flex: 1}}>

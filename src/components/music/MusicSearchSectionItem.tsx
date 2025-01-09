@@ -1,9 +1,9 @@
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 
-import {MusicPlaylistItem} from "@/components/music/MusicPlaylistItem";
 import {MusicSearchListItem} from "@/components/music/MusicSearchListItem";
+import MusicSearchSectionButtonItem from "@/components/music/MusicSearchSectionButtonItem";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
-import {ElementData, VideoData} from "@/extraction/Types";
+import {VideoData} from "@/extraction/Types";
 
 interface MusicSearchSectionItemProps {
   data: HorizontalData;
@@ -14,6 +14,10 @@ export default function MusicSearchSectionItem({
   data,
   onPress,
 }: MusicSearchSectionItemProps) {
+  if (data.thumbnail && data.buttons?.length && data.buttons.length > 0) {
+    return <MusicSearchSectionButtonItem data={data} />;
+  }
+
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.headerContainer} onPress={onPress}>

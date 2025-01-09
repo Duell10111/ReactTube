@@ -5,19 +5,18 @@ import React, {useMemo, useState} from "react";
 import {Image, StyleSheet, Text, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {MusicBottomPlayerBar} from "../../components/music/MusicBottomPlayerBar";
-import {MusicPlayerPlayerButtons} from "../../components/music/player/MusicPlayerPlayerButtons";
-import {MusicPlayerPlaylistList} from "../../components/music/player/MusicPlayerPlaylistList";
-import {MusicPlayerRelatedTab} from "../../components/music/player/MusicPlayerRelatedTab";
-import {MusicPlayerSlider} from "../../components/music/player/MusicPlayerSlider";
-import {MusicPlayerTitle} from "../../components/music/player/MusicPlayerTitle";
-import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
-import {RootStackParamList} from "../../navigation/RootStackNavigator";
-
+import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
 import {MusicPlayerActionButton} from "@/components/music/player/MusicPlayerActionButton";
+import {MusicPlayerPlayerButtons} from "@/components/music/player/MusicPlayerPlayerButtons";
+import {MusicPlayerPlaylistList} from "@/components/music/player/MusicPlayerPlaylistList";
+import {MusicPlayerRelatedTab} from "@/components/music/player/MusicPlayerRelatedTab";
+import {MusicPlayerSlider} from "@/components/music/player/MusicPlayerSlider";
+import {MusicPlayerTitle} from "@/components/music/player/MusicPlayerTitle";
 import {useDownloaderContext} from "@/context/DownloaderContext";
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {usePlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 type Tab = "Playlist" | "Lyrics" | "Related";
 
@@ -115,14 +114,28 @@ export function MusicPlayerScreen({route, navigation}: Props) {
               }
             }}
           />
-          {/*<MusicPlayerActionButton*/}
-          {/*  iconName={"download"}*/}
-          {/*  iconType={"antdesign"}*/}
-          {/*  title={"Download"}*/}
-          {/*  onPress={() => {*/}
-          {/*    download(currentItem.id);*/}
-          {/*  }}*/}
-          {/*/>*/}
+          <MusicPlayerActionButton
+            iconName={"download"}
+            iconType={"antdesign"}
+            title={"Download"}
+            onPress={() => {
+              if (currentItem) {
+                download(currentItem.id);
+              }
+            }}
+          />
+          {/* TODO: Adapt UI for author press */}
+          <MusicPlayerActionButton
+            iconName={"user"}
+            iconType={"antdesign"}
+            title={"Author"}
+            onPress={() => {
+              const id = currentItem?.channel_id ?? currentItem?.channel?.id;
+              if (id) {
+                navigation.navigate("MusicChannelScreen", {artistId: id});
+              }
+            }}
+          />
         </View>
         <MusicPlayerPlayerButtons />
         <View style={styles.bottomActionsContainer}>

@@ -1,6 +1,8 @@
 import {useEffect, useRef, useState} from "react";
 
+import {useAccountContext} from "@/context/AccountContext";
 import {useYoutubeContext} from "@/context/YoutubeContext";
+import {getAllPlaylistsAsElementData} from "@/downloader/DBData";
 import {
   parseObservedArray,
   parseObservedArrayHorizontalData,
@@ -14,14 +16,20 @@ export default function useMusicLibrary() {
   const library = useRef<YTMusic.Library>();
   const continuation = useRef<YTMusic.LibraryContinuation>();
   const [data, setData] = useState<ElementData[]>();
+  const {loginData} = useAccountContext();
 
   useEffect(() => {
-    youtube.music.getLibrary().then(lib => {
-      library.current = lib;
-      console.log(lib.contents);
-      // setData(extractData(lib));
-      setData(extractGrid(lib.contents[0]));
-    });
+    // No login present -> Use local Database instead
+    if (loginData.accounts.length === 0) {
+      getAllPlaylistsAsElementData().then(setData).catch(console.warn);
+    } else {
+      youtube.music.getLibrary().then(lib => {
+        library.current = lib;
+        console.log(lib.contents);
+        // setData(extractData(lib));
+        setData(extractGrid(lib.contents[0]));
+      });
+    }
   }, []);
 
   const extractData = (homeFeed: YTMusic.Library) => {
@@ -30,10 +38,10 @@ export default function useMusicLibrary() {
 
   const fetchContinuation = () => {
     const lib = continuation.current ?? library.current;
-    if (lib.has_continuation) {
+    if (lib?.has_continuation) {
       lib.getContinuation().then(cont => {
         continuation.current = cont;
-        console.log("Continure: ", cont);
+        console.log("Continue: ", cont);
         setData([...data, ...parseObservedArray(cont.contents.contents)]);
       });
     }
