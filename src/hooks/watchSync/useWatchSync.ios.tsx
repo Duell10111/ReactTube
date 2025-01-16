@@ -4,31 +4,85 @@ import {
   sendMessage,
   sendFile,
   getCurrentFileTransfers,
+  updateApplicationContext,
+  isWatchAppInstalled,
+  FileTransferInfo,
 } from "expo-watch-connectivity";
-import {useEffect} from "react";
+import {useCallback, useEffect, useState} from "react";
 
 import {handleWatchMessage} from "./WatchYoutubeAPI";
 import {getAbsoluteVideoURL} from "../downloader/useDownloadProcessor";
 
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {useYoutubeContext} from "@/context/YoutubeContext";
 import {useVideos} from "@/downloader/DownloadDatabaseOperations";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
 import Logger from "@/utils/Logger";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
+interface WatchApplicationContext {
+  source?: "phone";
+  title?: string;
+  playing?: boolean;
+}
+
 const LOGGER = Logger.extend("WATCH_SYNC");
 
 export default function useWatchSync() {
   const videos = useVideos();
   const innertube = useYoutubeContext();
+  const {currentItem, next, previous, pause, play, playing} =
+    useMusikPlayerContext();
+  const [watchTransfers, setWatchTransfers] = useState<FileTransferInfo[]>([]);
+  const [watchAppInstalled, setWatchAppInstalled] = useState(false);
 
   // Hook data providing hybrid data access
   const library = useMusicLibrary();
 
   useEffect(() => {
+    isWatchAppInstalled().then(setWatchAppInstalled).catch(LOGGER.warn);
+  }, []);
+
+  useEffect(() => {
+    const update: WatchApplicationContext = {};
+    update["source"] = "phone";
+    console.log("Used current item", currentItem);
+    if (currentItem) {
+      console.log("Used current item", currentItem);
+      update["title"] = currentItem.title;
+    }
+    update["playing"] = !!playing;
+
+    updateApplicationContext(update)
+      .then(() => LOGGER.debug("Updated Application context"))
+      .catch(LOGGER.warn);
+  }, [currentItem?.title, playing]);
+
+  const musicPlayerAction = useCallback(
+    async (action: "next" | "prev" | "playpause") => {
+      if (action === "next") {
+        await next();
+      } else if (action === "prev") {
+        await previous();
+      } else if (action === "playpause") {
+        (playing ? pause : play)();
+      }
+    },
+    [next, previous, play, pause, playing],
+  );
+
+  useEffect(() => {
     const sub = addMessageListener(messageFromWatch => {
+      // TODO: Add listener for music context control commands
       console.log("Message from watch: ", messageFromWatch);
-      if (messageFromWatch.type === "GetDownloads") {
+      if (messageFromWatch.type === "PhoneNext") {
+        console.log("Next item triggered");
+        musicPlayerAction("next").catch(LOGGER.warn);
+      } else if (messageFromWatch.type === "PhonePrev") {
+        musicPlayerAction("prev").catch(LOGGER.warn);
+      } else if (messageFromWatch.type === "PhonePausePlay") {
+        musicPlayerAction("playpause").catch(LOGGER.warn);
+      } else if (messageFromWatch.type === "GetDownloads") {
         // handleDiaryUpdate(db, messageFromWatch)
         //   .catch(console.warn)
         //   .then(() => console.log("Handled watch data"));
@@ -63,16 +117,30 @@ export default function useWatchSync() {
       // reply({text: 'Thanks watch!'})
     });
     return () => sub.remove();
-  }, [innertube]);
+  }, [innertube, musicPlayerAction]);
 
   const upload = (id: string) => {
-    sendDownloadDataToWatch(id, videos).catch(LOGGER.warn);
+    sendDownloadToWatch(id, videos)
+      .then(() => {
+        showMessage({
+          type: "success",
+          message: "Successfully started watch upload",
+        });
+      })
+      .catch(error => {
+        showMessage({
+          type: "warning",
+          message: "Failed to upload to watch",
+          description: error,
+        });
+        LOGGER.warn(error);
+      });
   };
 
   useEffect(() => {
     const interval = setInterval(() => {
       // TODO: Add UI to show progress
-      checkTransfers().catch(LOGGER.warn);
+      checkTransfers().then(setWatchTransfers).catch(LOGGER.warn);
     }, 10000);
     return () => clearInterval(interval);
   }, []);
@@ -100,7 +168,7 @@ export default function useWatchSync() {
     return () => sub.remove();
   }, []);
 
-  return {upload};
+  return {watchTransfers, upload};
 }
 
 async function sendYTAPIMessage(response: any) {
@@ -192,12 +260,13 @@ async function sendDownloadToWatch(
   const metadata = {
     id,
     title: video.name,
+    duration: video.duration,
   };
-  console.log("Starting file transfer");
-  console.log(`Uploading file ${getAbsoluteVideoURL(video.fileUrl)}`);
+  LOGGER.debug("Starting file transfer");
+  LOGGER.debug(`Uploading file ${getAbsoluteVideoURL(video.fileUrl)}`);
   await sendFile(getAbsoluteVideoURL(video.fileUrl), metadata);
 
-  console.log(`Finished file transfer for video ${id}`);
+  LOGGER.debug(`Finished file transfer for video ${id}`);
 
   // Check transfers
 
@@ -205,13 +274,14 @@ async function sendDownloadToWatch(
 }
 
 async function checkTransfers() {
-  // TODO: Migrate to other library
   const fileTransfers = await getCurrentFileTransfers();
   LOGGER.debug("File Transfers: ", fileTransfers);
 
   Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
     LOGGER.debug("TransferInfo: ", transferInfo);
   });
+  // TODO: Fix once type fixed in library
+  return fileTransfers as any as FileTransferInfo[];
 }
 
 interface DownloadDB {

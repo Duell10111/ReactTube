@@ -28,6 +28,18 @@ func requestLibraryPlaylists() {
   sendVideoAPIMessage(message: ["request": "library-playlists"])
 }
 
+func nextTitleOnPhone() {
+  SessionSyncStruct.shared.session.sendMessage(["type": "PhoneNext"], replyHandler: nil)
+}
+
+func previousTitleOnPhone() {
+  SessionSyncStruct.shared.session.sendMessage(["type": "PhonePrev"], replyHandler: nil)
+}
+
+func pausePlayOnPhone() {
+  SessionSyncStruct.shared.session.sendMessage(["type": "PhonePausePlay"], replyHandler: nil)
+}
+
 func processYoutubeAPIMessage(_ session: WCSession, message: [String: Any]) {
   print("Process Youtube API")
   if let type = message["type"] as? String {

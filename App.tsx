@@ -43,9 +43,9 @@ const App = () => {
             <AppDataContextProvider>
               <YoutubeContextProvider>
                 <AccountContextProvider>
-                  <DownloaderContext>
-                    <PlaylistManagerContext>
-                      <MusicPlayerContext>
+                  <MusicPlayerContext>
+                    <DownloaderContext>
+                      <PlaylistManagerContext>
                         <StatusBar
                           // TODO: Currently only dark-mode exists
                           barStyle={
@@ -56,9 +56,9 @@ const App = () => {
                           <Navigation />
                         </VideoProvider>
                         <FlashMessage position={"top"} />
-                      </MusicPlayerContext>
-                    </PlaylistManagerContext>
-                  </DownloaderContext>
+                      </PlaylistManagerContext>
+                    </DownloaderContext>
+                  </MusicPlayerContext>
                 </AccountContextProvider>
               </YoutubeContextProvider>
             </AppDataContextProvider>
