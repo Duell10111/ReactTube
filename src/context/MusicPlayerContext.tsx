@@ -180,7 +180,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   useEffect(() => {
     if (playType === "Audio" && currentVideoData) {
-      console.log("Current video Data: ", currentVideoData);
+      // console.log("Current video Data: ", currentVideoData);
       TrackPlayer.load(videoInfoToTrack(currentVideoData)).then(() => {
         TrackPlayer.play().catch(LOGGER.warn);
       });
@@ -403,7 +403,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   // TODO: Maybe use useCallback to trigger update on automixPlaylist change?
-  const onEndReached = async () => {
+  const onEndReached = useCallback(async () => {
     if (playlist) {
       const currentIndex = playlist.items.findIndex(
         v => v.id === currentVideoData?.id,
@@ -433,7 +433,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
     // // Only needed for local playlist files
     // TrackPlayer.pause().catch(LOGGER.warn);
-  };
+  }, [currentVideoData, playlist, automixPlaylist, automix]);
 
   const play = async () => {
     if (playType === "Audio") {
