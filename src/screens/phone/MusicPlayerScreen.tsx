@@ -17,6 +17,7 @@ import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {usePlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
+import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 type Tab = "Playlist" | "Lyrics" | "Related";
 
@@ -120,7 +121,17 @@ export function MusicPlayerScreen({route, navigation}: Props) {
             title={"Download"}
             onPress={() => {
               if (currentItem) {
-                download(currentItem.id);
+                download(currentItem.id)
+                  .then(() =>
+                    showMessage({type: "success", message: "Started download"}),
+                  )
+                  .catch(error => {
+                    showMessage({
+                      type: "warning",
+                      message: "Error starting download",
+                      description: error.message,
+                    });
+                  });
               }
             }}
           />

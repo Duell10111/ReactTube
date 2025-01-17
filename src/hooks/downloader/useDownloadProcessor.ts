@@ -134,6 +134,8 @@ export default function useDownloadProcessor() {
               format.approx_duration_ms,
               value.fileURL[1],
               value.fileURL[0],
+              undefined,
+              info.author?.name,
             );
             LOGGER.debug("Insert downloaded video");
           } else {

@@ -26,7 +26,7 @@ interface DownloaderContextValue {
   currentDownloads: MutableRefObject<DownloadRef>;
   // TODO: Migrate to ref as downloads as well?
   currentUploads: WatchFileTransferInfo[];
-  download: (id: string) => void;
+  download: (id: string) => Promise<void>;
   uploadToWatch: (id: string) => void;
 }
 
