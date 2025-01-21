@@ -68,12 +68,12 @@ export default function useYTServerPlaylistManager() {
 
   const addPlaylistToLibrary = async (playlistId: string) => {
     LOGGER.debug(`Adding playlist ${playlistId} to library`);
-    await youtube?.playlist?.likePlaylist(playlistId);
+    await youtube?.playlist?.addToLibrary(playlistId);
   };
 
   const removePlaylistFromLibrary = async (playlistId: string) => {
     LOGGER.debug(`Removing playlist ${playlistId} to library`);
-    await youtube?.playlist?.removeLikePlaylist(playlistId);
+    await youtube?.playlist?.removeFromLibrary(playlistId);
   };
 
   return {
