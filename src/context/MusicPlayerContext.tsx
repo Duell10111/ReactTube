@@ -274,7 +274,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         const parsedData = parseTrackInfoPlaylist(p);
 
         // Filter out already existing data in queue, as it continues sometimes start at current playing item causing duplicate issues
-        const filteredItems = parsedData.items.filter(item => {
+        // Skip the first element as this is normally the one already in the normal up next playlist
+        const filteredItems = parsedData.items.splice(1).filter(item => {
           if (playlist) {
             return playlist.items.findIndex(i => i.id === item.id) === -1;
           }
