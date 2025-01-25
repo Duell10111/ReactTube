@@ -40,9 +40,10 @@ export function LibrarySectionItem({
   const onPress = useMemo(() => {
     if (section.playlistId) {
       return () => {
-        navigation.navigate("PlaylistScreen", {
-          playlistId: section.playlistId,
-        });
+        section.playlistId &&
+          navigation.navigate("PlaylistScreen", {
+            playlistId: section.playlistId,
+          });
       };
     } else if (section.type === "history") {
       return () => {

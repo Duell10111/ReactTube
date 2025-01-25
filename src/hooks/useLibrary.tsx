@@ -19,7 +19,7 @@ export default function useLibrary() {
 
   useEffect(() => {
     youtube
-      .getLibrary()
+      ?.getLibrary()
       .then(async lib => {
         console.log("Fetching library");
         // console.log("Lib: ", JSON.stringify(lib, null, 4));

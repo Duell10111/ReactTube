@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import {Measure} from "react-native-corner-video";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
@@ -19,7 +18,7 @@ import Video, {VideoRef} from "react-native-video";
 
 import {handler} from "../handler";
 
-import {CornerVideoProps} from "@/components/corner-video/types";
+import {CornerVideoProps, Measure} from "@/components/corner-video/types";
 
 interface Props {
   currentTime: number;
@@ -153,12 +152,13 @@ const CornerVideo = ({currentTime, props, positions, onClose}: Props) => {
         ]}>
         <View style={styles.videoContainer}>
           <Video
+            // @ts-ignore Ignore Mutable Ref type issue
             ref={ref}
             style={styles.videoPlayer}
             resizeMode={"cover"}
             onReadyForDisplay={() => {
               setLoaded(true);
-              ref.current.seek(currentTime);
+              ref.current?.seek(currentTime);
             }}
             source={{
               // @ts-ignore
@@ -195,8 +195,8 @@ const CornerVideo = ({currentTime, props, positions, onClose}: Props) => {
             size={24}
             color={"white"}
             onPress={() => {
-              ref.current.getCurrentPosition().then(position => {
-                ref.current.seek(position - 15);
+              ref.current?.getCurrentPosition().then(position => {
+                ref.current?.seek(position - 15);
               });
             }}
           />
@@ -211,8 +211,8 @@ const CornerVideo = ({currentTime, props, positions, onClose}: Props) => {
             size={24}
             color={"white"}
             onPress={() => {
-              ref.current.getCurrentPosition().then(position => {
-                ref.current.seek(position + 15);
+              ref.current?.getCurrentPosition().then(position => {
+                ref.current?.seek(position + 15);
               });
             }}
           />

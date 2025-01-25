@@ -15,13 +15,22 @@ import useWatchSync from "../hooks/watchSync/useWatchSync";
 import {useMigration} from "@/downloader/DownloadDatabaseOperations";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
+export interface WatchFileTransferInfo {
+  uri: string;
+  process: number;
+  transferring: boolean;
+  paused: boolean;
+}
+
 interface DownloaderContextValue {
   currentDownloads: MutableRefObject<DownloadRef>;
-  download: (id: string) => void;
+  // TODO: Migrate to ref as downloads as well?
+  currentUploads: WatchFileTransferInfo[];
+  download: (id: string) => Promise<void>;
   uploadToWatch: (id: string) => void;
 }
 
-// TODO: Create some placeholder functions that generate wornings
+// TODO: Create some placeholder functions that generate warnings
 // @ts-ignore Ignore it atm
 const downloaderContext = createContext<DownloaderContextValue>({});
 
@@ -46,11 +55,16 @@ export function DownloaderContext({children}: DownloaderContextProps) {
     }
   }, [error]);
 
-  const {upload} = useWatchSync();
+  const {watchTransfers, upload} = useWatchSync();
 
   return (
     <downloaderContext.Provider
-      value={{download, currentDownloads: downloadRefs, uploadToWatch: upload}}
+      value={{
+        download,
+        currentDownloads: downloadRefs,
+        currentUploads: watchTransfers,
+        uploadToWatch: upload,
+      }}
       children={children}
     />
   );

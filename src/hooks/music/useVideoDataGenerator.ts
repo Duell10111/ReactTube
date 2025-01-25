@@ -12,7 +12,7 @@ export default function useVideoDataGenerator() {
 
   const videoExtractor = useCallback(
     async (videoData: VideoData) => {
-      console.log("VideoExtractor", videoData);
+      // console.log("VideoExtractor", videoData);
       // TODO: Check if navEndpoint contains at least a videoId as browseId only does not work. :/
       // const useNav =
       //   videoData.navEndpoint && videoData.navEndpoint?.payload?.videoId;

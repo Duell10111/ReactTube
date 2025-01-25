@@ -24,7 +24,7 @@ export function PlaylistHeader({
     <View style={styles.container}>
       <Image
         style={styles.imageStyle}
-        source={{uri: playlist.thumbnailImage.url}}
+        source={{uri: playlist.thumbnailImage?.url}}
       />
       <View style={styles.titleContainer}>
         <Text style={[styles.titleStyle, {color: appStyle.textColor}]}>

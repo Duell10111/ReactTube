@@ -10,6 +10,7 @@ import {RootStackParamList} from "../../navigation/RootStackNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DownloadPlayer">;
 
+// TODO: Remove as deprecated?!
 export function DownloadPlayer({route}: Props) {
   const video = useVideo(route.params.id);
   const [sound, setSound] = useState<Audio.Sound>();
@@ -17,6 +18,7 @@ export function DownloadPlayer({route}: Props) {
   async function playSound() {
     console.log("Loading Sound");
     const {sound: avSound} = await Audio.Sound.createAsync({
+      // @ts-ignore TODO: fix
       uri: getAbsoluteVideoURL(video.fileUrl),
     });
     setSound(avSound);

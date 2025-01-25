@@ -39,7 +39,7 @@ export function MusicSearchFilterHeader({
             key={chip.text}
             text={chip.text}
             selected={chip.isSelected}
-            onPress={() => onClick(chip)}
+            onPress={() => onClick?.(chip)}
           />
         ))}
       </ScrollView>

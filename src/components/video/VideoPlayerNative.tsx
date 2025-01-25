@@ -16,20 +16,17 @@ const VideoPlayerNative = forwardRef<
 
   const videoRef = useRef<VideoRef>();
 
-  useImperativeHandle(
-    ref,
-    () => {
-      return {
-        seek: seconds => {
-          videoRef.current?.seek?.(seconds);
-        },
-      };
-    },
-    [],
-  );
+  useImperativeHandle(ref, () => {
+    return {
+      seek: seconds => {
+        videoRef.current?.seek?.(seconds);
+      },
+    };
+  }, []);
 
   return (
     <Video
+      // @ts-ignore
       ref={videoRef}
       style={styles.fullScreen}
       source={{

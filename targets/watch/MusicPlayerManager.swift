@@ -15,7 +15,9 @@ import SwiftAudioEx
 @Observable
 class MusicPlayerManager {
     static let shared = MusicPlayerManager()
-  
+
+  var type: PlayerType = .local
+
     var volume: Double = 0.0
     var volumeObserver: NSKeyValueObservation?
 
@@ -45,6 +47,7 @@ class MusicPlayerManager {
     }
 
   func updatePlaylist(newPlaylist: [Video]) {
+    self.type = .local
     // TODO: Check if playlist already present?
     self.playlistManager.setPlaylist(nil, videos: newPlaylist)
 
@@ -53,11 +56,12 @@ class MusicPlayerManager {
   }
 
   func updatePlaylist(playlist: Playlist, index: Int? = nil) {
+    self.type = .local
     queue.async {
       self.playlistManager.setPlaylist(playlist)
-      
+
       self.setupPlayer()
-      
+
       if let index = index {
         self.trackIndex = index
         self.currentTrackIndex = index
@@ -70,7 +74,7 @@ class MusicPlayerManager {
       }
     }
   }
-  
+
   func updateVolume(volume: Double) {
     player?.volume = Float(volume)
   }
@@ -140,9 +144,9 @@ class MusicPlayerManager {
       self?.player?.pause()
       return MPRemoteCommandHandlerStatus.success
     }
-    
+
     self.volume = Double(AVAudioSession.sharedInstance().outputVolume)
-    
+
     volumeObserver = AVAudioSession.sharedInstance().observe(\.outputVolume) { session, _ in
           print("Output volume: \(session.outputVolume)")
           self.volume = Double(session.outputVolume)
@@ -176,6 +180,11 @@ class MusicPlayerManager {
   }
 
   @objc func playMusic() {
+      if type == .phone {
+        pausePlayOnPhone()
+        return
+      }
+
       if player?.items.isEmpty ?? true {
         print("Skip play for empty playlist")
         return
@@ -210,7 +219,7 @@ class MusicPlayerManager {
               player?.play()
               isPlaying = true
               isStalled = false
-              
+
               if let curItem = player?.currentItem, let title = curItem.getTitle(){
                 currentTitle = title
               }
@@ -226,6 +235,11 @@ class MusicPlayerManager {
   }
 
   @objc func pauseMusic() {
+      if type == .phone {
+        pausePlayOnPhone()
+        return
+      }
+
       do {
           try AVAudioSession.sharedInstance().setActive(false)
       } catch {
@@ -238,15 +252,22 @@ class MusicPlayerManager {
 
   func nextTrack() {
       // TODO: Add check if new items are available
-
-      player?.next()
+      if type == .phone {
+        nextTitleOnPhone()
+      } else {
+        player?.next()
+      }
   }
 
   // TODO: Fix this to make it more stable!!!
   func previousTrack() {
-      player?.previous()
+      if type == .phone {
+        previousTitleOnPhone()
+      } else {
+        player?.previous()
+      }
   }
-  
+
   func jumpToIndex(_ index: Int) {
     do {
       try player?.jumpToItem(atIndex: index)
@@ -276,4 +297,10 @@ func unzip<K, V>(_ array: [(key: K, value: V)]) -> ([K], [V]) {
     }
 
     return (keys, values)
+}
+
+
+enum PlayerType {
+  case local
+  case phone
 }

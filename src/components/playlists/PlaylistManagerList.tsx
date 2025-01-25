@@ -1,4 +1,3 @@
-import {Button} from "@rneui/base";
 import React, {useCallback} from "react";
 import {FlatList, ListRenderItem, Text} from "react-native";
 
@@ -13,7 +12,7 @@ interface PlaylistManagerListProps {
 export function PlaylistManagerList({data, onPress}: PlaylistManagerListProps) {
   const renderItem = useCallback<ListRenderItem<ElementData>>(({item}) => {
     return (
-      <PlaylistManagerListItem data={item} onPress={() => onPress(item)} />
+      <PlaylistManagerListItem data={item} onPress={() => onPress?.(item)} />
     );
   }, []);
 

@@ -22,6 +22,14 @@ export function DownloadScreen({navigation}: Props) {
 
   useEffect(() => {
     navigation.setOptions({
+      headerLeft: () => (
+        <Icon
+          name={"history"}
+          onPress={() => navigation.navigate("ActiveUploadScreen")}
+          color={"white"}
+          style={{marginStart: 10}}
+        />
+      ),
       headerRight: () => (
         <Icon
           name={"history"}

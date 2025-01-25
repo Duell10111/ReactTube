@@ -46,6 +46,7 @@ export default function VideoCard({style, ...data}: Props) {
     }
 
     if (data.music) {
+      // @ts-ignore
       setPlaylistViaEndpoint(data.navEndpoint);
       navigation.navigate("MusicPlayerScreen");
       return;

@@ -180,7 +180,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   useEffect(() => {
     if (playType === "Audio" && currentVideoData) {
-      console.log("Current video Data: ", currentVideoData);
+      // console.log("Current video Data: ", currentVideoData);
       TrackPlayer.load(videoInfoToTrack(currentVideoData)).then(() => {
         TrackPlayer.play().catch(LOGGER.warn);
       });
@@ -262,7 +262,9 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   const fetchUpNextAutomixPlaylist = (curVideoData: YTTrackInfo) => {
     // TODO: Add proper local type indicator
+    // @ts-ignore SHOW ABOVE
     (curVideoData.originalData?.type &&
+    // @ts-ignore SHOW ABOVE
     curVideoData.originalData.type === "Local" &&
     youtube?.music
       ? youtube.music.getUpNext(curVideoData.id, true)
@@ -272,7 +274,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         const parsedData = parseTrackInfoPlaylist(p);
 
         // Filter out already existing data in queue, as it continues sometimes start at current playing item causing duplicate issues
-        const filteredItems = parsedData.items.filter(item => {
+        // Skip the first element as this is normally the one already in the normal up next playlist
+        const filteredItems = parsedData.items.splice(1).filter(item => {
           if (playlist) {
             return playlist.items.findIndex(i => i.id === item.id) === -1;
           }
@@ -401,7 +404,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   // TODO: Maybe use useCallback to trigger update on automixPlaylist change?
-  const onEndReached = async () => {
+  const onEndReached = useCallback(async () => {
     if (playlist) {
       const currentIndex = playlist.items.findIndex(
         v => v.id === currentVideoData?.id,
@@ -431,7 +434,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
     // // Only needed for local playlist files
     // TrackPlayer.pause().catch(LOGGER.warn);
-  };
+  }, [currentVideoData, playlist, automixPlaylist, automix]);
 
   const play = async () => {
     if (playType === "Audio") {
@@ -462,7 +465,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         if (newIndex >= playlist.items.length) {
           // Fetch next playlist items?
           const contData = await fetchMorePlaylistData();
-          videoExtractor(contData.items[0]).then(setCurrentVideoData);
+          contData &&
+            videoExtractor(contData.items[0]).then(setCurrentVideoData);
         } else {
           const nextElement = playlist.items[newIndex];
           videoExtractor(nextElement).then(setCurrentVideoData);
@@ -528,7 +532,8 @@ export function useMusikPlayerContext() {
 function videoInfoToTrack(videoInfo: YTTrackInfo) {
   return {
     id: videoInfo.id, // Set id for later find in queue
-    url: videoInfo.originalData.streaming_data.hls_manifest_url,
+    // TODO: fix
+    url: videoInfo.originalData.streaming_data?.hls_manifest_url,
     title: videoInfo.title,
     artist: videoInfo.author?.name,
     artwork: videoInfo.thumbnailImage.url,
@@ -539,6 +544,7 @@ function videoInfoToTrack(videoInfo: YTTrackInfo) {
 function localVideoToTrack(video: Video) {
   return {
     id: video.id,
+    // @ts-ignore TODO: fix
     url: getAbsoluteVideoURL(video.fileUrl),
     title: video.name,
     type: TrackType.Default,

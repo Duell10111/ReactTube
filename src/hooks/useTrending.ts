@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 
 import useYoutube from "./useYoutube";
 
@@ -35,14 +35,17 @@ export default function useTrending() {
 
   const fetchMore = async () => {
     const trendRef = continuation.current ?? trending.current;
-    const cont = await trendRef.getContinuation();
-    continuation.current = cont;
-    setData([...data, ...extractSectionList(cont.page_contents)]);
-    console.log("Fetch more!");
+    const cont = await trendRef?.getContinuation();
+    if (cont) {
+      continuation.current = cont;
+      setData([...(data ?? []), ...extractSectionList(cont.page_contents)]);
+    } else {
+      console.warn("No continuation found.");
+    }
   };
 
   const selectTab = async (tabName: string) => {
-    trending.current = await trending.current.getTabByName(tabName);
+    trending.current = await trending.current?.getTabByName(tabName);
   };
 
   return {trending, data, fetchMore, selectTab};

@@ -7,10 +7,11 @@ export default function useComments(videoId: string, comment_id?: string) {
   const youtube = useYoutubeContext();
   const comments = useRef<YT.Comments>();
 
+  // TODO: Complete this for comments feature in the future
   useEffect(() => {
-    youtube.getComments(videoId, undefined, comment_id).then(c => {
+    youtube?.getComments(videoId, undefined, comment_id).then(c => {
       comments.current = c;
-      c.contents;
+      // c.contents;
     });
   }, []);
 }

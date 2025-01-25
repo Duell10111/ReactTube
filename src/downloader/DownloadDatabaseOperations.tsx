@@ -125,7 +125,7 @@ export function usePlaylistVideos(id: string) {
 export async function insertVideo(
   id: string,
   name: string,
-  duration: number,
+  duration?: number, // No update on undefined
   coverUrl?: string,
   dirURL?: string,
   playlistID?: string,

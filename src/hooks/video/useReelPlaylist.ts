@@ -1,9 +1,7 @@
-import _ from "lodash";
 import {useEffect, useState} from "react";
 
-import {YTNodes, YTShorts, Helpers} from "../../utils/Youtube";
-
 import {useYoutubeContext} from "@/context/YoutubeContext";
+import {YTNodes, YTShorts} from "@/utils/Youtube";
 
 export function useReelPlaylist(reelId?: string) {
   const youtube = useYoutubeContext();
@@ -22,6 +20,7 @@ export function useReelPlaylist(reelId?: string) {
       .then(item => {
         setShortItem(item);
         const data = item.watch_next_feed;
+        // @ts-ignore TODO: fix
         setElements([...(elements ?? []), ...data]);
       })
       .catch(console.warn);

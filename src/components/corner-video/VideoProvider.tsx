@@ -32,6 +32,7 @@ export const VideoProvider = (props: VideoProviderProps) => {
       left: 0,
     },
     videoProps: {
+      // @ts-ignore
       source: {uri: ""},
     },
   });
@@ -50,6 +51,7 @@ export const VideoProvider = (props: VideoProviderProps) => {
     setPositions(_pos);
     setCornerProps({
       cornerProps: _cornerProps.cornerProps,
+      // @ts-ignore
       videoProps: {source: {uri: _videoUri}},
     });
     setCurrentTime(_currentTime);

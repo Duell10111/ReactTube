@@ -90,7 +90,7 @@ export default function VideoScreenPhone({route, navigation}: Props) {
     return (
       <ErrorComponent
         text={
-          YTVideoInfo.originalData.playability_status.reason ??
+          YTVideoInfo.originalData.playability_status?.reason ??
           "Video source is not available"
         }
       />
@@ -103,9 +103,10 @@ export default function VideoScreenPhone({route, navigation}: Props) {
         <VideoPlayerPhone
           sourceURL={videoUrl}
           style={styles.videoComponent}
+          // @ts-ignore
           ref={videoRef}
           onPipPress={() => {
-            videoRef.current.pause();
+            videoRef.current?.pause();
           }}>
           {/*{YTVideoInfo.endscreen ? (*/}
           {/*  <VideoEndCard endcard={YTVideoInfo.endscreen} />*/}
@@ -114,11 +115,16 @@ export default function VideoScreenPhone({route, navigation}: Props) {
       </View>
       <View style={[styles.bottomContainer]}>
         <VerticalVideoList
-          nodes={parseObservedArray(YTVideoInfo.originalData.watch_next_feed)}
+          nodes={
+            YTVideoInfo.originalData.watch_next_feed
+              ? parseObservedArray(YTVideoInfo.originalData.watch_next_feed)
+              : []
+          }
           contentInsetAdjustmentBehavior={"always"}
           contentContainerStyle={{paddingBottom: 60 + bottom}}
           ListHeaderComponent={
             <VideoMetadataContainer
+              // @ts-ignore Ignore for now
               actionData={actionData}
               YTVideoInfo={YTVideoInfo}
               dislike={dislike}

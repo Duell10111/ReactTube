@@ -45,6 +45,21 @@ extension SessionSync: WCSessionDelegate {
   func session(_ session: WCSession, didReceiveApplicationContext appContext: [String: Any]) {
     debugPrint("WCSession didReceiveApplicationContext activationState:\(appContext)")
     applicationContext = appContext
+    
+    if(MusicPlayerManager.shared.type == .phone || !MusicPlayerManager.shared.isPlaying) {
+      MusicPlayerManager.shared.type = .phone
+      if let title = appContext["title"] as? String {
+        MusicPlayerManager.shared.currentTitle = title
+        print("Updating title \(title)")
+      } else {
+        print("No title provided for playing state")
+      }
+      if let playing = appContext["playing"] as? Bool {
+        MusicPlayerManager.shared.isPlaying = playing
+      } else {
+        print("No bool provided for playing state")
+      }
+    }
   }
 
   func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any]) {

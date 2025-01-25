@@ -26,7 +26,7 @@ export function PlaylistHeader({
       </Text>
       <View style={styles.subtitleContainer}>
         <Text style={[styles.subtitleStyle, {color: style.textColor}]}>
-          {[playlist.author.name, `${playlist.items.length} Videos`].join(
+          {[playlist.author?.name, `${playlist.items.length} Videos`].join(
             " - ",
           )}
         </Text>
@@ -46,7 +46,7 @@ export function PlaylistHeader({
           iconName={saved ? "bookmark" : "bookmark-o"}
           iconType={"font-awesome"}
           text={`${saved ? "Remove" : "Save"} playlist`}
-          onPress={() => onSavePlaylist?.(saved)}
+          onPress={() => onSavePlaylist?.(!!saved)}
         />
       </View>
     </View>

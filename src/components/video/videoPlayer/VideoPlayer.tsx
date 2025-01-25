@@ -77,6 +77,12 @@ interface VideoPlayerProps<T> {
   videoID: string;
 }
 
+const sponsorSeekReplacement = (seconds: number) => {
+  console.warn(
+    "Provided VideoPlayer ref does not contain seek function. Providing NOOP",
+  );
+};
+
 const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
   (
     {VideoComponent, bottomContainer, endCardContainer, onEnd, ...props},
@@ -205,11 +211,13 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     const endCardShownRef = useRef(false);
 
     useEffect(() => {
+      // @ts-ignore TODO: fix
       if (!endCardShownRef.current && currentTime > props.endCardStartSeconds) {
         setShowEndcard(true);
         endCardShownRef.current = true;
       } else if (
         endCardShownRef.current &&
+        // @ts-ignore TODO: fix
         currentTime < props.endCardStartSeconds
       ) {
         endCardShownRef.current = false;
@@ -377,7 +385,11 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       };
     }, []);
 
-    useSponsorBlock(props.videoID, currentTime, _videoRef.current?.seek);
+    useSponsorBlock(
+      props.videoID,
+      currentTime,
+      _videoRef.current?.seek ?? sponsorSeekReplacement,
+    );
 
     return (
       // TODO: Adapt style?

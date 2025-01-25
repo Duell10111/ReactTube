@@ -154,7 +154,7 @@ function VideoItem({videoId, index}: ItemProps) {
     return (
       <ErrorComponent
         text={
-          YTVideoInfo.originalData.playability_status.reason ??
+          YTVideoInfo.originalData.playability_status?.reason ??
           "Video source is not available"
         }
       />

@@ -69,6 +69,7 @@ function NGrid({data, numRows, renderData}: NGridProps) {
     return (
       <View style={{rowGap: 2}}>
         {item.map((itemData, index) =>
+          // @ts-ignore
           renderData({item: itemData, index, separators: null}),
         )}
       </View>

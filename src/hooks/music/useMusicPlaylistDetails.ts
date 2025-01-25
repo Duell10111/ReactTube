@@ -71,3 +71,18 @@ export default function usePlaylistDetails(playlistId: string) {
     deleteItemFromPlaylist,
   };
 }
+
+export async function getMusicPlaylistDetails(
+  playlistId: string,
+  youtube: ReturnType<typeof useYoutubeContext>,
+) {
+  if (isLocalPlaylist(playlistId)) {
+    return getPlaylistAsYTPlaylist(playlistId);
+  } else {
+    if (!youtube) {
+      throw new Error("Innertube object is undefined!");
+    }
+    const playlist = await youtube.music.getPlaylist(playlistId);
+    return getElementDataFromYTMusicPlaylist(playlist);
+  }
+}

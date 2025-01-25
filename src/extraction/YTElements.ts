@@ -63,13 +63,13 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     description: videoInfo.basic_info.short_description,
     short_views:
       videoInfo.primary_info?.view_count?.short_view_count?.text ??
-      videoInfo.primary_info?.view_count.original_view_count,
+      videoInfo?.primary_info?.view_count?.original_view_count,
     publishDate: videoInfo.primary_info?.relative_date.text,
     chapters,
     channel_id:
       videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
     channel: videoInfo.basic_info.channel,
-    subscribed: videoInfo.secondary_info.subscribe_button.is(
+    subscribed: videoInfo?.secondary_info?.subscribe_button?.is(
       YTNodes.SubscribeButton,
     )
       ? videoInfo.secondary_info.subscribe_button.subscribed
@@ -77,7 +77,9 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     playlist: parseVideoInfoPlaylist(videoInfo),
     liked: videoInfo.basic_info.is_liked,
     disliked: videoInfo.basic_info.is_disliked,
-    endscreen: parseEndScreen(videoInfo.endscreen),
+    endscreen: videoInfo.endscreen
+      ? parseEndScreen(videoInfo.endscreen)
+      : undefined,
     // TODO: Adapt author to only contain name
     author: {
       name: videoInfo.basic_info.author,
@@ -452,14 +454,14 @@ class YTPlaylistClass implements YTPlaylist {
       .compact()
       .value();
     this.thumbnailImage = getThumbnail(playlist.info.thumbnails[0]);
-    this.title = playlist.info.title;
+    this.title = playlist.info.title ?? "Untitled";
     this.author = getAuthor(playlist.info.author);
 
     this.menu = playlist.menu.is(YTNodes.Menu)
       ? parseMenu(playlist.menu)
       : undefined;
 
-    const savedButton = this.menu.top_level_buttons.find(
+    const savedButton = this.menu?.top_level_buttons?.find(
       item => item.icon_type === "PLAYLIST_ADD",
     );
     this.saved = savedButton
@@ -473,9 +475,10 @@ class YTPlaylistClass implements YTPlaylist {
   async loadMore() {
     if (this.originalData.has_continuation) {
       const updatedPlaylist = await this.originalData.getContinuation();
-      const newItems = updatedPlaylist.items.map(element =>
-        getVideoData(element),
-      );
+      const newItems = _.chain(updatedPlaylist.items)
+        .map(element => getVideoData(element))
+        .compact()
+        .value();
       this.items.push(...newItems);
       this.originalData = updatedPlaylist;
     } else {
@@ -488,7 +491,7 @@ class YTMusicPlaylistClass implements YTPlaylist {
   items: ElementData[];
 
   originalData: YTMusic.Playlist;
-  thumbnailImage: Thumbnail;
+  thumbnailImage?: Thumbnail;
   title: string;
   author?: Author;
   subtitle?: string;
@@ -513,8 +516,10 @@ class YTMusicPlaylistClass implements YTPlaylist {
       ? getThumbnail(playlist.background.contents[0])
       : undefined;
 
-    if (playlist.header.is(YTNodes.MusicResponsiveHeader)) {
-      this.thumbnailImage = getThumbnail(playlist.header.thumbnail.contents[0]);
+    if (playlist.header?.is(YTNodes.MusicResponsiveHeader)) {
+      this.thumbnailImage = playlist.header.thumbnail?.contents?.[0]
+        ? getThumbnail(playlist.header.thumbnail.contents[0])
+        : undefined;
       this.title = playlist.header.title?.text ?? "Empty title";
       this.subtitle = playlist.header.subtitle.text;
       this.description = playlist.header.description?.description?.text;
@@ -532,14 +537,14 @@ class YTMusicPlaylistClass implements YTPlaylist {
         }
       });
       // playlist.header.buttons.
-    } else if (playlist.header.is(YTNodes.MusicDetailHeader)) {
+    } else if (playlist.header?.is(YTNodes.MusicDetailHeader)) {
       this.thumbnailImage = getThumbnail(playlist.header.thumbnails[0]);
       this.title = playlist.header.title?.text ?? "Empty title";
       this.subtitle = playlist.header.subtitle.text;
       this.description = playlist.header.description.text;
       // console.log("Badges: ", playlist.header.badges);
       // this.author = getAuthor(playlist.header?.author);
-    } else if (playlist.header.is(YTNodes.MusicEditablePlaylistDetailHeader)) {
+    } else if (playlist.header?.is(YTNodes.MusicEditablePlaylistDetailHeader)) {
       console.log(`Unknown music detail header: ${playlist.header}`);
     }
   }
@@ -547,9 +552,10 @@ class YTMusicPlaylistClass implements YTPlaylist {
   async loadMore() {
     if (this.originalData.has_continuation) {
       const updatedPlaylist = await this.originalData.getContinuation();
-      const newItems = updatedPlaylist.items.map(element =>
-        getVideoData(element),
-      );
+      const newItems = _.chain(updatedPlaylist.items)
+        .map(element => getVideoData(element))
+        .compact()
+        .value();
       this.items.push(...newItems);
       this.originalData = updatedPlaylist;
     } else {
@@ -567,17 +573,18 @@ interface YT_LIBRARY_SECTION {
 }
 
 export async function getElementDataFromYTLibrary(library: YT.Library) {
-  const shelves = library.page.contents_memo.getType(YTNodes.Shelf);
+  const shelves = library.page.contents_memo?.getType(YTNodes.Shelf);
 
   // Manually parsing Sections as Library implementation currently broken. Needs to be refactored.
-  const sections = shelves.map(
-    shelf =>
-      ({
-        title: shelf.title,
-        contents: shelf.content?.key("items").array() || [],
-        endpoint: shelf.endpoint,
-      }) as YT_LIBRARY_SECTION,
-  );
+  const sections =
+    shelves?.map(
+      shelf =>
+        ({
+          title: shelf.title,
+          contents: shelf.content?.key("items").array() || [],
+          endpoint: shelf.endpoint,
+        }) as YT_LIBRARY_SECTION,
+    ) ?? [];
 
   return {
     originalData: library,

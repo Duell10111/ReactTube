@@ -9,7 +9,7 @@ import {ElementData, YTChipCloud, YTChipCloudChip} from "@/extraction/Types";
 
 interface MusicSearchDetailsListProps {
   data: ElementData[];
-  header: YTChipCloud;
+  header?: YTChipCloud;
   onFetchMore?: () => void;
   onClose?: () => void;
   onClick?: (chip: YTChipCloudChip) => void;
@@ -36,12 +36,14 @@ export function MusicSearchDetailsList({
         contentInsetAdjustmentBehavior={"automatic"}
         onEndReached={onFetchMore}
         ListHeaderComponent={
-          <MusicSearchFilterHeader
-            data={header}
-            closeable
-            onClose={onClose}
-            onClick={onClick}
-          />
+          header ? (
+            <MusicSearchFilterHeader
+              data={header}
+              closeable
+              onClose={onClose}
+              onClick={onClick}
+            />
+          ) : undefined
         }
       />
       <MusicBottomPlayerBar />

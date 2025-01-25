@@ -12,6 +12,8 @@ import {
   getElementDataFromYTMusicPlaylist,
   getElementDataFromYTPlaylist,
 } from "@/extraction/YTElements";
+import useMusicLibrary from "@/hooks/music/useMusicLibrary";
+import {getMusicPlaylistDetails} from "@/hooks/music/useMusicPlaylistDetails";
 
 const LOGGER = Logger.extend("WATCH_YT_API");
 
@@ -105,42 +107,44 @@ interface YoutubeHomeResponseVideoItem {
 export async function handleWatchMessage(
   youtube: InnerTube,
   request: YoutubeAPIRequest,
+  // Data provider
+  musicLibrary: ReturnType<typeof useMusicLibrary>,
 ) {
   LOGGER.debug("Handle watch request: ", request);
   if (request.request === "video") {
-    const ytInfo = await youtube.getInfo(request.videoId, "IOS");
-    const info = getElementDataFromVideoInfo(ytInfo);
-    // TODO: Fetch from music endpoint?
+    const ytInfo = await youtube?.getInfo(request.videoId, "IOS");
+    if (youtube && ytInfo) {
+      const info = getElementDataFromVideoInfo(ytInfo);
+      // TODO: Fetch from music endpoint?
 
-    const format = ytInfo.chooseFormat({type: "audio"});
-    console.log("Format: ", format);
-    const streamURL = format.decipher(youtube.session.player);
-    const validUntil = Date.now() + 19800000; // 5,5 hours valid from now on.
-    console.log("Valid until: ", validUntil);
+      const format = ytInfo.chooseFormat({type: "audio"});
+      LOGGER.debug("Format: ", format);
+      const streamURL = format.decipher(youtube.session.player);
+      const validUntil = Date.now() + 19800000; // 5,5 hours valid from now on.
+      LOGGER.debug("Valid until: ", validUntil);
 
-    return toVideoResponse(
-      info,
-      streamURL,
-      ytInfo.streaming_data.hls_manifest_url,
-      validUntil,
-      format.approx_duration_ms,
-    );
+      return toVideoResponse(
+        info,
+        streamURL,
+        ytInfo.streaming_data!.hls_manifest_url!,
+        validUntil,
+        format.approx_duration_ms,
+      );
+    } else {
+      LOGGER.warn("No video info found or youtube uninitialized.");
+    }
   } else if (request.request === "playlist") {
-    const playlist = await youtube.music.getPlaylist(request.playlistId);
-    const ytPlaylist = await youtube.getPlaylist(request.playlistId);
-    const ytInfo = getElementDataFromYTPlaylist(ytPlaylist);
+    const playlist = await getMusicPlaylistDetails(request.playlistId, youtube);
     console.log("Playlist : ", playlist);
-    const pItems = parseObservedArray(playlist.items);
-    const videoIds = pItems.map(value => value.id);
-    console.log("VideoIDs : ", videoIds);
+    const videoIds = playlist.items?.map(value => value.id);
+    LOGGER.debug("VideoIDs : ", videoIds);
 
-    return toPlaylistResponse(ytInfo, request.playlistId);
-  } else if (request.request === "home") {
+    return toPlaylistResponse(playlist, request.playlistId);
+  } else if (request.request === "home" && youtube) {
     const home = await youtube.music.getHomeFeed();
-    const data = parseObservedArrayHorizontalData(home.sections);
-    // console.log("Filters: ", home.filters);
-    // console.log("Home: ", JSON.stringify(home.sections));
-    // const parsedData = parseObservedArrayHorizontalData(home.sections);
+    const data = home.sections
+      ? parseObservedArrayHorizontalData(home.sections)
+      : [];
     console.log("Parsed Home: ", data);
 
     const sections = await Promise.all(
@@ -164,35 +168,49 @@ export async function handleWatchMessage(
       sections,
     } as YoutubeHomeResponse;
   } else if (request.request === "library-playlists") {
-    const lib = await youtube.music.getLibrary();
-    // const recap = await youtube.music.getRecap();
-    const contents = gridCalculatorExtract(lib.contents[0], 3);
-    console.log("Contents: ", contents);
-    const playlistData = contents
-      .map(v => (Array.isArray(v) ? v : v.parsedData))
-      .flat()
-      .filter(v => v.type === "playlist");
-    console.log("Playlists: ", playlistData);
-    const libraryPlaylists = (
-      await Promise.all(
-        playlistData.map(async playlist => {
-          const p = await youtube.music.getPlaylist(playlist.id);
-          const data = getElementDataFromYTMusicPlaylist(p);
-          data.title = playlist.title;
-          data.thumbnailImage = playlist.thumbnailImage;
-          console.log("Items: ", data.items);
-          const ids = data.items
-            .filter(v => v && v.type === "video")
-            .map(v => v.id);
-          // TODO: Create Playlist object which allows continuation, with caching?
-          if (ids.length > 0) {
-            return toPlaylistResponse(data, playlist.id);
-          }
-        }),
-      )
-    ).filter(v => v);
+    const playlistIds = musicLibrary.data
+      ?.filter(e => e.type === "playlist")
+      .map(playlist => playlist.id);
 
-    return libraryPlaylists;
+    if (playlistIds) {
+      const libraryResponses = await Promise.all(
+        playlistIds.map(async id => {
+          const p = await getMusicPlaylistDetails(id, youtube);
+          return toPlaylistResponse(p, id);
+        }),
+      );
+      return libraryResponses;
+    }
+
+    // const lib = await youtube.music.getLibrary();
+    // // const recap = await youtube.music.getRecap();
+    // const contents = gridCalculatorExtract(lib.contents[0], 3);
+    // console.log("Contents: ", contents);
+    // const playlistData = contents
+    //   .map(v => (Array.isArray(v) ? v : v.parsedData))
+    //   .flat()
+    //   .filter(v => v.type === "playlist");
+    // console.log("Playlists: ", playlistData);
+    // const libraryPlaylists = (
+    //   await Promise.all(
+    //     playlistData.map(async playlist => {
+    //       const p = await youtube.music.getPlaylist(playlist.id);
+    //       const data = getElementDataFromYTMusicPlaylist(p);
+    //       data.title = playlist.title;
+    //       data.thumbnailImage = playlist.thumbnailImage;
+    //       console.log("Items: ", data.items);
+    //       const ids = data.items
+    //         .filter(v => v && v.type === "video")
+    //         .map(v => v.id);
+    //       // TODO: Create Playlist object which allows continuation, with caching?
+    //       if (ids.length > 0) {
+    //         return toPlaylistResponse(data, playlist.id);
+    //       }
+    //     }),
+    //   )
+    // ).filter(v => v);
+    //
+    // return libraryPlaylists;
   }
 }
 
@@ -209,7 +227,7 @@ function toVideoResponse(
     type: "videoResponse",
     id: videoInfo.id,
     title: videoInfo.title,
-    artist: videoInfo.author.name,
+    artist: videoInfo.author?.name ?? "Unknown artist",
     duration: duration_ms,
     coverUrl: videoInfo.thumbnailImage.url,
     streamURL,
@@ -248,7 +266,7 @@ async function toHomeResponse(
   elementData: ElementData,
   temp?: boolean,
 ) {
-  if (elementData.type === "playlist") {
+  if (elementData.type === "playlist" && youtube) {
     const ytPlaylist = await youtube.getPlaylist(elementData.id);
     const pItems = parseObservedArray(ytPlaylist.items);
     const videoIds = pItems.map(value => value.id);

@@ -57,6 +57,7 @@ export default function Drawer({open, onOpen, onClose}: Props) {
           onFocus={() => onOpen()}
           start
           onPress={navigationWrapper(() =>
+            // @ts-ignore
             navigation.navigate("Home", {screen: "HomeFeed"}),
           )}
           open={open}
@@ -66,6 +67,7 @@ export default function Drawer({open, onOpen, onClose}: Props) {
           title={"Trending"}
           onFocus={() => onOpen()}
           onPress={navigationWrapper(() =>
+            // @ts-ignore
             navigation.navigate("Home", {screen: "TrendingScreen"}),
           )}
           open={open}

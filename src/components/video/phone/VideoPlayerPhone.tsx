@@ -1,5 +1,5 @@
 import React, {forwardRef} from "react";
-import {ViewStyle} from "react-native";
+import {Platform, ViewStyle} from "react-native";
 import {VideoRef} from "react-native-video";
 
 import VideoWrapper from "@/components/corner-video/components/VideoWrapper";
@@ -25,11 +25,13 @@ export const VideoPlayerPhone = forwardRef<VideoRef, VideoPlayerPhoneProps>(
           right: 7,
         }}
         videoProps={{
+          // @ts-ignore
           source: {uri: sourceURL},
           resizeMode: "contain",
           controls: true,
-          playInBackground: true,
-          pictureInPicture: true,
+          // TODO: Check if working correctly on android and ios
+          playInBackground: Platform.OS === "android",
+          pictureInPicture: Platform.OS === "ios",
           ignoreSilentSwitch: "ignore",
         }}
         onPress={onPipPress}

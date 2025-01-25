@@ -1,9 +1,9 @@
 import {useEffect, useState} from "react";
 
-import {useYoutubeContext} from "../../context/YoutubeContext";
-import {parseObservedArrayHorizontalData} from "../../extraction/ArrayExtraction";
-import {HorizontalData} from "../../extraction/ShelfExtraction";
-import {YTNodes} from "../../utils/Youtube";
+import {useYoutubeContext} from "@/context/YoutubeContext";
+import {parseObservedArrayHorizontalData} from "@/extraction/ArrayExtraction";
+import {HorizontalData} from "@/extraction/ShelfExtraction";
+import {YTNodes} from "@/utils/Youtube";
 
 export default function useMusicRelatedInfo(videoId: string) {
   const youtube = useYoutubeContext();
@@ -11,7 +11,7 @@ export default function useMusicRelatedInfo(videoId: string) {
   const [message, setMessage] = useState<string>();
 
   useEffect(() => {
-    youtube.music.getRelated(videoId).then(data => {
+    youtube?.music?.getRelated(videoId).then(data => {
       console.log("Original Related: ", data);
       if (data.is(YTNodes.Message)) {
         setMessage(data.text.text);

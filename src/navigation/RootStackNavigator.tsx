@@ -18,6 +18,7 @@ import SearchScreen from "@/screens/SearchScreen";
 import TrendingScreen from "@/screens/TrendingScreen";
 import VideoScreen from "@/screens/VideoScreen";
 import {ActiveDownloadScreen} from "@/screens/phone/ActiveDownloadScreen";
+import {ActiveUploadScreen} from "@/screens/phone/ActiveUploadScreen";
 import {DownloadPlayer} from "@/screens/phone/DownloadPlayer";
 import {MusicAlbumScreen} from "@/screens/phone/MusicAlbumScreen";
 import {MusicChannelScreen} from "@/screens/phone/MusicChannelScreen";
@@ -46,6 +47,7 @@ export type RootStackParamList = {
   LoginScreen: undefined;
   // Downloads
   ActiveDownloadScreen: undefined;
+  ActiveUploadScreen: undefined;
   DownloadPlayer: {id: string};
   // Music Screens
   MusicPlaylistScreen: {playlistId: string};
@@ -116,6 +118,11 @@ export default function RootStackNavigator() {
             name={"ActiveDownloadScreen"}
             component={ActiveDownloadScreen}
             options={{headerTitle: "Active Downloads"}}
+          />
+          <Stack.Screen
+            name={"ActiveUploadScreen"}
+            component={ActiveUploadScreen}
+            options={{headerTitle: "Active Uploads"}}
           />
           <Stack.Screen
             name={"DownloadPlayer"}

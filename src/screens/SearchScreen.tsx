@@ -91,6 +91,7 @@ export default function SearchScreen() {
           headerIconColor: "white",
           hintTextColor: "white",
           hideWhenScrolling: false,
+          // @ts-ignore
           ref: searchBarRef,
           onOpen: () => setSearchBarOpen(true),
           onFocus: () => setSearchBarOpen(true),
@@ -119,7 +120,7 @@ export default function SearchScreen() {
       <SearchBarSuggestions
         suggestions={hints}
         onSuggestionClick={text => {
-          searchBarRef.current.setText(text);
+          searchBarRef.current?.setText(text);
           searchBarRef.current?.blur();
           performSearch(text);
         }}

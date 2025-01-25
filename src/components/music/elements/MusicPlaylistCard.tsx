@@ -25,6 +25,7 @@ export function MusicPlaylistCard({data, style}: MusicPlaylistCardProps) {
     const routeName =
       data.type === "album" ? "MusicAlbumScreen" : "MusicPlaylistScreen";
     if (route.name === routeName) {
+      // @ts-ignore TODO: fix
       navigation.replace(routeName, {playlistId: data.id, albumId: data.id});
     } else {
       // @ts-ignore As Unknown Parameter is not used

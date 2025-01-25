@@ -56,9 +56,8 @@ export function PlaylistManagerContext({
   const contextValue: PlaylistManagerContextType = {
     save: vIDs => {
       setVideoIDs(vIDs);
-      bottomSheetModalRef.current.present();
-      bottomSheetModalRef.current.snapToIndex(0);
-      console.log("SAVE: ", videoIDs);
+      bottomSheetModalRef.current?.present();
+      bottomSheetModalRef.current?.snapToIndex(0);
       fetchPlaylists().catch(LOGGER.warn);
     },
   };
@@ -83,6 +82,7 @@ export function PlaylistManagerContext({
         <>
           {children}
           <BottomSheetModal
+            // @ts-ignore
             ref={bottomSheetModalRef}
             index={0}
             snapPoints={snapPoints}
@@ -99,10 +99,10 @@ export function PlaylistManagerContext({
                 />
               ) : (
                 <PlaylistManagerList
-                  data={playlists}
+                  data={playlists ?? []}
                   onPress={data =>
                     saveVideoToPlaylist(videoIDs, data.id)
-                      .then(() => bottomSheetModalRef.current.close())
+                      .then(() => bottomSheetModalRef.current?.close())
                       .then(console.warn)
                   }
                 />

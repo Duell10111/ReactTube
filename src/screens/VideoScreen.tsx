@@ -44,6 +44,7 @@ export default function VideoScreen({route, navigation}: Props) {
   const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(
     navEndpoint ?? videoId,
   );
+  // @ts-ignore TODO: fix
   const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id);
   const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
   const [showEndCard, setShowEndCard] = useState(false);
@@ -63,7 +64,7 @@ export default function VideoScreen({route, navigation}: Props) {
   useEffect(() => {
     return navigation.addListener("blur", () => {
       setShowEndCard(false);
-      videoPlayerRef.current.pause();
+      videoPlayerRef.current?.pause();
     });
   }, [navigation]);
 
@@ -128,7 +129,7 @@ export default function VideoScreen({route, navigation}: Props) {
     return (
       <ErrorComponent
         text={
-          YTVideoInfo.originalData.playability_status.reason ??
+          YTVideoInfo.originalData.playability_status?.reason ??
           "Video source is not available"
         }
       />
@@ -140,6 +141,7 @@ export default function VideoScreen({route, navigation}: Props) {
       {appSettings.ownOverlayEnabled || appSettings.vlcEnabled ? (
         // TODO: Add VLC VideoComponent, once VLC Player is not broken anymore on XCode 16
         <VideoPlayer
+          // @ts-ignore Ignore mutable ref issue
           ref={videoPlayerRef}
           // @ts-ignore
           VideoComponent={VideoPlayerNative}
@@ -153,16 +155,18 @@ export default function VideoScreen({route, navigation}: Props) {
           }}
           metadata={{
             title: YTVideoInfo.title,
-            author: YTVideoInfo.author?.name,
-            authorID: YTVideoInfo.channel_id,
+            author: YTVideoInfo.author?.name ?? "Unknwon",
+            authorID: YTVideoInfo.channel_id ?? "",
+            // @ts-ignore TODO: Allow videos without author Thumbnail?!
             authorThumbnailUrl:
               YTVideoInfo.channel?.url ?? parsedChannel?.thumbnail?.url,
             onAuthorPress: () =>
+              YTVideoInfo.channel_id &&
               navigation.navigate("ChannelScreen", {
                 channelId: YTVideoInfo.channel_id,
               }),
-            views: YTVideoInfo.short_views,
-            videoDate: YTVideoInfo.publishDate,
+            views: YTVideoInfo.short_views ?? "Unknown views",
+            videoDate: YTVideoInfo.publishDate ?? "Unknown",
           }}
           videoID={YTVideoInfo.id}
           onEnd={() => {

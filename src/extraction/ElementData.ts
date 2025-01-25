@@ -322,8 +322,10 @@ export function getVideoData(
   // Lookup Views
   else if (ytNode.is(YTNodes.LockupView)) {
     const image = ytNode.content_image?.is(YTNodes.CollectionThumbnailView)
-      ? getThumbnail(ytNode.content_image.primary_thumbnail.image[0])
-      : getThumbnail(ytNode.content_image.image[0]);
+      ? // @ts-ignore TODO: fix
+        getThumbnail(ytNode.content_image.primary_thumbnail.image[0])
+      : // @ts-ignore TODO: fix
+        getThumbnail(ytNode.content_image.image[0]);
     if (ytNode.content_type === "PLAYLIST") {
       return {
         type: "playlist",
@@ -352,7 +354,7 @@ export function getVideoData(
         id: ytNode.content_id,
         thumbnailImage: image,
         title: ytNode.metadata?.title?.text,
-        navEndpoint: ytNode.on_tap_endpoint,
+        navEndpoint: ytNode.renderer_context.command_context.on_tap,
       } as VideoData;
     } else {
       LOGGER.warn(
