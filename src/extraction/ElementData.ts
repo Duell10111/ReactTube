@@ -354,7 +354,7 @@ export function getVideoData(
         id: ytNode.content_id,
         thumbnailImage: image,
         title: ytNode.metadata?.title?.text,
-        navEndpoint: ytNode.on_tap_endpoint,
+        navEndpoint: ytNode.renderer_context.command_context.on_tap,
       } as VideoData;
     } else {
       LOGGER.warn(
