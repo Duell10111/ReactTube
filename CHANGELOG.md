@@ -1,3 +1,14 @@
+## [0.1.3](https://github.com/Duell10111/ReactTube/compare/v0.1.2...v0.1.3) (2025-01-25)
+
+### :repeat: CI
+
+* do not skip ci on release ([52cbf12](https://github.com/Duell10111/ReactTube/commit/52cbf1262139eb33aa142244e5382c8fa7007714))
+
+### Minor changes
+
+* adapt styles and fix some small issues with small improvements, further update some libraries ([#34](https://github.com/Duell10111/ReactTube/issues/34)) ([2cbf046](https://github.com/Duell10111/ReactTube/commit/2cbf0464f8fc426bbc0687adf50546e127043cac))
+* switch to released yti.js v13 version and some minor fixes including new watch playing info for phone plays ([#37](https://github.com/Duell10111/ReactTube/issues/37)) ([25990a3](https://github.com/Duell10111/ReactTube/commit/25990a351244c417f49faa6ff026effc581fca35))
+
 ## [0.1.2](https://github.com/Duell10111/ReactTube/compare/v0.1.1...v0.1.2) (2024-10-19)
 
 ### Minor changes
