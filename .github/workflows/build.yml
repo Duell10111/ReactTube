@@ -35,8 +35,8 @@ jobs:
           name: tvos_ipa
           path: ios/*.ipa
       - name: Upload IPA to Release
-        if: ${{ github.event_name == 'release' }}
-        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         with:
           files: ios/*.ipa
 #  build_ios_without_signing_phone: # Disabled as the compile phase throws an error
@@ -99,8 +99,8 @@ jobs:
         with:
           name: android_phone_apk
           path: android/app/build/outputs/apk/release/*.apk
-      - name: Upload IPA to Release
-        if: ${{ github.event_name == 'release' }}
-        uses: softprops/action-gh-release@v1
+      - name: Upload APK to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         with:
           files: android/app/build/outputs/apk/release/*.apk
