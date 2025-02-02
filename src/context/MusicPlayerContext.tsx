@@ -71,6 +71,7 @@ interface MusicPlayerContextType {
   };
   fetchMorePlaylistData: () => void;
   fetchMoreAutomixPlaylistData: () => void;
+  addAsNextItem: (item: VideoData) => void;
 }
 
 const events = [
@@ -494,6 +495,36 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     return onEndReached();
   };
 
+  const addAsNextItem = useCallback(
+    (videoData: VideoData) => {
+      const playlistItem: YTPlaylistPanelItem = {
+        ...videoData,
+        selected: false,
+      };
+
+      setPlaylist(prevState => {
+        // Fallback for typechecks
+        if (!prevState) {
+          return undefined;
+        }
+        // Delete previous variants of this item if already present in the playlist to probit duplicate entries
+        const playlistItems = prevState.items.filter(
+          v => v.id !== playlistItem.id,
+        );
+
+        const currentIndex = playlistItems.findIndex(
+          item => item.id === currentVideoData?.id,
+        );
+
+        return {
+          ...prevState,
+          items: playlistItems.toSpliced(currentIndex + 1, 0, playlistItem),
+        };
+      });
+    },
+    [setPlaylist, currentVideoData],
+  );
+
   return (
     <MusicPlayerCtx.Provider
       value={{
@@ -519,6 +550,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         automix,
         setAutomix,
         automixPlaylist,
+        addAsNextItem,
       }}>
       {children}
     </MusicPlayerCtx.Provider>
