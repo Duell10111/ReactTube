@@ -18,7 +18,7 @@ export function MusicSearchListItem({data}: MusicSearchListItemProps) {
   const {style} = useAppStyle();
   const {navigate, push} = useNavigation<RootNavProp>();
 
-  const {setCurrentItem} = useMusikPlayerContext();
+  const {setCurrentItem, addAsNextItem} = useMusikPlayerContext();
   const {save} = usePlaylistManagerContext();
   const {download} = useDownloaderContext();
 
@@ -91,6 +91,14 @@ export function MusicSearchListItem({data}: MusicSearchListItemProps) {
                 }}
                 title={"Download"}
                 leadingIcon={"download"}
+              />
+              <Menu.Item
+                onPress={() => {
+                  setShowMenu(false);
+                  addAsNextItem(data);
+                }}
+                title={"Add as next item"}
+                leadingIcon={"playlist-play"}
               />
             </>
           ) : null}
