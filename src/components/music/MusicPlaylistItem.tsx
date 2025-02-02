@@ -30,7 +30,7 @@ export function MusicPlaylistItem({
   // const originalItem = data.originalNode.as(YTNodes.MusicResponsiveListItem);
   // console.log("ORG: ", originalItem.overlay.content.endpoint);
 
-  const {setCurrentItem} = useMusikPlayerContext();
+  const {setCurrentItem, addAsNextItem} = useMusikPlayerContext();
   const {save} = usePlaylistManagerContext();
   const {download} = useDownloaderContext();
 
@@ -103,6 +103,14 @@ export function MusicPlaylistItem({
             }}
             title={"Add to Playlist"}
             leadingIcon={"playlist-plus"}
+          />
+          <Menu.Item
+            onPress={() => {
+              setShowMenu(false);
+              addAsNextItem(data);
+            }}
+            title={"Add as next item"}
+            leadingIcon={"playlist-play"}
           />
           <Menu.Item
             onPress={() => {
