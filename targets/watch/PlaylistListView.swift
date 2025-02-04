@@ -48,6 +48,13 @@ struct PlaylistListView: View {
                 ProgressView(value: videoDownload)  { Text("\(formatter.string(from: NSNumber(value: videoDownload)) ?? String(videoDownload))  progress").font(.system(size: 12)) }
               }
             }
+          }.swipeActions {
+            Button {
+              DownloadManager.shared.downloadVideo(video: video)
+            } label: {
+              Label("Download", systemImage: "arrow.down")
+            }
+            .tint(.blue)
           }
         }
       }
