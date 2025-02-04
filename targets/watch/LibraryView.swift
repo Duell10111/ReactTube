@@ -15,6 +15,9 @@ struct LibraryView: View {
       }
       NavigationLink("Videos") {
         LibraryVideos()
+      }
+      NavigationLink("Downloaded") {
+        LibraryDownloadedVideos()
       }.toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           NavigationLink(destination: MusikPlayer()) {
@@ -100,49 +103,12 @@ struct LibraryVideos: View {
   @Environment(DownloadManager.self) private var downloadManager: DownloadManager
   @Query(sort: \Video.title, order: .reverse) var videos: [Video]
   
-  let formatter: NumberFormatter = {
-          let formatter = NumberFormatter()
-          formatter.numberStyle = .percent
-          formatter.minimumIntegerDigits = 1
-          formatter.maximumIntegerDigits = 1
-          formatter.maximumFractionDigits = 2
-          formatter.minimumFractionDigits = 2
-          return formatter
-  }()
-  
   var body: some View {
     List {
       ForEach(videos, id: \.id) { video in
         VStack {
-          Button {
+          MusicListItemView(video: video) {
             musicPlayerManager.updatePlaylist(newPlaylist: [video])
-          } label: {
-            VStack {
-              HStack {
-                Text(video.title ?? "Empty title")
-                if let validUntil = video.validUntil, validUntil < Date() && video.downloaded != true {
-                  Spacer()
-                  Image(systemName: "clock.badge.exclamationmark")
-                    .foregroundColor(.red)
-                }
-              }
-              if video.downloaded {
-                HStack {
-                  Label("Downloaded", systemImage: "arrow.down.circle")
-                }
-              }
-              if let videoDownload = downloadManager.progressDownloads[video.id] {
-                ProgressView(value: videoDownload)  { Text("\(formatter.string(from: NSNumber(value: videoDownload)) ?? String(videoDownload))  progress").font(.system(size: 12)) }
-              }
-            }
-          }
-          .swipeActions {
-            Button {
-              DownloadManager.shared.downloadVideo(video: video)
-            } label: {
-              Label("Download", systemImage: "arrow.down")
-            }
-            .tint(.blue)
           }
         }
       }
@@ -158,5 +124,36 @@ struct LibraryVideos: View {
 
 #Preview {
     LibraryView()
+    .modelContext(DataController.previewContainer.mainContext)
+}
+
+struct LibraryDownloadedVideos: View {
+  @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
+  @Environment(DownloadManager.self) private var downloadManager: DownloadManager
+  @Query(filter: #Predicate<Video> { video in
+    video.downloaded == true
+  }, sort: \Video.title, order: .reverse) var videos: [Video]
+  
+  var body: some View {
+    List {
+      ForEach(Array(videos.enumerated()), id: \.element.id) { index, video in
+        VStack {
+          MusicListItemView(video: video) {
+            musicPlayerManager.updatePlaylist(newPlaylist: Array(videos[index...]))
+          }
+        }
+      }
+    }.toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        NavigationLink(destination: MusikPlayer()) {
+            Label("Music", systemImage: "music.note.list")
+          }
+      }
+    }
+  }
+}
+
+#Preview {
+    LibraryDownloadedVideos()
     .modelContext(DataController.previewContainer.mainContext)
 }

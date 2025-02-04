@@ -31,7 +31,7 @@ class DataController {
   init(inMemory: Bool = false) {
     do {
         let config = ModelConfiguration(isStoredInMemoryOnly: false)
-      let container = try ModelContainer(for: Video.self, Playlist.self, HomeScreenSection.self, HomeScreenElement.self, configurations: config)
+        let container = try ModelContainer(for: Video.self, Playlist.self, HomeScreenSection.self, HomeScreenElement.self, configurations: config)
 
         self.container = container
     } catch {

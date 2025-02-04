@@ -61,7 +61,7 @@ class DownloadManager {
         }
         self.progressDownloads.removeValue(forKey: video.id)
       }
-//      activeDownloads.append(ActiveDownload(id: video.id, session: downloadTask))
+      activeDownloads.append(ActiveDownload(id: video.id))
     } else {
       print("Video metadata not available needed for Download")
     }
@@ -72,7 +72,7 @@ class DownloadManager {
       print("Checking downloads...")
       
       for video in pendingDownloads {
-        while pendingDownloads.count > 4 {
+        while activeDownloads.count > 4 {
           do {
             print("More than 4 downloads active. Sleeping...")
             try await Task.sleep(nanoseconds: 60_000_000_000)
@@ -94,5 +94,5 @@ class DownloadManager {
 
 struct ActiveDownload {
   var id: String
-  var session: URLSessionDownloadTask
+  //var session: URLSessionDownloadTask
 }
