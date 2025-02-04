@@ -53,6 +53,9 @@ class MusicPlayerManager {
 
     // TODO: Put into setupPlayer?
     self.setupPlayer()
+    
+    // Play music after setup
+    self.playMusic()
   }
 
   func updatePlaylist(playlist: Playlist, index: Int? = nil) {
@@ -72,6 +75,9 @@ class MusicPlayerManager {
           print("Error jumping to init index: \(error)")
         }
       }
+      
+      // Start playing after setup
+      self.playMusic()
     }
   }
 
@@ -171,7 +177,7 @@ class MusicPlayerManager {
           lastIndex: Int?,
           lastPosition: Double?
   ) {
-    print("Current item change: \(item?.getTitle())")
+    print("Current item change: \(item?.getTitle() ?? "nil")")
     currentTitle = item?.getTitle() ?? "Unknown Title"
     if let i = index {
       currentTrackIndex = i
