@@ -47,6 +47,7 @@ final class Playlist {
     }
 }
 
+// TODO: Not used atm?!
 @Model
 final class HomeScreenSection {
     @Attribute(.unique) var uuid: String
