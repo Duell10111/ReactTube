@@ -15,59 +15,55 @@ struct MusikPlayer: View {
     var body: some View {
       @Bindable var musicManager = musicManager
       ZStack {
-        VStack {
-          // Causes app crashes if switching too fast :/
-          if let cover = musicManager.currentCover, false {
-              AsyncImage(url: cover) { image in
-                image
-                  .resizable()
-                  .scaledToFit()
-              } placeholder: {
-                  Color.gray
-              }
-                  .frame(width: 100, height: 100)
-                  .cornerRadius(8)
-                  .padding()
-          } else {
-              Image(systemName: "music.note")
-                  .resizable()
-                  .scaledToFit()
-                  .frame(width: 100, height: 100)
-                  .cornerRadius(8)
-                  .padding()
-          }
-
-          Text(musicManager.currentTitle)
-            .font(.footnote)
-            .padding()
-
-          HStack {
-              Button(action: {
-                  musicManager.previousTrack()
-              }) {
-                  Image(systemName: "backward.fill")
+        GeometryReader { geometry in
+          VStack(alignment: .center, spacing: 0) {
+            VStack(spacing: 0) {
+              // Causes app crashes if switching too fast :/
+              if let cover = musicManager.currentCover, false {
+                  AsyncImage(url: cover) { image in
+                    image
                       .resizable()
-                      .frame(width: 30, height: 30)
-              }.frame(width: 50, height: 50)
-
-              Button(action: {
-                  if musicManager.isPlaying {
-                      musicManager.pauseMusic()
-                  } else {
-                      musicManager.playMusic()
+                      .scaledToFit()
+                  } placeholder: {
+                      Color.gray
                   }
-              }) {
-                PlayButton()
-              }
-              .frame(width: 50, height: 50)
-
-              Button(action: {
-                  musicManager.nextTrack()
-              }) {
-                  Image(systemName: "forward.fill")
+                      .scaledToFit()
+                      .cornerRadius(8)
+                      .padding()
+              } else {
+                  Image(systemName: "music.note")
                       .resizable()
-                      .frame(width: 30, height: 30)
-              }.frame(width: 50, height: 50)
+                      .scaledToFit()
+                      .cornerRadius(8)
+                      .padding()
+              }
+
+              Text(musicManager.currentTitle)
+                .font(.footnote)
+                .padding()
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height * 2/3)
+
+            HStack {
+                ActionButton(systemName: "backward.fill") {
+                  musicManager.previousTrack()
+                  print("Previous Track")
+                }
+
+                Button(action: {
+                    if musicManager.isPlaying {
+                        musicManager.pauseMusic()
+                    } else {
+                        musicManager.playMusic()
+                    }
+                }) {
+                  PlayButton()
+                }.buttonStyle(.plain)
+
+                ActionButton(systemName: "forward.fill") {
+                  musicManager.nextTrack()
+                }
+            }
           }
         }
         HStack(alignment: .center, spacing: 0) {
@@ -107,18 +103,39 @@ struct PlayButton: View {
   @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
   
   var body: some View {
-    ZStack {
-      Circle()
-        .fill(Color.white)
-        .frame(width: 45, height: 45)
-      Circle()
-        .stroke(lineWidth: 5)
-        .foregroundColor(!musicManager.isStalled ? .white : .blue)
-        .animation(musicManager.isStalled ? .easeInOut(duration: 1).repeatForever() : .smooth, value: musicManager.isStalled)
-        .frame(width: 45, height: 45)
-      Image(systemName: musicManager.isPlaying ? "pause.fill" : "play.fill")
-        .foregroundColor(.black)
-        .font(.system(size: 24))
+    GeometryReader { geometry in
+      let size = min(geometry.size.width, geometry.size.height)
+      
+      ZStack {
+        Circle()
+          .fill(Color.white)
+        Circle()
+          .stroke(lineWidth: size * 0.1)
+          .foregroundColor(!musicManager.isStalled ? .white : .blue)
+          .animation(musicManager.isStalled ? .easeInOut(duration: 1).repeatForever() : .smooth, value: musicManager.isStalled)
+        Image(systemName: musicManager.isPlaying ? "pause.fill" : "play.fill")
+          .resizable()
+          .scaledToFit()
+          .padding(size * 0.2)
+          .foregroundColor(.black)
+      }
     }
+    .aspectRatio(1, contentMode: .fit)
+  }
+}
+
+struct ActionButton: View {
+  var systemName: String
+  var clicked: () -> Void
+  
+  var body: some View {
+    Button(action: {
+        clicked()
+    }) {
+        Image(systemName: systemName)
+            .resizable()
+            .scaledToFit()
+            .padding(1)
+    }.aspectRatio(1, contentMode: .fit)
   }
 }

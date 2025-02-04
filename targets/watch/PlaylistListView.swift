@@ -25,29 +25,9 @@ struct PlaylistListView: View {
     var body: some View {
       List {
         ForEach(Array(playlist.videos.enumerated()), id: \.element) { index, video in
-          Button {
+          MusicListItemView(video: video) {
             print("Playlist: ", playlist.videoIDs)
             musicPlayerManager.updatePlaylist(playlist: playlist, index: index)
-          } label: {
-            VStack {
-              HStack {
-                Text(video.title ?? "Unknown title")
-                  .foregroundStyle(video.downloaded == true ? .blue : .primary)
-                if let validUntil = video.validUntil, validUntil < Date() && video.downloaded != true {
-                  Spacer()
-                  Image(systemName: "clock.badge.exclamationmark")
-                    .foregroundColor(.red)
-                }
-              }
-              if video.downloaded {
-                HStack {
-                  Label("Downloaded", systemImage: "arrow.down.circle")
-                }
-              }
-              if let videoDownload = downloadManager.progressDownloads[video.id] {
-                ProgressView(value: videoDownload)  { Text("\(formatter.string(from: NSNumber(value: videoDownload)) ?? String(videoDownload))  progress").font(.system(size: 12)) }
-              }
-            }
           }
         }
       }

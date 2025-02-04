@@ -137,7 +137,10 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
       }
     }
 
-
+    // Save unsaved changes on download finish
+    if modelContext.hasChanges {
+      try modelContext.save()
+    }
   } catch {
     print("Error inserting Download Data: \(error)")
   }
