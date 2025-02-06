@@ -72,7 +72,7 @@ class MusicPlayerManager {
         do {
           try self.player?.jumpToItem(atIndex: index)
         } catch {
-          print("Error jumping to init index: \(error)")
+          print("Error jumping to init index \(index): \(error)")
         }
       }
       

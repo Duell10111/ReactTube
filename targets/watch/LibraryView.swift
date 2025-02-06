@@ -10,14 +10,16 @@ import SwiftData
 
 struct LibraryView: View {
     var body: some View {
-      NavigationLink("Playlists") {
-        LibraryPlaylists()
-      }
-      NavigationLink("Videos") {
-        LibraryVideos()
-      }
-      NavigationLink("Downloaded") {
-        LibraryDownloadedVideos()
+      List {
+        NavigationLink("Playlists") {
+          LibraryPlaylists()
+        }
+        NavigationLink("Videos") {
+          LibraryVideos()
+        }
+        NavigationLink("Downloaded") {
+          LibraryDownloadedVideos()
+        }
       }.toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           NavigationLink(destination: MusikPlayer()) {
