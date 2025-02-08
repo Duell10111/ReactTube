@@ -44,6 +44,7 @@ export default function useWatchSync() {
   }, []);
 
   useEffect(() => {
+    // TODO: Add check if app is installed/paired
     const update: WatchApplicationContext = {};
     update["source"] = "phone";
     console.log("Used current item", currentItem);
