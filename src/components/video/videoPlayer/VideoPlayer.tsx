@@ -340,7 +340,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       duration,
       currentTime,
       setSeekerPosition,
-      seekerWidth: seekerFillWidth,
+      seekerWidth,
       seeking,
       clearControlTimeout: () => {},
       enabled: seekerFocus,
