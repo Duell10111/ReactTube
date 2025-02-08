@@ -18,7 +18,7 @@ export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
 
   const selectedItem = useMemo(
     () => playlist?.items?.findIndex(item => item.id === currentItem?.id),
-    [currentItem?.id],
+    [currentItem?.id, playlist],
   );
 
   const renderItem = useCallback<ListRenderItem<YTPlaylistPanelItem>>(
