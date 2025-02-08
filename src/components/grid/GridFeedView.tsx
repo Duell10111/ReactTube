@@ -51,18 +51,11 @@ export default function GridFeedView({
         />
       );
     }
-    return (
-      // <View style={{height: 50, width: 200, backgroundColor: "yellow"}} />
-      // <VideoSegment
-      //   element={item.item as ElementData}
-      //   // textStyle={textStyle}
-      //   style={{
-      //     maxWidth: 100,
-      //     marginHorizontal: 5,
-      //   }}
-      // />
-      <ElementCard element={item.item as ElementData} width={"100%"} />
-    );
+    return <ElementCard element={item.item as ElementData} width={"100%"} />;
+  }, []);
+
+  const keyExtractor = useCallback((item: GridDataItem, index: number) => {
+    return item.item.id;
   }, []);
 
   return (
@@ -77,6 +70,7 @@ export default function GridFeedView({
       }}
       data={data}
       renderItem={renderItem}
+      keyExtractor={keyExtractor}
       itemDimension={500}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
