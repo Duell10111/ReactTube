@@ -1,3 +1,4 @@
+import _ from "lodash";
 import React, {
   createContext,
   useCallback,
@@ -56,6 +57,9 @@ interface MusicPlayerContextType {
   automix: boolean;
   setAutomix: (automix: boolean) => void;
   automixPlaylist?: YTPlaylistPanel;
+  // Player options
+  shuffle: boolean;
+  setShuffle: (shuffle: boolean) => void;
   // Play Functions
   currentTime: SharedValue<number>;
   duration: SharedValue<number>;
@@ -111,6 +115,11 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const [automix, setAutomix] = useState(false);
   const [automixPlaylist, setAutomixPlaylist] = useState<YTPlaylistPanel>();
   const automixPlaylistContinuation = useRef<YTPlaylistPanelContinuation>();
+  // Player options
+  // TODO: Replace with reducer fkt?
+  const [shuffle, setShuffle] = useState(false);
+  const shuffleBackup = useRef<YTPlaylistPanelItem[]>();
+  // TODO: Add repeat all, one in the future here
 
   useTrackPlayerEvents(events, event => {
     if (event.type === Event.PlaybackError) {
@@ -202,7 +211,32 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     }
   }, [automix, automixPlaylist]);
 
+  useEffect(() => {
+    setPlaylist(prevState => {
+      if (!prevState) {
+        return undefined;
+      }
+      if (shuffle) {
+        shuffleBackup.current = prevState.items;
+      }
+      const currentIndex = prevState.items.findIndex(
+        item => item.id === currentVideoData?.id,
+      );
+
+      return {
+        ...prevState,
+        items: shuffle
+          ? [
+              ...prevState.items.slice(0, currentIndex + 1),
+              ..._.shuffle(prevState.items.slice(currentIndex + 1)),
+            ]
+          : (shuffleBackup.current ?? []),
+      };
+    });
+  }, [shuffle]);
+
   const fetchUpNextPlaylist = (curVideoData: YTTrackInfo) => {
+    // TODO: Add shuffle support by shuffle if enabled beforehand
     if (curVideoData.localPlaylistId) {
       LOGGER.debug("Fetching local up next playlist");
       getUpNextForVideoWithPlaylist(
@@ -247,6 +281,11 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       const newItems = parsedData.items.filter(item => {
         return playlist.items.findIndex(i => i.id === item.id) === -1;
       });
+
+      // Add new items to shuffle backup
+      if (shuffleBackup.current) {
+        shuffleBackup.current = [...shuffleBackup.current, ...newItems];
+      }
 
       setPlaylist({
         ...playlist,
@@ -404,8 +443,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     }
   };
 
-  // TODO: Maybe use useCallback to trigger update on automixPlaylist change?
   const onEndReached = useCallback(async () => {
+    // TODO: Add support for repeat all or one song
     if (playlist) {
       const currentIndex = playlist.items.findIndex(
         v => v.id === currentVideoData?.id,
@@ -529,6 +568,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     <MusicPlayerCtx.Provider
       value={{
         currentItem: currentVideoData,
+        // Update current playing item
         setCurrentItem: setCurrentPlaylist,
         setPlaylistViaEndpoint,
         setPlaylistViaLocalDownload,
@@ -536,17 +576,23 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         currentTime,
         playlist,
         playing,
+        // Actions
         play,
         pause,
         previous,
         next,
         seek,
+        // Playlist options
+        shuffle,
+        setShuffle,
         // @ts-ignore
         callbacks: {
           onEndReached,
         },
+        // Playlist fetch more
         fetchMorePlaylistData: fetchPlaylistDataWrapper,
         fetchMoreAutomixPlaylistData: fetchMoreUpNextAutomixPlaylist,
+        // Automix
         automix,
         setAutomix,
         automixPlaylist,
