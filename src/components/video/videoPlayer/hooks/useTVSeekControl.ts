@@ -29,7 +29,7 @@ export default function useTVSeekControl({
   setPause,
   enabled,
 }: TVSeekControlProps) {
-  const longPressInterval = useRef<NodeJS.Timer>();
+  const longPressTimeout = useRef<NodeJS.Timer>();
   const seekerPos = useRef<number>();
   const pressStartTime = useRef<number>();
 
@@ -37,7 +37,7 @@ export default function useTVSeekControl({
     return () => {
       console.log("Deinit useTVSeekControl");
       // @ts-ignore
-      clearInterval(longPressInterval.current);
+      clearTimeout(longPressTimeout.current);
     };
   }, []);
 
@@ -65,13 +65,10 @@ export default function useTVSeekControl({
     if (start) {
       seekerPos.current = seekerPosition;
       pressStartTime.current = new Date().getTime();
-      longPressInterval.current = setInterval(
-        () => longPressIntervalFkt(offset),
-        500,
-      );
+      setTimeout(() => longPressIntervalFkt(offset), 200);
     } else {
       // @ts-ignore
-      clearInterval(longPressInterval.current);
+      clearTimeout(longPressTimeout.current);
       const percent = seekerPosition / seekerWidth;
       console.log(
         `Seeker percent ${percent} - ${seekerPosition}/${seekerWidth}`,
@@ -85,15 +82,10 @@ export default function useTVSeekControl({
 
   function longPressIntervalFkt(offset: number) {
     const pressDuration = new Date().getTime() - (pressStartTime.current ?? 0);
-    // Not needed as the progress in seekbar based and not time based?
-    // if (pressDuration > 2000) {
-    //   // @ts-ignore
-    //   clearInterval(longPressInterval.current);
-    //   longPressInterval.current = setInterval(
-    //     () => longPressIntervalFkt(offset),
-    //     200,
-    //   );
-    // }
+    let timeoutInterval = 200;
+    if (pressDuration > 2000) {
+      timeoutInterval = 100;
+    }
     const skipForward = seekerWidth * 0.05;
     setSeeking(true);
     const newPosition =
@@ -101,6 +93,10 @@ export default function useTVSeekControl({
     console.log("New Position: ", newPosition);
     seekerPos.current = newPosition;
     setSeekerPosition(newPosition);
+    longPressTimeout.current = setTimeout(
+      () => longPressIntervalFkt(offset),
+      timeoutInterval,
+    );
   }
 
   useTVEventHandler(event => {
@@ -109,7 +105,7 @@ export default function useTVSeekControl({
     }
     if (!enabled) {
       // @ts-ignore
-      longPressInterval.current && clearInterval(longPressInterval.current);
+      longPressTimeout.current && clearTimeout(longPressTimeout.current);
       return;
     }
     if (event.eventType === "right" || event.eventType === "left") {
