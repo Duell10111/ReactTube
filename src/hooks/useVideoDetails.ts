@@ -36,13 +36,15 @@ export default function useVideoDetails(
 
   console.log("Starttime: ", startTime);
 
+  // TODO: Maybe replace with fkt in the future?
+  const [refresh, setRefresh] = useState<boolean>(false);
+
   useEffect(() => {
     const startTimeSeconds =
       typeof videoId !== "string"
         ? ((videoId.payload.startTimeSeconds as number) ?? passedStartSeconds)
         : passedStartSeconds;
     if (client === "TV") {
-      console.log("TV");
       Promise.all([
         tvYoutube?.tv?.getInfo(videoId, "TV"),
         youtube && appSettings.hlsEnabled
@@ -66,53 +68,38 @@ export default function useVideoDetails(
               parsedDataTV.expires = parsed.expires;
               parsedDataTV.playlist = parsedDataTV.playlist ?? parsed.playlist;
             }
-            setStartTime(startTimeSeconds);
             setVideoInfo(parsedDataTV);
             setWatchNextSections(parsedDataTV.watchNextSections);
             setWatchNextFeed(
               parsedDataTV.watchNextSections?.[parsedDataTV.playlist ? 1 : 0]
                 ?.parsedData,
             );
+          } else {
+            LOGGER.warn("No TVInfo available! This should never happen.");
           }
         })
         .catch(LOGGER.warn);
-      // tvYoutube?.tv
-      //   ?.getInfo(videoId, "TV")
-      //   .then(async info => {
-      //     videoTVRef.current = info;
-      //     console.log("Fetched TV");
-      //     const parsedDataTV = getElementDataFromTVVideoInfo(info);
-      //     if (youtube && appSettings.hlsEnabled) {
-      //       const infoNormal = await youtube.getInfo(videoId, "IOS");
-      //       console.log("infoNormal", infoNormal);
-      //       const parsed = getElementDataFromVideoInfo(infoNormal);
-      //       parsedDataTV.chapters = parsed.chapters;
-      //       parsedDataTV.hls_manifest_url = parsed.hls_manifest_url;
-      //       parsedDataTV.expires = parsed.expires;
-      //     }
-      //     setVideoInfo(parsedDataTV);
-      //     setWatchNextSections(parsedDataTV.watchNextSections);
-      //     setWatchNextFeed(
-      //       parsedDataTV.watchNextSections?.[parsedDataTV.playlist ? 1 : 0]
-      //         ?.parsedData,
-      //     );
-      //   })
-      //   .catch(LOGGER.warn);
     } else {
       youtube
         ?.getInfo(videoId, appSettings.hlsEnabled ? "IOS" : undefined)
         ?.then(info => {
           videoRef.current = info;
           const parsedData = getElementDataFromVideoInfo(info);
-          setStartTime(startTimeSeconds);
           setVideoInfo(parsedData);
           parsedData.watchNextFeed &&
             setWatchNextFeed(parsedData.watchNextFeed);
         })
         .catch(LOGGER.warn);
     }
-    setStartTime(startTimeSeconds);
-  }, [appSettings.hlsEnabled, videoId, youtube, tvYoutube, client]);
+    // TODO: Fix duplicate reset to starttime on refresh
+    // Only set if not set previously
+    setStartTime(prevSeconds => {
+      if (prevSeconds) {
+        return prevSeconds;
+      }
+      return startTimeSeconds;
+    });
+  }, [appSettings.hlsEnabled, videoId, youtube, tvYoutube, client, refresh]);
 
   // TODO: Add tracking again once reworked
   // useEffect(() => {
@@ -155,8 +142,6 @@ export default function useVideoDetails(
         .catch(LOGGER.warn);
     }
   }, []);
-
-  console.log("URL", httpVideoURL);
 
   // // Trigger refresh if streaming data expired
   // const targetTimestamp = Video?.streaming_data?.expires?.getDate?.();
@@ -268,6 +253,12 @@ export default function useVideoDetails(
     dislike,
     removeRating,
     addToWatchHistory,
+    refresh: (resumeSeconds?: number) => {
+      // TODO: Set Starttime to start from current state?
+      console.log("Resume: ", resumeSeconds);
+      setStartTime(resumeSeconds);
+      setRefresh(!refresh);
+    },
   };
 }
 

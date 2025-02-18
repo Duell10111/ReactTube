@@ -45,7 +45,7 @@ interface BottomControlsProps {
   // Metadata
   metadata: VideoMetadata;
   resolution?: string;
-  onAuthorClick: () => void;
+  onJumpToStart: () => void;
 }
 
 export default function BottomControls({
@@ -69,6 +69,7 @@ export default function BottomControls({
   bottomContainer,
   metadata,
   resolution,
+  onJumpToStart,
 }: BottomControlsProps) {
   const {bottomContainerStyle, topContainerStyle, showBottomContainer} =
     useAnimatedBottomControls();
@@ -131,6 +132,7 @@ export default function BottomControls({
             metadata={metadata}
             resolution={resolution}
             pause={() => setPaused(true)}
+            onJumpToStart={onJumpToStart}
           />
         </View>
         <ImageBackground

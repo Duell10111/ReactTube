@@ -21,6 +21,8 @@ const VideoPlayerNative = forwardRef<
       seek: seconds => {
         videoRef.current?.seek?.(seconds);
       },
+      getCurrentPositionSeconds: async () =>
+        (await videoRef.current?.getCurrentPosition?.()) ?? 0,
     };
   }, []);
 

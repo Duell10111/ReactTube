@@ -8,12 +8,14 @@ interface MetadataContainerProps {
   metadata: VideoMetadata;
   resolution?: string;
   pause: () => void;
+  onJumpToStart: () => void;
 }
 
 export default function MetadataContainer({
   metadata,
   resolution,
   pause,
+  onJumpToStart,
 }: MetadataContainerProps) {
   return (
     <TVFocusGuideView autoFocus>
@@ -52,6 +54,16 @@ export default function MetadataContainer({
             onPress={metadata.onDislike}
             active={metadata.disliked}
           />
+          <MetadataButton
+            iconType={"antdesign"}
+            iconName={"stepbackward"}
+            onPress={onJumpToStart}
+          />
+          <MetadataButton
+            iconType={"font-awesome"}
+            iconName={"refresh"}
+            onPress={metadata.onRefresh}
+          />
         </View>
       </View>
     </TVFocusGuideView>
@@ -68,17 +80,17 @@ const styles = StyleSheet.create({
   titleMetadata: {
     borderRadius: 15,
     backgroundColor: "rgba(119,119,119,0.33)",
-    maxWidth: "25%",
+    maxWidth: "40%",
     padding: 10,
   },
   title: {
     color: "white",
-    fontSize: 30,
+    fontSize: 35,
     fontWeight: "bold",
   },
   author: {
     color: "lightgrey",
-    fontSize: 15,
+    fontSize: 20,
   },
   buttonMetadata: {
     alignSelf: "flex-end",

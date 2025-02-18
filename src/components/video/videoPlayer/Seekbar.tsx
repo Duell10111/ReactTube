@@ -67,14 +67,14 @@ const styles = StyleSheet.create({
   },
   track: {
     backgroundColor: "#333",
-    height: 1,
+    height: 5,
     position: "relative",
     top: 14,
     width: "100%",
   },
   fill: {
     backgroundColor: "#FFF",
-    height: 1,
+    height: 5,
     width: "100%",
   },
   handle: {
@@ -86,9 +86,9 @@ const styles = StyleSheet.create({
   circle: {
     borderRadius: 12,
     position: "relative",
-    top: 8,
+    top: 6,
     left: -5,
-    height: 12,
-    width: 12,
+    height: 20,
+    width: 20,
   },
 });

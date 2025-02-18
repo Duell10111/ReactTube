@@ -49,6 +49,7 @@ export default function VideoScreen({route, navigation}: Props) {
     dislike,
     removeRating,
     addToWatchHistory,
+    refresh,
   } = useVideoDetails(navEndpoint ?? videoId, "TV", route.params.startSeconds);
   // @ts-ignore TODO: fix
   const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id);
@@ -167,6 +168,11 @@ export default function VideoScreen({route, navigation}: Props) {
             onDislike: () => {
               (YTVideoInfo?.disliked ? removeRating : dislike)().catch(
                 LOGGER.warn,
+              );
+            },
+            onRefresh: async () => {
+              refresh(
+                await videoPlayerRef.current?.getCurrentPositionSeconds?.(),
               );
             },
           }}

@@ -38,6 +38,7 @@ export interface VideoMetadata {
   disliked?: boolean;
   onLike?: () => void;
   onDislike?: () => void;
+  onRefresh?: () => void;
 }
 
 // TODO: Use own types
@@ -55,10 +56,12 @@ export interface VideoComponentType<T> {
 
 export interface VideoComponentRefType {
   seek: (seconds: number) => void;
+  getCurrentPositionSeconds: () => Promise<number>;
 }
 
 export interface VideoPlayerRefs {
   seek: (seconds: number) => void;
+  getCurrentPositionSeconds: () => Promise<number>;
   pause: () => void;
 }
 
@@ -396,6 +399,8 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       return {
         pause: () => setPaused(true),
         seek: seconds => _videoRef.current?.seek(seconds),
+        getCurrentPositionSeconds: () =>
+          _videoRef.current?.getCurrentPositionSeconds(),
       };
     }, []);
 
@@ -445,6 +450,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
             resolution={resolution}
             showControls={showControls}
             setPaused={setPaused}
+            onJumpToStart={() => _videoRef.current?.seek(0)}
           />
         </>
       </View>

@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   bottomText: {
-    fontSize: 20,
+    fontSize: 30,
     color: "white",
     paddingStart: 10,
   },

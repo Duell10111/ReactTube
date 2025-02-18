@@ -334,7 +334,7 @@ function parseVideoInfoPlaylist(videoInfo: YT.VideoInfo | YTTV.VideoInfo) {
   if (videoInfo.playlist) {
     const playlist = videoInfo.playlist;
 
-    console.log("PlaylistData: ", JSON.stringify(videoInfo.playlist.contents));
+    // console.log("PlaylistData: ", JSON.stringify(videoInfo.playlist.contents));
 
     const content = _.chain(playlist.contents)
       .map(element => getVideoData(element))
