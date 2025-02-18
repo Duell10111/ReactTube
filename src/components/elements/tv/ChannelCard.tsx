@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#444444",
   },
   text: {
-    fontSize: 25,
+    fontSize: 30,
     marginTop: 10,
   },
 });

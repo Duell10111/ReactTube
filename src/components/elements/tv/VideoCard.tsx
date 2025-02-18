@@ -66,7 +66,9 @@ export function VideoCard({element, style, onPress, width}: VideoCardProps) {
         {element.title}
       </Text>
       {element.subtitle ? (
-        <Text style={[{color: appStyle.textColor}]}>{element.subtitle}</Text>
+        <Text style={[styles.subtitleStyle, {color: appStyle.textColor}]}>
+          {element.subtitle}
+        </Text>
       ) : (
         <>
           {element.author ? (
@@ -137,9 +139,13 @@ const styles = StyleSheet.create({
     backgroundColor: "grey", // TODO: REMOVE?
   },
   titleStyle: {
-    fontSize: 25,
+    fontSize: 30,
+    fontWeight: "bold",
     width: "100%",
     flexShrink: 1,
+  },
+  subtitleStyle: {
+    fontSize: 20,
   },
   countContainer: {
     position: "absolute",
