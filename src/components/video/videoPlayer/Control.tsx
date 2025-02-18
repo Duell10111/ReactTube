@@ -12,6 +12,7 @@ interface ControlProps extends ViewProps {
   resetControlTimeout?: () => void;
 }
 
+// TODO: Maybe for use in overlay player for phones in the future
 export const Control = ({
   children,
   callback,
@@ -28,6 +29,7 @@ export const Control = ({
   const focusedStyle = focused ? {opacity: 1} : {};
 
   return (
+    // @ts-ignore TODO: fix
     <TouchableHighlight
       // @ts-ignore TODO: fix
       onFocus={setFocusedState}
