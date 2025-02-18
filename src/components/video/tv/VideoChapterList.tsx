@@ -144,6 +144,7 @@ const styles = StyleSheet.create({
   },
   bottomTextContainer: {
     flexDirection: "row",
+    alignItems: "center",
     paddingStart: 20,
     paddingBottom: 15,
   },
