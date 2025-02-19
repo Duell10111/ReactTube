@@ -19,8 +19,6 @@ export function BottomMetadata({
   fetchMoreNextFeed,
   seek,
 }: BottomMetadataProps) {
-  // TODO: Add Playlist List here as well
-
   const playlist = useMemo(() => {
     if (YTVideoInfo.watchNextSections?.[0] && YTVideoInfo.playlist) {
       return {
@@ -37,7 +35,7 @@ export function BottomMetadata({
 
   const Node =
     (YTVideoInfo.chapters && YTVideoInfo.chapters.length > 0) || playlist
-      ? ScrollView
+      ? BottomScrollView
       : View;
 
   return (
@@ -59,4 +57,12 @@ export function BottomMetadata({
       />
     </Node>
   );
+}
+
+interface BottomScrollViewProps {
+  children: React.ReactNode;
+}
+
+function BottomScrollView({children}: BottomScrollViewProps) {
+  return <ScrollView pagingEnabled>{children}</ScrollView>;
 }

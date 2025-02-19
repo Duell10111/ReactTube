@@ -101,7 +101,9 @@ function ChapterCard({
           }}
         />
       </View>
-      <Text style={[styles.titleStyle, {color: appStyle.textColor}]}>
+      <Text
+        style={[styles.titleStyle, {color: appStyle.textColor}]}
+        numberOfLines={2}>
         {chapter.title}
       </Text>
       <Text style={[styles.subtitleStyle, {color: appStyle.textColor}]}>
