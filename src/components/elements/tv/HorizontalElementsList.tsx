@@ -8,7 +8,6 @@ import {
   ViewStyle,
 } from "react-native";
 
-import ChannelSegment from "@/components/ChannelSegment";
 import {ElementCard} from "@/components/elements/phone/ElementCard";
 import {ElementCard as ElementCardTV} from "@/components/elements/tv/ElementCard";
 import {ElementData} from "@/extraction/Types";
@@ -35,29 +34,25 @@ export function HorizontalElementsList({
 }: HorizontalElementsListProps) {
   const renderItem = useCallback<ListRenderItem<ElementData>>(
     ({item}: {item: ElementData}) => {
-      if (item.type === "channel") {
-        return <ChannelSegment element={item} />;
+      // TODO: Remove isTV workaround once GridView not used anymore on Phone/Tablets?
+      if (Platform.isTV) {
+        return (
+          <ElementCardTV
+            element={item}
+            // textStyle={textStyle}
+            style={[videoSegmentStyle, {marginHorizontal: 10}]}
+            width={width}
+          />
+        );
       } else {
-        // TODO: Remove isTV workaround once GridView not used anymore on Phone/Tablets?
-        if (Platform.isTV) {
-          return (
-            <ElementCardTV
-              element={item}
-              // textStyle={textStyle}
-              style={[videoSegmentStyle, {marginHorizontal: 10}]}
-              width={width}
-            />
-          );
-        } else {
-          return (
-            <ElementCard
-              element={item}
-              // textStyle={textStyle}
-              style={[videoSegmentStyle, {marginHorizontal: 10}]}
-              width={300}
-            />
-          );
-        }
+        return (
+          <ElementCard
+            element={item}
+            // textStyle={textStyle}
+            style={[videoSegmentStyle, {marginHorizontal: 10}]}
+            width={300}
+          />
+        );
       }
     },
     [textStyle, videoSegmentStyle],

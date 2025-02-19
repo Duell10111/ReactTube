@@ -26,7 +26,7 @@ export default function MetadataContainer({
           </Text>
           <Text
             style={
-              styles.author
+              styles.subtitle
             }>{`${metadata.author} ○ ${metadata.views} ○ ${metadata.videoDate}${resolution ? ` ○ ${resolution}` : ""}`}</Text>
         </View>
 
@@ -55,6 +55,11 @@ export default function MetadataContainer({
             active={metadata.disliked}
           />
           <MetadataButton
+            iconType={"material-community"}
+            iconName={"playlist-plus"}
+            onPress={metadata.onSaveVideo}
+          />
+          <MetadataButton
             iconType={"antdesign"}
             iconName={"stepbackward"}
             onPress={onJumpToStart}
@@ -79,7 +84,7 @@ const styles = StyleSheet.create({
   },
   titleMetadata: {
     borderRadius: 15,
-    backgroundColor: "rgba(119,119,119,0.33)",
+    backgroundColor: "rgba(119,119,119,0.5)",
     maxWidth: "40%",
     padding: 10,
   },
@@ -88,7 +93,7 @@ const styles = StyleSheet.create({
     fontSize: 35,
     fontWeight: "bold",
   },
-  author: {
+  subtitle: {
     color: "lightgrey",
     fontSize: 20,
   },

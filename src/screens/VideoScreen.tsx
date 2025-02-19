@@ -148,7 +148,7 @@ export default function VideoScreen({route, navigation}: Props) {
           }}
           metadata={{
             title: YTVideoInfo.title,
-            author: YTVideoInfo.author?.name ?? "Unknwon",
+            author: YTVideoInfo.author?.name ?? "Unknown",
             authorID: YTVideoInfo.channel_id ?? "",
             // @ts-ignore TODO: Allow videos without author Thumbnail?!
             authorThumbnailUrl:
@@ -169,6 +169,12 @@ export default function VideoScreen({route, navigation}: Props) {
               (YTVideoInfo?.disliked ? removeRating : dislike)().catch(
                 LOGGER.warn,
               );
+            },
+            onSaveVideo: () => {
+              YTVideoInfo?.id &&
+                navigation.navigate("PlaylistManagerContextMenu", {
+                  videoId: YTVideoInfo.id,
+                });
             },
             onRefresh: async () => {
               refresh(

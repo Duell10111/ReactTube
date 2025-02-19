@@ -38,6 +38,7 @@ export interface VideoMetadata {
   disliked?: boolean;
   onLike?: () => void;
   onDislike?: () => void;
+  onSaveVideo?: () => void;
   onRefresh?: () => void;
 }
 
@@ -399,8 +400,8 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       return {
         pause: () => setPaused(true),
         seek: seconds => _videoRef.current?.seek(seconds),
-        getCurrentPositionSeconds: () =>
-          _videoRef.current?.getCurrentPositionSeconds(),
+        getCurrentPositionSeconds: async () =>
+          (await _videoRef.current?.getCurrentPositionSeconds()) ?? 0,
       };
     }, []);
 

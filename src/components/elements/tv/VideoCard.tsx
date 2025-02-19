@@ -24,6 +24,8 @@ export function VideoCard({element, style, onPress, width}: VideoCardProps) {
     ? element.thumbnailOverlays.videoProgress * 100
     : undefined;
 
+  // TODO: Make subtitle lines at max 2 lines high
+
   return (
     <VideoTouchable
       style={[styles.container, style, {width: width ?? 500}]}
@@ -62,7 +64,9 @@ export function VideoCard({element, style, onPress, width}: VideoCardProps) {
           <View style={[styles.progressBar, {width: `${progressVideo}%`}]} />
         ) : null}
       </View>
-      <Text style={[styles.titleStyle, {color: appStyle.textColor}]}>
+      <Text
+        style={[styles.titleStyle, {color: appStyle.textColor}]}
+        numberOfLines={2}>
         {element.title}
       </Text>
       {element.subtitle ? (
