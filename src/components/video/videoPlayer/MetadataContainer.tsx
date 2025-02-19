@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   subtitle: {
-    color: "lightgrey",
+    color: "white",
     fontSize: 20,
   },
   buttonMetadata: {

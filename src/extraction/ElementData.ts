@@ -154,6 +154,13 @@ export function getVideoData(
         ?.title?.text ??
       "Unknown title";
 
+    const authorObject = author
+      ? {
+          name: author,
+          id: "",
+        }
+      : undefined;
+
     const thumbnail = ytNode.header?.thumbnail?.[0]
       ? getThumbnail(ytNode.header.thumbnail[0])
       : undefined;
@@ -206,7 +213,6 @@ export function getVideoData(
       }
     };
 
-    // @ts-ignore Ignore as not updated in lib from me :)
     if (ytNode.content_type === "TILE_CONTENT_TYPE_CHANNEL") {
       return {
         type: "channel",
@@ -214,12 +220,7 @@ export function getVideoData(
         id: ytNode.content_id,
         title,
         thumbnailImage: thumbnail,
-        author: author
-          ? {
-              name: author,
-              id: "",
-            }
-          : undefined,
+        author: authorObject,
         subscribers: views,
       } as ChannelData;
     } else if (
@@ -251,12 +252,7 @@ export function getVideoData(
             : ytNode.header?.thumbnail_overlays?.firstOfType(
                 YTNodes.ThumbnailOverlayTimeStatus,
               )?.text,
-        author: author
-          ? {
-              name: author,
-              id: "",
-            }
-          : undefined,
+        author: authorObject,
         short_views: views,
         publishDate: published,
         contextMenu: ytNode.on_long_press_endpoint.payload?.menu?.menuRenderer
@@ -280,21 +276,30 @@ export function getVideoData(
           : undefined,
       } as VideoData;
     } else if (ytNode.content_type === "TILE_CONTENT_TYPE_PLAYLIST") {
-      return {
-        type: "playlist",
-        originalNode: ytNode,
-        id: ytNode.content_id,
-        navEndpoint: ytNode.on_select_endpoint,
-        title,
-        thumbnailImage: thumbnail,
-        author: author
-          ? {
-              name: author,
-              id: "",
-            }
-          : undefined,
-        publishDate: published,
-      } as PlaylistData;
+      // Content is a mix an therefore no real playlist
+      if (ytNode.on_select_endpoint.command?.type === "WatchEndpoint") {
+        return {
+          type: "mix",
+          originalNode: ytNode,
+          id: ytNode.content_id,
+          navEndpoint: ytNode.on_select_endpoint,
+          title,
+          thumbnailImage: thumbnail,
+          author: authorObject,
+          publishDate: published,
+        } as VideoData;
+      } else {
+        return {
+          type: "playlist",
+          originalNode: ytNode,
+          id: ytNode.content_id,
+          navEndpoint: ytNode.on_select_endpoint,
+          title,
+          thumbnailImage: thumbnail,
+          author: authorObject,
+          publishDate: published,
+        } as PlaylistData;
+      }
     } else {
       LOGGER.warn(`Unknown Tile type provided ${ytNode.content_type}`);
     }

@@ -14,7 +14,6 @@ import MetadataContainer from "./MetadataContainer";
 import {NullControl} from "./NullControl";
 import Seekbar from "./Seekbar";
 import {Timer} from "./Timer";
-import {Title} from "./Title";
 import {VideoMetadata} from "./VideoPlayer";
 import useAnimatedBottomControls from "./hooks/useAnimatedBottomControls";
 import {useAnimations} from "./hooks/useAnimations";
@@ -108,12 +107,12 @@ export default function BottomControls({
       seekerPanHandlers={panHandlers}
       setSeekerWidth={setSeekerWidth}
       onFocus={() => {
-        console.log("Seekder focus");
+        // console.log("Seekder focus");
         showBottomContainer.value = false;
         setSeekerFocus(true);
       }}
       onBlur={() => {
-        console.log("Seekbar blur");
+        // console.log("Seekbar blur");
         setSeekerFocus(false);
       }}
     />

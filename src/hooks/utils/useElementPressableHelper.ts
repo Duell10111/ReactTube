@@ -64,6 +64,8 @@ export default function useElementPressableHelper() {
           startSeconds: startDuration,
         });
       }
+    } else {
+      LOGGER.warn("Unsupported ElementData used: ", element);
     }
   };
 
