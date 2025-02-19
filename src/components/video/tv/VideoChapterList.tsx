@@ -7,6 +7,7 @@ import {
   StyleProp,
   StyleSheet,
   Text,
+  TVFocusGuideView,
   View,
   ViewStyle,
 } from "react-native";
@@ -53,15 +54,16 @@ export function VideoChapterList({
         <Icon name={"book"} color={"white"} />
         <Text style={styles.bottomText}>{"Chapters"}</Text>
       </View>
-      <FlatList
-        horizontal
-        data={chapters}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        onEndReachedThreshold={0.7}
-        contentContainerStyle={[containerStyle]}
-        // style={{marginBottom: 20}}
-      />
+      <TVFocusGuideView autoFocus>
+        <FlatList
+          horizontal
+          data={chapters}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          onEndReachedThreshold={0.7}
+          contentContainerStyle={[containerStyle]}
+        />
+      </TVFocusGuideView>
     </>
   );
 }
@@ -102,7 +104,7 @@ function ChapterCard({
       <Text style={[styles.titleStyle, {color: appStyle.textColor}]}>
         {chapter.title}
       </Text>
-      <Text style={[{color: appStyle.textColor}]}>
+      <Text style={[styles.subtitleStyle, {color: appStyle.textColor}]}>
         {secondsToReadableString(chapter.startDuration)}
       </Text>
     </VideoTouchable>
@@ -138,9 +140,13 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   titleStyle: {
-    fontSize: 25,
+    fontSize: 30,
+    fontWeight: "bold",
     width: "100%",
     flexShrink: 1,
+  },
+  subtitleStyle: {
+    fontSize: 20,
   },
   bottomTextContainer: {
     flexDirection: "row",

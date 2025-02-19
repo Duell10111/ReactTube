@@ -271,7 +271,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           if (showEndcard) {
             return;
           }
-          console.log("Control Timeout Triggered! ", event.eventType);
+          // console.log("Control Timeout Triggered! ", event.eventType);
           if (!showControls) {
             setShowControls(true);
             resetControlTimeout();
@@ -284,18 +284,18 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         case "longLeft":
         case "longRight":
           // Special treatment for longLeft/Right
-          console.log("LONG Control Timeout Triggered! ", event.eventType);
-          console.log("Current: ", longButtonPressed.current);
+          // console.log("LONG Control Timeout Triggered! ", event.eventType);
+          // console.log("Current: ", longButtonPressed.current);
           if (
             (event.eventType === "longLeft" ||
               event.eventType === "longRight") &&
             !longButtonPressed.current
           ) {
             longButtonPressed.current = event.eventType;
-            console.log("Disabling Timeout!");
+            // console.log("Disabling Timeout!");
             clearControlTimeout();
           } else if (event.eventType === longButtonPressed.current) {
-            console.log("Activating Timeout again!");
+            // console.log("Activating Timeout again!");
             longButtonPressed.current = undefined;
             setControlTimeout();
           }

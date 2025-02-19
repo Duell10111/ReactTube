@@ -1,7 +1,9 @@
-import React from "react";
+import React, {useMemo} from "react";
+import {ScrollView, View} from "react-native";
 
 import {RelatedVideos} from "@/components/video/tv/RelatedVideos";
 import {VideoChapterList} from "@/components/video/tv/VideoChapterList";
+import {VideoPlaylistList} from "@/components/video/tv/VideoPlaylistList";
 import {ElementData, YTVideoInfo as YTVideoInfoType} from "@/extraction/Types";
 
 interface BottomMetadataProps {
@@ -17,8 +19,29 @@ export function BottomMetadata({
   fetchMoreNextFeed,
   seek,
 }: BottomMetadataProps) {
+  // TODO: Add Playlist List here as well
+
+  const playlist = useMemo(() => {
+    if (YTVideoInfo.watchNextSections?.[0] && YTVideoInfo.playlist) {
+      return {
+        title: YTVideoInfo.watchNextSections[0].title ?? "Playlist",
+        elements: YTVideoInfo.watchNextSections[0].parsedData,
+      };
+    } else if (YTVideoInfo.playlist) {
+      return {
+        title: YTVideoInfo.playlist.title,
+        elements: YTVideoInfo.playlist.content,
+      };
+    }
+  }, [YTVideoInfo]);
+
+  const Node =
+    (YTVideoInfo.chapters && YTVideoInfo.chapters.length > 0) || playlist
+      ? ScrollView
+      : View;
+
   return (
-    <>
+    <Node>
       {YTVideoInfo.chapters && YTVideoInfo.chapters.length > 0 ? (
         <VideoChapterList
           chapters={YTVideoInfo.chapters}
@@ -27,11 +50,13 @@ export function BottomMetadata({
           }}
         />
       ) : null}
+      {playlist ? <VideoPlaylistList playlist={playlist} /> : null}
       <RelatedVideos
         YTVideoInfo={YTVideoInfo}
         watchNextFeed={watchNextFeed}
         fetchMoreNextFeed={fetchMoreNextFeed}
+        playlistShown={playlist !== undefined}
       />
-    </>
+    </Node>
   );
 }
