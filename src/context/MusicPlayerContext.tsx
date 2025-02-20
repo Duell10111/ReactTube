@@ -40,7 +40,7 @@ import {getAbsoluteVideoURL} from "@/hooks/downloader/useDownloadProcessor";
 
 type PlayType = "Audio" | "Video";
 
-export type RepeatOption = "RepeatOnce" | "RepeatAll";
+export type RepeatOption = "RepeatOne" | "RepeatAll";
 
 interface MusicPlayerContextType {
   setCurrentItem: (
@@ -477,9 +477,11 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const onEndReached = useCallback(async () => {
-    if (repeat === "RepeatOnce") {
+    if (repeat === "RepeatOne") {
       LOGGER.debug("Repeating same song");
-      TrackPlayer.skipToPrevious(0).catch(LOGGER.warn);
+      TrackPlayer.skipToPrevious(0)
+        .then(() => TrackPlayer.play())
+        .catch(LOGGER.warn);
       return;
     }
 

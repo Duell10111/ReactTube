@@ -19,9 +19,9 @@ export function MusicPlayerPlayerButtons() {
   const onPressRepeat = () => {
     switch (repeat) {
       case "RepeatAll":
-        setRepeat("RepeatOnce");
+        setRepeat("RepeatOne");
         break;
-      case "RepeatOnce":
+      case "RepeatOne":
         setRepeat(undefined);
         break;
       default:
