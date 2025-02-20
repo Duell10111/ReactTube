@@ -1,5 +1,5 @@
 import {Icon} from "@rneui/base";
-import {StyleSheet, View} from "react-native";
+import {StyleSheet, TouchableOpacity, View} from "react-native";
 
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 
@@ -17,6 +17,8 @@ export function MusicPlayerPlayerButtons() {
         containerStyle={{marginRight: 30}}
       />
       <Icon
+        // @ts-ignore
+        Component={TouchableOpacity}
         name={"stepbackward"}
         type={"antdesign"}
         size={25}
@@ -25,6 +27,8 @@ export function MusicPlayerPlayerButtons() {
         onPress={previous}
       />
       <Icon
+        // @ts-ignore
+        Component={TouchableOpacity}
         name={!playing ? "play" : "pause"}
         type={"feather"}
         raised
@@ -38,6 +42,8 @@ export function MusicPlayerPlayerButtons() {
         }}
       />
       <Icon
+        // @ts-ignore
+        Component={TouchableOpacity}
         name={"stepforward"}
         type={"antdesign"}
         size={25}
@@ -46,6 +52,8 @@ export function MusicPlayerPlayerButtons() {
         onPress={next}
       />
       <Icon
+        // @ts-ignore
+        Component={TouchableOpacity}
         name={"shuffle"}
         type={"ionicon"}
         size={25}
