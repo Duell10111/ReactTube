@@ -29,7 +29,7 @@
     "expo-sqlite": "~15.1.2",
     "expo-status-bar": "~2.0.1",
     "expo-system-ui": "~4.0.8",
-    "expo-watch-connectivity": "0.1.6",
+    "expo-watch-connectivity": "0.1.8",
     "fast-text-encoding": "1.0.6",
     "lodash": "4.17.21",
     "luxon": "3.5.0",
