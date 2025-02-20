@@ -40,6 +40,8 @@ import {getAbsoluteVideoURL} from "@/hooks/downloader/useDownloadProcessor";
 
 type PlayType = "Audio" | "Video";
 
+export type RepeatOption = "RepeatOnce" | "RepeatAll";
+
 interface MusicPlayerContextType {
   setCurrentItem: (
     item: VideoData,
@@ -60,6 +62,8 @@ interface MusicPlayerContextType {
   // Player options
   shuffle: boolean;
   setShuffle: (shuffle: boolean) => void;
+  repeat?: RepeatOption;
+  setRepeat: (repeat: RepeatOption | undefined) => void;
   // Play Functions
   currentTime: SharedValue<number>;
   duration: SharedValue<number>;
@@ -119,6 +123,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   // TODO: Replace with reducer fkt?
   const [shuffle, setShuffle] = useState(false);
   const shuffleBackup = useRef<YTPlaylistPanelItem[]>();
+  const [repeat, setRepeat] = useState<RepeatOption>();
   // TODO: Add repeat all, one in the future here
 
   useTrackPlayerEvents(events, event => {
@@ -235,6 +240,32 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     });
   }, [shuffle]);
 
+  // Fkt to shuffle Playlist if enabled
+  const shuffleUpNextPlaylist = useCallback(
+    (p: YTPlaylistPanel, curVideoData: YTTrackInfo) => {
+      if (shuffle) {
+        // Save current playlist order
+        shuffleBackup.current = p.items;
+
+        const currentIndex = p.items.findIndex(
+          item => item.id === curVideoData.id,
+        );
+
+        return {
+          ...p,
+          items: [
+            ...p.items.slice(0, currentIndex + 1),
+            ..._.shuffle(p.items.slice(currentIndex + 1)),
+          ],
+        };
+      } else {
+        // Do nothing if no shuffle enabled
+        return p;
+      }
+    },
+    [shuffle],
+  );
+
   const fetchUpNextPlaylist = (curVideoData: YTTrackInfo) => {
     // TODO: Add shuffle support by shuffle if enabled beforehand
     if (curVideoData.localPlaylistId) {
@@ -244,8 +275,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         curVideoData.localPlaylistId,
       )
         .then(p => {
-          LOGGER.debug("UPNEXt Playlist: ", JSON.stringify(p));
-          setPlaylist(p);
+          LOGGER.debug("UpNext Playlist: ", JSON.stringify(p));
+          setPlaylist(shuffleUpNextPlaylist(p, curVideoData));
           playlistContinuation.current = undefined;
         })
         .catch(error =>
@@ -256,7 +287,9 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       curVideoData.originalData
         .getUpNext(false) // TODO: Add flag on Context to allow automix?
         .then(p => {
-          setPlaylist(parseTrackInfoPlaylist(p));
+          setPlaylist(
+            shuffleUpNextPlaylist(parseTrackInfoPlaylist(p), curVideoData),
+          );
           playlistContinuation.current = undefined;
         })
         .catch(() => LOGGER.debug("No new Track Playlist available"));
@@ -444,7 +477,12 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const onEndReached = useCallback(async () => {
-    // TODO: Add support for repeat all or one song
+    if (repeat === "RepeatOnce") {
+      LOGGER.debug("Repeating same song");
+      TrackPlayer.skipToPrevious(0).catch(LOGGER.warn);
+      return;
+    }
+
     if (playlist) {
       const currentIndex = playlist.items.findIndex(
         v => v.id === currentVideoData?.id,
@@ -457,24 +495,30 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
           const contData = await fetchMorePlaylistData();
           if (contData) {
             videoExtractor(contData.items[0]).then(setCurrentVideoData);
-          } else if (automix && automixPlaylist) {
+            return; // Return to skip Repeat All
+          } else if (!repeat && automix && automixPlaylist) {
             // Set first Automix item as next item
             setCurrentPlaylist(automixPlaylist.items[0], false, true);
+            return; // Return to skip Repeat All
           } else {
             LOGGER.warn(
               "Fetching playlist continuation failed. Skipping setting next song!",
             );
           }
+          if (repeat === "RepeatAll") {
+            const nextElement = playlist.items[0];
+            videoExtractor(nextElement).then(setCurrentVideoData);
+          }
         } else {
           const nextElement = playlist.items[newIndex];
           videoExtractor(nextElement).then(setCurrentVideoData);
         }
+      } else if (repeat) {
+        // Item not found in playlist repeat the current item if repeat is set
+        TrackPlayer.skipToPrevious(0).catch(LOGGER.warn);
       }
     }
-
-    // // Only needed for local playlist files
-    // TrackPlayer.pause().catch(LOGGER.warn);
-  }, [currentVideoData, playlist, automixPlaylist, automix]);
+  }, [currentVideoData, playlist, automixPlaylist, automix, repeat]);
 
   const play = async () => {
     if (playType === "Audio") {
@@ -585,6 +629,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         // Playlist options
         shuffle,
         setShuffle,
+        repeat,
+        setRepeat,
         // @ts-ignore
         callbacks: {
           onEndReached,

@@ -4,17 +4,42 @@ import {StyleSheet, TouchableOpacity, View} from "react-native";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 
 export function MusicPlayerPlayerButtons() {
-  const {playing, play, pause, next, previous, shuffle, setShuffle} =
-    useMusikPlayerContext();
+  const {
+    playing,
+    play,
+    pause,
+    next,
+    previous,
+    shuffle,
+    setShuffle,
+    repeat,
+    setRepeat,
+  } = useMusikPlayerContext();
+
+  const onPressRepeat = () => {
+    switch (repeat) {
+      case "RepeatAll":
+        setRepeat("RepeatOnce");
+        break;
+      case "RepeatOnce":
+        setRepeat(undefined);
+        break;
+      default:
+        setRepeat("RepeatAll");
+    }
+  };
 
   return (
     <View style={styles.playerItemsContainer}>
       <Icon
-        name={"repeat"}
-        type={"ionicon"}
+        // @ts-ignore
+        Component={TouchableOpacity}
+        name={!repeat || repeat === "RepeatAll" ? "repeat" : "repeat-once"}
+        type={"material-community"}
         size={25}
-        color={"white"}
+        color={repeat ? "blue" : "white"}
         containerStyle={{marginRight: 30}}
+        onPress={onPressRepeat}
       />
       <Icon
         // @ts-ignore
@@ -55,7 +80,7 @@ export function MusicPlayerPlayerButtons() {
         // @ts-ignore
         Component={TouchableOpacity}
         name={"shuffle"}
-        type={"ionicon"}
+        type={"material-community"}
         size={25}
         color={shuffle ? "rgb(66,115,241)" : "white"}
         containerStyle={{marginLeft: 30}}
