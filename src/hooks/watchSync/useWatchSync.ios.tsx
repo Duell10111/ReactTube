@@ -5,7 +5,7 @@ import {
   sendFile,
   getCurrentFileTransfers,
   updateApplicationContext,
-  isWatchAppInstalled,
+  useInstalled,
   FileTransferInfo,
 } from "expo-watch-connectivity";
 import {useCallback, useEffect, useState} from "react";
@@ -34,22 +34,22 @@ export default function useWatchSync() {
   const {currentItem, next, previous, pause, play, playing} =
     useMusikPlayerContext();
   const [watchTransfers, setWatchTransfers] = useState<FileTransferInfo[]>([]);
-  const [watchAppInstalled, setWatchAppInstalled] = useState(false);
+  const installed = useInstalled();
 
   // Hook data providing hybrid data access
   const library = useMusicLibrary();
 
   useEffect(() => {
-    isWatchAppInstalled().then(setWatchAppInstalled).catch(LOGGER.warn);
-  }, []);
-
-  useEffect(() => {
     // TODO: Add check if app is installed/paired
+    if (!installed) {
+      LOGGER.debug("Skip media update as no watch app is paired");
+      return;
+    }
     const update: WatchApplicationContext = {};
     update["source"] = "phone";
-    console.log("Used current item", currentItem);
+    // console.log("Used current item", currentItem);
     if (currentItem) {
-      console.log("Used current item", currentItem);
+      // console.log("Used current item", currentItem);
       update["title"] = currentItem.title;
     }
     update["playing"] = !!playing;
@@ -57,7 +57,7 @@ export default function useWatchSync() {
     updateApplicationContext(update)
       .then(() => LOGGER.debug("Updated Application context"))
       .catch(LOGGER.warn);
-  }, [currentItem?.title, playing]);
+  }, [currentItem?.title, playing, installed]);
 
   const musicPlayerAction = useCallback(
     async (action: "next" | "prev" | "playpause") => {
