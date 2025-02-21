@@ -16,6 +16,7 @@ interface AccountCredentials {
 
 interface Account {
   credentials?: AccountCredentials;
+  cookie?: string;
 }
 
 interface AccountData {
@@ -172,7 +173,9 @@ export default function useAccountData() {
     login,
     logout,
     qrCode,
-    loginData: settings,
+    loginData: {
+      accounts: [{}],
+    },
     clearAllData: clearAll,
     loginSuccess,
     autoLoginFinished,

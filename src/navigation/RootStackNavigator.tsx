@@ -20,6 +20,7 @@ import VideoScreen from "@/screens/VideoScreen";
 import {ActiveDownloadScreen} from "@/screens/phone/ActiveDownloadScreen";
 import {ActiveUploadScreen} from "@/screens/phone/ActiveUploadScreen";
 import {DownloadPlayer} from "@/screens/phone/DownloadPlayer";
+import {LoginScreenCookies} from "@/screens/phone/LoginScreenCookies";
 import {MusicAlbumScreen} from "@/screens/phone/MusicAlbumScreen";
 import {MusicChannelScreen} from "@/screens/phone/MusicChannelScreen";
 import {MusicLibraryScreen} from "@/screens/phone/MusicLibraryScreen";
@@ -45,6 +46,7 @@ export type RootStackParamList = {
   History: undefined;
   SettingsScreen: undefined;
   LoginScreen: undefined;
+  CookieLoginScreen: undefined;
   // Downloads
   ActiveDownloadScreen: undefined;
   ActiveUploadScreen: undefined;
@@ -113,6 +115,10 @@ export default function RootStackNavigator() {
             options={{headerTitle: "Settings"}}
           />
           <Stack.Screen name={"LoginScreen"} component={LoginScreen} />
+          <Stack.Screen
+            name={"CookieLoginScreen"}
+            component={LoginScreenCookies}
+          />
           {/* Download Screens*/}
           <Stack.Screen
             name={"ActiveDownloadScreen"}

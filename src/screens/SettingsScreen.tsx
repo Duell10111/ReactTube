@@ -32,7 +32,7 @@ export default function SettingsScreen({navigation}: Props) {
         headerRight: () => (
           <Icon
             name={"login"}
-            onPress={() => navigation.navigate("LoginScreen")}
+            onPress={() => navigation.navigate("CookieLoginScreen")}
             color={"white"}
             style={{marginEnd: 10}}
           />
