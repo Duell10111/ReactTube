@@ -499,11 +499,14 @@ export function getVideoData(
   // TODO: Maybe outsource in other file
   // Lookup Views
   else if (ytNode.is(YTNodes.LockupView)) {
-    const image = ytNode.content_image?.is(YTNodes.CollectionThumbnailView)
-      ? // @ts-ignore TODO: fix
-        getThumbnail(ytNode.content_image.primary_thumbnail.image[0])
-      : // @ts-ignore TODO: fix
-        getThumbnail(ytNode.content_image.image[0]);
+    const image =
+      ytNode.content_image?.is(YTNodes.CollectionThumbnailView) &&
+      ytNode.content_image.primary_thumbnail?.image?.[0]
+        ? getThumbnail(ytNode.content_image.primary_thumbnail.image[0])
+        : ytNode.content_image?.is(YTNodes.ThumbnailView) &&
+            ytNode.content_image.image[0]
+          ? getThumbnail(ytNode.content_image.image[0])
+          : undefined;
     if (ytNode.content_type === "PLAYLIST") {
       return {
         type: "playlist",
