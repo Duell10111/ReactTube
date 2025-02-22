@@ -22,7 +22,7 @@ export function ChannelTabs({channelTypes}: ChannelTabsProps) {
     <Tab.Navigator>
       {/* TODO: Check if Type exists in Param List and filter outer out*/}
       {channelTypes.map((channel: YTChannelTabType) => (
-        <Tab.Screen name={channel} component={ChannelTabPhone} />
+        <Tab.Screen key={channel} name={channel} component={ChannelTabPhone} />
       ))}
     </Tab.Navigator>
   );
