@@ -23,6 +23,7 @@ export function PlaylistManagerList({data, onPress}: PlaylistManagerListProps) {
       ListHeaderComponent={
         <Text style={{color: "white"}}>{"All Playlists"}</Text>
       }
+      style={{marginBottom: 100}}
     />
   );
 }
