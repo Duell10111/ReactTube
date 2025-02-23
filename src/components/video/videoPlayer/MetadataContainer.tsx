@@ -8,12 +8,14 @@ interface MetadataContainerProps {
   metadata: VideoMetadata;
   resolution?: string;
   pause: () => void;
+  onJumpToStart: () => void;
 }
 
 export default function MetadataContainer({
   metadata,
   resolution,
   pause,
+  onJumpToStart,
 }: MetadataContainerProps) {
   return (
     <TVFocusGuideView autoFocus>
@@ -24,7 +26,7 @@ export default function MetadataContainer({
           </Text>
           <Text
             style={
-              styles.author
+              styles.subtitle
             }>{`${metadata.author} ○ ${metadata.views} ○ ${metadata.videoDate}${resolution ? ` ○ ${resolution}` : ""}`}</Text>
         </View>
 
@@ -40,8 +42,33 @@ export default function MetadataContainer({
               metadata.onAuthorPress();
             }}
           />
-          <MetadataButton iconType={"antdesign"} iconName={"like2"} />
-          <MetadataButton iconType={"antdesign"} iconName={"dislike2"} />
+          <MetadataButton
+            iconType={"antdesign"}
+            iconName={"like2"}
+            onPress={metadata.onLike}
+            active={metadata.liked}
+          />
+          <MetadataButton
+            iconType={"antdesign"}
+            iconName={"dislike2"}
+            onPress={metadata.onDislike}
+            active={metadata.disliked}
+          />
+          <MetadataButton
+            iconType={"material-community"}
+            iconName={"playlist-plus"}
+            onPress={metadata.onSaveVideo}
+          />
+          <MetadataButton
+            iconType={"antdesign"}
+            iconName={"stepbackward"}
+            onPress={onJumpToStart}
+          />
+          <MetadataButton
+            iconType={"font-awesome"}
+            iconName={"refresh"}
+            onPress={metadata.onRefresh}
+          />
         </View>
       </View>
     </TVFocusGuideView>
@@ -57,18 +84,18 @@ const styles = StyleSheet.create({
   },
   titleMetadata: {
     borderRadius: 15,
-    backgroundColor: "rgba(119,119,119,0.33)",
-    maxWidth: "25%",
+    backgroundColor: "rgba(119,119,119,0.5)",
+    maxWidth: "40%",
     padding: 10,
   },
   title: {
     color: "white",
-    fontSize: 30,
+    fontSize: 35,
     fontWeight: "bold",
   },
-  author: {
-    color: "lightgrey",
-    fontSize: 15,
+  subtitle: {
+    color: "white",
+    fontSize: 20,
   },
   buttonMetadata: {
     alignSelf: "flex-end",

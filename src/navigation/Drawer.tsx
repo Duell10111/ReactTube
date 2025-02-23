@@ -5,6 +5,7 @@ import {StyleSheet, TouchableOpacity, TVFocusGuideView} from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
+  SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -19,9 +20,10 @@ interface Props {
   open: boolean;
   onOpen: () => void;
   onClose: () => void;
+  hideDrawer: SharedValue<boolean>;
 }
 
-export default function Drawer({open, onOpen, onClose}: Props) {
+export default function Drawer({open, onOpen, onClose, hideDrawer}: Props) {
   const account = useAccountContext();
 
   useEffect(() => {
@@ -33,7 +35,8 @@ export default function Drawer({open, onOpen, onClose}: Props) {
   const style = useAnimatedStyle(() => {
     return {
       height: "100%",
-      width: withTiming(openDrawer.value ? 300 : 150),
+      width: withTiming(hideDrawer.value ? 0 : openDrawer.value ? 300 : 150),
+      paddingStart: withTiming(hideDrawer.value ? 0 : 40),
     };
   });
 
@@ -85,24 +88,44 @@ export default function Drawer({open, onOpen, onClose}: Props) {
             <DrawerItem
               title={"Subscriptions"}
               onFocus={() => onOpen()}
-              onPress={() => navigation.navigate("SubscriptionScreen")}
+              onPress={() =>
+                // @ts-ignore TODO: fix
+                navigation.navigate("Home", {screen: "SubscriptionScreen"})
+              }
               open={open}
               iconTitle={"subscriptions"}
             />
             <DrawerItem
               title={"History"}
               onFocus={() => onOpen()}
-              onPress={() => navigation.navigate("HistoryScreen")}
+              onPress={() =>
+                // @ts-ignore TODO: fix
+                navigation.navigate("Home", {screen: "HistoryScreen"})
+              }
               open={open}
               iconTitle={"history"}
             />
             <DrawerItem
               title={"Library"}
               onFocus={() => onOpen()}
-              onPress={() => navigation.navigate("LibraryScreen")}
+              onPress={() =>
+                // @ts-ignore TODO: fix
+                navigation.navigate("Home", {screen: "LibraryScreen"})
+              }
               open={open}
               iconTitle={"library"}
               iconType={"ionicon"}
+            />
+            <DrawerItem
+              title={"MyYoutube"}
+              onFocus={() => onOpen()}
+              onPress={() =>
+                // @ts-ignore TODO: fix
+                navigation.navigate("Home", {screen: "MyYoutubeScreen"})
+              }
+              open={open}
+              iconTitle={"youtube-tv"}
+              iconType={"material-community"}
             />
           </>
         ) : (

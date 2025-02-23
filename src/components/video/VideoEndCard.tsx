@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import {Icon} from "react-native-paper";
 
 import {
   EndCardCloseEvent,
@@ -65,9 +66,6 @@ function VideoCard({element}: VideoCardProps) {
         aspectRatio: element.aspect_ratio,
       }}
       onPress={() => {
-        console.log("Style: ", element.style);
-        console.log("EndCard NAvEndpoint: ", element.navEndpoint);
-        console.log("EndCard ID: ", element.id);
         if (element.style === "CHANNEL") {
           const channelID = element.navEndpoint.payload.browseId;
           navigation.navigate("ChannelScreen", {
@@ -78,8 +76,19 @@ function VideoCard({element}: VideoCardProps) {
         } else if (element.style === "VIDEO") {
           navigation.navigate("VideoScreen", {
             navEndpoint: element.navEndpoint,
-            videoId: "", // TODO: Wrong id as not known :/
+            videoId: element.navEndpoint?.payload?.videoId,
           });
+        } else if (element.style === "PLAYLIST") {
+          if (element.navEndpoint?.payload?.videoId) {
+            navigation.navigate("VideoScreen", {
+              navEndpoint: element.navEndpoint,
+              videoId: element.navEndpoint.payload.videoId,
+            });
+          } else if (element.navEndpoint?.payload?.playlistId) {
+            navigation.navigate("PlaylistScreen", {
+              playlistId: element.navEndpoint.payload.playlistId,
+            });
+          }
         } else if (element.style === "WEBSITE") {
           const websiteUrl = element.navEndpoint.payload.url;
           LOGGER.debug("Website triggered!");
@@ -101,6 +110,11 @@ function VideoCard({element}: VideoCardProps) {
       />
       {element.style === "VIDEO" || element.style === "PLAYLIST" ? (
         <Text style={styles.videoTitleStyle}>{element.title}</Text>
+      ) : null}
+      {element.style === "PLAYLIST" ? (
+        <View style={styles.playlistIcon}>
+          <Icon source={"book"} color={"white"} size={40} />
+        </View>
       ) : null}
     </TouchableOpacity>
   );
@@ -127,6 +141,17 @@ const styles = StyleSheet.create({
     textShadowColor: "black",
     textShadowOffset: {width: 5, height: 5},
     textShadowRadius: 10,
+  },
+  playlistIcon: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    left: 0,
+    alignItems: "flex-start",
+    padding: 20,
+    backgroundColor: "#11111199",
+    borderBottomStartRadius: 15,
+    borderBottomEndRadius: 15,
   },
 });
 

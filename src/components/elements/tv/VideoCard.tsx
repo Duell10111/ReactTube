@@ -24,6 +24,8 @@ export function VideoCard({element, style, onPress, width}: VideoCardProps) {
     ? element.thumbnailOverlays.videoProgress * 100
     : undefined;
 
+  // TODO: Make subtitle lines at max 2 lines high
+
   return (
     <VideoTouchable
       style={[styles.container, style, {width: width ?? 500}]}
@@ -34,7 +36,7 @@ export function VideoCard({element, style, onPress, width}: VideoCardProps) {
       }}
       onBlur={() => setFocus(false)}
       onLongPress={() => {
-        setSelectedVideo(element.id);
+        setSelectedVideo(element);
       }}>
       <View
         style={[styles.segmentContainer, focus ? {borderColor: "white"} : {}]}>
@@ -62,20 +64,34 @@ export function VideoCard({element, style, onPress, width}: VideoCardProps) {
           <View style={[styles.progressBar, {width: `${progressVideo}%`}]} />
         ) : null}
       </View>
-      <Text style={[styles.titleStyle, {color: appStyle.textColor}]}>
+      <Text
+        style={[styles.titleStyle, {color: appStyle.textColor}]}
+        numberOfLines={2}>
         {element.title}
       </Text>
-      {element.author ? (
-        <Text style={[{color: appStyle.textColor}]}>
-          {element.author?.name}
+      {element.subtitle ? (
+        <Text style={[styles.subtitleStyle, {color: appStyle.textColor}]}>
+          {element.subtitle}
         </Text>
-      ) : null}
-      {element.short_views ? (
-        <Text style={[{color: appStyle.textColor}]}>{element.short_views}</Text>
-      ) : null}
-      {element.publishDate ? (
-        <Text style={[{color: appStyle.textColor}]}>{element.publishDate}</Text>
-      ) : null}
+      ) : (
+        <>
+          {element.author ? (
+            <Text style={[{color: appStyle.textColor}]}>
+              {element.author?.name}
+            </Text>
+          ) : null}
+          {element.short_views ? (
+            <Text style={[{color: appStyle.textColor}]}>
+              {element.short_views}
+            </Text>
+          ) : null}
+          {element.publishDate ? (
+            <Text style={[{color: appStyle.textColor}]}>
+              {element.publishDate}
+            </Text>
+          ) : null}
+        </>
+      )}
     </VideoTouchable>
   );
 }
@@ -127,9 +143,13 @@ const styles = StyleSheet.create({
     backgroundColor: "grey", // TODO: REMOVE?
   },
   titleStyle: {
-    fontSize: 25,
+    fontSize: 30,
+    fontWeight: "bold",
     width: "100%",
     flexShrink: 1,
+  },
+  subtitleStyle: {
+    fontSize: 20,
   },
   countContainer: {
     position: "absolute",

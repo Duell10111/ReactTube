@@ -1,5 +1,5 @@
 import React from "react";
-import {ScrollView, StyleSheet, TVFocusGuideView, View} from "react-native";
+import {StyleSheet, View} from "react-native";
 
 import ShelfVideoSelectorProvider from "../../../context/ShelfVideoSelector";
 
@@ -12,9 +12,7 @@ export default function BottomContainer({children, onFocus}: Props) {
   return (
     <View style={styles.container}>
       <ShelfVideoSelectorProvider onElementFocused={onFocus}>
-        <ScrollView>
-          <TVFocusGuideView autoFocus>{children}</TVFocusGuideView>
-        </ScrollView>
+        {children}
       </ShelfVideoSelectorProvider>
     </View>
   );

@@ -31,7 +31,7 @@ export const VideoPlayerPhone = forwardRef<VideoRef, VideoPlayerPhoneProps>(
           controls: true,
           // TODO: Check if working correctly on android and ios
           playInBackground: Platform.OS === "android",
-          pictureInPicture: Platform.OS === "ios",
+          enterPictureInPictureOnLeave: Platform.OS === "ios",
           ignoreSilentSwitch: "ignore",
         }}
         onPress={onPipPress}

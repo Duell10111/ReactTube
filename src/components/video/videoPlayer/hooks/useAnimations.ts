@@ -29,7 +29,7 @@ export const useAnimations = (controlAnimationTiming: number) => {
   });
 
   const hideControlAnimation = () => {
-    console.log("Hide Control");
+    // console.log("Hide Control");
     bottomControlMarginBottom.value = withTiming(100, {
       duration: controlAnimationTiming,
     });
@@ -42,7 +42,7 @@ export const useAnimations = (controlAnimationTiming: number) => {
   };
 
   const showControlAnimation = () => {
-    console.log("Show Control");
+    // console.log("Show Control");
     bottomControlMarginBottom.value = withTiming(0, {
       duration: controlAnimationTiming,
     });

@@ -29,15 +29,15 @@ export default function useTVSeekControl({
   setPause,
   enabled,
 }: TVSeekControlProps) {
-  const longPressInterval = useRef<NodeJS.Timer>();
+  const longPressTimeout = useRef<NodeJS.Timer>();
   const seekerPos = useRef<number>();
-  const [pressStartTime, setPressStartTime] = useState(null);
+  const pressStartTime = useRef<number>();
 
   useEffect(() => {
     return () => {
       console.log("Deinit useTVSeekControl");
       // @ts-ignore
-      clearInterval(longPressInterval.current);
+      clearTimeout(longPressTimeout.current);
     };
   }, []);
 
@@ -57,39 +57,47 @@ export default function useTVSeekControl({
     setSeekerPosition(position);
   };
 
-  const handleLongPress = (pos: number) => {
-    if (!longPressInterval.current) {
+  // console.log("Seeker position", seekerPosition);
+  // console.log("Seeker width", seekerWidth);
+
+  const handleLongPress = (offset: number, start: boolean) => {
+    // TODO: Implement with setTimeout with dynamically changing interval
+    if (start) {
       seekerPos.current = seekerPosition;
-      // @ts-ignore TODO: fix
-      setPressStartTime(new Date().getTime());
-      setInterval(() => {
-        // @ts-ignore TODO: fix
-        const pressDuration = new Date().getTime() - pressStartTime;
-        let speedFactor = 1;
-        if (pressDuration > 2000) {
-          // Länger als 2 Sekunden
-          speedFactor = 5;
-        } else if (pressDuration > 1000) {
-          // Länger als 1 Sekunde
-          speedFactor = 3;
-        }
-        const skipForward = seekerWidth * 0.05;
-        setSeeking(true);
-        // @ts-ignore TODO: fix
-        const newPosition = seekerPos.current + pos * skipForward;
-        console.log("New Position: ", newPosition);
-        seekerPos.current = newPosition;
-        setSeekerPosition(newPosition);
-      }, 1000);
+      pressStartTime.current = new Date().getTime();
+      setTimeout(() => longPressIntervalFkt(offset), 200);
     } else {
       // @ts-ignore
-      clearInterval(longPressInterval.current);
+      clearTimeout(longPressTimeout.current);
       const percent = seekerPosition / seekerWidth;
+      console.log(
+        `Seeker percent ${percent} - ${seekerPosition}/${seekerWidth}`,
+      );
       const time = duration * percent;
+      console.log(`Seeking to time ${time}`);
       seek?.(time);
       setSeeking(false);
     }
   };
+
+  function longPressIntervalFkt(offset: number) {
+    const pressDuration = new Date().getTime() - (pressStartTime.current ?? 0);
+    let timeoutInterval = 200;
+    if (pressDuration > 2000) {
+      timeoutInterval = 100;
+    }
+    const skipForward = seekerWidth * 0.05;
+    setSeeking(true);
+    const newPosition =
+      (seekerPos.current ?? seekerPosition) + offset * skipForward;
+    console.log("New Position: ", newPosition);
+    seekerPos.current = newPosition;
+    setSeekerPosition(newPosition);
+    longPressTimeout.current = setTimeout(
+      () => longPressIntervalFkt(offset),
+      timeoutInterval,
+    );
+  }
 
   useTVEventHandler(event => {
     if (event.eventType === "playPause") {
@@ -97,7 +105,7 @@ export default function useTVSeekControl({
     }
     if (!enabled) {
       // @ts-ignore
-      longPressInterval.current && clearInterval(longPressInterval.current);
+      longPressTimeout.current && clearTimeout(longPressTimeout.current);
       return;
     }
     if (event.eventType === "right" || event.eventType === "left") {
@@ -105,10 +113,12 @@ export default function useTVSeekControl({
       seek?.(currentTime + pos * 15);
       // setSeekerPositionSeconds(currentTime + pos * 15);
     }
-    // TODO: Add fast forward seek?
-    // if (event.eventType === "longRight" || event.eventType === "longLeft") {
-    //   handleLongPress(event.eventType === "longLeft" ? -1 : 1);
-    // }
+    if (event.eventType === "longRight" || event.eventType === "longLeft") {
+      handleLongPress(
+        event.eventType === "longLeft" ? -1 : 1,
+        event.eventKeyAction === 0,
+      );
+    }
     // Check if
   });
 }

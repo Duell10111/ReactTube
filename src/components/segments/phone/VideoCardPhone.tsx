@@ -13,39 +13,32 @@ import {
   ViewStyle,
 } from "react-native";
 
-import {useAppStyle} from "../../../context/AppStyleContext";
-import {Author, Thumbnail} from "../../../extraction/Types";
 import ChannelIcon from "../../video/ChannelIcon";
+
+import {useAppStyle} from "@/context/AppStyleContext";
+import {VideoData} from "@/extraction/Types";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
   style?: StyleProp<ViewStyle>;
   imageContainerStyle?: StyleProp<ViewStyle>;
   onPress?: () => void;
-  videoId: string;
-  title: string;
-  views?: string;
-  duration?: string;
-  thumbnail?: Thumbnail;
-  author?: Author;
-  date?: string;
-  disabled?: boolean;
-  livestream?: boolean;
-  mix?: boolean;
+  data: VideoData;
 }
 
+// OLD WAY: Should be replaced with VideoCard in elements/phone
 export default function VideoCardPhone({
   style,
   textStyle,
   imageContainerStyle,
   onPress,
-  ...data
+  data,
 }: Props) {
   const {style: appStyle} = useAppStyle();
   const {width} = useWindowDimensions();
 
   const subtitleContent = useMemo(() => {
-    return _.chain([data.author?.name, data.views, data.date])
+    return _.chain([data.author?.name, data.short_views, data.publishDate])
       .compact()
       .value();
   }, [data]);
@@ -59,7 +52,7 @@ export default function VideoCardPhone({
             resizeMode={"cover"}
             source={{
               uri:
-                data.thumbnail?.url ??
+                data.thumbnailImage?.url ??
                 "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
             }}
           />
@@ -72,7 +65,7 @@ export default function VideoCardPhone({
               <Text style={styles.liveStyle}>{"Live"}</Text>
             </View>
           ) : null}
-          {data.mix ? (
+          {data.type === "mix" ? (
             <View style={styles.bottomBorder}>
               <Icon name={"playlist-play"} color={"white"} />
             </View>

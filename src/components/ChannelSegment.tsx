@@ -1,31 +1,32 @@
 import React from "react";
 import {StyleProp, ViewStyle} from "react-native";
-import {Helpers, YTNodes} from "../utils/Youtube";
+
 import ChannelCard from "./ChannelCard";
 import Logger from "../utils/Logger";
+
+import {ChannelData} from "@/extraction/Types";
 
 const LOGGER = Logger.extend("SEGMENT");
 
 interface SegmentProps {
   style?: StyleProp<ViewStyle>;
-  element: Helpers.YTNode;
+  element: ChannelData;
 }
 
 export default function ChannelSegment({element}: SegmentProps) {
-  if (element.is(YTNodes.GridChannel)) {
-    const bestThumbnail = element.author.best_thumbnail?.url;
-    const transformed = bestThumbnail
-      ? "https://" + bestThumbnail.split("//")[1]
-      : undefined;
+  if (element.author) {
     return (
       <ChannelCard
         id={element.id}
-        channelName={element.author.name}
-        imageUrl={transformed}
+        channelName={element.author!.name}
+        imageUrl={element.thumbnailImage.url}
       />
     );
   } else {
-    LOGGER.warn("Unknown Channel Segment type: ", element.type);
+    LOGGER.warn(
+      "Channel Element does not contain author name required: ",
+      element.type,
+    );
     return null;
   }
 }

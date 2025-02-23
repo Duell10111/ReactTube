@@ -30,6 +30,6 @@ const styles = StyleSheet.create({
   timerText: {
     backgroundColor: "transparent",
     color: "#FFF",
-    fontSize: 16,
+    fontSize: 20,
   },
 });

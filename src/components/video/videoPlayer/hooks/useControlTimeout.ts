@@ -27,7 +27,7 @@ export const useControlTimeout = ({
   const [_clearTimeout, setClearTimeout] = useState<boolean>();
 
   const setControlTimeout = () => {
-    console.log("SET Control Timeout");
+    // console.log("SET Control Timeout");
     _setControlTimeout(prevState => !prevState);
   };
 
@@ -59,7 +59,7 @@ export const useControlTimeout = ({
   useEffect(() => {
     if (_clearTimeout) {
       clearTimeout(controlTimeout.current);
-      console.log("Clear Timeout");
+      // console.log("Clear Timeout");
       setClearTimeout(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

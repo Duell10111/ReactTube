@@ -37,13 +37,10 @@ export default function ChannelCard({element}: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-  },
   touchContainer: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
   image: {
     width: 150,
@@ -53,6 +50,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 25,
+    fontWeight: "bold",
     marginTop: 10,
   },
 });

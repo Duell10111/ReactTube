@@ -15,30 +15,22 @@ import VideoTouchable from "../../general/VideoTouchable";
 
 import {useAppStyle} from "@/context/AppStyleContext";
 import {useShelfVideoSelector} from "@/context/ShelfVideoSelector";
-import {Author} from "@/extraction/Types";
+import {VideoData} from "@/extraction/Types";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
   style?: StyleProp<ViewStyle>;
+  data: VideoData;
   onPress?: () => void;
-  videoId: string;
-  title: string;
-  views?: string;
-  duration?: string;
-  thumbnailURL?: string;
-  author?: Author;
-  date?: string;
-  disabled?: boolean;
-  livestream?: boolean;
-  mix?: boolean;
-  progressPercentage?: number;
 }
 
+// OLD WAY: Should be replaced with VideoCard in elements/tv
 export default function VideoCardTV({
   style,
   textStyle,
   onPress,
-  ...data
+  data,
+  // ...data
 }: Props) {
   const {setSelectedVideo, onElementFocused} = useShelfVideoSelector();
   const {style: appStyle} = useAppStyle();
@@ -61,13 +53,13 @@ export default function VideoCardTV({
         }}
         onBlur={() => setFocus(false)}
         onLongPress={() => {
-          setSelectedVideo(data.videoId);
+          setSelectedVideo(data);
         }}>
         <Image
           style={styles.imageStyle}
           source={{
             uri:
-              data.thumbnailURL ??
+              data.thumbnailImage.url ??
               "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
           }}
         />
@@ -80,14 +72,17 @@ export default function VideoCardTV({
             <Text style={styles.liveStyle}>{"Live"}</Text>
           </View>
         ) : null}
-        {data.mix ? (
+        {data.type === "mix" ? (
           <View style={styles.bottomBorder}>
             <Icon name={"playlist-play"} color={"white"} />
           </View>
         ) : null}
-        {data.progressPercentage ? (
+        {data.thumbnailOverlays?.videoProgress ? (
           <View
-            style={[styles.progressBar, {width: `${data.progressPercentage}%`}]}
+            style={[
+              styles.progressBar,
+              {width: `${data.thumbnailOverlays?.videoProgress * 100}%`},
+            ]}
           />
         ) : null}
       </VideoTouchable>
@@ -99,15 +94,15 @@ export default function VideoCardTV({
           {data.author?.name}
         </Text>
       ) : null}
-      {data.views ? (
+      {data.short_views ? (
         <Text
           style={[styles.viewsStyle, {color: appStyle.textColor}, textStyle]}>
-          {data.views}
+          {data.short_views}
         </Text>
       ) : null}
-      {data.date ? (
+      {data.publishDate ? (
         <Text style={[{color: appStyle.textColor}, textStyle]}>
-          {data.date}
+          {data.publishDate}
         </Text>
       ) : null}
     </View>

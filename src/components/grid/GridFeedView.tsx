@@ -1,6 +1,6 @@
 import React, {useCallback, useMemo} from "react";
 import {ListRenderItem, StyleProp, ViewStyle} from "react-native";
-import {FlatGrid} from "react-native-super-grid";
+import {FlatGrid, FlatGridProps} from "react-native-super-grid";
 
 import {ElementCard} from "@/components/elements/tv/ElementCard";
 import PageSectionList from "@/components/segments/PageSectionList";
@@ -12,6 +12,8 @@ interface GridFeedViewProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
   items: (ElementData | HorizontalData)[];
   onEndReached?: () => void;
+  ListHeaderComponent?: FlatGridProps["ListHeaderComponent"];
+  ListFooterComponent?: FlatGridProps["ListFooterComponent"];
 }
 
 interface GridDataItem {
@@ -24,6 +26,8 @@ export default function GridFeedView({
   contentContainerStyle,
   items,
   onEndReached,
+  ListHeaderComponent,
+  ListFooterComponent,
 }: GridFeedViewProps) {
   const data = useMemo(
     () =>
@@ -47,18 +51,11 @@ export default function GridFeedView({
         />
       );
     }
-    return (
-      // <View style={{height: 50, width: 200, backgroundColor: "yellow"}} />
-      // <VideoSegment
-      //   element={item.item as ElementData}
-      //   // textStyle={textStyle}
-      //   style={{
-      //     maxWidth: 100,
-      //     marginHorizontal: 5,
-      //   }}
-      // />
-      <ElementCard element={item.item as ElementData} width={"100%"} />
-    );
+    return <ElementCard element={item.item as ElementData} width={"100%"} />;
+  }, []);
+
+  const keyExtractor = useCallback((item: GridDataItem, index: number) => {
+    return item.item.id;
   }, []);
 
   return (
@@ -73,9 +70,12 @@ export default function GridFeedView({
       }}
       data={data}
       renderItem={renderItem}
+      keyExtractor={keyExtractor}
       itemDimension={500}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
+      ListHeaderComponent={ListHeaderComponent}
+      ListFooterComponent={ListFooterComponent}
     />
   );
 }

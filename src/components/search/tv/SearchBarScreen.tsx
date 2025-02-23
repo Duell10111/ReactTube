@@ -3,6 +3,7 @@ import {TVEventControl, View} from "react-native";
 import {RnNativeSearchBarView} from "rn-native-search-bar";
 
 import GridFeedView from "@/components/grid/GridFeedView";
+import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 
 interface SearchBarScreenProps {
@@ -38,10 +39,12 @@ export function SearchBarScreen({
           performSearch(event.nativeEvent.text);
         }}>
         <View style={{flex: 1}}>
-          <GridFeedView
-            items={data}
-            onEndReached={() => fetchMore().catch(console.warn)}
-          />
+          <ShelfVideoSelectorProvider>
+            <GridFeedView
+              items={data}
+              onEndReached={() => fetchMore().catch(console.warn)}
+            />
+          </ShelfVideoSelectorProvider>
         </View>
       </RnNativeSearchBarView>
     </View>

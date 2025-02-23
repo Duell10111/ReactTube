@@ -14,7 +14,6 @@ import MetadataContainer from "./MetadataContainer";
 import {NullControl} from "./NullControl";
 import Seekbar from "./Seekbar";
 import {Timer} from "./Timer";
-import {Title} from "./Title";
 import {VideoMetadata} from "./VideoPlayer";
 import useAnimatedBottomControls from "./hooks/useAnimatedBottomControls";
 import {useAnimations} from "./hooks/useAnimations";
@@ -45,7 +44,7 @@ interface BottomControlsProps {
   // Metadata
   metadata: VideoMetadata;
   resolution?: string;
-  onAuthorClick: () => void;
+  onJumpToStart: () => void;
 }
 
 export default function BottomControls({
@@ -69,6 +68,7 @@ export default function BottomControls({
   bottomContainer,
   metadata,
   resolution,
+  onJumpToStart,
 }: BottomControlsProps) {
   const {bottomContainerStyle, topContainerStyle, showBottomContainer} =
     useAnimatedBottomControls();
@@ -107,12 +107,12 @@ export default function BottomControls({
       seekerPanHandlers={panHandlers}
       setSeekerWidth={setSeekerWidth}
       onFocus={() => {
-        console.log("Seekder focus");
+        // console.log("Seekder focus");
         showBottomContainer.value = false;
         setSeekerFocus(true);
       }}
       onBlur={() => {
-        console.log("Seekbar blur");
+        // console.log("Seekbar blur");
         setSeekerFocus(false);
       }}
     />
@@ -131,6 +131,7 @@ export default function BottomControls({
             metadata={metadata}
             resolution={resolution}
             pause={() => setPaused(true)}
+            onJumpToStart={onJumpToStart}
           />
         </View>
         <ImageBackground

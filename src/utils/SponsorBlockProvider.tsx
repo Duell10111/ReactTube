@@ -84,6 +84,9 @@ export function useSponsorBlock(
       console.log("Skipping to end of segment: ", segment.endSegment);
       showMessage({
         message: `Skipping ${segment.category}`,
+        titleStyle: {
+          fontSize: 20,
+        },
       });
       currentSegment.current += 1;
       seek?.(segment.endSegment);

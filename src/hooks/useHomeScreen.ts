@@ -1,5 +1,5 @@
 import _ from "lodash";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {DeviceEventEmitter} from "react-native";
 
 import Logger from "../utils/Logger";
@@ -11,7 +11,6 @@ import {
 } from "../utils/Youtube";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
-import {parseArrayHorizontalAndElement} from "@/extraction/ArrayExtraction";
 
 const LOGGER = Logger.extend("HOOKS");
 

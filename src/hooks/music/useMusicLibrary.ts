@@ -6,6 +6,7 @@ import {getAllPlaylistsAsElementData} from "@/downloader/DBData";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import {extractGrid} from "@/extraction/GridExtraction";
 import {ElementData} from "@/extraction/Types";
+import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
 import {YTMusic} from "@/utils/Youtube";
 
 export default function useMusicLibrary() {
@@ -14,16 +15,20 @@ export default function useMusicLibrary() {
   const continuation = useRef<YTMusic.LibraryContinuation>();
   const [data, setData] = useState<ElementData[]>();
   const {loginData} = useAccountContext();
+  const {playlists, fetchPlaylists} = usePlaylistManager();
 
   useEffect(() => {
     // No login present -> Use local Database instead
     if (loginData.accounts.length === 0) {
       getAllPlaylistsAsElementData().then(setData).catch(console.warn);
-    } else {
+    } else if (youtube?.session.logged_in) {
       youtube?.music?.getLibrary().then(lib => {
         library.current = lib;
         lib.contents && setData(extractGrid(lib.contents[0]));
       });
+    } else {
+      // Fetch playlists from PlaylistManager
+      fetchPlaylists().catch(console.warn);
     }
   }, []);
 
@@ -43,7 +48,7 @@ export default function useMusicLibrary() {
   };
 
   return {
-    data,
+    data: data ?? playlists,
     fetchContinuation,
   };
 }
