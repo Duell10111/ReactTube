@@ -1,7 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 
-import {useFeedData} from "./general/useFeedData";
-
 import {useYoutubeTVContext} from "@/context/YoutubeContext";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import {ElementData} from "@/extraction/Types";

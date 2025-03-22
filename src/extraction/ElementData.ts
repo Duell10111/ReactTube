@@ -63,9 +63,9 @@ export function getVideoData(
       thumbnailImage: ytNode.best_thumbnail
         ? getThumbnail(ytNode.best_thumbnail)
         : undefined,
-      short_views: ytNode.short_view_count.toString(),
+      short_views: ytNode.short_view_count?.text,
       author: getAuthor(ytNode.author),
-      publishDate: ytNode.published.text,
+      publishDate: ytNode.published?.text,
       type: "video",
       duration: duration?.startsWith("N/A") ? undefined : duration,
       livestream: ytNode.is_live,
@@ -535,7 +535,7 @@ export function getVideoData(
         id: ytNode.content_id,
         thumbnailImage: image,
         title: ytNode.metadata?.title?.text,
-        navEndpoint: ytNode.renderer_context.command_context.on_tap,
+        navEndpoint: ytNode.renderer_context.command_context?.on_tap,
       } as VideoData;
     } else {
       LOGGER.warn(

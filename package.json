@@ -60,7 +60,7 @@
     "rn-native-search-bar": "1.0.0-beta.13",
     "stream-browserify": "^3.0.0",
     "web-streams-polyfill": "3.3.3",
-    "youtubei.js": "github:Duell10111/YouTube.js#678c0b04"
+    "youtubei.js": "github:Duell10111/YouTube.js#e2e47ed4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

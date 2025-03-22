@@ -101,7 +101,7 @@ export default function EndCard({
         </View>
         <View style={styles.bottomContainer}>
           <ScrollView>
-            <RelatedVideos YTVideoInfo={video} />
+            <RelatedVideos YTVideoInfo={video} playlistShown={false} />
           </ScrollView>
         </View>
       </View>
