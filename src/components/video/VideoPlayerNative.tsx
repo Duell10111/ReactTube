@@ -21,6 +21,8 @@ const VideoPlayerNative = forwardRef<
       seek: seconds => {
         videoRef.current?.seek?.(seconds);
       },
+      getCurrentPositionSeconds: async () =>
+        (await videoRef.current?.getCurrentPosition?.()) ?? 0,
     };
   }, []);
 
@@ -37,6 +39,7 @@ const VideoPlayerNative = forwardRef<
         subtitle: videoInfo?.author?.name,
         description: videoInfo?.description,
         customImageUri: videoInfo?.thumbnailImage?.url,
+        startPosition: props.props.startPosition,
       }}
       paused={props.paused}
       onLoad={props.onLoad}

@@ -8,7 +8,6 @@ import {
   ViewStyle,
 } from "react-native";
 
-import ChannelSegment from "@/components/ChannelSegment";
 import {ElementCard} from "@/components/elements/phone/ElementCard";
 import {ElementCard as ElementCardTV} from "@/components/elements/tv/ElementCard";
 import {ElementData} from "@/extraction/Types";
@@ -20,6 +19,7 @@ interface HorizontalElementsListProps {
   videoSegmentStyle?: StyleProp<ViewStyle>;
   containerStyle?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  width?: ViewStyle["width"];
   elements: ElementData[];
   onEndReached?: () => void;
 }
@@ -30,50 +30,49 @@ export function HorizontalElementsList({
   textStyle,
   onEndReached,
   containerStyle,
+  width,
 }: HorizontalElementsListProps) {
   const renderItem = useCallback<ListRenderItem<ElementData>>(
     ({item}: {item: ElementData}) => {
-      if (item.type === "channel") {
-        return <ChannelSegment element={item.originalNode} />;
+      // TODO: Remove isTV workaround once GridView not used anymore on Phone/Tablets?
+      if (Platform.isTV) {
+        return (
+          <ElementCardTV
+            element={item}
+            // textStyle={textStyle}
+            style={[videoSegmentStyle, {marginHorizontal: 10}]}
+            width={width}
+          />
+        );
       } else {
-        // TODO: Remove isTV workaround once GridView not used anymore on Phone/Tablets?
-        if (Platform.isTV) {
-          return (
-            <ElementCardTV
-              element={item}
-              // textStyle={textStyle}
-              style={[videoSegmentStyle, {marginHorizontal: 10}]}
-            />
-          );
-        } else {
-          return (
-            <ElementCard
-              element={item}
-              // textStyle={textStyle}
-              style={[videoSegmentStyle, {marginHorizontal: 10}]}
-              width={300}
-            />
-          );
-        }
+        return (
+          <ElementCard
+            element={item}
+            // textStyle={textStyle}
+            style={[videoSegmentStyle, {marginHorizontal: 10}]}
+            width={300}
+          />
+        );
       }
     },
     [textStyle, videoSegmentStyle],
   );
 
-  const keyExtractor = useCallback((item: ElementData) => {
-    return item.id;
+  // Adding index as sometimes a video occurs multiple times in a playlist for example
+  const keyExtractor = useCallback((item: ElementData, index: number) => {
+    return item.id + item.originalNode.type + index;
   }, []);
 
   return (
     <FlatList
       style={{alignSelf: "flex-start"}}
-      contentContainerStyle={{alignItems: "flex-start"}}
+      contentContainerStyle={[{alignItems: "flex-start"}, containerStyle]}
       horizontal
       data={elements}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       onEndReached={onEndReached}
-      onEndReachedThreshold={0.7}
+      onEndReachedThreshold={0.8}
     />
   );
 }

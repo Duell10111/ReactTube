@@ -1,6 +1,5 @@
 import {useFocusEffect} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {Icon} from "@rneui/base";
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import {
   ActivityIndicator,
@@ -8,10 +7,8 @@ import {
   View,
   useTVEventHandler,
   TVEventControl,
-  Text,
 } from "react-native";
 
-import HorizontalVideoList from "../components/HorizontalVideoList";
 import VideoComponent from "../components/VideoComponent";
 import ErrorComponent from "../components/general/ErrorComponent";
 import EndCard from "../components/video/EndCard";
@@ -23,8 +20,8 @@ import VideoPlayer, {
 import useVideoDetails from "../hooks/useVideoDetails";
 import LOGGER from "../utils/Logger";
 
+import {BottomMetadata} from "@/components/video/tv/BottomMetadata";
 import {useAppData} from "@/context/AppDataContext";
-import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import useChannelDetails from "@/hooks/useChannelDetails";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
@@ -37,13 +34,23 @@ interface PlaybackInformation {
 // TODO: Fix if freeze if video does only provide audio!!
 // TODO: Add TV remote input for suggestions https://github.com/react-native-tvos/react-native-tvos/blob/tvos-v0.64.2/README.md
 
-// TODO: Add option for init seconds for continuation of video
+// TODO: Add a button to video player to jump to beginning
 
 export default function VideoScreen({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;
-  const {YTVideoInfo, httpVideoURL, hlsManifestUrl} = useVideoDetails(
-    navEndpoint ?? videoId,
-  );
+  const {
+    YTVideoInfo,
+    httpVideoURL,
+    hlsManifestUrl,
+    startTime,
+    watchNextFeed,
+    fetchNextVideoContinue,
+    like,
+    dislike,
+    removeRating,
+    addToWatchHistory,
+    refresh,
+  } = useVideoDetails(navEndpoint ?? videoId, "TV", route.params.startSeconds);
   // @ts-ignore TODO: fix
   const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id);
   const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
@@ -53,13 +60,7 @@ export default function VideoScreen({route, navigation}: Props) {
 
   const {appSettings} = useAppData();
   const videoPlayerRef = useRef<VideoPlayerRefs>();
-
-  // TODO: Will be replaced once embed server is available on tvOS
-  const hlsUrl = useMemo(() => {
-    return appSettings.localHlsEnabled
-      ? `http://192.168.178.10:7500/video/${videoId}/master.m3u8`
-      : undefined;
-  }, [appSettings.localHlsEnabled, videoId]);
+  const currentTimeRef = useRef<number>();
 
   useEffect(() => {
     return navigation.addListener("blur", () => {
@@ -102,14 +103,6 @@ export default function VideoScreen({route, navigation}: Props) {
     [hlsManifestUrl, httpVideoURL],
   );
 
-  const watchNextList = useMemo(
-    () =>
-      YTVideoInfo?.originalData?.watch_next_feed
-        ? parseObservedArray(YTVideoInfo.originalData.watch_next_feed)
-        : [],
-    [YTVideoInfo?.originalData?.watch_next_feed],
-  );
-
   if (!YTVideoInfo) {
     return (
       <View
@@ -147,7 +140,7 @@ export default function VideoScreen({route, navigation}: Props) {
           VideoComponent={VideoPlayerNative}
           VideoComponentProps={{
             url: videoUrl,
-            hlsUrl,
+            startPosition: startTime ? startTime * 1000 : undefined,
             videoInfo: YTVideoInfo.originalData,
             onPlaybackInfoUpdate: infos => {
               setPlaybackInfos({resolution: infos.height.toString() + "p"});
@@ -155,7 +148,7 @@ export default function VideoScreen({route, navigation}: Props) {
           }}
           metadata={{
             title: YTVideoInfo.title,
-            author: YTVideoInfo.author?.name ?? "Unknwon",
+            author: YTVideoInfo.author?.name ?? "Unknown",
             authorID: YTVideoInfo.channel_id ?? "",
             // @ts-ignore TODO: Allow videos without author Thumbnail?!
             authorThumbnailUrl:
@@ -167,34 +160,60 @@ export default function VideoScreen({route, navigation}: Props) {
               }),
             views: YTVideoInfo.short_views ?? "Unknown views",
             videoDate: YTVideoInfo.publishDate ?? "Unknown",
+            liked: YTVideoInfo.liked,
+            disliked: YTVideoInfo.disliked,
+            onLike: () => {
+              (YTVideoInfo.liked ? removeRating : like)().catch(LOGGER.warn);
+            },
+            onDislike: () => {
+              (YTVideoInfo?.disliked ? removeRating : dislike)().catch(
+                LOGGER.warn,
+              );
+            },
+            onSaveVideo: () => {
+              YTVideoInfo?.id &&
+                navigation.navigate("PlaylistManagerContextMenu", {
+                  videoId: YTVideoInfo.id,
+                });
+            },
+            onRefresh: async () => {
+              refresh(
+                await videoPlayerRef.current?.getCurrentPositionSeconds?.(),
+              );
+            },
           }}
           videoID={YTVideoInfo.id}
+          onProgress={data => {
+            if (
+              appSettings.trackingEnabled &&
+              (!currentTimeRef.current ||
+                Math.abs(currentTimeRef.current - data.currentTime) > 30)
+            ) {
+              LOGGER.debug("Triggering watchlist update");
+              addToWatchHistory(
+                !currentTimeRef.current
+                  ? undefined
+                  : Math.floor(data.currentTime),
+              ).catch(LOGGER.warn);
+              currentTimeRef.current = data.currentTime;
+            }
+          }}
           onEnd={() => {
             setEnded(true);
             setShowEndCard(true);
+            if (appSettings.trackingEnabled && YTVideoInfo?.durationSeconds) {
+              addToWatchHistory(YTVideoInfo?.durationSeconds).catch(
+                LOGGER.warn,
+              );
+            }
           }}
           bottomContainer={
-            <View>
-              {YTVideoInfo.playlist ? (
-                <>
-                  <View style={styles.bottomPlaylistTextContainer}>
-                    <Icon name={"book"} color={"white"} />
-                    <Text style={styles.bottomPlaylistText}>
-                      {YTVideoInfo.playlist.title}
-                    </Text>
-                  </View>
-                  <HorizontalVideoList
-                    nodes={YTVideoInfo.playlist.content}
-                    textStyle={styles.text}
-                  />
-                </>
-              ) : null}
-              <Text style={styles.bottomText}>{"Related Videos"}</Text>
-              <HorizontalVideoList
-                nodes={watchNextList}
-                textStyle={styles.text}
-              />
-            </View>
+            <BottomMetadata
+              YTVideoInfo={YTVideoInfo}
+              watchNextFeed={watchNextFeed}
+              fetchMoreNextFeed={fetchNextVideoContinue}
+              seek={seconds => videoPlayerRef.current?.seek(seconds)}
+            />
           }
           endCardContainer={
             YTVideoInfo.endscreen ? (
@@ -206,7 +225,7 @@ export default function VideoScreen({route, navigation}: Props) {
       ) : (
         <VideoComponent
           url={videoUrl}
-          hlsUrl={hlsUrl}
+          hlsUrl={YTVideoInfo.hls_manifest_url}
           videoInfo={YTVideoInfo}
           onEndReached={() => {
             setEnded(true);
@@ -263,14 +282,6 @@ const styles = StyleSheet.create({
   },
   nextVideoContainer: {
     flex: 1,
-  },
-  bottomContainer: {
-    width: "100%",
-    minHeight: "40%",
-    maxHeight: "50%",
-    backgroundColor: "#111111cc",
-    justifyContent: "center",
-    paddingTop: 20,
   },
   bottomText: {
     fontSize: 20,

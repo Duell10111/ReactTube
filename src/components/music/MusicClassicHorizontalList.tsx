@@ -1,11 +1,9 @@
 import React from "react";
 import {Platform, StyleSheet, Text, View} from "react-native";
 
-import {useAppStyle} from "../../context/AppStyleContext";
-import {HorizontalData} from "../../extraction/ShelfExtraction";
-import HorizontalVideoList from "../HorizontalVideoList";
-
 import {MusicHorizontalElementsList} from "@/components/music/MusicHorizontalElementsList";
+import {useAppStyle} from "@/context/AppStyleContext";
+import {HorizontalData} from "@/extraction/ShelfExtraction";
 
 interface MusicClassicHorizontalListProps {
   data: HorizontalData;

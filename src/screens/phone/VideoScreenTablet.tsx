@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   container: {
     height: "100%",
     width: "100%",
-    marginTop: 95, // Workaround as video seems not on right place otherwise at start and glitches down on-screen switch :/ https://github.com/TheWidlarzGroup/react-native-video/issues/4091
+    // marginTop: 95, // Workaround as video seems not on right place otherwise at start and glitches down on-screen switch :/ https://github.com/TheWidlarzGroup/react-native-video/issues/4091
   },
   containerLandscape: {
     flexDirection: "row",
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   videoContainerTabletLandscape: {
     height: "100%",
     width: "65%",
-    backgroundColor: "yellow",
+    // backgroundColor: "yellow",
   },
   videoContainerTablet: {
     height: "35%",

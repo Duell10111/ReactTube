@@ -8,6 +8,7 @@ interface MetadataButtonProps {
   iconType?: IconType;
   iconName?: string;
   onPress?: () => void;
+  active?: boolean;
 }
 
 export function MetadataButton({
@@ -15,6 +16,7 @@ export function MetadataButton({
   iconType,
   iconName,
   onPress,
+  active,
 }: MetadataButtonProps) {
   const [focus, setFocus] = useState(false);
 
@@ -22,7 +24,13 @@ export function MetadataButton({
     <TouchableOpacity
       style={[
         styles.container,
-        {backgroundColor: focus ? "white" : "rgba(119,119,119,0.33)"},
+        {
+          backgroundColor: active
+            ? "blue"
+            : focus
+              ? "white"
+              : "rgba(119,119,119,0.33)",
+        },
       ]}
       onPress={onPress}
       onFocus={() => setFocus(true)}

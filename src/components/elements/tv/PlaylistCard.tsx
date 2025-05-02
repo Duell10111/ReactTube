@@ -34,7 +34,7 @@ export function PlaylistCard({
       }}
       onBlur={() => setFocus(false)}
       onLongPress={() => {
-        setSelectedVideo(element.id);
+        setSelectedVideo(element);
       }}>
       <View
         style={[styles.segmentContainer, focus ? {borderColor: "white"} : {}]}>
@@ -57,7 +57,7 @@ export function PlaylistCard({
         {element.title}
       </Text>
       {element.author ? (
-        <Text style={[{color: appStyle.textColor}]}>
+        <Text style={[styles.subtitleStyle, {color: appStyle.textColor}]}>
           {element.author?.name}
         </Text>
       ) : null}
@@ -83,9 +83,12 @@ const styles = StyleSheet.create({
     backgroundColor: "grey", // TODO: REMOVE?
   },
   titleStyle: {
-    fontSize: 25,
+    fontSize: 30,
     width: "100%",
     flexShrink: 1,
+  },
+  subtitleStyle: {
+    fontSize: 20,
   },
   countContainer: {
     position: "absolute",

@@ -34,6 +34,12 @@ export interface VideoMetadata {
   onAuthorPress: () => void;
   views: string;
   videoDate: string;
+  liked?: boolean;
+  disliked?: boolean;
+  onLike?: () => void;
+  onDislike?: () => void;
+  onSaveVideo?: () => void;
+  onRefresh?: () => void;
 }
 
 // TODO: Use own types
@@ -51,10 +57,12 @@ export interface VideoComponentType<T> {
 
 export interface VideoComponentRefType {
   seek: (seconds: number) => void;
+  getCurrentPositionSeconds: () => Promise<number>;
 }
 
 export interface VideoPlayerRefs {
   seek: (seconds: number) => void;
+  getCurrentPositionSeconds: () => Promise<number>;
   pause: () => void;
 }
 
@@ -70,6 +78,7 @@ interface VideoPlayerProps<T> {
   endCardStartSeconds?: number;
   // Callbacks
   onAuthorClick?: () => void;
+  onProgress?: (progressData: OnProgressData) => void;
   onEnd?: () => void;
 
   // Custom Props
@@ -85,7 +94,14 @@ const sponsorSeekReplacement = (seconds: number) => {
 
 const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
   (
-    {VideoComponent, bottomContainer, endCardContainer, onEnd, ...props},
+    {
+      VideoComponent,
+      bottomContainer,
+      endCardContainer,
+      onProgress,
+      onEnd,
+      ...props
+    },
     ref,
   ) => {
     const animations = useAnimations(450);
@@ -157,6 +173,8 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       // console.log("Progress: ", data);
       if (!seeking) {
         setCurrentTime(data.currentTime);
+
+        onProgress?.(data);
 
         // if (typeof onProgress === 'function') {
         //   onProgress(data);
@@ -254,7 +272,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           if (showEndcard) {
             return;
           }
-          console.log("Control Timeout Triggered! ", event.eventType);
+          // console.log("Control Timeout Triggered! ", event.eventType);
           if (!showControls) {
             setShowControls(true);
             resetControlTimeout();
@@ -267,18 +285,18 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         case "longLeft":
         case "longRight":
           // Special treatment for longLeft/Right
-          console.log("LONG Control Timeout Triggered! ", event.eventType);
-          console.log("Current: ", longButtonPressed.current);
+          // console.log("LONG Control Timeout Triggered! ", event.eventType);
+          // console.log("Current: ", longButtonPressed.current);
           if (
             (event.eventType === "longLeft" ||
               event.eventType === "longRight") &&
             !longButtonPressed.current
           ) {
             longButtonPressed.current = event.eventType;
-            console.log("Disabling Timeout!");
+            // console.log("Disabling Timeout!");
             clearControlTimeout();
           } else if (event.eventType === longButtonPressed.current) {
-            console.log("Activating Timeout again!");
+            // console.log("Activating Timeout again!");
             longButtonPressed.current = undefined;
             setControlTimeout();
           }
@@ -326,7 +344,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       duration,
       currentTime,
       setSeekerPosition,
-      seekerWidth: seekerFillWidth,
+      seekerWidth,
       seeking,
       clearControlTimeout: () => {},
       enabled: seekerFocus,
@@ -382,6 +400,8 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       return {
         pause: () => setPaused(true),
         seek: seconds => _videoRef.current?.seek(seconds),
+        getCurrentPositionSeconds: async () =>
+          (await _videoRef.current?.getCurrentPositionSeconds()) ?? 0,
       };
     }, []);
 
@@ -431,6 +451,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
             resolution={resolution}
             showControls={showControls}
             setPaused={setPaused}
+            onJumpToStart={() => _videoRef.current?.seek(0)}
           />
         </>
       </View>
