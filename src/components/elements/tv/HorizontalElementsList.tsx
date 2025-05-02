@@ -58,8 +58,9 @@ export function HorizontalElementsList({
     [textStyle, videoSegmentStyle],
   );
 
-  const keyExtractor = useCallback((item: ElementData) => {
-    return item.id + item.originalNode.type;
+  // Adding index as sometimes a video occurs multiple times in a playlist for example
+  const keyExtractor = useCallback((item: ElementData, index: number) => {
+    return item.id + item.originalNode.type + index;
   }, []);
 
   return (
