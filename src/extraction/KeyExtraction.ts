@@ -22,7 +22,7 @@ export function extractKeyNode(node: Helpers.YTNode): string {
   } else if (node.is(YTNodes.Shelf)) {
     return node.title.text ?? `shelf-${Crypto.randomUUID()}`;
   } else if (node.is(YTNodes.ReelShelf)) {
-    return node.title.text ?? "empty-title-reel";
+    return (node.title.text ?? "empty-title-reel") + Crypto.randomUUID();
   } else if (node.is(YTNodes.RecognitionShelf)) {
     return node.title.text ?? "empty-title-recognition-shelf";
   } else if (node.is(YTNodes.ShortsLockupView)) {
