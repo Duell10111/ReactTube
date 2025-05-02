@@ -1,3 +1,22 @@
+## [0.2.0](https://github.com/Duell10111/ReactTube/compare/v0.1.3...v0.2.0) (2025-05-02)
+
+### :sparkles: Features
+
+* add an option to add a music item as next item ([3c8ebb6](https://github.com/Duell10111/ReactTube/commit/3c8ebb64d98a1f8d3448a0f25893319560e68c07))
+* add tv endpoints ytjs to allow oauth2 login again and refactor tv app styling ([#42](https://github.com/Duell10111/ReactTube/issues/42)) ([62b7fc1](https://github.com/Duell10111/ReactTube/commit/62b7fc1198a2f85b6079788514d652ed6f99e5c2))
+
+### :bug: Fixes
+
+* adapt watch player ui and fix issues on watch variant starting downloads ([b6f73ed](https://github.com/Duell10111/ReactTube/commit/b6f73eddbadce8e8b5d91e2c86cf80377b89ba7a))
+
+### Minor changes
+
+* add installed check for watch playdata updates ([6e85f57](https://github.com/Duell10111/ReactTube/commit/6e85f57b77a12850433e35dceececf249516332b))
+* add opacity touch style for music player buttons ([07b2ad7](https://github.com/Duell10111/ReactTube/commit/07b2ad79476e156fba63981f1ece8d1b27946f3e))
+* add shuffle and repeat mode support for music ([c7eb8d9](https://github.com/Duell10111/ReactTube/commit/c7eb8d99bd698517d7dbbc6d8c2efb2d03009431))
+* create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
+* update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
+
 ## [0.1.3](https://github.com/Duell10111/ReactTube/compare/v0.1.2...v0.1.3) (2025-01-25)
 
 ### :repeat: CI
