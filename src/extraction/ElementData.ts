@@ -1,7 +1,10 @@
+import _ from "lodash";
+
 import {getThumbnail, parseThumbnailOverlays} from "./Misc";
 import {
   Author,
   ChannelData,
+  ContextMenu,
   ElementData,
   getAuthor,
   getAuthorMusic,
@@ -9,7 +12,7 @@ import {
   VideoData,
 } from "./Types";
 import Logger from "../utils/Logger";
-import {Helpers, YTNodes} from "../utils/Youtube";
+import {Helpers, YTNodes, Parser} from "../utils/Youtube";
 
 // TODO: Add ChannelData
 
@@ -60,9 +63,9 @@ export function getVideoData(
       thumbnailImage: ytNode.best_thumbnail
         ? getThumbnail(ytNode.best_thumbnail)
         : undefined,
-      short_views: ytNode.short_view_count.toString(),
+      short_views: ytNode.short_view_count?.text,
       author: getAuthor(ytNode.author),
-      publishDate: ytNode.published.text,
+      publishDate: ytNode.published?.text,
       type: "video",
       duration: duration?.startsWith("N/A") ? undefined : duration,
       livestream: ytNode.is_live,
@@ -93,7 +96,8 @@ export function getVideoData(
     } as VideoData;
   } else if (ytNode.is(YTNodes.ShortsLockupView)) {
     return {
-      id: ytNode.entity_id,
+      // Use Video ID from Nav Endpoint or as fallback entity_id
+      id: ytNode.on_tap_endpoint?.payload?.videoId ?? ytNode.entity_id,
       title: ytNode.overlay_metadata?.primary_text?.text ?? "Unknown title",
       thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
       short_views: ytNode.overlay_metadata.secondary_text?.text,
@@ -321,11 +325,14 @@ export function getVideoData(
   // TODO: Maybe outsource in other file
   // Lookup Views
   else if (ytNode.is(YTNodes.LockupView)) {
-    const image = ytNode.content_image?.is(YTNodes.CollectionThumbnailView)
-      ? // @ts-ignore TODO: fix
-        getThumbnail(ytNode.content_image.primary_thumbnail.image[0])
-      : // @ts-ignore TODO: fix
-        getThumbnail(ytNode.content_image.image[0]);
+    const image =
+      ytNode.content_image?.is(YTNodes.CollectionThumbnailView) &&
+      ytNode.content_image.primary_thumbnail?.image?.[0]
+        ? getThumbnail(ytNode.content_image.primary_thumbnail.image[0])
+        : ytNode.content_image?.is(YTNodes.ThumbnailView) &&
+            ytNode.content_image.image[0]
+          ? getThumbnail(ytNode.content_image.image[0])
+          : undefined;
     if (ytNode.content_type === "PLAYLIST") {
       return {
         type: "playlist",
@@ -354,7 +361,7 @@ export function getVideoData(
         id: ytNode.content_id,
         thumbnailImage: image,
         title: ytNode.metadata?.title?.text,
-        navEndpoint: ytNode.renderer_context.command_context.on_tap,
+        navEndpoint: ytNode.renderer_context.command_context?.on_tap,
       } as VideoData;
     } else {
       LOGGER.warn(

@@ -1,4 +1,3 @@
-import {ButtonGroup} from "@rneui/base";
 import _ from "lodash";
 import React, {useMemo, useState} from "react";
 import {Text, TextProps, TouchableOpacity, View} from "react-native";
@@ -12,6 +11,7 @@ import Logger from "../../utils/Logger";
 import {YT, YTNodes} from "../../utils/Youtube";
 import GridView from "../GridView";
 
+import ChannelButtons from "@/components/channel/ChannelButtons";
 import {useAppStyle} from "@/context/AppStyleContext";
 import {extractSectionList} from "@/extraction/CustomListExtractors";
 
@@ -28,39 +28,25 @@ export default function Channel({channel}: Props) {
     () =>
       _.compact([
         {
-          element: ({isSelected}: {isSelected?: boolean}) => (
-            <ChannelBtnText isSelected={isSelected}>{"Home"}</ChannelBtnText>
-          ),
-          key: "Home" as ChannelContentTypes,
+          label: "Home",
+          value: "Home" as ChannelContentTypes,
         },
         channel.has_videos
           ? {
-              element: ({isSelected}: {isSelected?: boolean}) => (
-                <ChannelBtnText isSelected={isSelected}>
-                  {"Videos"}
-                </ChannelBtnText>
-              ),
-              key: "Videos" as ChannelContentTypes,
+              label: "Videos",
+              value: "Videos" as ChannelContentTypes,
             }
           : null,
         channel.has_shorts
           ? {
-              element: ({isSelected}: {isSelected?: boolean}) => (
-                <ChannelBtnText isSelected={isSelected}>
-                  {"Reels"}
-                </ChannelBtnText>
-              ),
-              key: "Reels" as ChannelContentTypes,
+              label: "Shorts",
+              value: "Reels" as ChannelContentTypes,
             }
           : null,
         channel.has_playlists
           ? {
-              element: ({isSelected}: {isSelected?: boolean}) => (
-                <ChannelBtnText isSelected={isSelected}>
-                  {"Playlists"}
-                </ChannelBtnText>
-              ),
-              key: "Playlists" as ChannelContentTypes,
+              label: "Playlists",
+              value: "Playlists" as ChannelContentTypes,
             }
           : null,
       ]),
@@ -69,16 +55,11 @@ export default function Channel({channel}: Props) {
 
   return (
     <View style={{flex: 1}}>
-      <ButtonGroup
-        // @ts-ignore
-        Component={TouchableOpacity}
-        selectedIndex={buttons.findIndex(value => value.key === selected)}
+      <ChannelButtons
         buttons={buttons}
-        onPress={e => setSelected(buttons[e as number].key ?? "Home")}
-        selectedButtonStyle={{backgroundColor: "lightblue"}}
-        buttonContainerStyle={{borderColor: "#555555"}}
-        containerStyle={{backgroundColor: "#333333"}}
-        buttonStyle={{backgroundColor: "#555555"}}
+        value={selected}
+        // @ts-ignore
+        onValueChange={setSelected}
       />
       <View style={{flex: 1}}>
         {channel.has_home && selected === "Home" ? (

@@ -26,7 +26,7 @@ export default function useAnimatedBottomControls() {
       transform: [
         {translateY: withTiming(showBottomContainer.value ? 0 : 300)},
       ],
-      height: "45%",
+      height: "50%",
     };
   });
 

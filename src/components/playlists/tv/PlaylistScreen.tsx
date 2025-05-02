@@ -12,7 +12,7 @@ import LoadingComponent from "@/components/general/LoadingComponent";
 import {PlaylistHeader} from "@/components/playlists/tv/PlaylistHeader";
 import {PlaylistListItem} from "@/components/playlists/tv/PlaylistListItem";
 import {useAppStyle} from "@/context/AppStyleContext";
-import {ElementData, VideoData} from "@/extraction/Types";
+import {VideoData} from "@/extraction/Types";
 import usePlaylistDetails from "@/hooks/usePlaylistDetails";
 import {NativeStackProp} from "@/navigation/types";
 import Logger from "@/utils/Logger";
@@ -53,7 +53,7 @@ export default function PlaylistScreen({playlistId}: PlaylistScreenProps) {
               });
             }
           }}
-          onSavePlaylist={() => togglePlaylistLike()}
+          onSavePlaylist={() => togglePlaylistLike().catch(LOGGER.warn)}
         />
       </TVFocusGuideView>
       <TVFocusGuideView autoFocus style={styles.itemsPartStyle}>

@@ -7,7 +7,10 @@ import {Platform} from "react-native";
 
 import SettingsNavigator from "./SettingsNavigator";
 
+import {VideoMenuScreen} from "@/components/general/VideoMenu";
+import {PlaylistManagerContextMenu} from "@/components/playlists/tv/PlaylistManagerContextMenu";
 import {HistoryScreen} from "@/components/screens/phone/HistoryScreen";
+import {ElementData} from "@/extraction/Types";
 import useAppInit from "@/hooks/general/useAppInit";
 import ChannelScreen from "@/screens/ChannelScreen";
 import HomeWrapperScreen from "@/screens/HomeWrapperScreen";
@@ -37,6 +40,7 @@ export type RootStackParamList = {
     videoId: string;
     navEndpoint?: YTNodes.NavigationEndpoint;
     reel?: boolean;
+    startSeconds?: number;
   };
   ChannelScreen: {channelId: string};
   PlaylistScreen: {playlistId: string};
@@ -45,6 +49,9 @@ export type RootStackParamList = {
   History: undefined;
   SettingsScreen: undefined;
   LoginScreen: undefined;
+  // TV
+  VideoMenuContext: {element: ElementData};
+  PlaylistManagerContextMenu: {videoId: string};
   // Downloads
   ActiveDownloadScreen: undefined;
   ActiveUploadScreen: undefined;
@@ -101,10 +108,20 @@ export default function RootStackNavigator() {
             options={{title: "Playlist"}}
           />
           <Stack.Screen name={"Search"} component={SearchScreen} />
-          {/*<Stack.Screen*/}
-          {/*  name={"SubscriptionScreen"}*/}
-          {/*  component={SubscriptionScreen}*/}
-          {/*/>*/}
+          {Platform.isTV ? (
+            <>
+              <Stack.Screen
+                name={"VideoMenuContext"}
+                component={VideoMenuScreen}
+                options={{presentation: "transparentModal"}}
+              />
+              <Stack.Screen
+                name={"PlaylistManagerContextMenu"}
+                component={PlaylistManagerContextMenu}
+                options={{presentation: "transparentModal"}}
+              />
+            </>
+          ) : null}
           <Stack.Screen name={"History"} component={HistoryScreen} />
           <Stack.Screen
             name={"SettingsScreen"}

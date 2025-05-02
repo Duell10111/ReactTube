@@ -1,27 +1,21 @@
 import React from "react";
-import {Platform, Text, View} from "react-native";
+import {View} from "react-native";
 
-import GridView from "../components/GridView";
 import useSubscriptions from "../hooks/useSubscriptions";
 
 import GridFeedView from "@/components/grid/GridFeedView";
+import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
 
 export default function SubscriptionScreen() {
-  const {content, parsedContent, fetchMore} = useSubscriptions();
+  const {parsedContent, fetchMore} = useSubscriptions();
 
-  console.log("Subs: ", parsedContent);
-
-  // if (Platform.isTV) {
-  //   return <GridFeedView items={parsedContent} />;
-  // }
+  // TODO: Adapt for Phones in future again?
 
   return (
     <View>
-      <Text>{"Subscription"}</Text>
-      <GridView
-        shelfItem={content}
-        onEndReached={() => fetchMore().catch(console.warn)}
-      />
+      <ShelfVideoSelectorProvider>
+        <GridFeedView items={parsedContent} onEndReached={fetchMore} />
+      </ShelfVideoSelectorProvider>
     </View>
   );
 }

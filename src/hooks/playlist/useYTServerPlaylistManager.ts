@@ -5,7 +5,7 @@ import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import {extractGrid} from "@/extraction/GridExtraction";
 import {ElementData} from "@/extraction/Types";
 import Logger from "@/utils/Logger";
-import {YTMusic} from "@/utils/Youtube";
+import {YTMusic, YTNodes} from "@/utils/Youtube";
 
 const LOGGER = Logger.extend("PLAYLIST_MANAGER");
 
@@ -76,6 +76,22 @@ export default function useYTServerPlaylistManager() {
     await youtube?.playlist?.removeFromLibrary(playlistId);
   };
 
+  const executeNavEndpoint = async (
+    navEndpoint: YTNodes.NavigationEndpoint,
+  ) => {
+    if (youtube?.actions) {
+      const response = await navEndpoint.call(youtube.actions, {
+        client: "TV",
+      });
+      if (!response.success) {
+        console.error("Error calling playlist call");
+      }
+      console.log(response);
+    } else {
+      LOGGER.warn("No youtube context available!");
+    }
+  };
+
   return {
     playlists,
     fetchPlaylists: fetchMusicPlaylists,
@@ -85,6 +101,7 @@ export default function useYTServerPlaylistManager() {
     removeVideoFromPlaylist,
     addPlaylistToLibrary,
     removePlaylistFromLibrary,
+    executeNavEndpoint,
   };
 }
 

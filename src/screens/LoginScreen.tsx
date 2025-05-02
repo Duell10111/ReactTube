@@ -1,10 +1,17 @@
-import {Button} from "@rneui/base";
 import React, {useEffect} from "react";
-import {Linking, Platform, StyleSheet, Text, View} from "react-native";
+import {
+  Linking,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {Button} from "react-native-paper";
 import QRCode from "react-native-qrcode-svg";
 
-import {useAccountContext} from "../context/AccountContext";
-import {useAppStyle} from "../context/AppStyleContext";
+import {useAccountContext} from "@/context/AccountContext";
+import {useAppStyle} from "@/context/AppStyleContext";
 
 const Clipboard = !Platform.isTV
   ? require("@react-native-clipboard/clipboard").default
@@ -17,9 +24,6 @@ export default function LoginScreen() {
   useEffect(() => {
     if (!Platform.isTV && account?.qrCode) {
       Clipboard.setString(account.qrCode.user_code);
-      if (!__DEV__) {
-        Linking.openURL(account?.qrCode.verification_url).catch(console.warn);
-      }
     }
   }, [account?.qrCode]);
 
@@ -44,7 +48,30 @@ export default function LoginScreen() {
           </Text>
         </View>
       )}
-      <Button title={"Login"} size={"lg"} onPress={() => account?.login()} />
+      <TouchableOpacity
+        onPress={() => {
+          console.log("Login pressed");
+          console.log(account);
+          account?.login();
+        }}>
+        <Button icon={"login"} mode={"contained"}>
+          {"Login"}
+        </Button>
+      </TouchableOpacity>
+      {!Platform.isTV ? (
+        <Button
+          icon={"login"}
+          mode={"contained"}
+          style={{marginTop: 20}}
+          onPress={() => {
+            if (account?.qrCode?.verification_url)
+              Linking.openURL(account?.qrCode?.verification_url).catch(
+                console.warn,
+              );
+          }}>
+          {"Open login page"}
+        </Button>
+      ) : null}
     </View>
   );
 }

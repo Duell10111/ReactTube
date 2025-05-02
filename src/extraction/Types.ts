@@ -31,6 +31,7 @@ export interface VideoData {
   navEndpoint?: YTNodes.NavigationEndpoint;
   thumbnailImage: Thumbnail;
   title: string;
+  subtitle?: string;
   duration?: string;
   short_views?: string;
   publishDate?: string;
@@ -48,6 +49,7 @@ export interface VideoData {
   // Local Properties
   localPlaylistId?: string;
   downloaded?: boolean;
+  contextMenu?: ContextMenu[];
 }
 
 export interface Author {
@@ -89,6 +91,20 @@ export interface ChannelData {
   subtitle?: string;
 }
 
+export interface ContextMenu {
+  originalNode: Helpers.YTNode;
+  type?:
+    | "watch"
+    | "browse"
+    | "action"
+    | "feedback"
+    | "addToPlaylist"
+    | "addToWatchLater"
+    | "channel";
+  text: string;
+  navEndpoint?: YTNodes.NavigationEndpoint;
+}
+
 // YT.* Types
 
 export interface YTVideoInfo {
@@ -123,8 +139,25 @@ export interface YTVideoInfo {
   disliked?: boolean;
   endscreen?: YTEndscreen;
   commentsEntryPointHeader?: YTVideoInfoCommentEntryPointHeader;
+  watchNextFeed?: ElementData[];
+  watchNextSections?: HorizontalData[];
   // Music Properties
   durationSeconds?: number;
+  // Playback urls
+  hls_manifest_url?: string;
+  best_format?: YTFormat;
+  expires?: Date;
+  // Playability Status
+  playability?: {
+    reason: string;
+  };
+}
+
+export interface YTFormat {
+  originalFormat: Misc.Format;
+  type: "audio" | "video" | "audio+video";
+  durationSeconds?: number;
+  url?: string;
 }
 
 export interface YTVideoInfoCommentEntryPointHeader {
@@ -341,6 +374,13 @@ export interface YTLibrarySection {
   getMoreData: () => Promise<
     YT.Playlist | YT.History | Mixins.Feed<IBrowseResponse>
   >;
+}
+
+export interface YTMyYoutubeTab {
+  originalData: YTNodes.Tab;
+  type?: "history" | "watch_later" | "playlist";
+  title: string;
+  selected?: boolean;
 }
 
 export interface YTComments {

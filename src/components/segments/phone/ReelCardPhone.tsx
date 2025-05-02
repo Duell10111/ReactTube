@@ -10,28 +10,22 @@ import {
   ViewStyle,
 } from "react-native";
 
-import {useAppStyle} from "../../../context/AppStyleContext";
-import {Author, Thumbnail} from "../../../extraction/Types";
+import {useAppStyle} from "@/context/AppStyleContext";
+import {VideoData} from "@/extraction/Types";
 
 interface Props {
   textStyle?: StyleProp<TextStyle>;
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
-  videoId: string;
-  title: string;
-  duration?: string;
-  thumbnail?: Thumbnail;
-  author?: Author;
-  date?: string;
-  disabled?: boolean;
-  livestream?: boolean;
+  data: VideoData;
 }
 
+// OLD WAY: Should be replaced with VideoCard in elements/tv
 export default function ReelCardPhone({
   style,
   textStyle,
   onPress,
-  ...data
+  data,
 }: Props) {
   const {style: appStyle} = useAppStyle();
 
@@ -48,7 +42,7 @@ export default function ReelCardPhone({
             resizeMode={"cover"}
             source={{
               uri:
-                data.thumbnail?.url ??
+                data.thumbnailImage?.url ??
                 "https://www.cleverfiles.com/howto/wp-content/uploads/2018/03/minion.jpg",
             }}
           />
@@ -79,7 +73,6 @@ const styles = StyleSheet.create({
   },
   segmentContainer: {
     backgroundColor: "#aaaaaa",
-    // borderRadius: 25,
     overflow: "hidden",
     aspectRatio: 1.7,
     alignItems: "center",
@@ -87,7 +80,6 @@ const styles = StyleSheet.create({
   imageStyle: {
     width: "100%",
     height: "100%",
-    // backgroundColor: "grey", // TODO: REMOVE?
   },
   titleStyle: {
     fontSize: 15,

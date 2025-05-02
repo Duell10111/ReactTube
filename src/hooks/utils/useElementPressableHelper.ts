@@ -1,6 +1,6 @@
 import {CommonActions, useNavigation, useRoute} from "@react-navigation/native";
 
-import {ElementData} from "@/extraction/Types";
+import {ElementData, VideoData} from "@/extraction/Types";
 import {NativeStackProp, RootRouteProp} from "@/navigation/types";
 import Logger from "@/utils/Logger";
 
@@ -19,12 +19,16 @@ export default function useElementPressableHelper() {
       LOGGER.debug("State: ", navigation.getState());
       LOGGER.debug("Route name: ", route.name);
       LOGGER.debug("Nav Endpoint: ", element.navEndpoint);
+      const startDuration = getStartTimeIfNeeded(element);
+      LOGGER.debug(`Start duration: ${startDuration}`);
+
       if (route.name === "VideoScreen") {
         LOGGER.debug("Replacing Video Screen");
         navigation.replace("VideoScreen", {
           videoId: element.id,
           navEndpoint: element.navEndpoint,
           reel: element.type === "reel",
+          startSeconds: startDuration,
         });
       } else if (
         // @ts-ignore
@@ -42,6 +46,7 @@ export default function useElementPressableHelper() {
               videoId: element.id,
               navEndpoint: element.id,
               reel: element.type === "reel",
+              startSeconds: startDuration,
             },
           });
 
@@ -56,12 +61,41 @@ export default function useElementPressableHelper() {
           videoId: element.id,
           navEndpoint: element.navEndpoint,
           reel: element.type === "reel",
+          startSeconds: startDuration,
         });
       }
+    } else {
+      LOGGER.warn("Unsupported ElementData used: ", element);
     }
   };
 
   return {
     onPress,
   };
+}
+
+// Calculate resume time as not provided in Nav Endpoint most of the time
+function getStartTimeIfNeeded(element: VideoData) {
+  if (element.thumbnailOverlays?.videoProgress) {
+    if (element.durationSeconds) {
+      return element.durationSeconds * element.thumbnailOverlays?.videoProgress;
+    } else if (element.duration) {
+      return (
+        secondsToReadableString(element.duration) *
+        element.thumbnailOverlays?.videoProgress
+      );
+    }
+  }
+}
+
+function secondsToReadableString(string: string) {
+  const [seconds, minutes, hours] = string
+    .trim()
+    .split(":")
+    .map(Number)
+    .reverse();
+  // console.log("Hours string: ", hours, minutes, seconds);
+
+  // Alles in Sekunden umrechnen
+  return (hours ?? 0) * 3600 + (minutes ?? 0) * 60 + (seconds ?? 0);
 }
