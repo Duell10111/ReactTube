@@ -126,7 +126,7 @@ export default function VideoScreenTablet({route, navigation}: Props) {
         <Animated.View
           style={{
             // Use fix height to probit flickering
-            height: landscape ? width * (9 / 16) : height * 0.6,
+            height: landscape ? width * (7 / 16) : height * 0.5,
           }}
           layout={LinearTransition}>
           <VideoPlayerPhone
@@ -241,13 +241,14 @@ const styles = StyleSheet.create({
   containerLandscape: {
     flexDirection: "row",
   },
-  videoContainer: {
-    flex: 1,
-  },
-  videoContainerLandscape: {
-    width: "100%",
-    aspectRatio: 16 / 9,
-  },
+  // Use fix height to probit flickering
+  // videoContainer: {
+  //   flex: 1,
+  // },
+  // videoContainerLandscape: {
+  //   width: "100%",
+  //   aspectRatio: 16 / 9,
+  // },
   videoComponent: {
     width: "100%",
     height: "100%",
@@ -261,6 +262,6 @@ const styles = StyleSheet.create({
     // backgroundColor: "yellow",
   },
   videoContainerTablet: {
-    height: "60%",
+    height: "55%",
   },
 });

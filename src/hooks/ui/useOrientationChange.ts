@@ -1,5 +1,6 @@
 import * as ScreenOrientation from "expo-screen-orientation";
-import {useEffect} from "react";
+import {useLayoutEffect} from "react";
+import {useWindowDimensions} from "react-native";
 
 // Workaround for expo screen orientation not tvOS compatible
 export type Orientation = "LANDSCAPE" | "PORTRAIT" | "UNKNOWN";
@@ -7,21 +8,28 @@ export type Orientation = "LANDSCAPE" | "PORTRAIT" | "UNKNOWN";
 export default function useOrientationChange(
   listener: (orientation: Orientation) => void,
 ) {
-  // Return orientation on start once
-  useEffect(() => {
-    ScreenOrientation.getOrientationAsync().then(state => {
-      const o = getOrientation(state);
-      listener(o);
-    });
-  }, []);
+  const {height, width} = useWindowDimensions();
 
-  useEffect(() => {
-    const sub = ScreenOrientation.addOrientationChangeListener(state => {
-      const o: Orientation = getOrientation(state.orientationInfo.orientation);
-      listener(o);
-    });
-    return () => ScreenOrientation.removeOrientationChangeListener(sub);
-  }, [listener]);
+  // // Return orientation on start once
+  // useEffect(() => {
+  //   ScreenOrientation.getOrientationAsync().then(state => {
+  //     const o = getOrientation(state);
+  //     listener(o);
+  //   });
+  // }, []);
+  //
+  // useEffect(() => {
+  //   const sub = ScreenOrientation.addOrientationChangeListener(state => {
+  //     const o: Orientation = getOrientation(state.orientationInfo.orientation);
+  //     listener(o);
+  //   });
+  //   return () => ScreenOrientation.removeOrientationChangeListener(sub);
+  // }, [listener]);
+
+  // Workaround as Expo Lib seems broken on iOS
+  useLayoutEffect(() => {
+    return height > width ? listener("PORTRAIT") : listener("LANDSCAPE");
+  }, [width, height]);
 }
 
 function getOrientation(
