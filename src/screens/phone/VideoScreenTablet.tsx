@@ -2,7 +2,12 @@ import BottomSheet from "@gorhom/bottom-sheet";
 import {useIsFocused} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React, {useEffect, useMemo, useRef, useState} from "react";
-import {ActivityIndicator, StyleSheet, View} from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import Animated, {
   FlipInEasyY,
   FlipOutEasyX,
@@ -30,6 +35,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 // TODO: Tablet version hangs after orientation change :/
 
 export default function VideoScreenTablet({route, navigation}: Props) {
+  const {width, height} = useWindowDimensions();
   const {videoId, navEndpoint} = route.params;
   const {
     YTVideoInfo,
@@ -118,9 +124,10 @@ export default function VideoScreenTablet({route, navigation}: Props) {
             : styles.videoContainerTablet,
         ]}>
         <Animated.View
-          style={
-            landscape ? styles.videoContainerLandscape : styles.videoContainer
-          }
+          style={{
+            // Use fix height to probit flickering
+            height: landscape ? width * (9 / 16) : height * 0.6,
+          }}
           layout={LinearTransition}>
           <VideoPlayerPhone
             sourceURL={videoUrl}
@@ -254,6 +261,6 @@ const styles = StyleSheet.create({
     // backgroundColor: "yellow",
   },
   videoContainerTablet: {
-    height: "35%",
+    height: "60%",
   },
 });
