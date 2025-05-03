@@ -206,5 +206,7 @@ const styles = StyleSheet.create({
   },
   listItemTitle: {
     flex: 1,
+    fontSize: 20,
+    fontWeight: "bold",
   },
 });

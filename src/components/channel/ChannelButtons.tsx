@@ -1,5 +1,4 @@
-import {StyleSheet, TouchableOpacity, View} from "react-native";
-import {Button} from "react-native-paper";
+import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 
 interface ButtonValue {
   value: string;
@@ -27,11 +26,18 @@ export default function ChannelButtons({
             borderEndWidth: index === buttons.length - 1 ? undefined : 2,
             borderColor: "white",
             flex: 1,
+            alignItems: "center",
           }}
           onPress={() => onValueChange(button.value)}>
-          <Button labelStyle={{fontSize: 20}} textColor={"white"}>
+          <Text
+            style={{
+              fontSize: 30,
+              fontWeight: "bold",
+              color: "white",
+              padding: 5,
+            }}>
             {button.label}
-          </Button>
+          </Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -41,7 +47,7 @@ export default function ChannelButtons({
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    backgroundColor: "grey",
+    backgroundColor: "#222222",
     borderRadius: 25,
     overflow: "hidden",
   },

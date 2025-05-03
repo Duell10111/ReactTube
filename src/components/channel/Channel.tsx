@@ -1,6 +1,6 @@
 import _ from "lodash";
 import React, {useMemo, useState} from "react";
-import {Text, TextProps, TouchableOpacity, View} from "react-native";
+import {Text, View} from "react-native";
 
 import SectionList from "./SectionList";
 import useChannelData, {
@@ -12,7 +12,6 @@ import {YT, YTNodes} from "../../utils/Youtube";
 import GridView from "../GridView";
 
 import ChannelButtons from "@/components/channel/ChannelButtons";
-import {useAppStyle} from "@/context/AppStyleContext";
 import {extractSectionList} from "@/extraction/CustomListExtractors";
 
 const LOGGER = Logger.extend("CHANNEL");
@@ -23,7 +22,6 @@ interface Props {
 
 export default function Channel({channel}: Props) {
   const [selected, setSelected] = useState<ChannelContentTypes>("Home");
-  const {style} = useAppStyle();
   const buttons = useMemo(
     () =>
       _.compact([
@@ -61,7 +59,7 @@ export default function Channel({channel}: Props) {
         // @ts-ignore
         onValueChange={setSelected}
       />
-      <View style={{flex: 1}}>
+      <View style={{flex: 1, marginTop: 15}}>
         {channel.has_home && selected === "Home" ? (
           <ChannelRow channel={channel} type={"Home"} />
         ) : null}
@@ -109,18 +107,5 @@ function ChannelRow({channel, type}: RowProps) {
     <View>
       <Text>{"Unsupported Channel Type"}</Text>
     </View>
-  );
-}
-
-interface ChannelBtnTextProps {
-  children: TextProps["children"];
-  isSelected?: boolean;
-}
-
-function ChannelBtnText({children, isSelected}: ChannelBtnTextProps) {
-  return (
-    <Text style={{color: isSelected ? "black" : "white", fontSize: 22}}>
-      {children}
-    </Text>
   );
 }

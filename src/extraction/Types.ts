@@ -340,6 +340,10 @@ export interface YTMusicPlaylist extends YTPlaylist {
 }
 
 export function getAuthor(author: Misc.Author) {
+  // Consider some strings not as valid author ids
+  if (author.id === "N/A") {
+    return undefined;
+  }
   return {
     id: author.id,
     name: author.name,

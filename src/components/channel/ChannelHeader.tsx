@@ -1,6 +1,7 @@
 import React from "react";
 import {Image, StyleSheet, Text, View} from "react-native";
-import {useAppStyle} from "../../context/AppStyleContext";
+
+import {useAppStyle} from "@/context/AppStyleContext";
 
 interface Props {
   channelName: string;
@@ -31,7 +32,7 @@ const styles = StyleSheet.create({
     height: 75,
   },
   channelTitle: {
-    fontSize: 20,
+    fontSize: 25,
     marginStart: 10,
   },
 });
