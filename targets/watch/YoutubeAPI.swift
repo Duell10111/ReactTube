@@ -69,7 +69,7 @@ func saveVideoResponse(_ session: WCSession, message: [String: Any]) {
   if let id = message["id"] as? String, let title = message["title"] as? String, let artist = message["artist"] as? String, let duration = message["duration"] as? Int, let streamURL = message["streamURL"] as? String, let validUntil = message["validUntil"] as? Int64, let coverURL = message["coverUrl"] as? String {
     print("Received Video Response for id: \(id)")
     let date = Date(timeIntervalSince1970: (Double(validUntil) / 1000.0))
-    addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: duration, streamURL: streamURL, validUntil: date, coverURL: coverURL, temp: message["temp"] as? Bool, downloadURL: message["downloadURL"] as? String)
+    addDownloadData(DataController.shared.container.mainContext, id: id, title: title, artist: artist, duration: duration, streamURL: streamURL, validUntil: date, coverURL: coverURL, temp: message["temp"] as? Bool, downloadURL: message["downloadURL"] as? String)
   } else if let id = message["id"] as? String, let title = message["title"] as? String, let coverURL = message["coverUrl"] as? String {
     addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, coverURL: coverURL, temp: message["temp"] as? Bool)
   } else {

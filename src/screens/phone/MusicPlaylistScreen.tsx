@@ -1,6 +1,7 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import React from "react";
+import React, {useEffect, useState} from "react";
 import {View} from "react-native";
+import {IconButton, Menu} from "react-native-paper";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import LoadingComponent from "../../components/general/LoadingComponent";
@@ -10,6 +11,7 @@ import Logger from "../../utils/Logger";
 import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
 import {MusicPlaylistHeader} from "@/components/music/MusicPlaylistHeader";
 import {MusicPlaylistList} from "@/components/music/MusicPlaylistList";
+import {useDownloaderContext} from "@/context/DownloaderContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
@@ -28,6 +30,13 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
   } = usePlaylistDetails(playlistId);
   const {bottom, left, right} = useSafeAreaInsets();
   const {setPlaylistViaEndpoint} = useMusikPlayerContext();
+
+  // Top Menu
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => <PlaylistMenu id={playlistId} />,
+    });
+  }, []);
 
   if (!playlist) {
     return <LoadingComponent />;
@@ -67,5 +76,37 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
       />
       <MusicBottomPlayerBar />
     </View>
+  );
+}
+
+interface PlaylistMenuProps {
+  id: string;
+}
+
+function PlaylistMenu({id}: PlaylistMenuProps) {
+  const {sendPlaylistToWatch} = useDownloaderContext();
+  const [showMenu, setShowMenu] = useState(false);
+
+  return (
+    <Menu
+      visible={showMenu}
+      onDismiss={() => setShowMenu(false)}
+      anchor={
+        <IconButton
+          icon={"dots-vertical"}
+          iconColor={"white"}
+          size={20}
+          onPress={() => setShowMenu(true)}
+        />
+      }>
+      <Menu.Item
+        onPress={() => {
+          setShowMenu(false);
+          sendPlaylistToWatch(id);
+        }}
+        title={"Sent to Watch"}
+        leadingIcon={"upload"}
+      />
+    </Menu>
   );
 }

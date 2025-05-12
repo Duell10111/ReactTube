@@ -104,13 +104,10 @@ class PlaylistManager {
     if let localFile = video.fileURL {
       let uri = getDownloadDirectory().appending(path: localFile)
       print("Local uri: \(uri)")
-      let item = DefaultAudioItemEndTime(audioUrl: uri.path(), artist: nil, title: video.title, albumTitle: nil, sourceType: .file, artwork: nil, endTiming: CMTime(value: Int64(video.durationMillis/1000), timescale: 1))
+      let item = DefaultAudioItemEndTime(audioUrl: uri.path(), artist: video.artist, title: video.title, albumTitle: nil, sourceType: .file, artwork: nil, endTiming: CMTime(value: Int64(video.durationMillis/1000), timescale: 1))
 
       // TODO: Outsource to skip duplicate code
       item.title = video.title
-      print("Local version")
-      // Set end for local files?
-//          item.forwardPlaybackEndTime =
       return item
     } else if let sURL = video.streamURL, let validUntil = video.validUntil, validUntil > Date() {
       print("Remote uri: \(sURL)")
@@ -118,6 +115,7 @@ class PlaylistManager {
 
       // TODO: Outsource to skip duplicate code
       item.title = video.title
+      item.artist = video.artist
       // TODO: strip player item to the video duration
 
       return item
