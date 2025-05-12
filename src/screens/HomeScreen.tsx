@@ -3,7 +3,6 @@ import {Icon} from "@rneui/base";
 import React, {useEffect, useState} from "react";
 import {Platform, TVEventControl} from "react-native";
 
-import GridView from "../components/GridView";
 import Logger from "../utils/Logger";
 
 import LoadingComponent from "@/components/general/LoadingComponent";
@@ -55,7 +54,9 @@ export default function HomeScreen() {
   }, [navigation]);
 
   useFocusEffect(() => {
-    TVEventControl.disableTVMenuKey();
+    if (Platform.isTV) {
+      TVEventControl.disableTVMenuKey();
+    }
   });
 
   const columns = useGridColumnsPreferred();
