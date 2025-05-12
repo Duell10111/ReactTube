@@ -38,9 +38,14 @@ struct MusikPlayer: View {
                       .padding()
               }
 
-              Text(musicManager.currentTitle)
-                .font(.footnote)
-                .padding()
+              VStack {
+                Text(musicManager.currentTitle)
+                  .font(.subheadline)
+                if let artist = musicManager.currentArtist {
+                  Text(artist)
+                    .font(.caption2)
+                }
+              }.padding()
             }
             .frame(width: geometry.size.width, height: geometry.size.height * 2/3)
 

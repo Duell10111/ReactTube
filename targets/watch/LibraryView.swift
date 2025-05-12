@@ -20,6 +20,9 @@ struct LibraryView: View {
         NavigationLink("Downloaded") {
           LibraryDownloadedVideos()
         }
+        NavigationLink("Available") {
+          LibraryAvailableVideos()
+        }
       }.toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           NavigationLink(destination: MusikPlayer()) {
@@ -126,6 +129,46 @@ struct LibraryVideos: View {
 
 #Preview {
     LibraryView()
+    .modelContext(DataController.previewContainer.mainContext)
+}
+struct LibraryAvailableVideos: View {
+  @State private var date: Date = Date()
+  @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
+  @Environment(DownloadManager.self) private var downloadManager: DownloadManager
+  @Query var videos: [Video]
+  
+  init() {
+    let now = Date()
+    _videos = Query(filter: #Predicate<Video> { video in
+      return if let date = video.validUntil {
+        now < date
+      } else {
+        false
+      }
+    }, sort: \Video.title)
+  }
+  
+  var body: some View {
+    List {
+      ForEach(Array(videos.enumerated()), id: \.element.id) { index, video in
+        VStack {
+          MusicListItemView(video: video) {
+            musicPlayerManager.updatePlaylist(newPlaylist: Array(videos[index...]))
+          }
+        }
+      }
+    }.toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        NavigationLink(destination: MusikPlayer()) {
+            Label("Music", systemImage: "music.note.list")
+          }
+      }
+    }
+  }
+}
+
+#Preview {
+  LibraryAvailableVideos()
     .modelContext(DataController.previewContainer.mainContext)
 }
 

@@ -28,6 +28,7 @@ interface DownloaderContextValue {
   currentUploads: WatchFileTransferInfo[];
   download: (id: string) => Promise<void>;
   uploadToWatch: (id: string) => void;
+  sendPlaylistToWatch: (id: string) => void;
 }
 
 // TODO: Create some placeholder functions that generate warnings
@@ -55,7 +56,7 @@ export function DownloaderContext({children}: DownloaderContextProps) {
     }
   }, [error]);
 
-  const {watchTransfers, upload} = useWatchSync();
+  const {watchTransfers, upload, sendPlaylist} = useWatchSync();
 
   return (
     <downloaderContext.Provider
@@ -64,6 +65,7 @@ export function DownloaderContext({children}: DownloaderContextProps) {
         currentDownloads: downloadRefs,
         currentUploads: watchTransfers,
         uploadToWatch: upload,
+        sendPlaylistToWatch: sendPlaylist,
       }}
       children={children}
     />

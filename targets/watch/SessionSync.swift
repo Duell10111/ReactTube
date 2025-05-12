@@ -50,6 +50,8 @@ extension SessionSync: WCSessionDelegate {
       MusicPlayerManager.shared.type = .phone
       if let title = appContext["title"] as? String {
         MusicPlayerManager.shared.currentTitle = title
+        // Reset artist as not set by api
+        MusicPlayerManager.shared.currentArtist = nil
         print("Updating title \(title)")
       } else {
         print("No title provided for playing state")

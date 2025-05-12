@@ -5,13 +5,8 @@ import {
   parseObservedArray,
   parseObservedArrayHorizontalData,
 } from "@/extraction/ArrayExtraction";
-import {gridCalculatorExtract} from "@/extraction/ShelfExtraction";
 import {ElementData, YTPlaylist, YTVideoInfo} from "@/extraction/Types";
-import {
-  getElementDataFromVideoInfo,
-  getElementDataFromYTMusicPlaylist,
-  getElementDataFromYTPlaylist,
-} from "@/extraction/YTElements";
+import {getElementDataFromVideoInfo} from "@/extraction/YTElements";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
 import {getMusicPlaylistDetails} from "@/hooks/music/useMusicPlaylistDetails";
 
@@ -181,36 +176,6 @@ export async function handleWatchMessage(
       );
       return libraryResponses;
     }
-
-    // const lib = await youtube.music.getLibrary();
-    // // const recap = await youtube.music.getRecap();
-    // const contents = gridCalculatorExtract(lib.contents[0], 3);
-    // console.log("Contents: ", contents);
-    // const playlistData = contents
-    //   .map(v => (Array.isArray(v) ? v : v.parsedData))
-    //   .flat()
-    //   .filter(v => v.type === "playlist");
-    // console.log("Playlists: ", playlistData);
-    // const libraryPlaylists = (
-    //   await Promise.all(
-    //     playlistData.map(async playlist => {
-    //       const p = await youtube.music.getPlaylist(playlist.id);
-    //       const data = getElementDataFromYTMusicPlaylist(p);
-    //       data.title = playlist.title;
-    //       data.thumbnailImage = playlist.thumbnailImage;
-    //       console.log("Items: ", data.items);
-    //       const ids = data.items
-    //         .filter(v => v && v.type === "video")
-    //         .map(v => v.id);
-    //       // TODO: Create Playlist object which allows continuation, with caching?
-    //       if (ids.length > 0) {
-    //         return toPlaylistResponse(data, playlist.id);
-    //       }
-    //     }),
-    //   )
-    // ).filter(v => v);
-    //
-    // return libraryPlaylists;
   }
 }
 

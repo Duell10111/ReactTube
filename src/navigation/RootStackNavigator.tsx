@@ -22,7 +22,6 @@ import TrendingScreen from "@/screens/TrendingScreen";
 import VideoScreen from "@/screens/VideoScreen";
 import {ActiveDownloadScreen} from "@/screens/phone/ActiveDownloadScreen";
 import {ActiveUploadScreen} from "@/screens/phone/ActiveUploadScreen";
-import {DownloadPlayer} from "@/screens/phone/DownloadPlayer";
 import {MusicAlbumScreen} from "@/screens/phone/MusicAlbumScreen";
 import {MusicChannelScreen} from "@/screens/phone/MusicChannelScreen";
 import {MusicLibraryScreen} from "@/screens/phone/MusicLibraryScreen";
@@ -140,11 +139,6 @@ export default function RootStackNavigator() {
             name={"ActiveUploadScreen"}
             component={ActiveUploadScreen}
             options={{headerTitle: "Active Uploads"}}
-          />
-          <Stack.Screen
-            name={"DownloadPlayer"}
-            component={DownloadPlayer}
-            options={{headerTitle: "Download Player"}}
           />
           {/* Music Screens*/}
           <Stack.Screen

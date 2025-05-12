@@ -138,6 +138,23 @@ export default function useWatchSync() {
       });
   };
 
+  const sendPlaylist = (id: string) => {
+    sendPlaylistToWatch(id, innertube, library)
+      .then(() => {
+        showMessage({
+          type: "success",
+          message: "Successfully sent playlist to watch",
+        });
+      })
+      .catch(error => {
+        showMessage({
+          type: "warning",
+          message: "Failed to send playlist to watch",
+          description: error,
+        });
+      });
+  };
+
   useEffect(() => {
     const interval = setInterval(() => {
       // TODO: Add UI to show progress
@@ -169,7 +186,7 @@ export default function useWatchSync() {
     return () => sub.remove();
   }, []);
 
-  return {watchTransfers, upload};
+  return {watchTransfers, upload, sendPlaylist};
 }
 
 async function sendYTAPIMessage(response: any) {
@@ -184,60 +201,22 @@ async function sendYTAPIMessage(response: any) {
   await sendMessage(ytResponse);
 }
 
-async function sendDownloadDB(videos: ReturnType<typeof useVideos>) {
-  const db = generateDownloadDB(videos);
-  sendMessage({
-    type: "DownloadDB",
-    data: JSON.stringify(db),
-  });
-}
-
-// async function sendDownloadedFilesToWatch(
-//   videos: ReturnType<typeof useVideos>,
-// ) {
-//   const fileTransfers = await getFileTransfers();
-//
-//   Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
-//     const {
-//       completedUnitCount, // num bytes completed
-//       estimatedTimeRemaining,
-//       fractionCompleted,
-//       throughput, // Bit rate
-//       totalUnitCount, // total num. bytes
-//       url, // url of file being transferred
-//       metadata, // file metadata
-//       id, // id === transferId
-//       startTime, // time that the file transfer started
-//       endTime, // time that the file transfer ended
-//       error, // null or [Error] if the file transfer failed
-//     } = transferInfo;
-//   });
-//
-//   const {id} = await startFileTransfer("file:///path/to/file", metadata);
-// }
-
-async function sendDownloadDataToWatch(
+async function sendPlaylistToWatch(
   id: string,
-  videos: ReturnType<typeof useVideos>,
+  innertube: ReturnType<typeof useYoutubeContext>,
+  library: ReturnType<typeof useMusicLibrary>,
 ) {
-  const video = videos.find(v => v.id === id);
-
-  if (!video) {
-    LOGGER.warn(
-      `You must specify a video ID which is contained in the database. ID ${id} not found`,
-    );
-    return;
-  }
-
-  LOGGER.debug(`Sending Download data to watch ${id}`);
-
-  // TODO: Include data in file upload metadata instead of extra message?
-  await sendMessage({
-    type: "uploadFile",
-    id,
-    title: video.name,
-    duration: video.duration,
-  });
+  // Reuse existing code
+  await sendYTAPIMessage(
+    await handleWatchMessage(
+      innertube,
+      {
+        request: "playlist",
+        playlistId: id,
+      },
+      library,
+    ),
+  );
 }
 
 async function sendDownloadToWatch(
@@ -283,31 +262,4 @@ async function checkTransfers() {
   });
   // TODO: Fix once type fixed in library
   return fileTransfers as any as FileTransferInfo[];
-}
-
-interface DownloadDB {
-  videos: JSONVideos[];
-}
-
-interface JSONVideos {
-  id: string;
-  duration: number;
-  title?: string;
-  playlistId?: string;
-}
-
-// TODO: Migrate to new database schema?
-function generateDownloadDB(videos: ReturnType<typeof useVideos>) {
-  const JSONVideos = videos.map(
-    v =>
-      ({
-        id: v.id,
-        duration: v.duration,
-        title: v.name,
-      }) as JSONVideos,
-  );
-
-  return {
-    videos: JSONVideos,
-  } as DownloadDB;
 }

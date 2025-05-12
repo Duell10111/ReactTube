@@ -1,5 +1,6 @@
 export default function useWatchSync() {
   const upload = (id: string) => {};
+  const sendPlaylist = (id: string) => {};
 
   const watchTransfers = [] as {
     uri: string;
@@ -10,5 +11,5 @@ export default function useWatchSync() {
 
   const watchAppInstalled = false;
 
-  return {upload, watchAppInstalled, watchTransfers};
+  return {upload, sendPlaylist, watchAppInstalled, watchTransfers};
 }
