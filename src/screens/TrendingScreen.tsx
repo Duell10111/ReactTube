@@ -1,6 +1,6 @@
 import {useFocusEffect} from "@react-navigation/native";
 import React from "react";
-import {TVEventControl} from "react-native";
+import {Platform, TVEventControl} from "react-native";
 
 import LoadingComponent from "../components/general/LoadingComponent";
 import Logger from "../utils/Logger";
@@ -15,7 +15,9 @@ export default function TrendingScreen() {
   const {data, fetchMore} = useTrending();
 
   useFocusEffect(() => {
-    TVEventControl.disableTVMenuKey();
+    if (Platform.isTV) {
+      TVEventControl.disableTVMenuKey();
+    }
   });
 
   usePhoneOrientationLocker();
