@@ -15,29 +15,32 @@ struct MusikPlayer: View {
     var body: some View {
       @Bindable var musicManager = musicManager
       ZStack {
+        // Music background image
+        // Causes app crashes if switching too fast :/
+        if let cover = musicManager.currentCover, false {
+            AsyncImage(url: cover) { image in
+              image
+                .resizable()
+                .scaledToFit()
+            } placeholder: {
+                Color.gray
+            }
+                .scaledToFill()
+                .ignoresSafeArea()
+        } else {
+            Image(systemName: "music.note")
+                .resizable()
+                .scaledToFit()
+                .cornerRadius(8)
+                .padding()
+        }
+        
+        Color.black.opacity(0.4) // Verdunkelt das Bild leicht
+                .ignoresSafeArea()
+        
         GeometryReader { geometry in
           VStack(alignment: .center, spacing: 0) {
             VStack(spacing: 0) {
-              // Causes app crashes if switching too fast :/
-              if let cover = musicManager.currentCover, false {
-                  AsyncImage(url: cover) { image in
-                    image
-                      .resizable()
-                      .scaledToFit()
-                  } placeholder: {
-                      Color.gray
-                  }
-                      .scaledToFit()
-                      .cornerRadius(8)
-                      .padding()
-              } else {
-                  Image(systemName: "music.note")
-                      .resizable()
-                      .scaledToFit()
-                      .cornerRadius(8)
-                      .padding()
-              }
-
               VStack {
                 MarqueeText(text: musicManager.currentTitle, font: UIFont.preferredFont(forTextStyle: .subheadline), leftFade: 6, rightFade: 6, startDelay: 5, alignment: .center)
                 if let artist = musicManager.currentArtist {
