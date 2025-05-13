@@ -39,8 +39,7 @@ struct MusikPlayer: View {
               }
 
               VStack {
-                Text(musicManager.currentTitle)
-                  .font(.subheadline)
+                MarqueeText(text: musicManager.currentTitle, font: UIFont.preferredFont(forTextStyle: .subheadline), leftFade: 6, rightFade: 6, startDelay: 5, alignment: .center)
                 if let artist = musicManager.currentArtist {
                   Text(artist)
                     .font(.caption2)
