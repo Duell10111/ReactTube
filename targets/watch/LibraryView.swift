@@ -106,7 +106,7 @@ struct LibraryPlaylistListItem: View {
 struct LibraryVideos: View {
   @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
   @Environment(DownloadManager.self) private var downloadManager: DownloadManager
-  @Query(sort: \Video.title, order: .reverse) var videos: [Video]
+  @Query(sort: \Video.title, order: .forward) var videos: [Video]
   
   var body: some View {
     List {
@@ -181,6 +181,9 @@ struct LibraryDownloadedVideos: View {
   
   var body: some View {
     List {
+      Button("Shuffle", systemImage: "shuffle") {
+        musicPlayerManager.updatePlaylist(newPlaylist: Array(videos).shuffled())
+      }
       ForEach(Array(videos.enumerated()), id: \.element.id) { index, video in
         VStack {
           MusicListItemView(video: video) {

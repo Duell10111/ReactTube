@@ -24,6 +24,9 @@ struct PlaylistListView: View {
   
     var body: some View {
       List {
+        Button("Shuffle", systemImage: "shuffle") {
+          musicPlayerManager.updatePlaylist(playlist: playlist, shuffle: true)
+        }
         ForEach(Array(playlist.videos.enumerated()), id: \.element) { index, video in
           MusicListItemView(video: video) {
             print("Playlist: ", playlist.videoIDs)
