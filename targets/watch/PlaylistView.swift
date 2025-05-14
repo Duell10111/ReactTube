@@ -26,7 +26,7 @@ struct PlaylistView: View {
                 Image(systemName: "play.fill")
               }
             }
-            .background(index == musicManager.trackIndex ? Color.blue.opacity(0.3) : Color.clear)
+            .listRowBackground(index == musicManager.trackIndex ? Color.blue.opacity(0.3).cornerRadius(8) : .none)
             .cornerRadius(8)
             .id(index)
           }

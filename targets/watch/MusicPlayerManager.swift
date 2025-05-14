@@ -59,14 +59,15 @@ class MusicPlayerManager {
     self.playMusic()
   }
 
-  func updatePlaylist(playlist: Playlist, index: Int? = nil) {
+  func updatePlaylist(playlist: Playlist, index: Int? = nil, shuffle: Bool = false) {
     self.type = .local
     queue.async {
-      self.playlistManager.setPlaylist(playlist)
+      self.playlistManager.setPlaylist(playlist, shuffle: shuffle)
 
       self.setupPlayer()
-
-      if let index = index {
+      
+      // Disable jump on shuffle play
+      if let index = index, shuffle == false {
         self.trackIndex = index
         self.currentTrackIndex = index
         // TODO: Could not work if index changes when elements not available, maybe better map to id
