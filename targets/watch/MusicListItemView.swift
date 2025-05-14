@@ -28,8 +28,14 @@ struct MusicListItemView: View {
       } label: {
         VStack {
           HStack {
-            Text(video.title ?? "Unknown title")
-              .foregroundStyle(video.downloaded == true ? .blue : .primary)
+            VStack {
+              Text(video.title ?? "Unknown title")
+                .foregroundStyle(video.downloaded == true ? .blue : .primary)
+              if let artist = video.artist {
+                Text(artist)
+                  .foregroundStyle(.secondary)
+              }
+            }
             if video.downloaded {
               Spacer()
               Image(systemName: "arrow.down.circle")
@@ -39,10 +45,6 @@ struct MusicListItemView: View {
               Image(systemName: "clock.badge.exclamationmark")
                 .foregroundColor(.red)
             }
-          }
-          if let artist = video.artist {
-            Text(artist)
-              .foregroundStyle(.secondary)
           }
           if let videoDownload = downloadManager.progressDownloads[video.id] {
             ProgressView(value: videoDownload)  {
