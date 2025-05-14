@@ -111,7 +111,10 @@ class PlaylistManager {
       return item
     } else if let sURL = video.streamURL, let validUntil = video.validUntil, validUntil > Date() {
       print("Remote uri: \(sURL)")
-      let item = DefaultAudioItem(audioUrl: sURL, sourceType: .stream)
+      let item = Track(dictionary: [
+        "url": sURL,
+        "artwork": video.coverURL ?? nil,
+      ])!
 
       // TODO: Outsource to skip duplicate code
       item.title = video.title

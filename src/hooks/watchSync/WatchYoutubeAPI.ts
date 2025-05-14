@@ -5,8 +5,16 @@ import {
   parseObservedArray,
   parseObservedArrayHorizontalData,
 } from "@/extraction/ArrayExtraction";
-import {ElementData, YTPlaylist, YTVideoInfo} from "@/extraction/Types";
-import {getElementDataFromVideoInfo} from "@/extraction/YTElements";
+import {
+  ElementData,
+  YTPlaylist,
+  YTTrackInfo,
+  YTVideoInfo,
+} from "@/extraction/Types";
+import {
+  getElementDataFromTrackInfo,
+  getElementDataFromVideoInfo,
+} from "@/extraction/YTElements";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
 import {getMusicPlaylistDetails} from "@/hooks/music/useMusicPlaylistDetails";
 
@@ -109,7 +117,7 @@ export async function handleWatchMessage(
   if (request.request === "video") {
     const ytInfo = await youtube?.getInfo(request.videoId, "IOS");
     if (youtube && ytInfo) {
-      const info = getElementDataFromVideoInfo(ytInfo);
+      let info = getElementDataFromVideoInfo(ytInfo);
       // TODO: Fetch from music endpoint?
 
       const format = ytInfo.chooseFormat({type: "audio"});
@@ -117,6 +125,15 @@ export async function handleWatchMessage(
       const streamURL = format.decipher(youtube.session.player);
       const validUntil = Date.now() + 19800000; // 5,5 hours valid from now on.
       LOGGER.debug("Valid until: ", validUntil);
+
+      try {
+        // Override normal info with music info
+        info = getElementDataFromTrackInfo(
+          await youtube.getInfo(request.videoId),
+        );
+      } catch (e) {
+        LOGGER.warn("Error fetching music info. Skipping musicInfo data", e);
+      }
 
       return toVideoResponse(
         info,
@@ -182,7 +199,7 @@ export async function handleWatchMessage(
 // Transformers
 
 function toVideoResponse(
-  videoInfo: YTVideoInfo,
+  videoInfo: YTVideoInfo | YTTrackInfo,
   downloadURL: string, // Workaround for download issues see type definition
   streamURL: string,
   validUntil: number,

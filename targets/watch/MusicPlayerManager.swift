@@ -30,7 +30,7 @@ class MusicPlayerManager {
     var isPlaying: Bool = false
     var currentTitle: String = "Unknown Title"
     var currentArtist: String? = nil
-    var currentCover: URL? = nil
+    var currentCover: UIImage? = nil
 
     var isStalled: Bool = false
 
@@ -182,6 +182,9 @@ class MusicPlayerManager {
     print("Current item change: \(item?.getTitle() ?? "nil")")
     currentTitle = item?.getTitle() ?? "Unknown Title"
     currentArtist = item?.getArtist()
+    item?.getArtwork({ audioImage in
+      self.currentCover = audioImage
+    })
     if let i = index {
       currentTrackIndex = i
       trackIndex = i
@@ -216,6 +219,9 @@ class MusicPlayerManager {
               if let curItem = player?.currentItem, let title = curItem.getTitle(){
                 currentTitle = title
                 currentArtist = curItem.getArtist()
+                curItem.getArtwork({ audioImage in
+                  self.currentCover = audioImage
+                })
               }
           } catch {
               print("Failed to set up AVAudioSession: \(error)")
