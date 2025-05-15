@@ -129,7 +129,7 @@ export async function handleWatchMessage(
       try {
         // Override normal info with music info
         info = getElementDataFromTrackInfo(
-          await youtube.getInfo(request.videoId),
+          await youtube.music.getInfo(request.videoId),
         );
       } catch (e) {
         LOGGER.warn("Error fetching music info. Skipping musicInfo data", e);

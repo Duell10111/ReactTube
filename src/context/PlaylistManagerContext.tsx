@@ -25,6 +25,7 @@ import {PlaylistManagerCreatePanel} from "@/components/playlists/PlaylistManager
 import {PlaylistManagerList} from "@/components/playlists/PlaylistManagerList";
 import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
 import Logger from "@/utils/Logger";
+import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 // TODO: Bottom Sheet Context to save video in Playlist
 
@@ -89,12 +90,18 @@ export function PlaylistManagerContext({
             footerComponent={renderFooter}
             backgroundStyle={styles.backgroundBottomSheet}>
             <BottomSheetView style={styles.contentContainer}>
-              {/*TODO: Add Create Panel to create new Playlist*/}
               {createPanel ? (
                 <PlaylistManagerCreatePanel
                   onPlaylistCreate={name => {
                     setCreatePanel(false);
-                    createPlaylist(name, []).catch(LOGGER.warn);
+                    createPlaylist(name, []).catch(error => {
+                      LOGGER.warn(error);
+                      showMessage({
+                        type: "warning",
+                        message: "Error creating playlist",
+                        description: error,
+                      });
+                    });
                   }}
                 />
               ) : (
@@ -103,7 +110,20 @@ export function PlaylistManagerContext({
                   onPress={data =>
                     saveVideoToPlaylist(videoIDs, data.id)
                       .then(() => bottomSheetModalRef.current?.close())
-                      .then(console.warn)
+                      .then(() => {
+                        showMessage({
+                          type: "success",
+                          message: "Added to playlist",
+                        });
+                      })
+                      .catch(error => {
+                        LOGGER.warn(error);
+                        showMessage({
+                          type: "warning",
+                          message: "Error saving video to playlist",
+                          description: error,
+                        });
+                      })
                   }
                 />
               )}
