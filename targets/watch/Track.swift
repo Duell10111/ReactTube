@@ -29,6 +29,14 @@ class Track: AudioItem {
     var artwork: MPMediaItemArtwork?
 
     private var originalObject: [String: Any] = [:]
+  
+    init?(url: String, artworkUrl: String? = nil) {
+      guard let url = MediaURL(object: url) else { return nil }
+      self.url = url
+      if let artworkUrl = artworkUrl {
+        self.artworkURL = MediaURL(url: artworkUrl)
+      }
+    }
 
     // TODO: Refactor to use variables directly for constructor
     init?(dictionary: [String: Any]) {
@@ -104,8 +112,22 @@ class Track: AudioItem {
 struct MediaURL {
     let value: URL
     let isLocal: Bool
+    // TODO: Remove as not needed?
     private let originalObject: Any
+  
+    init?(url: String) {
+      isLocal = url.lowercased().hasPrefix("file://")
+      if isLocal {
+        value = URL(filePath: url)
+      } else if let urlValue = URL(string: url) {
+        value = urlValue
+      } else {
+        return nil
+      }
+      self.originalObject = url
+    }
     
+    // TODO: Remove as not needed?
     init?(object: Any?) {
         guard let object = object else { return nil }
         originalObject = object

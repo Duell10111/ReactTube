@@ -109,12 +109,8 @@ class PlaylistManager {
       // TODO: Outsource to skip duplicate code
       item.title = video.title
       return item
-    } else if let sURL = video.streamURL, let validUntil = video.validUntil, validUntil > Date() {
+    } else if let sURL = video.streamURL, let validUntil = video.validUntil, validUntil > Date(), let item = Track(url: sURL, artworkUrl: video.coverURL) {
       print("Remote uri: \(sURL)")
-      let item = Track(dictionary: [
-        "url": sURL,
-        "artwork": video.coverURL ?? nil,
-      ])!
 
       // TODO: Outsource to skip duplicate code
       item.title = video.title
@@ -125,8 +121,6 @@ class PlaylistManager {
     }
     return nil
   }
-
-
 
 }
 
