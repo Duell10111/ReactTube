@@ -14,11 +14,11 @@ class DownloadManager {
 
   var activeDownloads : [ActiveDownload] = []
   var progressDownloads: [String: Double] = [:]
-  
+
   var pendingDownloads: Set<Video> = []
-  
+
   // TODO: Add function to download Playlist?
-  
+
   func downloadPlaylist(_ playlist: Playlist) {
     print("Downloading playlist \(playlist.id)")
     playlist.download = true
@@ -65,12 +65,38 @@ class DownloadManager {
     } else {
       print("Video metadata not available needed for Download")
     }
+    // TODO: Add clear function to delete images without downloaded audio
+    // Image Download
+    if let coverURL = video.coverURL, let uri = URL(string: coverURL) {
+      print("Started image download \(video.id)")
+      let request = URLRequest(url: uri)
+      let id = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
+        print("Progrss Image: \(progress)")
+      }) { error, fileUrl in
+        if let error = error {
+          print("Error is \(error as NSError)")
+        } else {
+          if let url = fileUrl {
+            print("Downloaded file's url is \(url.path)")
+            // TODO: Remove hardcode fileExt
+            let saveDownload = saveDownloadFile(id: video.id, filePath: url, fileExtension: "png")
+            if let saveURL = saveDownload {
+              Task {
+                await self.receiveFileUploadImage(id: video.id, coverURL: saveURL, duration: video.durationMillis)
+                print("Saved Image Download")
+              }
+            }
+          }
+        }
+      }
+    }
+
   }
-  
+
   func checkDownloads() {
     Task(priority: .background) {
       print("Checking downloads...")
-      
+
       for video in pendingDownloads {
         while activeDownloads.count > 4 {
           do {
@@ -90,9 +116,15 @@ class DownloadManager {
     addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true, duration: duration, fileURL: fileURL)
   }
 
+  @MainActor
+  private func receiveFileUploadImage(id: String, coverURL: String, duration: Int) {
+    addDownloadData(DataController.shared.container.mainContext, id: id, duration: duration, coverURL: coverURL)
+  }
+
 }
 
 struct ActiveDownload {
   var id: String
+  var image: Bool = false
   //var session: URLSessionDownloadTask
 }

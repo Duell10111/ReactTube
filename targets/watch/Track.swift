@@ -31,40 +31,11 @@ class Track: AudioItem {
     private var originalObject: [String: Any] = [:]
   
     init?(url: String, artworkUrl: String? = nil) {
-      guard let url = MediaURL(object: url) else { return nil }
+      guard let url = MediaURL(url: url) else { return nil }
       self.url = url
       if let artworkUrl = artworkUrl {
         self.artworkURL = MediaURL(url: artworkUrl)
       }
-    }
-
-    // TODO: Refactor to use variables directly for constructor
-    init?(dictionary: [String: Any]) {
-        guard let url = MediaURL(object: dictionary["url"]) else { return nil }
-        self.url = url
-
-        updateMetadata(dictionary: dictionary);
-    }
-
-
-    // MARK: - Public Interface
-
-    func toObject() -> [String: Any] {
-        return originalObject
-    }
-
-    func updateMetadata(dictionary: [String: Any]) {
-        self.title = (dictionary["title"] as? String) ?? self.title
-        self.artist = (dictionary["artist"] as? String) ?? self.artist
-        self.date = dictionary["date"] as? String
-        self.album = dictionary["album"] as? String
-        self.genre = dictionary["genre"] as? String
-        self.desc = dictionary["description"] as? String
-        self.duration = dictionary["duration"] as? Double
-        self.artworkURL = MediaURL(object: dictionary["artwork"])
-        self.isLiveStream = dictionary["isLiveStream"] as? Bool
-
-        self.originalObject = self.originalObject.merging(dictionary) { (_, new) in new }
     }
 
     // MARK: - AudioItem Protocol
@@ -109,40 +80,32 @@ class Track: AudioItem {
     }
 }
 
+class TrackEndtime: Track, EndTiming {
+  public var endTiming: CMTime
+
+  init?(url: String, artworkUrl: String? = nil, endTiming: CMTime) {
+      self.endTiming = endTiming
+      super.init(url: url, artworkUrl: artworkUrl)
+  }
+
+  public func getEndTime() -> CMTime {
+      endTiming
+  }
+}
+
 struct MediaURL {
     let value: URL
     let isLocal: Bool
-    // TODO: Remove as not needed?
-    private let originalObject: Any
   
     init?(url: String) {
       isLocal = url.lowercased().hasPrefix("file://")
       if isLocal {
-        value = URL(filePath: url)
+        // FilewithPath does not work correctly
+        value = URL(string: url)!
       } else if let urlValue = URL(string: url) {
         value = urlValue
       } else {
         return nil
       }
-      self.originalObject = url
-    }
-    
-    // TODO: Remove as not needed?
-    init?(object: Any?) {
-        guard let object = object else { return nil }
-        originalObject = object
-        
-        // This is based on logic found in RCTConvert NSURLRequest,
-        // and uses RCTConvert NSURL to create a valid URL from various formats
-        if let localObject = object as? [String: Any] {
-            var url = localObject["uri"] as? String ?? localObject["url"] as! String
-            
-            isLocal = url.lowercased().hasPrefix("http") ? false : true
-            value = URL(string: url)!
-        } else {
-            let url = object as! String
-            isLocal = url.lowercased().hasPrefix("file://")
-            value = isLocal ? URL(filePath: url) : URL(string: url)!
-        }
     }
 }

@@ -102,13 +102,29 @@ class PlaylistManager {
 
   private func getPlayerItem(_ video: Video) -> AudioItem? {
     if let localFile = video.fileURL {
-      let uri = getDownloadDirectory().appending(path: localFile)
+      let uri = getDownloadDirectory().appending(path: localFile).absoluteString
       print("Local uri: \(uri)")
-      let item = DefaultAudioItemEndTime(audioUrl: uri.path(), artist: video.artist, title: video.title, albumTitle: nil, sourceType: .file, artwork: nil, endTiming: CMTime(value: Int64(video.durationMillis/1000), timescale: 1))
+      
+      // Map to downloaded image if available
+      var coverURL: String? = nil
+      if let url = video.coverURL {
+        if url.hasPrefix("/") {
+          coverURL = getDownloadDirectory().appending(path: url).absoluteString
+        } else {
+          coverURL = url
+        }
+      }
+      print("Coverurl: \(coverURL ?? "none")")
+      
+      if let item = TrackEndtime(url: uri, artworkUrl: coverURL, endTiming: CMTime(value: Int64(video.durationMillis/1000), timescale: 1)) {
+        item.title = video.title
+        item.artist = video.artist
+
+        return item
+      }
 
       // TODO: Outsource to skip duplicate code
-      item.title = video.title
-      return item
+      
     } else if let sURL = video.streamURL, let validUntil = video.validUntil, validUntil > Date(), let item = Track(url: sURL, artworkUrl: video.coverURL) {
       print("Remote uri: \(sURL)")
 
@@ -119,6 +135,7 @@ class PlaylistManager {
 
       return item
     }
+    print("Skipping video: \(video.title ?? video.id) as no type matched")
     return nil
   }
 

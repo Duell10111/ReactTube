@@ -60,10 +60,11 @@ struct MusikPlayer: View {
           }
         }.background(alignment: .center) {
           if let cover = musicManager.currentCover {
+            Color.clear.overlay {
               Image(uiImage: cover)
                   .resizable()
-                  .aspectRatio(contentMode: .fit)
-                  .ignoresSafeArea()
+                  .aspectRatio(contentMode: .fill)
+            }
           } else {
               Image(systemName: "music.note")
                   .resizable()
