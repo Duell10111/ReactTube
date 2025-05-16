@@ -37,6 +37,7 @@ import {
   parseTrackInfoPlaylistContinuation,
 } from "@/extraction/YTElements";
 import {getAbsoluteVideoURL} from "@/hooks/downloader/useDownloadProcessor";
+import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 type PlayType = "Audio" | "Video";
 
@@ -442,7 +443,14 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
           });
         }
       })
-      .catch(LOGGER.warn);
+      .catch(error => {
+        LOGGER.warn(error);
+        showMessage({
+          type: "warning",
+          message: "Error loading song",
+          description: error.toString(),
+        });
+      });
   };
   const setPlaylistViaEndpoint = (
     endpoint: YTNodes.NavigationEndpoint,
@@ -456,7 +464,14 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
           automix && fetchUpNextAutomixPlaylist(curVideoData);
         }
       })
-      .catch(LOGGER.warn);
+      .catch(error => {
+        LOGGER.warn(error);
+        showMessage({
+          type: "warning",
+          message: "Error loading song",
+          description: error.toString(),
+        });
+      });
   };
 
   // TODO: Depreacted? as now done via setCurrentPlaylist
