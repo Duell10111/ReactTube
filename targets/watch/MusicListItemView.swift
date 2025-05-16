@@ -60,6 +60,9 @@ struct MusicListItemView: View {
           Label("Download", systemImage: "arrow.down")
         }
         .tint(.blue)
+        NavigationLink(destination: AddToPlaylistView(video: video)) {
+            Label("Add to Playlist", systemImage: "text.badge.plus")
+        }
       }
     }
 }

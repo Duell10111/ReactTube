@@ -40,6 +40,12 @@ func pausePlayOnPhone() {
   SessionSyncStruct.shared.session.sendMessage(["type": "PhonePausePlay"], replyHandler: nil)
 }
 
+// Update from watch to phone
+
+func sendPlaylistStateToPhone(_ playlist: Playlist) {
+  sendVideoAPIMessage(message: ["request": "playlist-sync", "playlistId": playlist.id, "videoIds": playlist.videoIDs])
+}
+
 func processYoutubeAPIMessage(_ session: WCSession, message: [String: Any]) {
   print("Process Youtube API")
   if let type = message["type"] as? String {
@@ -83,7 +89,7 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestV
     print("Received Playlist Response for id: \(id)")
     let videos = message["videos"] as? [[String: Any]]
     let vIds = message["videoIds"] as? [String]
-    
+
     guard let videoIds = videos?.compactMap({ video in
       if let id = video["id"] as? String {
         return id
@@ -93,9 +99,9 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestV
       print("Error saving Playlist. No Video IDs provided")
       return
     }
-    
+
     print("Playlist Videos: \(videos)")
-    
+
     if requestVideos {
       videoIds.forEach { id in
         requestVideo(id: id)
@@ -103,7 +109,8 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestV
     } else if let videos = videos {
       videos.forEach { video in
         if let id = video["id"] as? String, let title = video["title"] as? String, let coverURL = video["coverUrl"] as? String {
-          addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, validUntil: Date(), coverURL: coverURL)
+          // Use expired date as no video urls are present
+          addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, validUntil: Calendar.current.date(byAdding: .hour, value: -2, to: Date()), coverURL: coverURL, temp: message["temp"] as? Bool)
           print("Saving Playlist Video ID: \(id)")
         } else {
           print("Playlist VideoData incomplete")

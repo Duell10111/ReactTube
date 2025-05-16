@@ -82,11 +82,10 @@ struct LibraryPlaylistListItem: View {
     }
     .swipeActions {
       Button {
-          print("Playing Playlist")
-          checkPlaylist(playlist)
-          musicPlayerManager.updatePlaylist(playlist: playlist)
+          print("Upload to phone")
+          sendPlaylistStateToPhone(playlist)
       } label: {
-          Label("Play", systemImage: "play.fill")
+          Label("Update Playlist to Phone", systemImage: "square.and.arrow.up")
       }
       Button {
           self.deletePlaylist = true

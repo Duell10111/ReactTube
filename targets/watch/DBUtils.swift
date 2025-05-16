@@ -288,6 +288,26 @@ func addVideoToPlaylist(_ playlist: Playlist, video: Video) {
   playlist.videos.append(video)
 }
 
+func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
+  playlist.videoIDs.removeAll { id in
+    id == video.id
+  }
+  playlist.videos.removeAll { v in
+    v.id == video.id
+  }
+  // Check if video is contained in any other playlist otherwise delete
+  do {
+    if let modelContext = playlist.modelContext, try !checkIfVideoExistsInOtherPlaylist(modelContext, oldPlaylist: playlist, video: video) {
+      modelContext.delete(video)
+      print("Deleted video not contained in any playlist")
+    } else {
+      print("Skipping deletion of video as it is still contained in a playlist")
+    }
+  } catch {
+    print("Error checking other playlist that contain the video: \(error)")
+  }
+}
+
 func deleteDownloadedVideo(id: String) {
   do {
     let path = getDownloadDirectory().appendingPathComponent(id)
@@ -323,6 +343,18 @@ func deleteDownloadedPlaylist(_ modelContext: ModelContext, playlist: Playlist) 
   
   // Delete playlist from database
   modelContext.delete(playlist)
+}
+
+private func checkIfVideoExistsInOtherPlaylist(_ modelContext: ModelContext, oldPlaylist: Playlist, video: Video) throws -> Bool {
+  let playlistId = oldPlaylist.id
+  let videoID = video.id
+  let descriptor = FetchDescriptor<Playlist>(
+    predicate: #Predicate { $0.id != playlistId && $0.videos.contains(where: { v in
+      v.id == videoID
+    })}
+  )
+  let otherPlaylists = try modelContext.fetch(descriptor)
+  return !otherPlaylists.isEmpty
 }
 
 func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
