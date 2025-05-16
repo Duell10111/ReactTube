@@ -17,6 +17,7 @@ import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {useYoutubeContext} from "@/context/YoutubeContext";
 import {useVideos} from "@/downloader/DownloadDatabaseOperations";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
+import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
 import Logger from "@/utils/Logger";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
@@ -38,6 +39,7 @@ export default function useWatchSync() {
 
   // Hook data providing hybrid data access
   const library = useMusicLibrary();
+  const playlistManager = usePlaylistManager();
 
   useEffect(() => {
     // TODO: Add check if app is installed/paired
@@ -101,7 +103,12 @@ export default function useWatchSync() {
           "Received youtubeAPI message from watch: ",
           messageFromWatch,
         );
-        handleWatchMessage(innertube, messageFromWatch.payload, library)
+        handleWatchMessage(
+          innertube,
+          messageFromWatch.payload,
+          library,
+          playlistManager,
+        )
           .then(async response => {
             if (Array.isArray(response)) {
               await Promise.all(
@@ -215,6 +222,7 @@ async function sendPlaylistToWatch(
         playlistId: id,
       },
       library,
+      {} as any, // Not needed here
     ),
   );
 }

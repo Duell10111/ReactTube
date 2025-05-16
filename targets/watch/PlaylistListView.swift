@@ -31,6 +31,13 @@ struct PlaylistListView: View {
           MusicListItemView(video: video) {
             print("Playlist: ", playlist.videoIDs)
             musicPlayerManager.updatePlaylist(playlist: playlist, index: index)
+          }.swipeActions(edge: .leading) {
+            Button {
+              removeVideoFromPlaylist(playlist, video: video)
+            } label: {
+              Label("Delete from Playlist", systemImage: "x.circle")
+            }
+            .tint(.red)
           }
         }
       }

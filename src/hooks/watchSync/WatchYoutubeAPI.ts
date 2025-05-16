@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 import Logger from "../../utils/Logger";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
@@ -17,6 +19,7 @@ import {
 } from "@/extraction/YTElements";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
 import {getMusicPlaylistDetails} from "@/hooks/music/useMusicPlaylistDetails";
+import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
 
 const LOGGER = Logger.extend("WATCH_YT_API");
 
@@ -25,6 +28,7 @@ type InnerTube = ReturnType<typeof useYoutubeContext>;
 type YoutubeAPIRequest =
   | YoutubeVideoRequest
   | YoutubePlaylistRequest
+  | YoutubePlaylistSyncRequest
   | YoutubeLibraryPlaylistRequest
   | YoutubeHomeRequest;
 
@@ -48,6 +52,12 @@ interface YoutubeVideoResponse {
 interface YoutubePlaylistRequest {
   request: "playlist";
   playlistId: string;
+}
+
+interface YoutubePlaylistSyncRequest {
+  request: "playlist-sync";
+  playlistId: string;
+  videoIds: string[];
 }
 
 interface YoutubePlaylistResponse {
@@ -112,6 +122,7 @@ export async function handleWatchMessage(
   request: YoutubeAPIRequest,
   // Data provider
   musicLibrary: ReturnType<typeof useMusicLibrary>,
+  playlistManager: ReturnType<typeof usePlaylistManager>,
 ) {
   LOGGER.debug("Handle watch request: ", request);
   if (request.request === "video") {
@@ -152,6 +163,17 @@ export async function handleWatchMessage(
     LOGGER.debug("VideoIDs : ", videoIds);
 
     return toPlaylistResponse(playlist, request.playlistId);
+  } else if (request.request === "playlist-sync") {
+    const playlist = await getMusicPlaylistDetails(request.playlistId, youtube);
+    const videoIds = playlist.items.map(value => value.id) as string[];
+    const diff = _.difference(request.videoIds, videoIds);
+    if (diff.length > 0) {
+      await playlistManager.saveVideoToPlaylist(diff, request.playlistId);
+    } else {
+      LOGGER.warn(
+        `No difference for playlist with id ${request.playlistId} found. Nothing to sync`,
+      );
+    }
   } else if (request.request === "home" && youtube) {
     const home = await youtube.music.getHomeFeed();
     const data = home.sections
