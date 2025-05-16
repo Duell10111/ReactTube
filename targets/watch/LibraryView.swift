@@ -69,6 +69,8 @@ struct LibraryPlaylists: View {
 
 struct LibraryPlaylistListItem: View {
   @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
+  @Environment(\.modelContext) var modelContext
+  @State var deletePlaylist: Bool = false
   var playlist: Playlist
   
   var body: some View {
@@ -86,6 +88,11 @@ struct LibraryPlaylistListItem: View {
       } label: {
           Label("Play", systemImage: "play.fill")
       }
+      Button {
+          self.deletePlaylist = true
+      } label: {
+          Label("Delete", systemImage: "trash.fill")
+      }.tint(.red)
     }.swipeActions(edge: .leading) {
       Button {
           print("Checking Playlist")
@@ -99,6 +106,16 @@ struct LibraryPlaylistListItem: View {
         Label("Download", systemImage: "arrow.down")
       }
       .tint(.blue)
+    }.alert("Delete \(playlist.title ?? "Playlist")", isPresented: $deletePlaylist) {
+      Button(role: .destructive) {
+        print("Delete Playlist")
+        deleteDownloadedPlaylist(modelContext, playlist: playlist)
+      } label: {
+        Text("DELETE")
+      }
+      Button("Cancel") {
+          deletePlaylist = false
+      }
     }
   }
 }

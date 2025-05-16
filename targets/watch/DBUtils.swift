@@ -283,6 +283,48 @@ func checkPlaylist(_ playlist: Playlist) {
   }
 }
 
+func addVideoToPlaylist(_ playlist: Playlist, video: Video) {
+  playlist.videoIDs.append(video.id)
+  playlist.videos.append(video)
+}
+
+func deleteDownloadedVideo(id: String) {
+  do {
+    let path = getDownloadDirectory().appendingPathComponent(id)
+    if FileManager.default.fileExists(atPath: path.path()) {
+      try FileManager.default.removeItem(at: path)
+    }
+  } catch {
+    print("Error deleting download video: \(error)")
+  }
+}
+
+func deleteDownloadedPlaylist(_ modelContext: ModelContext, playlist: Playlist) {
+  let playlistId = playlist.id
+  // Find all videos only saved in the playlist
+  for video in playlist.videos {
+    // Check if other playlist exists with this video
+    let videoID = video.id
+    let descriptor = FetchDescriptor<Playlist>(
+      predicate: #Predicate { $0.id != playlistId && $0.videos.contains(where: { v in
+        v.id == videoID
+      })}
+    )
+    do {
+      let otherPlaylists = try modelContext.fetch(descriptor)
+      if !otherPlaylists.isEmpty { continue }
+      if video.downloaded { deleteDownloadedVideo(id: video.id) }
+      
+      modelContext.delete(video)
+    } catch {
+      print("Error deleting video \(video.id) from playlist \(playlist.id): \(error)")
+    }
+  }
+  
+  // Delete playlist from database
+  modelContext.delete(playlist)
+}
+
 func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
   if backupFile.videos.isEmpty {
     print("No Videos available")
