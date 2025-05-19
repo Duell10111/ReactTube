@@ -7,6 +7,11 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  AudioPro,
+  AudioProTrack,
+  AudioProEventType,
+} from "react-native-audio-pro";
 import {SharedValue, useSharedValue} from "react-native-reanimated";
 import TrackPlayer, {
   Capability,
@@ -23,7 +28,6 @@ import {YTNodes} from "../utils/Youtube";
 import {useAppData} from "@/context/AppDataContext";
 import {useYoutubeContext} from "@/context/YoutubeContext";
 import {getUpNextForVideoWithPlaylist} from "@/downloader/DBData";
-import {findVideo} from "@/downloader/DownloadDatabaseOperations";
 import {Video} from "@/downloader/schema";
 import {
   VideoData,
@@ -53,7 +57,6 @@ interface MusicPlayerContextType {
     endpoint: YTNodes.NavigationEndpoint,
     upNextUpdate?: boolean,
   ) => void;
-  setPlaylistViaLocalDownload: (id: string) => void;
   currentItem?: YTTrackInfo;
   playlist?: YTPlaylistPanel;
   // Automix
@@ -83,14 +86,14 @@ interface MusicPlayerContextType {
   addAsNextItem: (item: VideoData) => void;
 }
 
-const events = [
-  Event.PlaybackState,
-  Event.PlaybackError,
-  Event.PlaybackActiveTrackChanged,
-  Event.PlaybackProgressUpdated,
-  Event.RemoteNext,
-  Event.RemotePrevious,
-];
+// const events = [
+//   Event.PlaybackState,
+//   Event.PlaybackError,
+//   Event.PlaybackActiveTrackChanged,
+//   Event.PlaybackProgressUpdated,
+//   Event.RemoteNext,
+//   Event.RemotePrevious,
+// ];
 
 const LOGGER = Logger.extend("MUSIC_CTX");
 
@@ -113,92 +116,126 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const duration = useSharedValue(0);
   const currentTime = useSharedValue(0);
   const [playlist, setPlaylist] = useState<YTPlaylistPanel>();
-  const playlistContinuation = useRef<YTPlaylistPanelContinuation>();
+  const playlistContinuation = useRef<YTPlaylistPanelContinuation>(undefined);
   const [currentVideoData, setCurrentVideoData] = useState<YTTrackInfo>();
 
   // Automix data
   const [automix, setAutomix] = useState(false);
   const [automixPlaylist, setAutomixPlaylist] = useState<YTPlaylistPanel>();
-  const automixPlaylistContinuation = useRef<YTPlaylistPanelContinuation>();
+  const automixPlaylistContinuation =
+    useRef<YTPlaylistPanelContinuation>(undefined);
   // Player options
   // TODO: Replace with reducer fkt?
   const [shuffle, setShuffle] = useState(false);
-  const shuffleBackup = useRef<YTPlaylistPanelItem[]>();
+  const shuffleBackup = useRef<YTPlaylistPanelItem[]>(undefined);
   const [repeat, setRepeat] = useState<RepeatOption>();
   // TODO: Add repeat all, one in the future here
 
-  useTrackPlayerEvents(events, event => {
-    if (event.type === Event.PlaybackError) {
-      console.warn("An error occurred while playing the current track.");
-    }
-    if (event.type === Event.PlaybackState) {
-      if (event.state === "playing") {
-        setPlaying(true);
-      } else {
-        setPlaying(false);
-      }
-
-      if (event.state === "ended") {
-        onEndReached();
-      }
-    }
-    if (event.type === Event.PlaybackActiveTrackChanged) {
-      LOGGER.debug("Music Track Changed: ", event);
-      if (!event.track) {
-        onEndReached();
-      }
-    }
-    if (event.type === Event.PlaybackProgressUpdated) {
-      duration.value = event.duration;
-      currentTime.value = event.position;
-      // LOGGER.debug("CurrentTime: ", event.position);
-
-      // if (
-      //   currentVideoData?.durationSeconds &&
-      //   currentVideoData.durationSeconds > event.position
-      // ) {
-      //   LOGGER.debug("Music Track end reached! Triggering onEndReached!");
-      //   onEndReached();
-      // }
-    }
-
-    if (event.type === Event.RemotePlay) {
-      setPlaying(true);
-      TrackPlayer.play().catch(LOGGER.warn);
-    }
-
-    if (event.type === Event.RemotePause) {
-      setPlaying(false);
-      TrackPlayer.pause().catch(LOGGER.warn);
-    }
-
-    if (event.type === Event.RemotePrevious) {
-      previous().catch(LOGGER.warn);
-    }
-
-    if (event.type === Event.RemoteNext) {
-      next().catch(LOGGER.warn);
+  AudioPro.addEventListener(event => {
+    switch (event.type) {
+      case AudioProEventType.PLAYBACK_ERROR:
+        console.warn("An error occurred while playing the current track.");
+        break;
+      case AudioProEventType.STATE_CHANGED:
+        if (event.payload?.state === "PLAYING") {
+          setPlaying(true);
+        } else {
+          setPlaying(false);
+        }
+        break;
+      case AudioProEventType.PROGRESS:
+        if (event.payload?.duration) {
+          duration.value = event.payload.duration / 1000;
+        }
+        if (event.payload?.position) {
+          currentTime.value = event.payload.position / 1000;
+        }
+        break;
+      case AudioProEventType.TRACK_ENDED:
+        onEndReached().catch(LOGGER.warn);
+        break;
+      case AudioProEventType.REMOTE_PREV:
+        previous().catch(LOGGER.warn);
+        break;
+      case AudioProEventType.REMOTE_NEXT:
+        next().catch(LOGGER.warn);
+        break;
     }
   });
 
-  useEffect(() => {
-    TrackPlayer.updateOptions({
-      progressUpdateEventInterval: 1,
-      capabilities: [
-        Capability.Play,
-        Capability.Pause,
-        Capability.SkipToNext,
-        Capability.SkipToPrevious,
-        Capability.SeekTo,
-      ],
-    }).catch(LOGGER.warn);
-  }, []);
+  // useTrackPlayerEvents(events, event => {
+  //   if (event.type === Event.PlaybackError) {
+  //     console.warn("An error occurred while playing the current track.");
+  //   }
+  //   if (event.type === Event.PlaybackState) {
+  //     if (event.state === "playing") {
+  //       setPlaying(true);
+  //     } else {
+  //       setPlaying(false);
+  //     }
+  //
+  //     if (event.state === "ended") {
+  //       onEndReached();
+  //     }
+  //   }
+  //   if (event.type === Event.PlaybackActiveTrackChanged) {
+  //     LOGGER.debug("Music Track Changed: ", event);
+  //     if (!event.track) {
+  //       onEndReached();
+  //     }
+  //   }
+  //   if (event.type === Event.PlaybackProgressUpdated) {
+  //     duration.value = event.duration;
+  //     currentTime.value = event.position;
+  //     // LOGGER.debug("CurrentTime: ", event.position);
+  //
+  //     // if (
+  //     //   currentVideoData?.durationSeconds &&
+  //     //   currentVideoData.durationSeconds > event.position
+  //     // ) {
+  //     //   LOGGER.debug("Music Track end reached! Triggering onEndReached!");
+  //     //   onEndReached();
+  //     // }
+  //   }
+  //
+  //   if (event.type === Event.RemotePlay) {
+  //     setPlaying(true);
+  //     TrackPlayer.play().catch(LOGGER.warn);
+  //   }
+  //
+  //   if (event.type === Event.RemotePause) {
+  //     setPlaying(false);
+  //     TrackPlayer.pause().catch(LOGGER.warn);
+  //   }
+  //
+  //   if (event.type === Event.RemotePrevious) {
+  //     previous().catch(LOGGER.warn);
+  //   }
+  //
+  //   if (event.type === Event.RemoteNext) {
+  //     next().catch(LOGGER.warn);
+  //   }
+  // });
+  //
+  // useEffect(() => {
+  //   TrackPlayer.updateOptions({
+  //     progressUpdateEventInterval: 1,
+  //     capabilities: [
+  //       Capability.Play,
+  //       Capability.Pause,
+  //       Capability.SkipToNext,
+  //       Capability.SkipToPrevious,
+  //       Capability.SeekTo,
+  //     ],
+  //   }).catch(LOGGER.warn);
+  // }, []);
 
   useEffect(() => {
+    console.log("New Audio");
     if (playType === "Audio" && currentVideoData) {
       // console.log("Current video Data: ", currentVideoData);
-      TrackPlayer.load(videoInfoToTrack(currentVideoData)).then(() => {
-        TrackPlayer.play().catch(LOGGER.warn);
+      AudioPro.play(videoInfoToTrack(currentVideoData), {
+        autoPlay: true,
       });
     }
     duration.value = currentVideoData?.durationSeconds ?? 0;
@@ -474,26 +511,10 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       });
   };
 
-  // TODO: Depreacted? as now done via setCurrentPlaylist
-  const setPlaylistViaLocalDownload = async (id: string) => {
-    const localVideos = await findVideo(id);
-
-    if (localVideos) {
-      // TODO: set currentVideoData?
-
-      const track = localVideoToTrack(localVideos);
-      LOGGER.warn(track);
-      TrackPlayer.load(track)
-        .then(() => {
-          TrackPlayer.play().catch(LOGGER.warn);
-        })
-        .catch(LOGGER.warn);
-    }
-  };
-
   const onEndReached = useCallback(async () => {
     if (repeat === "RepeatOne") {
       LOGGER.debug("Repeating same song");
+      // TODO: Not supported currently. Until queue player available? :/
       TrackPlayer.skipToPrevious(0)
         .then(() => TrackPlayer.play())
         .catch(LOGGER.warn);
@@ -539,19 +560,19 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   const play = async () => {
     if (playType === "Audio") {
-      await TrackPlayer.play();
+      AudioPro.resume();
     }
   };
 
   const pause = async () => {
     if (playType === "Audio") {
-      await TrackPlayer.pause();
+      AudioPro.pause();
     }
   };
 
   const seek = async (seconds: number) => {
     if (playType === "Audio") {
-      await TrackPlayer.seekTo(seconds);
+      AudioPro.seekTo(seconds * 1000);
     }
   };
 
@@ -592,6 +613,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const next = () => {
+    console.log("NEXT");
     return onEndReached();
   };
 
@@ -632,7 +654,6 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         // Update current playing item
         setCurrentItem: setCurrentPlaylist,
         setPlaylistViaEndpoint,
-        setPlaylistViaLocalDownload,
         duration,
         currentTime,
         playlist,
@@ -673,13 +694,11 @@ export function useMusikPlayerContext() {
 function videoInfoToTrack(videoInfo: YTTrackInfo) {
   return {
     id: videoInfo.id, // Set id for later find in queue
-    // TODO: fix
     url: videoInfo.originalData.streaming_data?.hls_manifest_url,
     title: videoInfo.title,
     artist: videoInfo.author?.name,
     artwork: videoInfo.thumbnailImage.url,
-    type: "hls",
-  } as Track;
+  } as AudioProTrack;
 }
 
 function localVideoToTrack(video: Video) {
@@ -688,7 +707,6 @@ function localVideoToTrack(video: Video) {
     // @ts-ignore TODO: fix
     url: getAbsoluteVideoURL(video.fileUrl),
     title: video.name,
-    type: TrackType.Default,
     endTime: video.duration,
-  } as Track;
+  } as AudioProTrack;
 }
