@@ -50,8 +50,8 @@ struct MusikPlayer: View {
           }
           HStack(alignment: .center, spacing: 0) {
             Spacer()
-            NativeVolumeControl()
-          }
+            VolumeControl()
+          }.background(NativeVolumeControl().opacity(0))
         }.toolbar {
           ToolbarItem(placement: .topBarTrailing) {
             NavigationLink(destination: PlaylistView()) {
