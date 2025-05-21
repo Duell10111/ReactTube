@@ -12,7 +12,7 @@ import {
   AudioProTrack,
   AudioProEventType,
 } from "react-native-audio-pro";
-import {runOnUI, SharedValue, useSharedValue} from "react-native-reanimated";
+import {SharedValue, useSharedValue} from "react-native-reanimated";
 
 import useVideoDataGenerator from "../hooks/music/useVideoDataGenerator";
 import Logger from "../utils/Logger";
@@ -122,106 +122,6 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const [shuffle, setShuffle] = useState(false);
   const shuffleBackup = useRef<YTPlaylistPanelItem[]>(undefined);
   const [repeat, setRepeat] = useState<RepeatOption>();
-  // TODO: Add repeat all, one in the future here
-
-  AudioPro.addEventListener(event => {
-    switch (event.type) {
-      case AudioProEventType.PLAYBACK_ERROR:
-        console.warn("An error occurred while playing the current track.");
-        break;
-      case AudioProEventType.STATE_CHANGED:
-        if (event.payload?.state === "PLAYING") {
-          setPlaying(true);
-        } else {
-          setPlaying(false);
-        }
-        break;
-      case AudioProEventType.PROGRESS:
-        if (event.payload?.duration) {
-          duration.value = event.payload.duration / 1000;
-        }
-        if (event.payload?.position) {
-          currentTime.value = event.payload.position / 1000;
-        }
-        break;
-      case AudioProEventType.TRACK_ENDED:
-        onEndReached().catch(LOGGER.warn);
-        break;
-      case AudioProEventType.REMOTE_PREV:
-        previous().catch(LOGGER.warn);
-        break;
-      case AudioProEventType.REMOTE_NEXT:
-        next().catch(LOGGER.warn);
-        break;
-    }
-  });
-
-  // useTrackPlayerEvents(events, event => {
-  //   if (event.type === Event.PlaybackError) {
-  //     console.warn("An error occurred while playing the current track.");
-  //   }
-  //   if (event.type === Event.PlaybackState) {
-  //     if (event.state === "playing") {
-  //       setPlaying(true);
-  //     } else {
-  //       setPlaying(false);
-  //     }
-  //
-  //     if (event.state === "ended") {
-  //       onEndReached();
-  //     }
-  //   }
-  //   if (event.type === Event.PlaybackActiveTrackChanged) {
-  //     LOGGER.debug("Music Track Changed: ", event);
-  //     if (!event.track) {
-  //       onEndReached();
-  //     }
-  //   }
-  //   if (event.type === Event.PlaybackProgressUpdated) {
-  //     duration.value = event.duration;
-  //     currentTime.value = event.position;
-  //     // LOGGER.debug("CurrentTime: ", event.position);
-  //
-  //     // if (
-  //     //   currentVideoData?.durationSeconds &&
-  //     //   currentVideoData.durationSeconds > event.position
-  //     // ) {
-  //     //   LOGGER.debug("Music Track end reached! Triggering onEndReached!");
-  //     //   onEndReached();
-  //     // }
-  //   }
-  //
-  //   if (event.type === Event.RemotePlay) {
-  //     setPlaying(true);
-  //     TrackPlayer.play().catch(LOGGER.warn);
-  //   }
-  //
-  //   if (event.type === Event.RemotePause) {
-  //     setPlaying(false);
-  //     TrackPlayer.pause().catch(LOGGER.warn);
-  //   }
-  //
-  //   if (event.type === Event.RemotePrevious) {
-  //     previous().catch(LOGGER.warn);
-  //   }
-  //
-  //   if (event.type === Event.RemoteNext) {
-  //     next().catch(LOGGER.warn);
-  //   }
-  // });
-  //
-  // useEffect(() => {
-  //   TrackPlayer.updateOptions({
-  //     progressUpdateEventInterval: 1,
-  //     capabilities: [
-  //       Capability.Play,
-  //       Capability.Pause,
-  //       Capability.SkipToNext,
-  //       Capability.SkipToPrevious,
-  //       Capability.SeekTo,
-  //     ],
-  //   }).catch(LOGGER.warn);
-  // }, []);
 
   useEffect(() => {
     console.log("New Audio");
@@ -643,6 +543,41 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     [setPlaylist, currentVideoData],
   );
 
+  useEffect(() => {
+    const sub = AudioPro.addEventListener(event => {
+      switch (event.type) {
+        case AudioProEventType.PLAYBACK_ERROR:
+          LOGGER.warn("An error occurred while playing the current track.");
+          break;
+        case AudioProEventType.STATE_CHANGED:
+          if (event.payload?.state === "PLAYING") {
+            setPlaying(true);
+          } else {
+            setPlaying(false);
+          }
+          break;
+        case AudioProEventType.PROGRESS:
+          if (event.payload?.duration) {
+            duration.value = event.payload.duration / 1000;
+          }
+          if (event.payload?.position) {
+            currentTime.value = event.payload.position / 1000;
+          }
+          break;
+        case AudioProEventType.TRACK_ENDED:
+          onEndReached().catch(LOGGER.warn);
+          break;
+        case AudioProEventType.REMOTE_PREV:
+          previous().catch(LOGGER.warn);
+          break;
+        case AudioProEventType.REMOTE_NEXT:
+          next().catch(LOGGER.warn);
+          break;
+      }
+    });
+    return () => sub.remove();
+  }, [onEndReached, previous, next]);
+
   return (
     <MusicPlayerCtx.Provider
       value={{
@@ -694,15 +629,5 @@ function videoInfoToTrack(videoInfo: YTTrackInfo) {
     title: videoInfo.title,
     artist: videoInfo.author?.name,
     artwork: videoInfo.thumbnailImage.url,
-  } as AudioProTrack;
-}
-
-function localVideoToTrack(video: Video) {
-  return {
-    id: video.id,
-    // @ts-ignore TODO: fix
-    url: getAbsoluteVideoURL(video.fileUrl),
-    title: video.name,
-    endTime: video.duration,
   } as AudioProTrack;
 }
