@@ -12,14 +12,7 @@ import {
   AudioProTrack,
   AudioProEventType,
 } from "react-native-audio-pro";
-import {SharedValue, useSharedValue} from "react-native-reanimated";
-import TrackPlayer, {
-  Capability,
-  Event,
-  Track,
-  TrackType,
-  useTrackPlayerEvents,
-} from "react-native-track-player";
+import {runOnUI, SharedValue, useSharedValue} from "react-native-reanimated";
 
 import useVideoDataGenerator from "../hooks/music/useVideoDataGenerator";
 import Logger from "../utils/Logger";
@@ -515,9 +508,11 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     if (repeat === "RepeatOne") {
       LOGGER.debug("Repeating same song");
       // TODO: Not supported currently. Until queue player available? :/
-      TrackPlayer.skipToPrevious(0)
-        .then(() => TrackPlayer.play())
-        .catch(LOGGER.warn);
+      AudioPro.seekTo(0);
+      // TODO: Migrate to queued player if possible in future?
+      // TrackPlayer.skipToPrevious(0)
+      //   .then(() => TrackPlayer.play())
+      //   .catch(LOGGER.warn);
       return;
     }
 
@@ -553,7 +548,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         }
       } else if (repeat) {
         // Item not found in playlist repeat the current item if repeat is set
-        TrackPlayer.skipToPrevious(0).catch(LOGGER.warn);
+        AudioPro.seekTo(0);
+        // TrackPlayer.skipToPrevious(0).catch(LOGGER.warn);
       }
     }
   }, [currentVideoData, playlist, automixPlaylist, automix, repeat]);
