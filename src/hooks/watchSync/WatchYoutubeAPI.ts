@@ -139,6 +139,7 @@ export async function handleWatchMessage(
 
       try {
         // Override normal info with music info
+        // @ts-ignore Ignore typo issues
         info = getElementDataFromTrackInfo(
           await youtube.music.getInfo(request.videoId),
         );
