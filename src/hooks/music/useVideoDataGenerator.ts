@@ -42,8 +42,7 @@ export default function useVideoDataGenerator() {
         element.originalData.playability_status?.status === "LOGIN_REQUIRED"
       ) {
         throw Error(
-          "Login Required: ",
-          element.originalData.playability_status?.reason,
+          `Login Required: ${element.originalData.playability_status?.reason}`,
         );
       }
 
