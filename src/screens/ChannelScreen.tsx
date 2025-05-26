@@ -1,7 +1,7 @@
 import {useFocusEffect} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React from "react";
-import {Platform, TVEventControl, View} from "react-native";
+import {Platform, TVEventControl} from "react-native";
 
 import Channel from "../components/channel/Channel";
 import ChannelHeader from "../components/channel/ChannelHeader";
@@ -10,6 +10,7 @@ import LoadingComponent from "../components/general/LoadingComponent";
 import useChannelDetails from "../hooks/useChannelDetails";
 import Logger from "../utils/Logger";
 
+import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 const LOGGER = Logger.extend("CHANNEL");
@@ -35,12 +36,12 @@ export default function ChannelScreen({route}: Props) {
   }
 
   return (
-    <View style={{margin: Platform.isTV ? 20 : 0, flex: 1}}>
+    <ShelfVideoSelectorProvider>
       <ChannelHeader
         channelName={channel?.metadata.title ?? ""}
         imgURL={channel?.metadata?.thumbnail?.[0].url ?? ""}
       />
       <Channel channel={channel} />
-    </View>
+    </ShelfVideoSelectorProvider>
   );
 }

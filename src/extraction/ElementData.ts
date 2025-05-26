@@ -478,8 +478,8 @@ export function getVideoData(
       originalNode: ytNode,
       id: ytNode.id,
       author,
-      title: author.name,
-      thumbnailImage: author.thumbnail
+      title: author?.name,
+      thumbnailImage: author?.thumbnail
         ? getThumbnail(author.thumbnail)
         : undefined,
     } as ChannelData;
@@ -490,8 +490,8 @@ export function getVideoData(
       originalNode: ytNode,
       id: ytNode.id,
       author,
-      title: author.name,
-      thumbnailImage: author.thumbnail
+      title: author?.name,
+      thumbnailImage: author?.thumbnail
         ? getThumbnail(author.thumbnail)
         : undefined,
     } as ChannelData;
