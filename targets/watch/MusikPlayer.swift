@@ -11,36 +11,19 @@ struct MusikPlayer: View {
     @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
     @State private var crownValue: Double = 0.0 // Der aktuelle Wert des Digital Crown
 
-  
     var body: some View {
       @Bindable var musicManager = musicManager
-      ZStack {
-        GeometryReader { geometry in
+      GeometryReader { geometry in
+        ZStack {
           VStack(alignment: .center, spacing: 0) {
             VStack(spacing: 0) {
-              // Causes app crashes if switching too fast :/
-              if let cover = musicManager.currentCover, false {
-                  AsyncImage(url: cover) { image in
-                    image
-                      .resizable()
-                      .scaledToFit()
-                  } placeholder: {
-                      Color.gray
-                  }
-                      .scaledToFit()
-                      .cornerRadius(8)
-                      .padding()
-              } else {
-                  Image(systemName: "music.note")
-                      .resizable()
-                      .scaledToFit()
-                      .cornerRadius(8)
-                      .padding()
-              }
-
-              Text(musicManager.currentTitle)
-                .font(.footnote)
-                .padding()
+              VStack {
+                MarqueeText(text: musicManager.currentTitle, font: UIFont.preferredFont(forTextStyle: .subheadline), leftFade: 6, rightFade: 6, startDelay: 5, alignment: .center)
+                if let artist = musicManager.currentArtist {
+                  Text(artist)
+                    .font(.caption2)
+                }
+              }.padding()
             }
             .frame(width: geometry.size.width, height: geometry.size.height * 2/3)
 
@@ -65,30 +48,48 @@ struct MusikPlayer: View {
                 }
             }
           }
-        }
-        HStack(alignment: .center, spacing: 0) {
-          Spacer()
-          VolumeControl()
-        }
-      }.toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
-          NavigationLink(destination: PlaylistView()) {
-              Label("Music", systemImage: "music.note.list")
+          HStack(alignment: .center, spacing: 0) {
+            Spacer()
+            VolumeControl()
+          }.background(NativeVolumeControl().opacity(0))
+        }.toolbar {
+          ToolbarItem(placement: .topBarTrailing) {
+            NavigationLink(destination: PlaylistView()) {
+                Label("Music", systemImage: "music.note.list")
+              }
+          }
+        }.background(alignment: .center) {
+          if let cover = musicManager.currentCover {
+            Color.clear.overlay {
+              Image(uiImage: cover)
+                  .resizable()
+                  .aspectRatio(contentMode: .fill)
             }
+          } else {
+              Image(systemName: "music.note")
+                  .resizable()
+                  .scaledToFit()
+                  .cornerRadius(8)
+                  .padding()
+          }
+
+          // Makes background a bit darker
+          Color.black.opacity(0.4)
+                .ignoresSafeArea()
         }
       }
-      .focusable(true)
-      .digitalCrownRotation(
-            $musicManager.volume,
-            from: 0.0, through: 1.0,
-            by: 0.01,
-            sensitivity: .low,
-            isContinuous: false,
-            isHapticFeedbackEnabled: true
-      )
-      .onChange(of: musicManager.volume, initial: false) {
-        musicManager.updateVolume(volume: musicManager.volume)
-      }
+//      .focusable(true)
+//      .digitalCrownRotation(
+//            $musicManager.volume,
+//            from: 0.0, through: 1.0,
+//            by: 0.01,
+//            sensitivity: .low,
+//            isContinuous: false,
+//            isHapticFeedbackEnabled: true
+//      )
+//      .onChange(of: musicManager.volume, initial: false) {
+//        musicManager.updateVolume(volume: musicManager.volume)
+//      }
     }
 }
 
@@ -101,11 +102,11 @@ struct MusikPlayer: View {
 
 struct PlayButton: View {
   @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
-  
+
   var body: some View {
     GeometryReader { geometry in
       let size = min(geometry.size.width, geometry.size.height)
-      
+
       ZStack {
         Circle()
           .fill(Color.white)
@@ -127,7 +128,7 @@ struct PlayButton: View {
 struct ActionButton: View {
   var systemName: String
   var clicked: () -> Void
-  
+
   var body: some View {
     Button(action: {
         clicked()

@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 import Logger from "../../utils/Logger";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
@@ -5,15 +7,19 @@ import {
   parseObservedArray,
   parseObservedArrayHorizontalData,
 } from "@/extraction/ArrayExtraction";
-import {gridCalculatorExtract} from "@/extraction/ShelfExtraction";
-import {ElementData, YTPlaylist, YTVideoInfo} from "@/extraction/Types";
 import {
+  ElementData,
+  YTPlaylist,
+  YTTrackInfo,
+  YTVideoInfo,
+} from "@/extraction/Types";
+import {
+  getElementDataFromTrackInfo,
   getElementDataFromVideoInfo,
-  getElementDataFromYTMusicPlaylist,
-  getElementDataFromYTPlaylist,
 } from "@/extraction/YTElements";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
 import {getMusicPlaylistDetails} from "@/hooks/music/useMusicPlaylistDetails";
+import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
 
 const LOGGER = Logger.extend("WATCH_YT_API");
 
@@ -22,6 +28,7 @@ type InnerTube = ReturnType<typeof useYoutubeContext>;
 type YoutubeAPIRequest =
   | YoutubeVideoRequest
   | YoutubePlaylistRequest
+  | YoutubePlaylistSyncRequest
   | YoutubeLibraryPlaylistRequest
   | YoutubeHomeRequest;
 
@@ -45,6 +52,12 @@ interface YoutubeVideoResponse {
 interface YoutubePlaylistRequest {
   request: "playlist";
   playlistId: string;
+}
+
+interface YoutubePlaylistSyncRequest {
+  request: "playlist-sync";
+  playlistId: string;
+  videoIds: string[];
 }
 
 interface YoutubePlaylistResponse {
@@ -109,12 +122,13 @@ export async function handleWatchMessage(
   request: YoutubeAPIRequest,
   // Data provider
   musicLibrary: ReturnType<typeof useMusicLibrary>,
+  playlistManager: ReturnType<typeof usePlaylistManager>,
 ) {
   LOGGER.debug("Handle watch request: ", request);
   if (request.request === "video") {
     const ytInfo = await youtube?.getInfo(request.videoId, "IOS");
     if (youtube && ytInfo) {
-      const info = getElementDataFromVideoInfo(ytInfo);
+      let info = getElementDataFromVideoInfo(ytInfo);
       // TODO: Fetch from music endpoint?
 
       const format = ytInfo.chooseFormat({type: "audio"});
@@ -122,6 +136,16 @@ export async function handleWatchMessage(
       const streamURL = format.decipher(youtube.session.player);
       const validUntil = Date.now() + 19800000; // 5,5 hours valid from now on.
       LOGGER.debug("Valid until: ", validUntil);
+
+      try {
+        // Override normal info with music info
+        // @ts-ignore Ignore typo issues
+        info = getElementDataFromTrackInfo(
+          await youtube.music.getInfo(request.videoId),
+        );
+      } catch (e) {
+        LOGGER.warn("Error fetching music info. Skipping musicInfo data", e);
+      }
 
       return toVideoResponse(
         info,
@@ -140,6 +164,17 @@ export async function handleWatchMessage(
     LOGGER.debug("VideoIDs : ", videoIds);
 
     return toPlaylistResponse(playlist, request.playlistId);
+  } else if (request.request === "playlist-sync") {
+    const playlist = await getMusicPlaylistDetails(request.playlistId, youtube);
+    const videoIds = playlist.items.map(value => value.id) as string[];
+    const diff = _.difference(request.videoIds, videoIds);
+    if (diff.length > 0) {
+      await playlistManager.saveVideoToPlaylist(diff, request.playlistId);
+    } else {
+      LOGGER.warn(
+        `No difference for playlist with id ${request.playlistId} found. Nothing to sync`,
+      );
+    }
   } else if (request.request === "home" && youtube) {
     const home = await youtube.music.getHomeFeed();
     const data = home.sections
@@ -181,43 +216,13 @@ export async function handleWatchMessage(
       );
       return libraryResponses;
     }
-
-    // const lib = await youtube.music.getLibrary();
-    // // const recap = await youtube.music.getRecap();
-    // const contents = gridCalculatorExtract(lib.contents[0], 3);
-    // console.log("Contents: ", contents);
-    // const playlistData = contents
-    //   .map(v => (Array.isArray(v) ? v : v.parsedData))
-    //   .flat()
-    //   .filter(v => v.type === "playlist");
-    // console.log("Playlists: ", playlistData);
-    // const libraryPlaylists = (
-    //   await Promise.all(
-    //     playlistData.map(async playlist => {
-    //       const p = await youtube.music.getPlaylist(playlist.id);
-    //       const data = getElementDataFromYTMusicPlaylist(p);
-    //       data.title = playlist.title;
-    //       data.thumbnailImage = playlist.thumbnailImage;
-    //       console.log("Items: ", data.items);
-    //       const ids = data.items
-    //         .filter(v => v && v.type === "video")
-    //         .map(v => v.id);
-    //       // TODO: Create Playlist object which allows continuation, with caching?
-    //       if (ids.length > 0) {
-    //         return toPlaylistResponse(data, playlist.id);
-    //       }
-    //     }),
-    //   )
-    // ).filter(v => v);
-    //
-    // return libraryPlaylists;
   }
 }
 
 // Transformers
 
 function toVideoResponse(
-  videoInfo: YTVideoInfo,
+  videoInfo: YTVideoInfo | YTTrackInfo,
   downloadURL: string, // Workaround for download issues see type definition
   streamURL: string,
   validUntil: number,

@@ -36,6 +36,16 @@ export default function useVideoDataGenerator() {
 
       // Set Local Playlist ID if a local element called
       element.localPlaylistId = videoData.localPlaylistId;
+
+      // Check if bot detection is active
+      if (
+        element.originalData.playability_status?.status === "LOGIN_REQUIRED"
+      ) {
+        throw Error(
+          `Login Required: ${element.originalData.playability_status?.reason}`,
+        );
+      }
+
       return element;
     },
     [youtube],

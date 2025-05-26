@@ -20,6 +20,9 @@ struct LibraryView: View {
         NavigationLink("Downloaded") {
           LibraryDownloadedVideos()
         }
+        NavigationLink("Available") {
+          LibraryAvailableVideos()
+        }
       }.toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           NavigationLink(destination: MusikPlayer()) {
@@ -66,6 +69,8 @@ struct LibraryPlaylists: View {
 
 struct LibraryPlaylistListItem: View {
   @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
+  @Environment(\.modelContext) var modelContext
+  @State var deletePlaylist: Bool = false
   var playlist: Playlist
   
   var body: some View {
@@ -77,12 +82,16 @@ struct LibraryPlaylistListItem: View {
     }
     .swipeActions {
       Button {
-          print("Playing Playlist")
-          checkPlaylist(playlist)
-          musicPlayerManager.updatePlaylist(playlist: playlist)
+          print("Upload to phone")
+          sendPlaylistStateToPhone(playlist)
       } label: {
-          Label("Play", systemImage: "play.fill")
+          Label("Update Playlist to Phone", systemImage: "square.and.arrow.up")
       }
+      Button {
+          self.deletePlaylist = true
+      } label: {
+          Label("Delete", systemImage: "trash.fill")
+      }.tint(.red)
     }.swipeActions(edge: .leading) {
       Button {
           print("Checking Playlist")
@@ -96,6 +105,16 @@ struct LibraryPlaylistListItem: View {
         Label("Download", systemImage: "arrow.down")
       }
       .tint(.blue)
+    }.alert("Delete \(playlist.title ?? "Playlist")", isPresented: $deletePlaylist) {
+      Button(role: .destructive) {
+        print("Delete Playlist")
+        deleteDownloadedPlaylist(modelContext, playlist: playlist)
+      } label: {
+        Text("DELETE")
+      }
+      Button("Cancel") {
+          deletePlaylist = false
+      }
     }
   }
 }
@@ -103,7 +122,7 @@ struct LibraryPlaylistListItem: View {
 struct LibraryVideos: View {
   @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
   @Environment(DownloadManager.self) private var downloadManager: DownloadManager
-  @Query(sort: \Video.title, order: .reverse) var videos: [Video]
+  @Query(sort: \Video.title, order: .forward) var videos: [Video]
   
   var body: some View {
     List {
@@ -128,6 +147,46 @@ struct LibraryVideos: View {
     LibraryView()
     .modelContext(DataController.previewContainer.mainContext)
 }
+struct LibraryAvailableVideos: View {
+  @State private var date: Date = Date()
+  @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
+  @Environment(DownloadManager.self) private var downloadManager: DownloadManager
+  @Query var videos: [Video]
+  
+  init() {
+    let now = Date()
+    _videos = Query(filter: #Predicate<Video> { video in
+      return if let date = video.validUntil {
+        now < date
+      } else {
+        false
+      }
+    }, sort: \Video.title)
+  }
+  
+  var body: some View {
+    List {
+      ForEach(Array(videos.enumerated()), id: \.element.id) { index, video in
+        VStack {
+          MusicListItemView(video: video) {
+            musicPlayerManager.updatePlaylist(newPlaylist: Array(videos[index...]))
+          }
+        }
+      }
+    }.toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        NavigationLink(destination: MusikPlayer()) {
+            Label("Music", systemImage: "music.note.list")
+          }
+      }
+    }
+  }
+}
+
+#Preview {
+  LibraryAvailableVideos()
+    .modelContext(DataController.previewContainer.mainContext)
+}
 
 struct LibraryDownloadedVideos: View {
   @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
@@ -138,6 +197,9 @@ struct LibraryDownloadedVideos: View {
   
   var body: some View {
     List {
+      Button("Shuffle", systemImage: "shuffle") {
+        musicPlayerManager.updatePlaylist(newPlaylist: Array(videos).shuffled())
+      }
       ForEach(Array(videos.enumerated()), id: \.element.id) { index, video in
         VStack {
           MusicListItemView(video: video) {

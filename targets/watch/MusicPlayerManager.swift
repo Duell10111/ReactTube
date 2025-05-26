@@ -29,7 +29,8 @@ class MusicPlayerManager {
 
     var isPlaying: Bool = false
     var currentTitle: String = "Unknown Title"
-    var currentCover: URL? = nil
+    var currentArtist: String? = nil
+    var currentCover: UIImage? = nil
 
     var isStalled: Bool = false
 
@@ -58,14 +59,15 @@ class MusicPlayerManager {
     self.playMusic()
   }
 
-  func updatePlaylist(playlist: Playlist, index: Int? = nil) {
+  func updatePlaylist(playlist: Playlist, index: Int? = nil, shuffle: Bool = false) {
     self.type = .local
     queue.async {
-      self.playlistManager.setPlaylist(playlist)
+      self.playlistManager.setPlaylist(playlist, shuffle: shuffle)
 
       self.setupPlayer()
-
-      if let index = index {
+      
+      // Disable jump on shuffle play
+      if let index = index, shuffle == false {
         self.trackIndex = index
         self.currentTrackIndex = index
         // TODO: Could not work if index changes when elements not available, maybe better map to id
@@ -179,6 +181,10 @@ class MusicPlayerManager {
   ) {
     print("Current item change: \(item?.getTitle() ?? "nil")")
     currentTitle = item?.getTitle() ?? "Unknown Title"
+    currentArtist = item?.getArtist()
+    item?.getArtwork({ audioImage in
+      self.currentCover = audioImage
+    })
     if let i = index {
       currentTrackIndex = i
       trackIndex = i
@@ -197,7 +203,7 @@ class MusicPlayerManager {
       }
       // Set up AVAudioSession for background audio playback
       do {
-          // .longFormAudio needed to play audio when screnn is off?
+          // .longFormAudio needed to play audio when screnn is off
           try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, policy: .longFormAudio, options: [])
       } catch {
           print("Failed to set up AVAudioSession: \(error)")
@@ -212,9 +218,11 @@ class MusicPlayerManager {
 
               if let curItem = player?.currentItem, let title = curItem.getTitle(){
                 currentTitle = title
+                currentArtist = curItem.getArtist()
+                curItem.getArtwork({ audioImage in
+                  self.currentCover = audioImage
+                })
               }
-//              updateTrackInfo()
-//              updateNowPlaying()
           } catch {
               print("Failed to set up AVAudioSession: \(error)")
           }
@@ -228,9 +236,8 @@ class MusicPlayerManager {
 
               if let curItem = player?.currentItem, let title = curItem.getTitle(){
                 currentTitle = title
+                currentArtist = curItem.getArtist()
               }
-//              updateTrackInfo()
-//              updateNowPlaying()
             }
           } else {
             print("Failed to start AVAudioSession: \(error?.localizedDescription ?? "nil")")

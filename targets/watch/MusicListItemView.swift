@@ -28,17 +28,22 @@ struct MusicListItemView: View {
       } label: {
         VStack {
           HStack {
-            Text(video.title ?? "Unknown title")
-              .foregroundStyle(video.downloaded == true ? .blue : .primary)
-            if let validUntil = video.validUntil, validUntil < Date() && video.downloaded != true {
+            VStack {
+              Text(video.title ?? "Unknown title")
+                .foregroundStyle(video.downloaded == true ? .blue : .primary)
+              if let artist = video.artist {
+                Text(artist)
+                  .foregroundStyle(.secondary)
+              }
+            }
+            if video.downloaded {
+              Spacer()
+              Image(systemName: "arrow.down.circle")
+                .foregroundColor(.blue)
+            } else if let validUntil = video.validUntil, validUntil < Date() && video.downloaded != true {
               Spacer()
               Image(systemName: "clock.badge.exclamationmark")
                 .foregroundColor(.red)
-            }
-          }
-          if video.downloaded {
-            HStack {
-              Label("Downloaded", systemImage: "arrow.down.circle")
             }
           }
           if let videoDownload = downloadManager.progressDownloads[video.id] {
@@ -55,6 +60,9 @@ struct MusicListItemView: View {
           Label("Download", systemImage: "arrow.down")
         }
         .tint(.blue)
+        NavigationLink(destination: AddToPlaylistView(video: video)) {
+            Label("Add to Playlist", systemImage: "text.badge.plus")
+        }
       }
     }
 }

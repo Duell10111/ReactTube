@@ -9,7 +9,7 @@ import SwiftUI
 
 struct PlaylistView: View {
     @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
-    
+
     var body: some View {
       ScrollViewReader { proxy in
         List {
@@ -18,15 +18,23 @@ struct PlaylistView: View {
           }
           ForEach(Array(musicManager.playerPlaylistItems.enumerated()), id: \.self.element.id) { (index, video) in
             HStack {
-              Button(video.title ?? "Track \(index + 1)") {
+              Button {
                 musicManager.jumpToIndex(index)
+              } label: {
+                VStack {
+                  Text(video.title ?? "Track \(index + 1)")
+                  if let artist = video.artist {
+                    Text(artist)
+                      .foregroundStyle(.secondary)
+                  }
+                }
               }
               Spacer()
               if index == musicManager.trackIndex {
                 Image(systemName: "play.fill")
               }
             }
-            .background(index == musicManager.trackIndex ? Color.blue.opacity(0.3) : Color.clear)
+            .listRowBackground(index == musicManager.trackIndex ? Color.blue.opacity(0.3).cornerRadius(8) : .none)
             .cornerRadius(8)
             .id(index)
           }
@@ -44,7 +52,7 @@ struct PlaylistView: View {
         }
       }
     }
-    
+
     func move(from source: IndexSet, to destination: Int) {
 //        playlist.move(fromOffsets: source, toOffset: destination)
 //        if let first = source.first {
