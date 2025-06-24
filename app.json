@@ -64,6 +64,7 @@
     ],
     "name": "reacttube",
     "slug": "reacttube",
+    "version": "0.2.0",
     "userInterfaceStyle": "dark",
     "primaryColor": "#556BFD",
     "backgroundColor": "#000000",
