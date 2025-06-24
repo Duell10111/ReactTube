@@ -71,6 +71,7 @@
     "androidStatusBar": {
       "barStyle": "light-content",
       "backgroundColor": "#000000"
-    }
+    },
+    "version": "0.3.0"
   }
 }
