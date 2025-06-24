@@ -227,9 +227,25 @@ export default function VideoScreen({route, navigation}: Props) {
           url={videoUrl}
           hlsUrl={YTVideoInfo.hls_manifest_url}
           videoInfo={YTVideoInfo}
+          onProgress={data => {
+            if (appSettings.trackingEnabled &&
+              (!currentTimeRef.current ||
+                Math.abs(currentTimeRef.current - data.currentTime) > 30)
+            ) {
+              addToWatchHistory(
+                !currentTimeRef.current
+                  ? undefined
+                  : Math.floor(data.currentTime),
+              ).catch(LOGGER.warn);
+              currentTimeRef.current = data.currentTime;
+            }
+          }}
           onEndReached={() => {
             setEnded(true);
             setShowEndCard(true);
+            if (appSettings.trackingEnabled && YTVideoInfo?.durationSeconds) {
+              addToWatchHistory(YTVideoInfo?.durationSeconds).catch(LOGGER.warn);
+            }
           }}
           onPlaybackInfoUpdate={infos => {
             setPlaybackInfos({resolution: infos.height.toString() + "p"});
