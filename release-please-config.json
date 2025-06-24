@@ -2,11 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "include-component-in-tag": false,
   "separate-pull-requests": false,
-  "packages": {
-    ".": {
-      "release-type": "expo"
-    }
-  },
+  "release-type": "expo",
   "changelog-sections": [
     {
       "type": "feat",
