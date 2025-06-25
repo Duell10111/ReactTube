@@ -17,6 +17,25 @@
 * create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
 * update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
 
+## [0.3.0](https://github.com/Duell10111/ReactTube/compare/v0.2.0...v0.3.0) (2025-06-25)
+
+
+### ✨ Features
+
+* add playlist sync functionality and artist metadata support with multiple minor functionality adaptions for apple watch app ([#46](https://github.com/Duell10111/ReactTube/issues/46)) ([3fff181](https://github.com/Duell10111/ReactTube/commit/3fff181081ee43cee72f817258d68546d0dd1f3f))
+
+
+### 🐛 Bugfixes
+
+* small ui adaptions and bug fixes ([#45](https://github.com/Duell10111/ReactTube/issues/45)) ([333cabf](https://github.com/Duell10111/ReactTube/commit/333cabf8c9a377f8f6be3ab3f0e6806d0d53c5cc))
+* upgrade youtubei.js to patched version to fix subscription issue ([#50](https://github.com/Duell10111/ReactTube/issues/50)) ([53ce183](https://github.com/Duell10111/ReactTube/commit/53ce183221b39de088361b17857ee3a33192915c))
+
+
+### 🔧 Chore
+
+* delete semantic release file ([728f3e6](https://github.com/Duell10111/ReactTube/commit/728f3e60dd63df5d7a18e65e085b60836861cc41))
+* migrate to release-please for a better experience ([#54](https://github.com/Duell10111/ReactTube/issues/54)) ([ed249d0](https://github.com/Duell10111/ReactTube/commit/ed249d03bcfda79d2073ec1681c5fa75f800c5eb))
+
 ## [0.1.3](https://github.com/Duell10111/ReactTube/compare/v0.1.2...v0.1.3) (2025-01-25)
 
 ### :repeat: CI
