@@ -64,14 +64,13 @@
     ],
     "name": "reacttube",
     "slug": "reacttube",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "userInterfaceStyle": "dark",
     "primaryColor": "#556BFD",
     "backgroundColor": "#000000",
     "androidStatusBar": {
       "barStyle": "light-content",
       "backgroundColor": "#000000"
-    },
-    "version": "0.3.0"
+    }
   }
 }
