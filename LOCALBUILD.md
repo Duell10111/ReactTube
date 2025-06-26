@@ -6,7 +6,7 @@ This guide explains how to build "ReactTube" for your Apple TV.
 ## Prerequisites
 
 - Node.js (Recommended Version: LTS)
-- Yarn or npm
+- ~~Yarn or~~ npm
 - Expo CLI
 - Xcode (for tvOS simulation and building on a real device)
 - An Apple Developer Account
@@ -15,17 +15,14 @@ This guide explains how to build "ReactTube" for your Apple TV.
 
 ### 1. Install Dependencies
 
-Ensure you have Node.js and Yarn installed.
+Ensure you have Node.js ~~and Yarn installed~~.
 
 #### Node.js
 Download and install the latest LTS version of [Node.js](https://nodejs.org/).
 
-#### Yarn (recommended)
-```bash
-npm install -g yarn
-```
+⚠️ Yarn v1 causes issues therefore I would recommend using npm instead.
 
-Alternatively, use npm:
+Use npm:
 ```bash
 npm install -g npm
 ```
@@ -42,11 +39,7 @@ cd ReactTube
 
 Navigate to the project directory and install dependencies:
 ```bash
-yarn install
-```
-or
-```bash
-npm install
+npm install --legacy-peer-deps
 ```
 
 ### 4. Adjust `app.json` for tvOS
@@ -75,7 +68,16 @@ Open the `app.json` file in your project and set the isTV settings for tvOS depl
             "topShelfWide2x": "./assets/images/tv/app_store_icon_topshelf.png"
           }
         }
-      ]
+      ],
+      ...
+      [
+        "@duell10111/apple-targets",
+        {
+          "appleTeamId": "XXXXXXXXXX",
+          "isTV": true  // <- change this to true to build for TV
+        }
+      ],
+      ...
     ]
   }
 }
