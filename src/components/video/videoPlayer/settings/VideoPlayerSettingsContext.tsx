@@ -1,39 +1,21 @@
-import {usePreventRemove} from "@react-navigation/native";
-import React, {createContext, useContext} from "react";
-import {Modal} from "react-native";
-
-import {VideoPlayerSettingsNavigator} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsNavigator";
+import React, {createContext, useContext, useState} from "react";
 
 interface VideoPlayerSettings {
   speed?: number;
-  showSettings: () => void;
+  setSpeed?: (speed: number) => void;
 }
 
-const VideoPlayerSettingsCtx = createContext<VideoPlayerSettings>({
-  showSettings: () => {},
-});
+const VideoPlayerSettingsCtx = createContext<VideoPlayerSettings>({});
 
 export function VideoPlayerSettingsContext({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [showSettings, setShowSettings] = React.useState(false);
-
-  // Disable screen removal on main navigator
-  usePreventRemove(showSettings, () => {
-    setShowSettings(false);
-  });
+  const [speed, setSpeed] = useState(1);
 
   return (
-    <VideoPlayerSettingsCtx.Provider
-      value={{speed: 1, showSettings: () => setShowSettings(true)}}>
-      <Modal
-        visible={showSettings}
-        onRequestClose={() => setShowSettings(false)}
-        transparent>
-        <VideoPlayerSettingsNavigator />
-      </Modal>
+    <VideoPlayerSettingsCtx.Provider value={{speed, setSpeed}}>
       {children}
     </VideoPlayerSettingsCtx.Provider>
   );

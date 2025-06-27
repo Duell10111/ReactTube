@@ -21,7 +21,7 @@ import {useControlTimeout} from "./hooks/useControlTimeout";
 import useTVSeekControl from "./hooks/useTVSeekControl";
 import {usePanResponders} from "./usePanResponders";
 
-import {VideoPlayerSettingsContext} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
+import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
 import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
 
 export const PausePlayerEvent = "PlayerPauseVideo";
@@ -46,6 +46,7 @@ export interface VideoMetadata {
 // TODO: Use own types
 export interface VideoComponentType<T> {
   paused: boolean;
+  rate?: number;
   // Events
   onLoad: (loadData: OnLoadData) => void;
   onSeek: (seekData: OnSeekData) => void;
@@ -412,51 +413,52 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       _videoRef.current?.seek ?? sponsorSeekReplacement,
     );
 
+    const {speed} = useVideoPlayerSettings();
+
     return (
-      <VideoPlayerSettingsContext>
-        <View style={{flex: 1}}>
-          <VideoComponent
-            onLoad={_onLoad}
-            onProgress={_onProgress}
-            paused={seeking || _paused}
-            onEnd={_onEnd}
-            onSeek={_onSeek}
-            onError={() => {}}
-            props={props.VideoComponentProps}
-            // @ts-ignore
-            ref={_videoRef}
+      <View style={{flex: 1}}>
+        <VideoComponent
+          onLoad={_onLoad}
+          onProgress={_onProgress}
+          paused={seeking || _paused}
+          rate={speed}
+          onEnd={_onEnd}
+          onSeek={_onSeek}
+          onError={() => {}}
+          props={props.VideoComponentProps}
+          // @ts-ignore
+          ref={_videoRef}
+        />
+        {endCardContainer ? (
+          <EndCardContainer
+            showEndCard={animations.showEndCard}
+            onCloseEndCard={() => setShowEndcard(false)}>
+            {endCardContainer}
+          </EndCardContainer>
+        ) : null}
+        <>
+          {/* @ts-ignore Ignore missing props for the moment */}
+          <BottomControls
+            animations={animations}
+            resetControlTimeout={resetControlTimeout}
+            seekerFillWidth={seekerFillWidth}
+            setSeekerWidth={setSeekerWidth}
+            setSeekerFocus={setSeekerFocus}
+            seekerPosition={seekerPosition}
+            panHandlers={seekPanResponder}
+            showTimeRemaining={false}
+            duration={duration}
+            currentTime={currentTime}
+            showDuration
+            bottomContainer={bottomContainer}
+            metadata={props.metadata}
+            resolution={resolution}
+            showControls={showControls}
+            setPaused={setPaused}
+            onJumpToStart={() => _videoRef.current?.seek(0)}
           />
-          {endCardContainer ? (
-            <EndCardContainer
-              showEndCard={animations.showEndCard}
-              onCloseEndCard={() => setShowEndcard(false)}>
-              {endCardContainer}
-            </EndCardContainer>
-          ) : null}
-          <>
-            {/* @ts-ignore Ignore missing props for the moment */}
-            <BottomControls
-              animations={animations}
-              resetControlTimeout={resetControlTimeout}
-              seekerFillWidth={seekerFillWidth}
-              setSeekerWidth={setSeekerWidth}
-              setSeekerFocus={setSeekerFocus}
-              seekerPosition={seekerPosition}
-              panHandlers={seekPanResponder}
-              showTimeRemaining={false}
-              duration={duration}
-              currentTime={currentTime}
-              showDuration
-              bottomContainer={bottomContainer}
-              metadata={props.metadata}
-              resolution={resolution}
-              showControls={showControls}
-              setPaused={setPaused}
-              onJumpToStart={() => _videoRef.current?.seek(0)}
-            />
-          </>
-        </View>
-      </VideoPlayerSettingsContext>
+        </>
+      </View>
     );
   },
 );

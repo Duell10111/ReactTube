@@ -42,6 +42,7 @@ const VideoPlayerNative = forwardRef<
         startPosition: props.props.startPosition,
       }}
       paused={props.paused}
+      rate={props.rate}
       onLoad={props.onLoad}
       onSeek={props.onSeek}
       onError={props.onError}
@@ -49,8 +50,6 @@ const VideoPlayerNative = forwardRef<
       onEnd={props.onEnd}
       controls={false}
       resizeMode={ResizeMode.CONTAIN}
-      // muted
-      // repeat
     />
   );
 });
