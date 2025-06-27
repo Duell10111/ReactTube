@@ -3,22 +3,15 @@
 import FileSystem from "expo-file-system";
 import crypto from "react-native-quick-crypto";
 import {ReadableStream} from "web-streams-polyfill";
+import {Platform} from "youtubei.js";
+// @ts-ignore Ignore no type definitions found
 import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
+// @ts-ignore Ignore no type definitions found
 import {ICache} from "youtubei.js/dist/src/types/Cache.js";
+// @ts-ignore Ignore no type definitions found
 import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
-import {Platform} from "youtubei.js/dist/src/utils/Utils.js";
 
 import evaluate from "./jinterMetro";
-
-// eslint-disable-next-line import/order
-import Innertube from "youtubei.js/dist/src/platform/lib";
-
-// const meta_url = import.meta.url;
-// const is_cjs = !meta_url;
-// const __dirname__ = is_cjs ? __dirname : path.dirname(fileURLToPath(meta_url));
-//
-// const package_json = JSON.parse(readFileSync(path.resolve(__dirname__, is_cjs ? '../package.json' : '../../package.json'), 'utf-8'));
-// const repo_url = package_json.homepage?.split('#')[0];
 
 class Cache implements ICache {
   #persistent_directory: string;
@@ -110,6 +103,7 @@ Platform.load({
     repo_url: "",
   },
   server: false,
+  // @ts-ignore Ignore no type definitions found
   Cache: Cache,
   sha1Hash: async (data: string) => {
     return crypto.createHash("sha1").update(data).digest("hex");
@@ -129,5 +123,4 @@ Platform.load({
   CustomEvent: CustomEvent,
 });
 
-export * from "youtubei.js/dist/src/platform/lib";
-export default Innertube;
+export * from "youtubei.js";

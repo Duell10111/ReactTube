@@ -23,7 +23,6 @@ import {VideoMetadataContainer} from "@/components/video/phone/VideoMetadataCont
 import {VideoPlayerPhone} from "@/components/video/phone/VideoPlayerPhone";
 import PlaylistBottomSheet from "@/components/video/playlistBottomSheet/PlaylistBottomSheet";
 import PlaylistBottomSheetContainer from "@/components/video/playlistBottomSheet/PlaylistBottomSheetContainer";
-import {useAppStyle} from "@/context/AppStyleContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import useOrientationChange from "@/hooks/ui/useOrientationChange";
@@ -56,9 +55,8 @@ export default function VideoScreenTablet({route, navigation}: Props) {
     }
   }, []);
 
-  const {style} = useAppStyle();
   const {bottom} = useSafeAreaInsets();
-  const videoRef = useRef<VideoRef>();
+  const videoRef = useRef<VideoRef>(undefined);
 
   const videoUrl = useMemo(
     () => hlsManifestUrl ?? httpVideoURL,

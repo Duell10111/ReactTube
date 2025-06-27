@@ -10,7 +10,7 @@ const LOGGER = Logger.extend("SUBS");
 
 export default function useSubscriptions() {
   const youtube = useYoutubeTVContext();
-  const subFeed = useRef<YTTV.SubscriptionsFeed>();
+  const subFeed = useRef<YTTV.SubscriptionsFeed>(undefined);
   const [data, setData] = useState<ElementData[]>([]);
 
   useEffect(() => {

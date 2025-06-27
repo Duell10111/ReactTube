@@ -5,7 +5,7 @@ import {YT} from "@/utils/Youtube";
 
 export default function useComments(videoId: string, comment_id?: string) {
   const youtube = useYoutubeContext();
-  const comments = useRef<YT.Comments>();
+  const comments = useRef<YT.Comments>(undefined);
 
   // TODO: Complete this for comments feature in the future
   useEffect(() => {
