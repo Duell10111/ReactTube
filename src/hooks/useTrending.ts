@@ -11,8 +11,8 @@ const LOGGER = Logger.extend("TRENDING");
 
 export default function useTrending() {
   const youtube = useYoutube();
-  const trending = useRef<Mixins.TabbedFeed<IBrowseResponse>>();
-  const continuation = useRef<Mixins.Feed<IBrowseResponse>>();
+  const trending = useRef<Mixins.TabbedFeed<IBrowseResponse>>(undefined);
+  const continuation = useRef<Mixins.Feed<IBrowseResponse>>(undefined);
   const [data, setData] = useState<HorizontalData[]>();
   const [tabs, setTabs] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);

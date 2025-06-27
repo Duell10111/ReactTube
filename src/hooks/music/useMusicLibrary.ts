@@ -11,8 +11,8 @@ import {YTMusic} from "@/utils/Youtube";
 
 export default function useMusicLibrary() {
   const youtube = useYoutubeContext();
-  const library = useRef<YTMusic.Library>();
-  const continuation = useRef<YTMusic.LibraryContinuation>();
+  const library = useRef<YTMusic.Library>(undefined);
+  const continuation = useRef<YTMusic.LibraryContinuation>(undefined);
   const [data, setData] = useState<ElementData[]>();
   const {loginData} = useAccountContext();
   const {playlists, fetchPlaylists} = usePlaylistManager();
