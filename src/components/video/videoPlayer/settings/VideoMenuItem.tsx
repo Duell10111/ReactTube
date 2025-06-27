@@ -28,17 +28,11 @@ export function VideoMenuItem({
         },
       ]}>
       <Pressable
+        style={{flex: 1}}
         onFocus={() => setFocus?.(true)}
         onBlur={() => setFocus?.(false)}
         onPress={() => onPress?.()}>
-        <View
-          style={{
-            flexDirection: "row",
-            marginStart: 5,
-            alignItems: "center",
-          }}>
-          {children}
-        </View>
+        {children}
       </Pressable>
     </View>
   );
@@ -50,11 +44,5 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginVertical: 5,
     minHeight: 50,
-  },
-  imageStyle: {
-    height: 50,
-    aspectRatio: 1,
-    borderRadius: 15,
-    backgroundColor: "#555",
   },
 });

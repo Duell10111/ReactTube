@@ -17,6 +17,7 @@ import Navigation from "./src/navigation/Navigation";
 import BackgroundWrapper from "./src/utils/BackgroundWrapper";
 
 import {VideoProvider} from "@/components/corner-video/VideoProvider";
+import {VideoPlayerSettingsContext} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
 import {DownloaderContext} from "@/context/DownloaderContext";
 import {MusicPlayerContext} from "@/context/MusicPlayerContext";
 import {PlaylistManagerContext} from "@/context/PlaylistManagerContext";
@@ -52,9 +53,11 @@ const App = () => {
                             isDarkMode ? "light-content" : "light-content"
                           }
                         />
-                        <VideoProvider>
-                          <Navigation />
-                        </VideoProvider>
+                        <VideoPlayerSettingsContext>
+                          <VideoProvider>
+                            <Navigation />
+                          </VideoProvider>
+                        </VideoPlayerSettingsContext>
                         <FlashMessage position={"top"} />
                       </PlaylistManagerContext>
                     </DownloaderContext>
