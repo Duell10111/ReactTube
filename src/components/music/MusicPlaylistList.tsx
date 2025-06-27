@@ -19,7 +19,7 @@ export function MusicPlaylistList({
   ListHeaderComponent,
   editable,
   onDeleteItem,
-}: MusicPlaylistListProps): JSX.Element {
+}: MusicPlaylistListProps) {
   const renderItem = useCallback<ListRenderItem<ElementData>>(
     ({item, index}) => {
       if (item.type === "video") {

@@ -10,7 +10,7 @@ export function LibraryHeaderTVItem({
   title,
   color,
   onPress,
-}: LibraryHeaderTVItemProps): JSX.Element {
+}: LibraryHeaderTVItemProps) {
   return (
     <TouchableOpacity
       onPress={onPress}

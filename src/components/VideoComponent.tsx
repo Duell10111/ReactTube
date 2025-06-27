@@ -52,7 +52,7 @@ export default function VideoComponent({
   resizeMode,
   ...callbacks
 }: Props) {
-  const playerRef = useRef<VideoRef>();
+  const playerRef = useRef<VideoRef>(undefined);
   const isFocused = useIsFocused();
   const [failbackURL, setFailbackUrl] = useState(false);
 

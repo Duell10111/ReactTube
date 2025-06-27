@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+// @ts-ignore
 import {InnerTubeClient} from "youtubei.js/dist/src/types";
 
 import {useAppData} from "@/context/AppDataContext";
@@ -25,8 +26,8 @@ export default function useVideoDetails(
 
   const youtube = useYoutubeContext();
   const tvYoutube = useYoutubeTVContext();
-  const videoRef = useRef<YT.VideoInfo>();
-  const videoTVRef = useRef<YTTV.VideoInfo>();
+  const videoRef = useRef<YT.VideoInfo>(undefined);
+  const videoTVRef = useRef<YTTV.VideoInfo>(undefined);
   const [videoInfo, setVideoInfo] = useState<YTVideoInfo>();
   const [watchNextFeed, setWatchNextFeed] = useState<ElementData[]>();
   const [watchNextSections, setWatchNextSections] =

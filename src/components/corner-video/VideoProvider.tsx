@@ -14,7 +14,7 @@ interface VideoProviderProps {
 }
 
 export const VideoProvider = (props: VideoProviderProps) => {
-  const viewRef = useRef();
+  const viewRef = useRef(undefined);
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [positions, setPositions] = useState<Measure>({
     w: 0,

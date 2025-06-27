@@ -12,7 +12,7 @@ const LOGGER = Logger.extend("LIBRARY");
 
 export default function useLibrary() {
   const youtube = useYoutubeContext();
-  const library = useRef<YT.Library>();
+  const library = useRef<YT.Library>(undefined);
   const [data, setData] = useState<YTLibrary>();
 
   console.log("DATA: ", data);
