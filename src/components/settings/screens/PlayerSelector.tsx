@@ -1,8 +1,9 @@
 import {StyleSheet} from "react-native";
 
-import {AppSettings, useAppData} from "../../../context/AppDataContext";
 import {SettingsSelectorItem} from "../SettingsItem";
 import SettingsSection from "../SettingsSection";
+
+import {AppSettings, useAppData} from "@/context/AppDataContext";
 
 interface PlayerType {
   key: string;
@@ -16,11 +17,11 @@ const playerTypes: {[key: string]: PlayerType} = {
   },
   nativeOverlay: {
     key: "nativeOverlay",
-    label: "Native Overlay (Alpha)",
+    label: "Native Overlay",
   },
   vlc: {
     key: "vlc",
-    label: "VLC",
+    label: "VLC Overlay",
   },
 };
 

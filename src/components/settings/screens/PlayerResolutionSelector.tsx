@@ -1,8 +1,9 @@
 import {StyleSheet} from "react-native";
 
-import {AppSettings, useAppData} from "../../../context/AppDataContext";
 import {SettingsSelectorItem} from "../SettingsItem";
 import SettingsSection from "../SettingsSection";
+
+import {AppSettings, useAppData} from "@/context/AppDataContext";
 
 interface PlayerResolution {
   key: string;
@@ -17,10 +18,6 @@ const playerResolutions: {[key: string]: PlayerResolution} = {
   hls: {
     key: "hls",
     label: "HLS",
-  },
-  hlsLocal: {
-    key: "hlsLocal",
-    label: "HLS Local",
   },
 };
 
@@ -38,11 +35,6 @@ export default function PlayerResolutionSelectorScreen() {
       updateSettings({
         hlsEnabled: true,
         localHlsEnabled: false,
-      });
-    } else if (type.key === "hlsLocal") {
-      updateSettings({
-        hlsEnabled: false,
-        localHlsEnabled: true,
       });
     }
   };
@@ -73,8 +65,6 @@ const styles = StyleSheet.create({
 export function parsePlayerResolution(appSettings: AppSettings) {
   if (appSettings.hlsEnabled) {
     return playerResolutions["hls"];
-  } else if (appSettings.localHlsEnabled) {
-    return playerResolutions["hlsLocal"];
   } else {
     return playerResolutions["http"];
   }
