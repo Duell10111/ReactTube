@@ -20,6 +20,7 @@ import VideoPlayer, {
 import useVideoDetails from "../hooks/useVideoDetails";
 import LOGGER from "../utils/Logger";
 
+import VideoPlayerVLC from "@/components/video/VideoPlayerVLC";
 import {BottomMetadata} from "@/components/video/tv/BottomMetadata";
 import {useAppData} from "@/context/AppDataContext";
 import useChannelDetails from "@/hooks/useChannelDetails";
@@ -137,7 +138,9 @@ export default function VideoScreen({route, navigation}: Props) {
           // @ts-ignore Ignore mutable ref issue
           ref={videoPlayerRef}
           // @ts-ignore
-          VideoComponent={VideoPlayerNative}
+          VideoComponent={
+            appSettings.vlcEnabled ? VideoPlayerVLC : VideoPlayerNative
+          }
           VideoComponentProps={{
             url: videoUrl,
             startPosition: startTime ? startTime * 1000 : undefined,
