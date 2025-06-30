@@ -84,6 +84,8 @@ class DownloadManager {
               Task {
                 await self.receiveFileUploadImage(id: video.id, coverURL: saveURL, duration: video.durationMillis)
                 print("Saved Image Download")
+                // Check for new downloads on end of another download
+                self.checkDownloads()
               }
             }
           }
@@ -98,13 +100,18 @@ class DownloadManager {
       print("Checking downloads...")
 
       for video in pendingDownloads {
-        while activeDownloads.count > 4 {
-          do {
-            print("More than 4 downloads active. Sleeping...")
-            try await Task.sleep(nanoseconds: 60_000_000_000)
-          } catch {
-            print("Download Task Sleep Error: \(error)")
-          }
+        // Do not create a while loop here as this probably causes battery issues. Instead trigger check method after finish of download.
+//        while activeDownloads.count > 4 {
+//          do {
+//            print("More than 4 downloads active. Sleeping...")
+//            try await Task.sleep(nanoseconds: 60_000_000_000)
+//          } catch {
+//            print("Download Task Sleep Error: \(error)")
+//          }
+//        }
+        if activeDownloads.count > 4 {
+          print("More than 4 downloads active. Exiting loop for now...")
+          break
         }
         downloadVideo(video: video)
       }
