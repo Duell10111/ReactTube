@@ -12,10 +12,10 @@ const LOGGER = Logger.extend("My_YouTube");
 
 export default function useMyYoutubeScreen() {
   const youtube = useYoutubeTVContext();
-  const myYoutubeFeed = useRef<YTTV.MyYoutubeFeed>();
+  const myYoutubeFeed = useRef<YTTV.MyYoutubeFeed>(undefined);
   const [data, setData] = useState<ElementData[]>([]);
   const [tabs, setTabs] = useState<YTMyYoutubeTab[]>([]);
-  const myYoutubeFeedSelection = useRef<YTTV.MyYoutubeFeed>();
+  const myYoutubeFeedSelection = useRef<YTTV.MyYoutubeFeed>(undefined);
   const [selectionData, setSelectionData] = useState<ElementData[]>();
 
   useEffect(() => {

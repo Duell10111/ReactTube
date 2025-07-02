@@ -1,5 +1,8 @@
+// @ts-ignore Ignore no type definitions found
 import {Jinter} from "jintr/dist/index";
+// @ts-ignore Ignore no type definitions found
 import {Log} from "youtubei.js/dist/src/platform/lib";
+// @ts-ignore Ignore no type definitions found
 import {VMPrimative} from "youtubei.js/dist/src/types/PlatformShim.js";
 
 const TAG = "JsRuntime";

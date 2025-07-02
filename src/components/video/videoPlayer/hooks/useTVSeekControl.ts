@@ -1,4 +1,4 @@
-import {Dispatch, SetStateAction, useEffect, useRef, useState} from "react";
+import {Dispatch, SetStateAction, useEffect, useRef} from "react";
 import {useTVEventHandler} from "react-native";
 
 interface TVSeekControlProps {
@@ -29,9 +29,9 @@ export default function useTVSeekControl({
   setPause,
   enabled,
 }: TVSeekControlProps) {
-  const longPressTimeout = useRef<NodeJS.Timer>();
-  const seekerPos = useRef<number>();
-  const pressStartTime = useRef<number>();
+  const longPressTimeout = useRef<NodeJS.Timer>(undefined);
+  const seekerPos = useRef<number>(undefined);
+  const pressStartTime = useRef<number>(undefined);
 
   useEffect(() => {
     return () => {

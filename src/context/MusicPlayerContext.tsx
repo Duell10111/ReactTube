@@ -113,17 +113,18 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const duration = useSharedValue(0);
   const currentTime = useSharedValue(0);
   const [playlist, setPlaylist] = useState<YTPlaylistPanel>();
-  const playlistContinuation = useRef<YTPlaylistPanelContinuation>();
+  const playlistContinuation = useRef<YTPlaylistPanelContinuation>(undefined);
   const [currentVideoData, setCurrentVideoData] = useState<YTTrackInfo>();
 
   // Automix data
   const [automix, setAutomix] = useState(false);
   const [automixPlaylist, setAutomixPlaylist] = useState<YTPlaylistPanel>();
-  const automixPlaylistContinuation = useRef<YTPlaylistPanelContinuation>();
+  const automixPlaylistContinuation =
+    useRef<YTPlaylistPanelContinuation>(undefined);
   // Player options
   // TODO: Replace with reducer fkt?
   const [shuffle, setShuffle] = useState(false);
-  const shuffleBackup = useRef<YTPlaylistPanelItem[]>();
+  const shuffleBackup = useRef<YTPlaylistPanelItem[]>(undefined);
   const [repeat, setRepeat] = useState<RepeatOption>();
   // TODO: Add repeat all, one in the future here
 

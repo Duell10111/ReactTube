@@ -24,7 +24,9 @@ export default function ChannelScreen({route}: Props) {
   // Workaround return issue
   useFocusEffect(() => {
     // Enable TV Menu Key to fix issue if video not loading
-    TVEventControl.enableTVMenuKey();
+    if (Platform.isTV) {
+      TVEventControl.enableTVMenuKey();
+    }
   });
 
   if (!channel || !parsedChannel) {

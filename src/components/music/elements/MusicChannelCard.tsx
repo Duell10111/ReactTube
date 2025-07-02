@@ -17,10 +17,7 @@ interface MusicChannelCardProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export function MusicChannelCard({
-  data,
-  style,
-}: MusicChannelCardProps): JSX.Element {
+export function MusicChannelCard({data, style}: MusicChannelCardProps) {
   const navigation = useNavigation<NativeStackProp>();
 
   const onPress = () => {
