@@ -47,7 +47,7 @@ const VideoPlayerNative = forwardRef<
         props.audioTrackIndex !== undefined
           ? {
               type: "index",
-              value: 0,
+              value: props.audioTrackIndex,
             }
           : undefined
       }
