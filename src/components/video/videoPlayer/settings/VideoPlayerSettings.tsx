@@ -20,6 +20,12 @@ const options: [
     iconType: "MaterialIcons",
     iconName: "speed",
   },
+  {
+    title: "Video Language",
+    screen: "VideoPlayerLanguage",
+    iconType: "MaterialIcons",
+    iconName: "audiotrack",
+  },
 ];
 
 export function VideoPlayerSettings() {
@@ -50,7 +56,7 @@ export function VideoPlayerSettings() {
               fontWeight: "bold",
               marginBottom: 10,
             }}>
-            {"Player Speeds"}
+            {"Player Settings"}
           </Text>
         }
       />

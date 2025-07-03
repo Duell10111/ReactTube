@@ -43,11 +43,20 @@ const VideoPlayerNative = forwardRef<
       }}
       paused={props.paused}
       rate={props.rate}
+      selectedAudioTrack={
+        props.audioTrackIndex !== undefined
+          ? {
+              type: "index",
+              value: 0,
+            }
+          : undefined
+      }
       onLoad={props.onLoad}
       onSeek={props.onSeek}
       onError={props.onError}
       onProgress={props.onProgress}
       onEnd={props.onEnd}
+      onAudioTracks={props.onAudioTracks}
       controls={false}
       resizeMode={ResizeMode.CONTAIN}
     />
