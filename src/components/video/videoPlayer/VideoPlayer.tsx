@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import {DeviceEventEmitter, useTVEventHandler, View} from "react-native";
 import {
+  OnAudioTracksData,
   OnLoadData,
   OnProgressData,
   OnSeekData,
@@ -47,12 +48,14 @@ export interface VideoMetadata {
 export interface VideoComponentType<T> {
   paused: boolean;
   rate?: number;
+  audioTrackIndex?: number;
   // Events
   onLoad: (loadData: OnLoadData) => void;
   onSeek: (seekData: OnSeekData) => void;
   onProgress: (progressData: OnProgressData) => void;
   onError: (errorData: OnVideoErrorData) => void;
   onEnd: () => void;
+  onAudioTracks: (audioTracks: OnAudioTracksData) => void;
   // Additional props
   props: T;
 }
@@ -413,11 +416,12 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       _videoRef.current?.seek ?? sponsorSeekReplacement,
     );
 
-    const {speed} = useVideoPlayerSettings();
+    const {speed, selectedLanguage, setLanguages} = useVideoPlayerSettings();
 
     return (
       <View style={{flex: 1}}>
         <VideoComponent
+          audioTrackIndex={selectedLanguage?.index}
           onLoad={_onLoad}
           onProgress={_onProgress}
           paused={seeking || _paused}
@@ -425,6 +429,9 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           onEnd={_onEnd}
           onSeek={_onSeek}
           onError={() => {}}
+          onAudioTracks={tracks => {
+            setLanguages(tracks.audioTracks);
+          }}
           props={props.VideoComponentProps}
           // @ts-ignore
           ref={_videoRef}
