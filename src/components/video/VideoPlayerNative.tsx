@@ -43,6 +43,7 @@ const VideoPlayerNative = forwardRef<
       }}
       paused={props.paused}
       rate={props.rate}
+      // @ts-expect-error Index selections causes some type error here somehow
       selectedAudioTrack={
         props.audioTrackIndex !== undefined
           ? {
