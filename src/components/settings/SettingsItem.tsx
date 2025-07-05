@@ -1,6 +1,7 @@
 import {Feather} from "@expo/vector-icons";
 import {StyleSheet, TouchableOpacity, View, Text} from "react-native";
 import {useAppData} from "@/context/AppDataContext";
+import {useAppStyle} from "@/context/AppStyleContext";
 
 interface Props {
   onPress?: () => void;
@@ -18,9 +19,15 @@ export default function SettingsSelectorOverview({
   value,
 }: Props) {
   const {appSettings} = useAppData();
+  const {style: appStyle} = useAppStyle();
   const scale = appSettings.uiScale ?? 1;
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
+    <View
+      style={[
+        styles.rowWrapper,
+        styles.rowFirst,
+        {borderColor: appStyle.backgroundColorAlpha},
+      ]}>
       <TouchableOpacity onPress={onPress} style={styles.row}>
         <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
           <Feather
@@ -31,11 +38,23 @@ export default function SettingsSelectorOverview({
           />
         </View>
 
-        <Text style={[styles.rowLabel, {fontSize: 17 * scale}]}>{label}</Text>
+        <Text
+          style={[
+            styles.rowLabel,
+            {fontSize: 17 * scale, color: appStyle.textColor},
+          ]}>
+          {label}
+        </Text>
 
         <View style={styles.rowSpacer} />
 
-        <Text style={[styles.rowValue, {fontSize: 17 * scale}]}>{value}</Text>
+        <Text
+          style={[
+            styles.rowValue,
+            {fontSize: 17 * scale, color: appStyle.textColor},
+          ]}>
+          {value}
+        </Text>
 
         <Feather color={"#C6C6C6"} name={"chevron-right"} size={20} />
       </TouchableOpacity>
@@ -55,11 +74,23 @@ export function SettingsSelectorItem({
   selected,
 }: PropsSelectorItem) {
   const {appSettings} = useAppData();
+  const {style: appStyle} = useAppStyle();
   const scale = appSettings.uiScale ?? 1;
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
+    <View
+      style={[
+        styles.rowWrapper,
+        styles.rowFirst,
+        {borderColor: appStyle.backgroundColorAlpha},
+      ]}>
       <TouchableOpacity onPress={onPress} style={styles.row}>
-        <Text style={[styles.rowLabel, {fontSize: 17 * scale}]}>{label}</Text>
+        <Text
+          style={[
+            styles.rowLabel,
+            {fontSize: 17 * scale, color: appStyle.textColor},
+          ]}>
+          {label}
+        </Text>
 
         <View style={styles.rowSpacer} />
 
@@ -87,9 +118,15 @@ export function SettingsStandaloneSelector({
   selected,
 }: PropsStandaloneSelectorItem) {
   const {appSettings} = useAppData();
+  const {style: appStyle} = useAppStyle();
   const scale = appSettings.uiScale ?? 1;
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
+    <View
+      style={[
+        styles.rowWrapper,
+        styles.rowFirst,
+        {borderColor: appStyle.backgroundColorAlpha},
+      ]}>
       <TouchableOpacity onPress={onPress} style={styles.row}>
         <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
           <Feather
@@ -99,7 +136,13 @@ export function SettingsStandaloneSelector({
             size={20}
           />
         </View>
-        <Text style={[styles.rowLabel, {fontSize: 17 * scale}]}>{label}</Text>
+        <Text
+          style={[
+            styles.rowLabel,
+            {fontSize: 17 * scale, color: appStyle.textColor},
+          ]}>
+          {label}
+        </Text>
 
         <View style={styles.rowSpacer} />
 
@@ -125,9 +168,15 @@ export function SettingsButton({
   label,
 }: PropsSettingsButton) {
   const {appSettings} = useAppData();
+  const {style: appStyle} = useAppStyle();
   const scale = appSettings.uiScale ?? 1;
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
+    <View
+      style={[
+        styles.rowWrapper,
+        styles.rowFirst,
+        {borderColor: appStyle.backgroundColorAlpha},
+      ]}>
       <TouchableOpacity onPress={onPress} style={styles.row}>
         {icon && iconBackground ? (
           <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
@@ -140,7 +189,13 @@ export function SettingsButton({
           </View>
         ) : null}
 
-        <Text style={[styles.rowLabel, {fontSize: 17 * scale}]}>{label}</Text>
+        <Text
+          style={[
+            styles.rowLabel,
+            {fontSize: 17 * scale, color: appStyle.textColor},
+          ]}>
+          {label}
+        </Text>
 
         <View style={styles.rowSpacer} />
       </TouchableOpacity>
@@ -180,7 +235,6 @@ const styles = StyleSheet.create({
   },
   rowWrapper: {
     borderTopWidth: 1,
-    borderColor: "#e3e3e3",
   },
   rowFirst: {
     borderTopWidth: 0,
@@ -196,7 +250,6 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 17,
     fontWeight: "500",
-    color: "#000",
   },
   rowSpacer: {
     flexGrow: 1,
@@ -206,7 +259,6 @@ const styles = StyleSheet.create({
   rowValue: {
     fontSize: 17,
     fontWeight: "500",
-    color: "#8B8B8B",
     marginRight: 4,
   },
 });
