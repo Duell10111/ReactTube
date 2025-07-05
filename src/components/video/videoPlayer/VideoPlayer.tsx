@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import {DeviceEventEmitter, useTVEventHandler, View} from "react-native";
 import {
+  OnAudioTracksData,
   OnLoadData,
   OnProgressData,
   OnSeekData,
@@ -21,6 +22,7 @@ import {useControlTimeout} from "./hooks/useControlTimeout";
 import useTVSeekControl from "./hooks/useTVSeekControl";
 import {usePanResponders} from "./usePanResponders";
 
+import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
 import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
 
 export const PausePlayerEvent = "PlayerPauseVideo";
@@ -45,12 +47,15 @@ export interface VideoMetadata {
 // TODO: Use own types
 export interface VideoComponentType<T> {
   paused: boolean;
+  rate?: number;
+  audioTrackIndex?: number;
   // Events
   onLoad: (loadData: OnLoadData) => void;
   onSeek: (seekData: OnSeekData) => void;
   onProgress: (progressData: OnProgressData) => void;
   onError: (errorData: OnVideoErrorData) => void;
   onEnd: () => void;
+  onAudioTracks: (audioTracks: OnAudioTracksData) => void;
   // Additional props
   props: T;
 }
@@ -411,16 +416,22 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       _videoRef.current?.seek ?? sponsorSeekReplacement,
     );
 
+    const {speed, selectedLanguage, setLanguages} = useVideoPlayerSettings();
+
     return (
-      // TODO: Adapt style?
       <View style={{flex: 1}}>
         <VideoComponent
+          audioTrackIndex={selectedLanguage?.index}
           onLoad={_onLoad}
           onProgress={_onProgress}
           paused={seeking || _paused}
+          rate={speed}
           onEnd={_onEnd}
           onSeek={_onSeek}
           onError={() => {}}
+          onAudioTracks={tracks => {
+            setLanguages(tracks.audioTracks);
+          }}
           props={props.VideoComponentProps}
           // @ts-ignore
           ref={_videoRef}

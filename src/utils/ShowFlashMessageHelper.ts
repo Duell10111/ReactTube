@@ -10,7 +10,19 @@ export function showMessage(options: MessageOptions) {
     floating: true,
     animated: true,
     duration: 1000,
-    style: Platform.isTV ? {width: "50%", alignSelf: "center"} : undefined,
+    style: Platform.isTV
+      ? {
+          width: "50%",
+          alignSelf: "center",
+          justifyContent: "center",
+        }
+      : undefined,
+    titleStyle: Platform.isTV
+      ? {
+          fontSize: 30,
+          lineHeight: 30,
+        }
+      : undefined,
     ...options,
   });
 }

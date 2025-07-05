@@ -10,6 +10,9 @@ import SettingsNavigator from "./SettingsNavigator";
 import {VideoMenuScreen} from "@/components/general/VideoMenu";
 import {PlaylistManagerContextMenu} from "@/components/playlists/tv/PlaylistManagerContextMenu";
 import {HistoryScreen} from "@/components/screens/phone/HistoryScreen";
+import {VideoPlayerLanguage} from "@/components/video/videoPlayer/settings/VideoPlayerLanguage";
+import {VideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettings";
+import {VideoPlayerSpeed} from "@/components/video/videoPlayer/settings/VideoPlayerSpeed";
 import {ElementData} from "@/extraction/Types";
 import useAppInit from "@/hooks/general/useAppInit";
 import ChannelScreen from "@/screens/ChannelScreen";
@@ -51,6 +54,9 @@ export type RootStackParamList = {
   // TV
   VideoMenuContext: {element: ElementData};
   PlaylistManagerContextMenu: {videoId: string};
+  VideoPlayerSettings: undefined;
+  VideoPlayerPlaySpeed: undefined;
+  VideoPlayerLanguage: undefined;
   // Downloads
   ActiveDownloadScreen: undefined;
   ActiveUploadScreen: undefined;
@@ -119,6 +125,21 @@ export default function RootStackNavigator() {
                 component={PlaylistManagerContextMenu}
                 options={{presentation: "transparentModal"}}
               />
+              <Stack.Screen
+                name={"VideoPlayerSettings"}
+                component={VideoPlayerSettings}
+                options={{presentation: "transparentModal"}}
+              />
+              <Stack.Screen
+                name={"VideoPlayerPlaySpeed"}
+                component={VideoPlayerSpeed}
+                options={{presentation: "transparentModal"}}
+              />
+              <Stack.Screen
+                name={"VideoPlayerLanguage"}
+                component={VideoPlayerLanguage}
+                options={{presentation: "transparentModal"}}
+              />
             </>
           ) : null}
           <Stack.Screen name={"History"} component={HistoryScreen} />
@@ -174,7 +195,6 @@ export default function RootStackNavigator() {
               // Use #222222dd for transparent in the future
               contentStyle: {backgroundColor: "#222222"},
               headerStyle: {backgroundColor: "#222222"},
-              // presentation: "formSheet",
             }}
           />
         </>
