@@ -6,6 +6,7 @@ import {VideoMenuContainer} from "@/components/general/VideoMenuContainer";
 import {VideoMenuTextItem} from "@/components/video/videoPlayer/settings/VideoMenuTextItem";
 import {RootNavProp, RootStackParamList} from "@/navigation/RootStackNavigator";
 
+//@ts-expect-error Ignore option error as screen option not recognized correctly
 const options: [
   {
     title: string;
