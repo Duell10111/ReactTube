@@ -1,5 +1,6 @@
 import {Feather} from "@expo/vector-icons";
 import {StyleSheet, TouchableOpacity, View, Text} from "react-native";
+import {useAppData} from "@/context/AppDataContext";
 
 interface Props {
   onPress?: () => void;
@@ -16,6 +17,8 @@ export default function SettingsSelectorOverview({
   label,
   value,
 }: Props) {
+  const {appSettings} = useAppData();
+  const scale = appSettings.uiScale ?? 1;
   return (
     <View style={[styles.rowWrapper, styles.rowFirst]}>
       <TouchableOpacity onPress={onPress} style={styles.row}>
@@ -28,11 +31,11 @@ export default function SettingsSelectorOverview({
           />
         </View>
 
-        <Text style={styles.rowLabel}>{label}</Text>
+        <Text style={[styles.rowLabel, {fontSize: 17 * scale}]}>{label}</Text>
 
         <View style={styles.rowSpacer} />
 
-        <Text style={styles.rowValue}>{value}</Text>
+        <Text style={[styles.rowValue, {fontSize: 17 * scale}]}>{value}</Text>
 
         <Feather color={"#C6C6C6"} name={"chevron-right"} size={20} />
       </TouchableOpacity>
@@ -51,10 +54,12 @@ export function SettingsSelectorItem({
   label,
   selected,
 }: PropsSelectorItem) {
+  const {appSettings} = useAppData();
+  const scale = appSettings.uiScale ?? 1;
   return (
     <View style={[styles.rowWrapper, styles.rowFirst]}>
       <TouchableOpacity onPress={onPress} style={styles.row}>
-        <Text style={styles.rowLabel}>{label}</Text>
+        <Text style={[styles.rowLabel, {fontSize: 17 * scale}]}>{label}</Text>
 
         <View style={styles.rowSpacer} />
 
@@ -81,6 +86,8 @@ export function SettingsStandaloneSelector({
   label,
   selected,
 }: PropsStandaloneSelectorItem) {
+  const {appSettings} = useAppData();
+  const scale = appSettings.uiScale ?? 1;
   return (
     <View style={[styles.rowWrapper, styles.rowFirst]}>
       <TouchableOpacity onPress={onPress} style={styles.row}>
@@ -92,7 +99,7 @@ export function SettingsStandaloneSelector({
             size={20}
           />
         </View>
-        <Text style={styles.rowLabel}>{label}</Text>
+        <Text style={[styles.rowLabel, {fontSize: 17 * scale}]}>{label}</Text>
 
         <View style={styles.rowSpacer} />
 
@@ -117,6 +124,8 @@ export function SettingsButton({
   iconBackground,
   label,
 }: PropsSettingsButton) {
+  const {appSettings} = useAppData();
+  const scale = appSettings.uiScale ?? 1;
   return (
     <View style={[styles.rowWrapper, styles.rowFirst]}>
       <TouchableOpacity onPress={onPress} style={styles.row}>
@@ -131,7 +140,7 @@ export function SettingsButton({
           </View>
         ) : null}
 
-        <Text style={styles.rowLabel}>{label}</Text>
+        <Text style={[styles.rowLabel, {fontSize: 17 * scale}]}>{label}</Text>
 
         <View style={styles.rowSpacer} />
       </TouchableOpacity>

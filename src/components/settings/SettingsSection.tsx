@@ -1,5 +1,6 @@
 import React from "react";
 import {StyleProp, StyleSheet, Text, View, ViewStyle} from "react-native";
+import {useAppData} from "@/context/AppDataContext";
 
 interface Props {
   children?: React.ReactNode;
@@ -12,9 +13,13 @@ export default function SettingsSection({
   style,
   sectionTitle,
 }: Props) {
+  const {appSettings} = useAppData();
+  const scale = appSettings.uiScale ?? 1;
   return (
     <View style={[styles.section, style]}>
-      <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+      <Text style={[styles.sectionTitle, {fontSize: 14 * scale}]}>
+        {sectionTitle}
+      </Text>
       <View style={styles.sectionBody}>{children}</View>
     </View>
   );

@@ -6,6 +6,7 @@ import {
   VideoComponentRefType,
   VideoComponentType,
 } from "./videoPlayer/VideoPlayer";
+import {useAppData} from "@/context/AppDataContext";
 
 const VideoPlayerNative = forwardRef<
   VideoComponentRefType,
@@ -15,6 +16,7 @@ const VideoPlayerNative = forwardRef<
   const videoInfo = props.props.videoInfo;
 
   const videoRef = useRef<VideoRef>();
+  const {appSettings} = useAppData();
 
   useImperativeHandle(ref, () => {
     return {
@@ -49,6 +51,7 @@ const VideoPlayerNative = forwardRef<
       onEnd={props.onEnd}
       controls={false}
       resizeMode={ResizeMode.CONTAIN}
+      rate={appSettings.playbackRate ?? 1}
       // muted
       // repeat
     />

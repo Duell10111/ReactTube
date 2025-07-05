@@ -15,6 +15,7 @@ import Video, {
 } from "react-native-video";
 
 import Logger from "../utils/Logger";
+import {useAppData} from "@/context/AppDataContext";
 
 import {YTChapter, YTVideoInfo} from "@/extraction/Types";
 
@@ -55,6 +56,7 @@ export default function VideoComponent({
   const playerRef = useRef<VideoRef>();
   const isFocused = useIsFocused();
   const [failbackURL, setFailbackUrl] = useState(false);
+  const {appSettings} = useAppData();
 
   const parsedChapters = useMemo(() => {
     return videoInfo?.chapters?.map(mapChapters) ?? [];
@@ -113,6 +115,7 @@ export default function VideoComponent({
         fullscreenOrientation={"landscape"}
         repeat={repeat}
         resizeMode={resizeMode ?? ResizeMode.CONTAIN}
+        rate={appSettings.playbackRate ?? 1}
         chapters={parsedChapters}
         playInBackground={Platform.isTV ? undefined : true}
         pictureInPicture

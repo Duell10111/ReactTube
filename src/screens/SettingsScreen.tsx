@@ -10,6 +10,8 @@ import SettingsItem, {
 import SettingsSection from "../components/settings/SettingsSection";
 import {parsePlayerResolution} from "../components/settings/screens/PlayerResolutionSelector";
 import {parsePlayerType} from "../components/settings/screens/PlayerSelector";
+import {parsePlaybackSpeed} from "../components/settings/screens/PlaybackSpeedSelector";
+import {parseUiScale} from "../components/settings/screens/UiScaleSelector";
 import {useAppData} from "../context/AppDataContext";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
 import {SettingsStackParamList} from "../navigation/SettingsNavigator";
@@ -76,6 +78,20 @@ export default function SettingsScreen({navigation}: Props) {
           label={"Video resolution variant"}
           value={parsePlayerResolution(appSettings).label}
           onPress={() => navigate("PlayerResolutionSelector")}
+        />
+        <SettingsItem
+          icon={"globe"}
+          iconBackground={"#f5d132"}
+          label={"Playback speed"}
+          value={parsePlaybackSpeed(appSettings).label}
+          onPress={() => navigate("PlaybackSpeedSelector")}
+        />
+        <SettingsItem
+          icon={"globe"}
+          iconBackground={"#f5d132"}
+          label={"UI scale"}
+          value={parseUiScale(appSettings).label}
+          onPress={() => navigate("UiScaleSelector")}
         />
         <SettingsItem
           icon={"globe"}
