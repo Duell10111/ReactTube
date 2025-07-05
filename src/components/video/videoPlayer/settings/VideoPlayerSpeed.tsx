@@ -14,7 +14,7 @@ export function VideoPlayerSpeed() {
     return (
       <VideoMenuTextItem
         selected={speed === item}
-        item={`${item}`}
+        item={`${item}x`}
         onPress={() => setSpeed?.(item)}
       />
     );
