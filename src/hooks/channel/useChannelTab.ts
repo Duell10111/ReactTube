@@ -16,8 +16,10 @@ export default function useChannelTab(
   channel: YTChannel,
   type: ChannelTabType,
 ) {
-  const channelRef = useRef<YTChannel>();
-  const channelContinuation = useRef<YT.Channel | YT.ChannelListContinuation>();
+  const channelRef = useRef<YTChannel>(undefined);
+  const channelContinuation = useRef<YT.Channel | YT.ChannelListContinuation>(
+    undefined,
+  );
   const [data, setData] = useState<(HorizontalData | ElementData)[]>();
 
   // console.log("ChannelTab", channel.originalData.getTabByURL);

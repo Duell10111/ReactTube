@@ -7,7 +7,7 @@ import {parseObservedArrayHorizontalData} from "@/extraction/ArrayExtraction";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 
 export default function useMusicHome() {
-  const homeData = useRef<YTMusic.HomeFeed>();
+  const homeData = useRef<YTMusic.HomeFeed>(undefined);
   const youtube = useYoutubeContext();
   const [data, setData] = useState<HorizontalData[]>();
   const [refreshing, setRefreshing] = useState(false);

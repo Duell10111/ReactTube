@@ -1,6 +1,6 @@
+import {DeviceType, deviceType} from "expo-device";
 import React from "react";
 import {Platform, StyleProp, TextStyle, ViewStyle} from "react-native";
-import DeviceInfo from "react-native-device-info";
 
 import ReelCardPhone from "./phone/ReelCardPhone";
 import VideoCardPhone from "./phone/VideoCardPhone";
@@ -46,10 +46,12 @@ export default function VideoCard({style, data, disabled}: Props) {
       onPress={onPress}
       style={[
         style,
-        DeviceInfo.isTablet() ? {maxWidth: 375, padding: 10} : undefined,
+        deviceType === DeviceType.TABLET
+          ? {maxWidth: 375, padding: 10}
+          : undefined,
       ]}
       imageContainerStyle={
-        DeviceInfo.isTablet() ? {borderRadius: 25} : undefined
+        deviceType === DeviceType.TABLET ? {borderRadius: 25} : undefined
       }
     />
   );

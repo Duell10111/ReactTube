@@ -11,7 +11,7 @@ const LOGGER = Logger.extend("HOOKS");
 
 export default function useHomeScreen() {
   const youtube = useYoutubeTVContext();
-  const homePage = useRef<YTTV.HomeFeed>();
+  const homePage = useRef<YTTV.HomeFeed>(undefined);
   const [content, setContent] = useState<HorizontalData[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
