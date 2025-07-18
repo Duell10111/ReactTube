@@ -1,8 +1,10 @@
+import {useNavigation} from "@react-navigation/native";
 import {StyleSheet, Text, TVFocusGuideView, View} from "react-native";
 
 import {VideoMetadata} from "./VideoPlayer";
 
 import {MetadataButton} from "@/components/video/videoPlayer/metadata/MetadataButton";
+import {RootNavProp} from "@/navigation/RootStackNavigator";
 
 interface MetadataContainerProps {
   metadata: VideoMetadata;
@@ -17,6 +19,8 @@ export default function MetadataContainer({
   pause,
   onJumpToStart,
 }: MetadataContainerProps) {
+  const navigation = useNavigation<RootNavProp>();
+
   return (
     <TVFocusGuideView autoFocus>
       <View style={styles.container}>
@@ -68,6 +72,11 @@ export default function MetadataContainer({
             iconType={"font-awesome"}
             iconName={"refresh"}
             onPress={metadata.onRefresh}
+          />
+          <MetadataButton
+            iconType={"feather"}
+            iconName={"settings"}
+            onPress={() => navigation.navigate("VideoPlayerSettings")}
           />
         </View>
       </View>

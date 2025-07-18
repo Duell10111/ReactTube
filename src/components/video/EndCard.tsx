@@ -7,7 +7,6 @@ import NextVideo from "./endcard/NextVideo";
 import useVideoElementData from "../../hooks/video/useVideoElementData";
 
 import {RelatedVideos} from "@/components/video/tv/RelatedVideos";
-import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import {YTVideoInfo} from "@/extraction/Types";
 import {NativeStackProp} from "@/navigation/types";
 
@@ -29,14 +28,6 @@ export default function EndCard({
   currentResolution,
 }: Props) {
   const navigation = useNavigation<NativeStackProp>();
-
-  const watchNextList = useMemo(
-    () =>
-      video.originalData.watch_next_feed
-        ? parseObservedArray(video.originalData.watch_next_feed)
-        : [],
-    [video.originalData.watch_next_feed],
-  );
 
   // TODO: use playlist data if available?
   const nextVideoID = useMemo(() => {

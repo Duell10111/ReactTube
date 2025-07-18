@@ -42,15 +42,24 @@ const VideoPlayerNative = forwardRef<
         startPosition: props.props.startPosition,
       }}
       paused={props.paused}
+      rate={props.rate}
+      // @ts-expect-error Index selections causes some type error here somehow
+      selectedAudioTrack={
+        props.audioTrackIndex !== undefined
+          ? {
+              type: "index",
+              value: props.audioTrackIndex,
+            }
+          : undefined
+      }
       onLoad={props.onLoad}
       onSeek={props.onSeek}
       onError={props.onError}
       onProgress={props.onProgress}
       onEnd={props.onEnd}
+      onAudioTracks={props.onAudioTracks}
       controls={false}
       resizeMode={ResizeMode.CONTAIN}
-      // muted
-      // repeat
     />
   );
 });
