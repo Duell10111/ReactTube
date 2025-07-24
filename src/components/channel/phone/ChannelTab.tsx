@@ -1,4 +1,4 @@
-import DeviceInfo from "react-native-device-info";
+import {deviceType, DeviceType} from "expo-device";
 
 import {GridFeedPhone} from "@/components/grid/GridFeedPhone";
 import GridFeedViewPhone from "@/components/grid/GridFeedViewPhone";
@@ -17,8 +17,8 @@ export function ChannelTab({channel, type}: ChannelTabProps) {
 
   return (
     <>
-      {/*<Text style={{color: "white"}}>{`Channel Tab: ${type}`}</Text>*/}
-      {type === "Shorts" || (type === "Videos" && DeviceInfo.isTablet()) ? (
+      {type === "Shorts" ||
+      (type === "Videos" && deviceType === DeviceType.TABLET) ? (
         <GridFeedViewPhone
           items={data}
           onEndReached={() => fetchMore()}

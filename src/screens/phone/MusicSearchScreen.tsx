@@ -83,6 +83,7 @@ export function MusicSearchScreen() {
         onFocus: () => setSearchBarOpen(true),
         onClose: () => setSearchBarOpen(false),
         onBlur: () => setSearchBarOpen(false),
+        // @ts-ignore Ignore null init value
         ref: searchBarRef,
         textColor: "white",
         headerIconColor: "white",

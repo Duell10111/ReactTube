@@ -14,7 +14,7 @@ const VideoPlayerNative = forwardRef<
   // @ts-ignore
   const videoInfo = props.props.videoInfo;
 
-  const videoRef = useRef<VideoRef>();
+  const videoRef = useRef<VideoRef>(undefined);
 
   useImperativeHandle(ref, () => {
     return {

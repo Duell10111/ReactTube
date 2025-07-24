@@ -265,7 +265,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     // Currently not working with native screen stack
     // https://github.com/software-mansion/react-native-screens/pull/801
 
-    const longButtonPressed = useRef<string>();
+    const longButtonPressed = useRef<string>(undefined);
 
     useTVEventHandler(event => {
       switch (event.eventType) {

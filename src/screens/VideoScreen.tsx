@@ -59,8 +59,8 @@ export default function VideoScreen({route, navigation}: Props) {
   const [ended, setEnded] = useState(false);
 
   const {appSettings} = useAppData();
-  const videoPlayerRef = useRef<VideoPlayerRefs>();
-  const currentTimeRef = useRef<number>();
+  const videoPlayerRef = useRef<VideoPlayerRefs>(undefined);
+  const currentTimeRef = useRef<number>(undefined);
 
   useEffect(() => {
     return navigation.addListener("blur", () => {
@@ -228,7 +228,8 @@ export default function VideoScreen({route, navigation}: Props) {
           hlsUrl={YTVideoInfo.hls_manifest_url}
           videoInfo={YTVideoInfo}
           onProgress={data => {
-            if (appSettings.trackingEnabled &&
+            if (
+              appSettings.trackingEnabled &&
               (!currentTimeRef.current ||
                 Math.abs(currentTimeRef.current - data.currentTime) > 30)
             ) {
@@ -244,7 +245,9 @@ export default function VideoScreen({route, navigation}: Props) {
             setEnded(true);
             setShowEndCard(true);
             if (appSettings.trackingEnabled && YTVideoInfo?.durationSeconds) {
-              addToWatchHistory(YTVideoInfo?.durationSeconds).catch(LOGGER.warn);
+              addToWatchHistory(YTVideoInfo?.durationSeconds).catch(
+                LOGGER.warn,
+              );
             }
           }}
           onPlaybackInfoUpdate={infos => {

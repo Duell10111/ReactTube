@@ -1,5 +1,6 @@
 import _ from "lodash";
 import {useCallback, useMemo, useRef, useState} from "react";
+//@ts-ignore Ignore type error
 import {SearchContinuation} from "youtubei.js/dist/src/parser/ytmusic/Search";
 
 import Logger from "../../utils/Logger";
@@ -18,8 +19,8 @@ const LOGGER = Logger.extend("MUSIC_SEARCH");
 
 export default function useMusicSearch() {
   const youtube = useYoutubeContext();
-  const searchObject = useRef<YTMusic.Search>();
-  const searchContinuation = useRef<SearchContinuation>();
+  const searchObject = useRef<YTMusic.Search>(undefined);
+  const searchContinuation = useRef<SearchContinuation>(undefined);
   const [searchResult, setSearchResult] = useState<Helpers.YTNode[]>([]);
   const [cloudChip, setCloudChip] = useState<YTChipCloud | undefined>();
 
@@ -51,8 +52,8 @@ export default function useMusicSearch() {
 
   // SearchFilters
 
-  const shelfSearch = useRef<YTMusic.Search>();
-  const shelfCont = useRef<SearchContinuation>();
+  const shelfSearch = useRef<YTMusic.Search>(undefined);
+  const shelfCont = useRef<SearchContinuation>(undefined);
   const [shelfData, setShelfData] = useState<Helpers.YTNode[]>();
 
   const extendMusicShelf = (horizontalData: HorizontalData) => {

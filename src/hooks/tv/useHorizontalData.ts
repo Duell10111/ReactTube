@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from "react";
-import {YTNode} from "youtubei.js/dist/src/parser/helpers";
+import {Helpers} from "youtubei.js";
 
 import {useYoutubeTVContext} from "@/context/YoutubeContext";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
@@ -12,7 +12,7 @@ const LOGGER = Logger.extend("HORIZONTAL_DATA");
 
 export default function useHorizontalData(data: HorizontalData) {
   const [elements, setElements] = useState<ElementData[]>(data.parsedData);
-  const continuation = useRef<HorizontalListContinuation>();
+  const continuation = useRef<HorizontalListContinuation>(undefined);
   const youtube = useYoutubeTVContext();
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function useHorizontalData(data: HorizontalData) {
   const fetchMore = () => {
     console.log("Fetching more data");
 
-    let node: YTNode | undefined = continuation.current;
+    let node: Helpers.YTNode | undefined = continuation.current;
     if (!node) {
       if (data.originalNode.is(YTNodes.Shelf) && data.originalNode.content) {
         node = data.originalNode.content;
