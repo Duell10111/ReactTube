@@ -1,5 +1,5 @@
 import React from "react";
-import {Text, View} from "react-native";
+import {View} from "react-native";
 
 import GridFeedView from "@/components/grid/GridFeedView";
 import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";

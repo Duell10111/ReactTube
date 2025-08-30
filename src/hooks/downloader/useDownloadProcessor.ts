@@ -51,14 +51,15 @@ export default function useDownloadProcessor() {
       info = getElementDataFromTrackInfo(await youtube!.music.getInfo(id));
 
       // Patch originalData
-      const orgData = await youtube!.getInfo(id, "IOS");
+      const orgData = await youtube!.getInfo(id, {client: "IOS"});
       // @ts-ignore TODO: Fix
       info.originalData = orgData;
     } else {
-      info = getElementDataFromVideoInfo(await youtube!.getInfo(id, "IOS"));
+      info = getElementDataFromVideoInfo(
+        await youtube!.getInfo(id, {client: "IOS"}),
+      );
     }
 
-    // const info = getElementDataFromVideoInfo(await youtube!.getInfo(id, "IOS"));
     const format = info.originalData.chooseFormat({
       type: "audio",
     });

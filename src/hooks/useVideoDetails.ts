@@ -46,10 +46,10 @@ export default function useVideoDetails(
         : passedStartSeconds;
     if (client === "TV") {
       Promise.all([
-        tvYoutube?.tv?.getInfo(videoId, "TV"),
+        tvYoutube?.tv?.getInfo(videoId),
         youtube && appSettings.hlsEnabled
           ? youtube
-              .getInfo(videoId, "IOS")
+              .getInfo(videoId, {client: "IOS"})
               .catch(error =>
                 LOGGER.warn(
                   `Error fetching normal streaming data. Error ${error}`,
@@ -81,7 +81,7 @@ export default function useVideoDetails(
         .catch(LOGGER.warn);
     } else {
       youtube
-        ?.getInfo(videoId, appSettings.hlsEnabled ? "IOS" : undefined)
+        ?.getInfo(videoId, {client: appSettings.hlsEnabled ? "IOS" : undefined})
         ?.then(info => {
           videoRef.current = info;
           const parsedData = getElementDataFromVideoInfo(info);
