@@ -126,7 +126,7 @@ export async function handleWatchMessage(
 ) {
   LOGGER.debug("Handle watch request: ", request);
   if (request.request === "video") {
-    const ytInfo = await youtube?.getInfo(request.videoId, "IOS");
+    const ytInfo = await youtube?.getInfo(request.videoId, {client: "IOS"});
     if (youtube && ytInfo) {
       let info = getElementDataFromVideoInfo(ytInfo);
       // TODO: Fetch from music endpoint?

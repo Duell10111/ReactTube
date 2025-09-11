@@ -27,7 +27,9 @@ export default function useVideoDataGenerator() {
       } else {
         const [info, classicInfo] = await Promise.all([
           youtube!.music.getInfo(videoData.navEndpoint ?? videoData.id),
-          youtube!.getInfo(videoData.navEndpoint ?? videoData.id, "IOS"),
+          youtube!.getInfo(videoData.navEndpoint ?? videoData.id, {
+            client: "IOS",
+          }),
         ]);
         // Patch YT Music StreamingData
         info.streaming_data = classicInfo.streaming_data;
@@ -56,7 +58,7 @@ export default function useVideoDataGenerator() {
       console.log("videoExtractorNavigationEndpoint");
       const [info, classicInfo] = await Promise.all([
         youtube!.music.getInfo(navigationEndpoint),
-        youtube!.getInfo(navigationEndpoint, "IOS"),
+        youtube!.getInfo(navigationEndpoint, {client: "IOS"}),
       ]);
       // Patch YT Music StreamingData
       info.streaming_data = classicInfo.streaming_data;

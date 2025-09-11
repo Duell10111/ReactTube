@@ -3,10 +3,9 @@ import {YTTV} from "youtubei.js";
 
 import {useYoutubeTVContext} from "@/context/YoutubeContext";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
-import {extractGrid} from "@/extraction/GridExtraction";
 import {ElementData} from "@/extraction/Types";
 import Logger from "@/utils/Logger";
-import {YTMusic, YTNodes} from "@/utils/Youtube";
+import {YTNodes} from "@/utils/Youtube";
 
 const LOGGER = Logger.extend("PLAYLIST_MANAGER");
 
@@ -79,7 +78,7 @@ export default function useYTServerPlaylistManager() {
     playlistId = parsePlaylistID(playlistId);
     LOGGER.debug(`Adding videos ${videoIds} to playlist ${playlistId}`);
     // TODO: Check if TV endpoints are working everywhere
-    await youtube?.tv?.addVideos(playlistId, videoIds, "TV");
+    await youtube?.playlist?.addVideos(playlistId, videoIds, "TV");
   };
 
   const removeVideoFromPlaylist = async (
@@ -93,13 +92,13 @@ export default function useYTServerPlaylistManager() {
   const addPlaylistToLibrary = async (playlistId: string) => {
     LOGGER.debug(`Adding playlist ${playlistId} to library`);
     // TODO: Check if TV endpoints are working everywhere
-    await youtube?.tv?.addToLibrary(playlistId);
+    await youtube?.playlist?.addToLibrary(playlistId, "TV");
   };
 
   const removePlaylistFromLibrary = async (playlistId: string) => {
     LOGGER.debug(`Removing playlist ${playlistId} to library`);
     // TODO: Check if TV endpoints are working everywhere
-    await youtube?.tv?.removeFromLibrary(playlistId);
+    await youtube?.playlist?.removeFromLibrary(playlistId, "TV");
   };
 
   const executeNavEndpoint = async (
