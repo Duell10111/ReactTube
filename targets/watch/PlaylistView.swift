@@ -13,9 +13,6 @@ struct PlaylistView: View {
     var body: some View {
       ScrollViewReader { proxy in
         List {
-          Button("Scroll") {
-            proxy.scrollTo(musicManager.trackIndex)
-          }
           ForEach(Array(musicManager.playerPlaylistItems.enumerated()), id: \.self.element.id) { (index, video) in
             HStack {
               Button {
