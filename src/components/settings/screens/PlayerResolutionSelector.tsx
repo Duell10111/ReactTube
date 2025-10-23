@@ -18,10 +18,7 @@ const playerResolutions: {[key: string]: PlayerResolution} = {
     key: "hls",
     label: "HLS",
   },
-  hlsLocal: {
-    key: "hlsLocal",
-    label: "HLS Local",
-  },
+  // HLS Local not shown anymore
 };
 
 export default function PlayerResolutionSelectorScreen() {
