@@ -108,18 +108,20 @@ export default function useVideoDetails(
   //   }
   // }, [appSettings.trackingEnabled]);
 
-  const httpVideoURL = useMemo(() => {
+  const [httpVideoURL, setHttpVideoURL] = useState<string>();
+
+  useEffect(() => {
     if (!youtube?.actions.session.player) {
-      return undefined;
+      setHttpVideoURL(undefined);
+      return;
     }
-    try {
-      return videoInfo?.best_format?.originalFormat?.decipher(
-        youtube.actions.session.player,
-      );
-    } catch (e) {
-      LOGGER.debug("Error while decrypting best format: ", e);
-    }
-    return undefined;
+    videoInfo?.best_format?.originalFormat
+      ?.decipher(youtube.actions.session.player)
+      .then(setHttpVideoURL)
+      .catch(e => {
+        LOGGER.debug("Error while decrypting best format: ", e);
+        setHttpVideoURL(undefined);
+      });
   }, [videoInfo, youtube]);
 
   LOGGER.debug("Video: ", httpVideoURL);

@@ -5,7 +5,7 @@
 //  Created by Konstantin Späth on 30.09.24.
 //
 
-import SwiftUICore
+import SwiftUI
 
 extension View {
     /// Applies the given transform if the given condition evaluates to `true`.

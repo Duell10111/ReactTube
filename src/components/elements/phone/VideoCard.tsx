@@ -41,6 +41,7 @@ export function VideoCard({element, style, onPress, width}: VideoCardProps) {
 
   return (
     <View
+      testID={"video-card"}
       style={[
         styles.container,
         {minWidth: 150, maxWidth: width},
