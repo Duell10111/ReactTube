@@ -3,7 +3,7 @@
 import FileSystem from "expo-file-system";
 import crypto from "react-native-quick-crypto";
 import {ReadableStream} from "web-streams-polyfill";
-import Innertube from "youtubei.js/dist/src/platform/lib";
+import Innertube, {Types} from "youtubei.js";
 import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
 import {ICache} from "youtubei.js/dist/src/types/Cache.js";
 import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
@@ -105,6 +105,26 @@ Platform.load({
   },
   uuidv4() {
     return crypto.randomUUID();
+  },
+  eval: async (
+    data: Types.BuildScriptResult,
+    env: Record<string, Types.VMPrimative>,
+  ) => {
+    const properties = [];
+
+    if (env.n) {
+      // @ts-ignore
+      properties.push(`n: exportedVars.nFunction("${env.n}")`);
+    }
+
+    if (env.sig) {
+      // @ts-ignore
+      properties.push(`sig: exportedVars.sigFunction("${env.sig}")`);
+    }
+
+    const code = `${data.output}\nreturn { ${properties.join(", ")} }`;
+
+    return new Function(code)();
   },
   fetch: fetch as unknown as FetchFunction,
   Request: Request as unknown as typeof globalThis.Request,
