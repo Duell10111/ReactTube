@@ -133,7 +133,7 @@ export async function handleWatchMessage(
 
       const format = ytInfo.chooseFormat({type: "audio"});
       LOGGER.debug("Format: ", format);
-      const streamURL = format.decipher(youtube.session.player);
+      const streamURL = await format.decipher(youtube.session.player);
       const validUntil = Date.now() + 19800000; // 5,5 hours valid from now on.
       LOGGER.debug("Valid until: ", validUntil);
 
