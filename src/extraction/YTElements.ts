@@ -357,7 +357,7 @@ function extractChaptersFromVideoInfo(videoInfo: YT.VideoInfo) {
     videoInfo.player_overlays?.decorated_player_bar?.player_bar?.markers_map ??
       [],
   )
-    .flatMap(c => c.value.chapters)
+    .flatMap(c => c.value.chapters ?? [])
     .compact()
     .value();
   return ytChapters.length > 0 && videoInfo.basic_info.duration

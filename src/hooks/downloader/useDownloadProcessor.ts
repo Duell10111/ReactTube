@@ -64,7 +64,7 @@ export default function useDownloadProcessor() {
       type: "audio",
     });
     LOGGER.debug("Download video: ", format);
-    const url = format.decipher(youtube!.actions.session.player);
+    const url = await format.decipher(youtube!.actions.session.player);
     if (url) {
       LOGGER.debug("Download video with url: ", url);
       LOGGER.debug("Download cover with url: ", info.thumbnailImage.url);
