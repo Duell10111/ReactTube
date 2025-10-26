@@ -16,7 +16,7 @@ type LibrarySections = "history" | "playlist";
 
 export default function useLibrary(initSection?: LibrarySections) {
   const youtube = useYoutubeTVContext();
-  const library = useRef<YTTV.Library>();
+  const library = useRef<YTTV.Library>(undefined);
   // Needed ElementData for subsections
   const [data, setData] = useState<(HorizontalData | ElementData)[]>();
 

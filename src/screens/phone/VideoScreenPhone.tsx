@@ -2,7 +2,7 @@ import BottomSheet from "@gorhom/bottom-sheet";
 import {useIsFocused} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React, {useEffect, useMemo, useRef} from "react";
-import {ActivityIndicator, Platform, StyleSheet, View} from "react-native";
+import {ActivityIndicator, StyleSheet, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {VideoRef} from "react-native-video";
 
@@ -45,7 +45,7 @@ export default function VideoScreenPhone({route, navigation}: Props) {
 
   const {style} = useAppStyle();
   const {bottom} = useSafeAreaInsets();
-  const videoRef = useRef<VideoRef>();
+  const videoRef = useRef<VideoRef>(undefined);
 
   const videoUrl = useMemo(
     () => hlsManifestUrl ?? httpVideoURL,

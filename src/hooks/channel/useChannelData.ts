@@ -42,7 +42,7 @@ export default function useChannelData(
 ) {
   const [data, setData] = useState<YT.Channel>();
   const [nodes, setNodes] = useState<Helpers.YTNode[]>([]);
-  const ref = useRef<YT.ChannelListContinuation>();
+  const ref = useRef<YT.ChannelListContinuation>(undefined);
 
   const parsedData = useMemo(() => {
     return parseArrayHorizontalAndElement(nodes);

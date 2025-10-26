@@ -3,10 +3,14 @@
 import FileSystem from "expo-file-system";
 import crypto from "react-native-quick-crypto";
 import {ReadableStream} from "web-streams-polyfill";
-import Innertube, {Types} from "youtubei.js";
+import {Types} from "youtubei.js";
+// @ts-ignore Ignore no type definitions found
 import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
+// @ts-ignore Ignore no type definitions found
 import {ICache} from "youtubei.js/dist/src/types/Cache.js";
+// @ts-ignore Ignore no type definitions found
 import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
+// @ts-ignore Ignore no type definitions found
 import {Platform} from "youtubei.js/dist/src/utils/Utils.js";
 
 class Cache implements ICache {
@@ -137,5 +141,4 @@ Platform.load({
   CustomEvent: CustomEvent,
 });
 
-export * from "youtubei.js/dist/src/platform/lib";
-export default Innertube;
+export * from "youtubei.js";

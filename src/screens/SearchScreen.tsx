@@ -65,7 +65,7 @@ export default function SearchScreen() {
 
   // Phone device specific hooks
   const [searchBarOpen, setSearchBarOpen] = useState(false);
-  const searchBarRef = useRef<SearchBarCommands>();
+  const searchBarRef = useRef<SearchBarCommands>(undefined);
 
   // console.log("Searchtext: ", searchText);
   // console.log("Hints: ", hints);

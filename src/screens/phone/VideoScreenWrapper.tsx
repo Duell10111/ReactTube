@@ -1,6 +1,6 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
+import {DeviceType, deviceType} from "expo-device";
 import React from "react";
-import DeviceInfo from "react-native-device-info";
 
 import ReelVideoScreen from "./ReelVideoScreen";
 
@@ -16,7 +16,7 @@ export default function VideoScreenWrapper(props: Props) {
     return <ReelVideoScreen {...props} />;
   }
 
-  if (!DeviceInfo.isTablet()) {
+  if (deviceType !== DeviceType.TABLET) {
     return <VideoScreenPhone {...props} />;
   }
 
