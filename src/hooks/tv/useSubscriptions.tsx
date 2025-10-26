@@ -1,12 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 
 import {useYoutubeTVContext} from "@/context/YoutubeContext";
-import {
-  parseObservedArray,
-  parseObservedArrayHorizontalData,
-} from "@/extraction/ArrayExtraction";
+import {parseObservedArrayHorizontalData} from "@/extraction/ArrayExtraction";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
-import {ElementData} from "@/extraction/Types";
 import Logger from "@/utils/Logger";
 import {YTTV} from "@/utils/Youtube";
 
@@ -14,7 +10,7 @@ const LOGGER = Logger.extend("SUBS");
 
 export default function useSubscriptions() {
   const youtube = useYoutubeTVContext();
-  const subFeed = useRef<YTTV.SubscriptionsFeed>();
+  const subFeed = useRef<YTTV.SubscriptionsFeed>(undefined);
   const [data, setData] = useState<HorizontalData[]>([]);
 
   useEffect(() => {
@@ -26,8 +22,6 @@ export default function useSubscriptions() {
       })
       .catch(console.warn);
   }, []);
-
-  console.log("SUBS: ", data);
 
   const fetchMore = useCallback(async () => {
     if (subFeed.current?.has_continuation) {
