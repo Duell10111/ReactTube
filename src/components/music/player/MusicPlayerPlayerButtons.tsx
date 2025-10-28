@@ -44,7 +44,7 @@ export function MusicPlayerPlayerButtons() {
       <Icon
         // @ts-ignore
         Component={TouchableOpacity}
-        name={"stepbackward"}
+        name={"step-backward"}
         type={"antdesign"}
         size={25}
         color={"white"}
@@ -69,7 +69,7 @@ export function MusicPlayerPlayerButtons() {
       <Icon
         // @ts-ignore
         Component={TouchableOpacity}
-        name={"stepforward"}
+        name={"step-forward"}
         type={"antdesign"}
         size={25}
         color={"white"}

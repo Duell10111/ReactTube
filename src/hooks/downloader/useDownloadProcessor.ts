@@ -128,8 +128,8 @@ export default function useDownloadProcessor() {
             value.download.map(d => d.downloadAsync()),
           );
           if (results[0]) {
-            LOGGER.debug(`Video downloaded to ${results[0].uri}`);
-            LOGGER.debug(`Video cover download: ${results[1]?.uri}`);
+            LOGGER.debug(`Video downloaded to: ${results[0].uri}`);
+            LOGGER.debug(`Video cover downloaded to: ${results[1]?.uri}`);
             await insertVideo(
               id,
               info.title,
@@ -244,7 +244,7 @@ async function downloadVideo(
   await ensureDirExists(new Directory(videoDir, id));
 
   const videoURL = `${id}/${audioOnly ? "audio" : "video"}.mp4`;
-  const fileURL = `${videoDir}${videoURL}`;
+  const fileURL = new File(videoDir, videoURL).uri;
   const download = FileSystem.createDownloadResumable(
     url,
     fileURL,
@@ -258,7 +258,7 @@ async function downloadVideo(
   if (coverUrl) {
     console.log("Download cover as well!");
     coverFileURL = `${id}/cover.jpg`;
-    const coverFileFullURL = `${videoDir}${coverFileURL}`;
+    const coverFileFullURL = new File(videoDir, coverFileURL).uri;
     coverDownload = FileSystem.createDownloadResumable(
       coverUrl,
       coverFileFullURL,
@@ -287,7 +287,7 @@ async function downloadVideoCover(
 
   console.log("Download cover as well!");
   const coverFileURL = `${id}/cover.jpg`;
-  const coverFileFullURL = `${videoDir}${coverFileURL}`;
+  const coverFileFullURL = new File(videoDir, coverFileURL).uri;
   const coverDownload = FileSystem.createDownloadResumable(
     coverUrl,
     coverFileFullURL,
@@ -316,7 +316,7 @@ async function downloadPlaylistCover(
   await ensureDirExists(parentDir);
 
   const coverFileURL = `${id}/cover.jpg`;
-  const coverFileFullURL = `${playlistDir}${coverFileURL}`;
+  const coverFileFullURL = new File(playlistDir, coverFileURL).uri;
   const coverDownload = FileSystem.createDownloadResumable(
     coverUrl,
     coverFileFullURL,
