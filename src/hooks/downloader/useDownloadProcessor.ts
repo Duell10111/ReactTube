@@ -1,5 +1,6 @@
-import * as FileSystem from "expo-file-system";
-import {DownloadResumable} from "expo-file-system";
+import {Paths, Directory, File} from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
+import {DownloadResumable} from "expo-file-system/legacy";
 import {useRef} from "react";
 import {DeviceEventEmitter} from "react-native";
 
@@ -17,10 +18,10 @@ import {
 } from "@/extraction/YTElements";
 import Logger from "@/utils/Logger";
 
-const downloadDir = FileSystem.documentDirectory + "downloads/";
+const downloadDir = new Directory(Paths.document, "downloads");
 
-export const videoDir = downloadDir + "videos/";
-export const playlistDir = downloadDir + "playlist/";
+export const videoDir = new Directory(downloadDir, "videos");
+export const playlistDir = new Directory(downloadDir, "playlist");
 
 const LOGGER = Logger.extend("DOWNLOADER");
 
@@ -214,10 +215,9 @@ export function getAbsolutePlaylistURL(url: string) {
 }
 
 async function ensureDirExists(directory = downloadDir) {
-  const dirInfo = await FileSystem.getInfoAsync(directory);
-  if (!dirInfo.exists) {
+  if (!directory.exists) {
     console.log(directory, " directory doesn't exist, creating…");
-    await FileSystem.makeDirectoryAsync(directory, {intermediates: true});
+    directory.create({intermediates: true});
   }
 }
 
@@ -241,7 +241,7 @@ async function downloadVideo(
   coverUrlCallback?: FileSystem.FileSystemNetworkTaskProgressCallback<FileSystem.DownloadProgressData>,
 ) {
   await ensureDirExists();
-  await ensureDirExists(`${videoDir}${id}`);
+  await ensureDirExists(new Directory(videoDir, id));
 
   const videoURL = `${id}/${audioOnly ? "audio" : "video"}.mp4`;
   const fileURL = `${videoDir}${videoURL}`;
@@ -283,7 +283,7 @@ async function downloadVideoCover(
   coverUrlCallback?: FileSystem.FileSystemNetworkTaskProgressCallback<FileSystem.DownloadProgressData>,
 ) {
   await ensureDirExists();
-  await ensureDirExists(`${videoDir}${id}`);
+  await ensureDirExists(new Directory(videoDir, id));
 
   console.log("Download cover as well!");
   const coverFileURL = `${id}/cover.jpg`;
@@ -336,13 +336,13 @@ async function downloadPlaylistCover(
 }
 
 function getVideoDir(id: string) {
-  return `${videoDir}${id}`;
+  return new Directory(videoDir, id);
 }
 
 function getPlaylistDir(id: string) {
-  return `${playlistDir}${id}`;
+  return new Directory(playlistDir, id);
 }
 
 export async function deleteVideoFilesIfExists(id: string) {
-  return FileSystem.deleteAsync(getVideoDir(id), {idempotent: true});
+  return getVideoDir(id).delete();
 }
