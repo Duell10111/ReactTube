@@ -84,7 +84,7 @@ export function VideoMetadataContainer({
       </View>
       <View style={styles.likeContainer}>
         <Icon
-          name={"like2"}
+          name={"like"}
           type={"antdesign"}
           color={actionData?.liked ? "blue" : undefined}
           raised
@@ -93,7 +93,7 @@ export function VideoMetadataContainer({
           onPress={() => (actionData?.liked ? removeRating() : like())}
         />
         <Icon
-          name={"dislike2"}
+          name={"dislike"}
           type={"antdesign"}
           color={actionData?.disliked ? "blue" : undefined}
           raised

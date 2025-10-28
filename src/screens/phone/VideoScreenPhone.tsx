@@ -138,7 +138,7 @@ export default function VideoScreenPhone({route, navigation}: Props) {
         <PlaylistBottomSheetContainer
           ytInfoPlaylist={YTVideoInfo.playlist}
           onPress={() => sheetRef.current?.snapToIndex(0)}
-          style={{bottom: 125}}
+          style={{bottom: 25}}
         />
       ) : null}
       {YTVideoInfo.playlist ? (
