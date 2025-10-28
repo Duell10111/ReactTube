@@ -1,6 +1,6 @@
 // React-Native Platform Support
 /* eslint-disable object-shorthand */
-import FileSystem from "expo-file-system";
+import {File, Directory, Paths} from "expo-file-system";
 import crypto from "react-native-quick-crypto";
 import {ReadableStream} from "web-streams-polyfill";
 import {Types} from "youtubei.js";
@@ -24,11 +24,11 @@ class Cache implements ICache {
   }
 
   static get temp_directory() {
-    return `${FileSystem.cacheDirectory}/youtubei.js`;
+    return new Directory(Paths.cache, "youtubei.js").uri;
   }
 
   static get default_persistent_directory() {
-    return [FileSystem.documentDirectory, "youtubei.js"].join("/");
+    return new Directory(Paths.document, "youtubei.js").uri;
   }
 
   get cache_dir() {
@@ -38,30 +38,22 @@ class Cache implements ICache {
   async #createCache() {
     const dir = this.cache_dir;
     try {
-      const cwd = await FileSystem.getInfoAsync(dir);
-      if (!cwd.isDirectory) {
-        throw new Error(
-          "An unexpected file was found in place of the cache directory",
-        );
-      }
+      new Directory(dir).create({idempotent: true});
     } catch (e: any) {
-      if (e?.code === "ENOENT") {
-        await FileSystem.makeDirectoryAsync(dir);
-      } else {
-        throw e;
-      }
+      throw new Error(
+        "An unexpected file was found in place of the cache directory",
+        e,
+      );
     }
   }
 
   async get(key: string) {
     await this.#createCache();
-    const file = [this.cache_dir, key].join("/");
+    const file = new File(this.cache_dir, key);
     try {
-      const stat = await FileSystem.getInfoAsync(file);
-      if (stat.exists && stat.isDirectory === false) {
-        const data: Buffer = Buffer.from(
-          await FileSystem.readAsStringAsync(file),
-        );
+      const stat = file.info();
+      if (stat.exists) {
+        const data: Buffer = Buffer.from(await file.text());
         return data.buffer;
       }
       throw new Error("An unexpected file was found in place of the cache key");
@@ -75,16 +67,16 @@ class Cache implements ICache {
 
   async set(key: string, value: ArrayBuffer) {
     await this.#createCache();
-    const file = [this.cache_dir, key].join("/");
+    const file = new File(this.cache_dir, key);
     const dec = new TextDecoder();
-    await FileSystem.writeAsStringAsync(file, dec.decode(value));
+    file.write(dec.decode(value));
   }
 
   async remove(key: string) {
     await this.#createCache();
-    const file = [this.cache_dir, key].join("/");
+    const file = new File(this.cache_dir, key);
     try {
-      await FileSystem.deleteAsync(file);
+      file.delete();
     } catch (e: any) {
       if (e?.code === "ENOENT") {
         return;
