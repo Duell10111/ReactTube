@@ -1,13 +1,13 @@
 import "react-native-url-polyfill/auto";
 import "event-target-polyfill";
 import "fast-text-encoding";
+import "react-native-quick-base64";
 
 import React from "react";
 import {StatusBar, useColorScheme} from "react-native";
 import FlashMessage from "react-native-flash-message";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import {PaperProvider} from "react-native-paper";
-import {btoa, atob} from "react-native-quick-base64";
 
 import AccountContextProvider from "./src/context/AccountContext";
 import AppDataContextProvider from "./src/context/AppDataContext";
@@ -22,14 +22,6 @@ import {DownloaderContext} from "@/context/DownloaderContext";
 import {MusicPlayerContext} from "@/context/MusicPlayerContext";
 import {PlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import {setupMusicPlayer} from "@/utils/music/MusicInit";
-
-// Polyfill for youtube.js
-Object.assign(global, {
-  btoa,
-  atob,
-});
-
-// enableFreeze(true);
 
 setupMusicPlayer();
 
