@@ -65,7 +65,7 @@ export default function MetadataContainer({
           />
           <MetadataButton
             iconType={"antdesign"}
-            iconName={"stepbackward"}
+            iconName={"step-backward"}
             onPress={onJumpToStart}
           />
           <MetadataButton
