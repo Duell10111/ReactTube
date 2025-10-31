@@ -17,6 +17,19 @@
 * create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
 * update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
 
+## [0.3.2](https://github.com/Duell10111/ReactTube/compare/v0.3.1...v0.3.2) (2025-10-31)
+
+
+### 🔧 Chore
+
+* small adaptions to watch app ([#71](https://github.com/Duell10111/ReactTube/issues/71)) ([da4a89f](https://github.com/Duell10111/ReactTube/commit/da4a89fcb3ff67b35f543aa5ea1f2f64b999b5a6))
+* update release-please-config.json to include upgrade type ([2905cfc](https://github.com/Duell10111/ReactTube/commit/2905cfcb37dda6f31760c2b235e21f63518a59dc))
+
+
+### ⬆️ Upgrade
+
+* upgrade to expo sdk 53 ([#60](https://github.com/Duell10111/ReactTube/issues/60)) ([3520f70](https://github.com/Duell10111/ReactTube/commit/3520f70153d7a4484c4d00cf9198e14361039a1b))
+
 ## [0.3.1](https://github.com/Duell10111/ReactTube/compare/v0.3.0...v0.3.1) (2025-10-25)
 
 
