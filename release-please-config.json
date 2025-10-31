@@ -50,6 +50,11 @@
       "type": "docs",
       "section": "📄 Documentation",
       "hidden": false
+    },
+    {
+      "type": "upgrade",
+      "section": "⬆️ Upgrade",
+      "hidden": false
     }
   ]
 }

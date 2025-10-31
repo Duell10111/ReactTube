@@ -48,7 +48,7 @@ interface PlaylistManagerContextProps {
 export function PlaylistManagerContext({
   children,
 }: PlaylistManagerContextProps) {
-  const bottomSheetModalRef = useRef<BottomSheetModal>();
+  const bottomSheetModalRef = useRef<BottomSheetModal>(undefined);
   const {playlists, fetchPlaylists, saveVideoToPlaylist, createPlaylist} =
     usePlaylistManager();
   const [videoIDs, setVideoIDs] = useState<string[]>([]);

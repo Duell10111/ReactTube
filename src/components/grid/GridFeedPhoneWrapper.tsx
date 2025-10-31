@@ -1,5 +1,5 @@
+import {deviceType, DeviceType} from "expo-device";
 import {Platform, StyleProp, ViewStyle} from "react-native";
-import DeviceInfo from "react-native-device-info";
 
 import {GridFeedPhone} from "@/components/grid/GridFeedPhone";
 import GridFeedView from "@/components/grid/GridFeedView";
@@ -14,7 +14,7 @@ interface GridFeedPhoneWrapperProps {
 }
 
 export function GridFeedPhoneWrapper(props: GridFeedPhoneWrapperProps) {
-  if (DeviceInfo.isTablet() || Platform.isTV) {
+  if (deviceType === DeviceType.TABLET || Platform.isTV) {
     return <GridFeedView {...props} />;
   }
 

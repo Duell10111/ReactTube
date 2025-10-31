@@ -60,17 +60,24 @@
           "imageWidth": 200
         }
       ],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
+        }
+      ],
       "expo-sqlite"
     ],
     "name": "reacttube",
     "slug": "reacttube",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "userInterfaceStyle": "dark",
     "primaryColor": "#556BFD",
     "backgroundColor": "#000000",
     "androidStatusBar": {
       "barStyle": "light-content",
       "backgroundColor": "#000000"
-    }
+    },
+    "newArchEnabled": false
   }
 }

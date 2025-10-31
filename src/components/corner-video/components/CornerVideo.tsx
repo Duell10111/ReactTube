@@ -31,7 +31,7 @@ const CornerVideo = ({currentTime, props, positions, onClose}: Props) => {
   const {cornerProps, videoProps} = props;
 
   const [loaded, setLoaded] = useState<boolean>(false);
-  const ref = useRef<VideoRef>();
+  const ref = useRef<VideoRef>(undefined);
   const width = useSharedValue(positions.w);
   const height = useSharedValue(positions.h);
   const top = useSharedValue(positions.y);

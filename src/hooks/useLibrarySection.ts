@@ -8,7 +8,7 @@ import {IBrowseResponse, Mixins, YT} from "@/utils/Youtube";
 type LibrarySection = YT.Playlist | YT.History | Mixins.Feed<IBrowseResponse>;
 
 export default function useLibrarySection(sectionData: YTLibrarySection) {
-  const section = useRef<LibrarySection>();
+  const section = useRef<LibrarySection>(undefined);
   const [data, setData] = useState<(ElementData | HorizontalData)[]>(
     sectionData.content,
   );

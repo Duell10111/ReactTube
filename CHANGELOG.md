@@ -17,6 +17,30 @@
 * create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
 * update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
 
+## [0.3.1](https://github.com/Duell10111/ReactTube/compare/v0.3.0...v0.3.1) (2025-10-25)
+
+
+### 🐛 Bugfixes
+
+* adapt downloader logic to be less battery intense ([#62](https://github.com/Duell10111/ReactTube/issues/62)) ([d752846](https://github.com/Duell10111/ReactTube/commit/d7528464a7744107a02bb75b98e6f95862dd0126))
+* fix issue with subscription page and upgrade yti.js version ([#68](https://github.com/Duell10111/ReactTube/issues/68)) ([81cf8fc](https://github.com/Duell10111/ReactTube/commit/81cf8fcbcf1375c314640fc6106c70dbbd045c3d))
+
+
+### 🔧 Chore
+
+* add native player history support ([#56](https://github.com/Duell10111/ReactTube/issues/56)) ([33c8884](https://github.com/Duell10111/ReactTube/commit/33c8884689bd4de0a69c13fbfcc9fbf060ab8074))
+* add speed and language player settings to overlay player ([#64](https://github.com/Duell10111/ReactTube/issues/64)) ([5d84b6c](https://github.com/Duell10111/ReactTube/commit/5d84b6c34250416e9fbcb932c9889fad2d86e7ae))
+
+
+### 🚀 Continuous Integration
+
+* add missing github permission to build workflow ([6b8c815](https://github.com/Duell10111/ReactTube/commit/6b8c8150c1c94557e7e6a48751ff988bbec95ac7))
+
+
+### 📄 Documentation
+
+* update readmes for npm preference over yarn atm ([63f37d8](https://github.com/Duell10111/ReactTube/commit/63f37d8d2570fc1c6b79503d88a2a2d88c7bd6c8))
+
 ## [0.3.0](https://github.com/Duell10111/ReactTube/compare/v0.2.0...v0.3.0) (2025-06-25)
 
 

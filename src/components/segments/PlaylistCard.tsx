@@ -1,7 +1,6 @@
 import {useNavigation, useRoute} from "@react-navigation/native";
 import React from "react";
 import {Platform, StyleProp, TextStyle, ViewStyle} from "react-native";
-import DeviceInfo from "react-native-device-info";
 
 import PlaylistCardPhone from "./phone/PlaylistCardPhone";
 import PlaylistCardTV from "./tv/PlaylistCardTV";

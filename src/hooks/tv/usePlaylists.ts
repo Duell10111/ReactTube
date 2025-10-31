@@ -7,7 +7,7 @@ import {YTTV} from "@/utils/Youtube";
 
 export default function usePlaylists() {
   const youtube = useYoutubeTVContext();
-  const playlistFeed = useRef<YTTV.PlaylistsFeed>();
+  const playlistFeed = useRef<YTTV.PlaylistsFeed>(undefined);
   const [data, setData] = useState<ElementData[]>();
 
   useEffect(() => {

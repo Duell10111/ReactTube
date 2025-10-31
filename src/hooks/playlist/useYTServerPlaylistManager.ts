@@ -38,7 +38,7 @@ export default function useYTServerPlaylistManager() {
   //     .then(LOGGER.warn);
   // };
 
-  const playlistFeed = useRef<YTTV.PlaylistsFeed>();
+  const playlistFeed = useRef<YTTV.PlaylistsFeed>(undefined);
 
   const fetchPlaylists = async () => {
     await youtube?.tv.getPlaylists().then(response => {
