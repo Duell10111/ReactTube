@@ -7,15 +7,12 @@
 
 import SwiftUI
 
-struct PlaylistView: View {
+struct MusicPlayerPlaylistView: View {
     @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
 
     var body: some View {
       ScrollViewReader { proxy in
         List {
-          Button("Scroll") {
-            proxy.scrollTo(musicManager.trackIndex)
-          }
           ForEach(Array(musicManager.playerPlaylistItems.enumerated()), id: \.self.element.id) { (index, video) in
             HStack {
               Button {
@@ -69,7 +66,7 @@ struct PlaylistView: View {
 
 struct PlaylistView_Previews: PreviewProvider {
     static var previews: some View {
-      PlaylistView()
+      MusicPlayerPlaylistView()
         .environment(MusicPlayerManager.shared)
     }
 }

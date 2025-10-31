@@ -21,6 +21,9 @@ struct SettingsScreen: View {
           Button("Check Videos") {
             checkVideosForExpiration(videos)
           }
+          NavigationLink("Debug Screen") {
+            DebugScreen()
+          }
         }
         Section("DESTRUCTIVE") {
           Button("Delete Downloads") {

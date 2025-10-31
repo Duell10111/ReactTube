@@ -54,7 +54,7 @@ struct MusikPlayer: View {
           }.background(NativeVolumeControl().opacity(0))
         }.toolbar {
           ToolbarItem(placement: .topBarTrailing) {
-            NavigationLink(destination: PlaylistView()) {
+            NavigationLink(destination: MusicPlayerPlaylistView()) {
                 Label("Music", systemImage: "music.note.list")
               }
           }
