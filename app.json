@@ -66,7 +66,8 @@
           "initialOrientation": "DEFAULT"
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "./fmt_path.js"
     ],
     "name": "reacttube",
     "slug": "reacttube",
