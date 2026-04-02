@@ -67,16 +67,6 @@ export default function Drawer({open, onOpen, onClose, hideDrawer}: Props) {
           iconTitle={"home"}
         />
         <DrawerItem
-          title={"Trending"}
-          onFocus={() => onOpen()}
-          onPress={navigationWrapper(() =>
-            // @ts-ignore
-            navigation.navigate("Home", {screen: "TrendingScreen"}),
-          )}
-          open={open}
-          iconTitle={"trending-up"}
-        />
-        <DrawerItem
           title={"Search"}
           onFocus={() => onOpen()}
           onPress={() => navigation.navigate("Search")}

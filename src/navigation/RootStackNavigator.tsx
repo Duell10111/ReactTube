@@ -21,7 +21,6 @@ import LoadingScreen from "@/screens/LoadingScreen";
 import LoginScreen from "@/screens/LoginScreen";
 import PlaylistScreen from "@/screens/PlaylistScreen";
 import SearchScreen from "@/screens/SearchScreen";
-import TrendingScreen from "@/screens/TrendingScreen";
 import VideoScreen from "@/screens/VideoScreen";
 import {ActiveDownloadScreen} from "@/screens/phone/ActiveDownloadScreen";
 import {ActiveUploadScreen} from "@/screens/phone/ActiveUploadScreen";
@@ -37,7 +36,6 @@ import {YTNodes} from "@/utils/Youtube";
 export type RootStackParamList = {
   LoadingScreen: undefined;
   Home: undefined;
-  Trending: undefined;
   VideoScreen: {
     videoId: string;
     navEndpoint?: YTNodes.NavigationEndpoint;
@@ -90,11 +88,6 @@ export default function RootStackNavigator() {
           <Stack.Screen
             name={"Home"}
             component={HomeWrapperScreen}
-            options={!Platform.isTV ? {headerShown: false} : undefined}
-          />
-          <Stack.Screen
-            name={"Trending"}
-            component={TrendingScreen}
             options={!Platform.isTV ? {headerShown: false} : undefined}
           />
           <Stack.Screen
