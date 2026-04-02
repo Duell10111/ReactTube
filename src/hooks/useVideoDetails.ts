@@ -120,7 +120,11 @@ export default function useVideoDetails(
       ?.decipher(youtube.actions.session.player)
       .then(setHttpVideoURL)
       .catch(e => {
-        LOGGER.debug("Error while decrypting best format: ", e);
+        LOGGER.debug(
+          "Error while decrypting best format: ",
+          e,
+          videoInfo?.best_format,
+        );
         setHttpVideoURL(undefined);
       });
   }, [videoInfo, youtube]);
