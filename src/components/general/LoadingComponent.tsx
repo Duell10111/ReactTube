@@ -5,7 +5,7 @@ export default function LoadingComponent() {
   return (
     <View
       style={[
-        StyleSheet.absoluteFillObject,
+        StyleSheet.absoluteFill,
         {justifyContent: "center", alignItems: "center"},
       ]}>
       <ActivityIndicator size={"large"} color={"white"} />

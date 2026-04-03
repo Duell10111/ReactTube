@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
+    // baseUrl is deprecated as of TypeScript 6; paths resolve relative to this file.
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
+    // TypeScript 6 enables "strict" by default. The project has only ever opted
+    // into strictNullChecks, so keep the previous strictness level explicitly.
+    "strict": false,
     "strictNullChecks": true // Needed for drizzle atm: https://github.com/drizzle-team/drizzle-orm/issues/2889#issuecomment-2407712651
   },
   "extends": "expo/tsconfig.base"

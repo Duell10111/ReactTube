@@ -1,5 +1,6 @@
 // React-Native Platform Support
 /* eslint-disable object-shorthand */
+import {Buffer} from "@craftzdog/react-native-buffer";
 import {File, Directory, Paths} from "expo-file-system";
 import crypto from "react-native-quick-crypto";
 import {ReadableStream} from "web-streams-polyfill";

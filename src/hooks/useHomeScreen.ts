@@ -63,11 +63,16 @@ export default function useHomeScreen() {
   }, [youtube?.session.logged_in]);
 
   const fetchMore = useCallback(async () => {
+    // Bound to onEndReached, which fires on mount while the list is still empty
+    // and again once the feed has no further pages. Neither is exceptional, so
+    // return quietly instead of throwing an unhandled rejection at the list.
     if (!homePage) {
-      throw new Error("No Homepage available!");
+      LOGGER.debug("Home feed not loaded yet, skipping fetchMore");
+      return;
     }
     if (!homePage.has_continuation) {
-      throw new Error("No Continuation available!");
+      LOGGER.debug("Home feed has no continuation, skipping fetchMore");
+      return;
     }
     const nextContent = await homePage.getContinuation();
     // LOGGER.debug("Fetched Content: ", JSON.stringify(nextContent, null, 4));

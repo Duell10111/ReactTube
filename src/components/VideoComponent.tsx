@@ -105,7 +105,7 @@ export default function VideoComponent({
           },
         }}
         style={
-          (style as any) ?? [styles.fullScreen, StyleSheet.absoluteFillObject]
+          (style as any) ?? [styles.fullScreen, StyleSheet.absoluteFill]
         }
         controls={controls !== undefined ? controls : true}
         paused={paused !== undefined ? paused : !isFocused}
