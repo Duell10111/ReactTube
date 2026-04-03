@@ -17,6 +17,18 @@
 * create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
 * update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
 
+## [0.3.3](https://github.com/Duell10111/ReactTube/compare/v0.3.2...v0.3.3) (2026-04-03)
+
+
+### 🐛 Bugfixes
+
+* fix possible key prop issue in VideoMenu.tsx ([6b69559](https://github.com/Duell10111/ReactTube/commit/6b6955974e6ef4fb474753ec75b722684eaf42d4))
+
+
+### ⬆️ Upgrade
+
+* upgrade to expo sdk 54 with old architecture ([#76](https://github.com/Duell10111/ReactTube/issues/76)) ([d75c7be](https://github.com/Duell10111/ReactTube/commit/d75c7be1299d24c75bf21e5403c4f4fe0adb6967))
+
 ## [0.3.2](https://github.com/Duell10111/ReactTube/compare/v0.3.1...v0.3.2) (2025-10-31)
 
 
