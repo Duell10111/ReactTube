@@ -13,9 +13,7 @@ import QRCode from "react-native-qrcode-svg";
 import {useAccountContext} from "@/context/AccountContext";
 import {useAppStyle} from "@/context/AppStyleContext";
 
-const Clipboard = !Platform.isTV
-  ? require("@react-native-clipboard/clipboard").default
-  : {};
+const Clipboard = !Platform.isTV ? require("expo-clipboard") : {};
 
 export default function LoginScreen() {
   const account = useAccountContext();
@@ -23,7 +21,7 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (!Platform.isTV && account?.qrCode) {
-      Clipboard.setString(account.qrCode.user_code);
+      Clipboard.setStringAsync(account.qrCode.user_code);
     }
   }, [account?.qrCode]);
 

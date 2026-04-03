@@ -233,6 +233,9 @@ export function parseHorizontalNode(
         : undefined,
       on_tab: node.on_tap,
     };
+  } else if (node.is(YTNodes.SearchBar)) {
+    // UI chrome the TV surface injects into the section list, not content.
+    return;
   } else if (!suppressedError) {
     console.warn("ShelfExtraction: Unknown horizontal type: ", node.type);
   }

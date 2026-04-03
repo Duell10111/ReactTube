@@ -21,7 +21,7 @@ import {
 } from "react-native";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import Animated, {runOnJS} from "react-native-reanimated";
-import Carousel from "react-native-reanimated-carousel";
+import {Carousel} from "react-native-reanimated-carousel";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {ResizeMode} from "react-native-video";
 
@@ -90,12 +90,11 @@ export default function ReelVideoScreen({route}: Props) {
     <reelContext.Provider value={{selected: context}}>
       <Carousel
         loop={false}
-        vertical
-        width={width}
-        height={height}
+        orientation={"vertical"}
+        style={{width, height}}
         data={playlistData}
-        scrollAnimationDuration={1000}
-        windowSize={5}
+        animation={{type: "timing", duration: 1000}}
+        renderWindowSize={5}
         onSnapToItem={index => {
           setContext(index);
           console.log("current index:", index);

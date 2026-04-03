@@ -29,14 +29,13 @@ export default function useTVSeekControl({
   setPause,
   enabled,
 }: TVSeekControlProps) {
-  const longPressTimeout = useRef<NodeJS.Timer>(undefined);
+  const longPressTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const seekerPos = useRef<number>(undefined);
   const pressStartTime = useRef<number>(undefined);
 
   useEffect(() => {
     return () => {
       console.log("Deinit useTVSeekControl");
-      // @ts-ignore
       clearTimeout(longPressTimeout.current);
     };
   }, []);
@@ -67,7 +66,6 @@ export default function useTVSeekControl({
       pressStartTime.current = new Date().getTime();
       setTimeout(() => longPressIntervalFkt(offset), 200);
     } else {
-      // @ts-ignore
       clearTimeout(longPressTimeout.current);
       const percent = seekerPosition / seekerWidth;
       console.log(

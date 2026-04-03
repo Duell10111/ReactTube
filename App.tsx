@@ -21,9 +21,6 @@ import {VideoPlayerSettingsContext} from "@/components/video/videoPlayer/setting
 import {DownloaderContext} from "@/context/DownloaderContext";
 import {MusicPlayerContext} from "@/context/MusicPlayerContext";
 import {PlaylistManagerContext} from "@/context/PlaylistManagerContext";
-import {setupMusicPlayer} from "@/utils/music/MusicInit";
-
-setupMusicPlayer();
 
 const App = () => {
   const isDarkMode = useColorScheme() === "dark";
