@@ -1,0 +1,13 @@
+diff --git a/node_modules/react-native-pager-view/react-native-pager-view.podspec b/node_modules/react-native-pager-view/react-native-pager-view.podspec
+index 0ea42a1..aeb0541 100644
+--- a/node_modules/react-native-pager-view/react-native-pager-view.podspec
++++ b/node_modules/react-native-pager-view/react-native-pager-view.podspec
+@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
+   s.license      = package["license"]
+   s.authors      = package["author"]
+ 
+-  s.platforms    = { :ios => "10.0", :visionos => "1.0" }
++  s.platforms    = { :ios => "10.0", :tvos => "15.1", :visionos => "1.0" }
+   s.source       = { :git => "https://github.com/callstack/react-native-pager-view.git", :tag => "#{s.version}" }
+ 
+   s.source_files = "ios/**/*.{h,m,mm,swift}"
