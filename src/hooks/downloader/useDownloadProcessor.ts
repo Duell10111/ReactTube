@@ -1,4 +1,4 @@
-import {Paths, Directory, File} from "expo-file-system";
+import {Paths, Directory, File, FileMode} from "expo-file-system";
 import * as FileSystem from "expo-file-system/legacy";
 import {DownloadResumable} from "expo-file-system/legacy";
 import {useRef} from "react";
@@ -7,6 +7,7 @@ import {DeviceEventEmitter} from "react-native";
 import {useYoutubeContext} from "@/context/YoutubeContext";
 import {
   createPlaylist,
+  deleteVideoLocalFileReferences,
   findVideo,
   insertVideo,
 } from "@/downloader/DownloadDatabaseOperations";
@@ -17,6 +18,11 @@ import {
   getElementDataFromYTPlaylist,
 } from "@/extraction/YTElements";
 import Logger from "@/utils/Logger";
+import {
+  PLAYBACK_CLIENTS_FULL_BYTE_RANGE,
+  resolvePlaybackInfo,
+} from "@/utils/PlaybackResolver";
+import {choosePreferredAudioFormat} from "@/utils/music/AudioPlaybackSource";
 
 const downloadDir = new Directory(Paths.document, "downloads");
 
@@ -40,113 +46,164 @@ export default function useDownloadProcessor() {
 
   const download = async (id: string, type: "audio" | "video" = "audio") => {
     const video = await findVideo(id);
-    if (video && video.fileUrl) {
-      console.log("Video: ", video);
+    if (video?.fileUrl && isUsableDownloadedVideo(video.fileUrl)) {
       LOGGER.debug("Video already downloaded");
       return;
     }
 
+    if (video?.fileUrl) {
+      LOGGER.warn(`Removing invalid local download reference for ${id}`);
+      await deleteVideoLocalFileReferences(
+        id,
+        video.coverUrl?.startsWith("http") ? video.coverUrl : undefined,
+      );
+      deleteVideoFilesIfExists(id);
+    }
+
+    if (downloadRefs.current[id]) {
+      throw new Error("This song is already being downloaded.");
+    }
+
+    if (!youtube) {
+      throw new Error("YouTube is not ready yet. Please try again.");
+    }
+    const youtubeClient = youtube;
+
     LOGGER.debug("Download video: ", id);
     let info: YTTrackInfo | YTVideoInfo;
     if (type === "audio") {
-      info = getElementDataFromTrackInfo(await youtube!.music.getInfo(id));
-
-      // Patch originalData
-      const orgData = await youtube!.getInfo(id, {client: "IOS"});
-      // @ts-ignore TODO: Fix
-      info.originalData = orgData;
+      info = getElementDataFromTrackInfo(await youtube.music.getInfo(id));
     } else {
-      info = getElementDataFromVideoInfo(
-        await youtube!.getInfo(id, {client: "IOS"}),
-      );
+      info = getElementDataFromVideoInfo(await youtube.getInfo(id));
     }
 
-    const format = info.originalData.chooseFormat({
-      type: "audio",
-    });
-    LOGGER.debug("Download video: ", format);
-    const url = await format.decipher(youtube!.actions.session.player);
-    if (url) {
-      LOGGER.debug("Download video with url: ", url);
-      LOGGER.debug("Download cover with url: ", info.thumbnailImage.url);
-      downloadVideo(
-        id,
-        url,
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        const source = await resolveDownloadSource(id);
+        await downloadResolvedAudio(id, info, source);
+        return;
+      } catch (error) {
+        lastError = error;
+        delete downloadRefs.current[id];
+        deleteVideoFilesIfExists(id);
+        LOGGER.warn(`Download attempt ${attempt} failed for ${id}: `, error);
+      }
+    }
+
+    throw new Error(
+      `Download failed after two attempts: ${errorMessage(lastError)}`,
+    );
+
+    async function resolveDownloadSource(downloadId: string) {
+      const resolved = await resolvePlaybackInfo(youtubeClient, downloadId, {
+        profile: "audio-download",
+        skipAuth: true,
+        clients: PLAYBACK_CLIENTS_FULL_BYTE_RANGE,
+        accept: candidate =>
+          candidate.playability_status?.status === "OK" &&
+          !!choosePreferredAudioFormat(candidate)?.mime_type.includes(
+            "audio/mp4",
+          ),
+      });
+      const format = resolved && choosePreferredAudioFormat(resolved.info);
+      if (!resolved || !format?.mime_type.includes("audio/mp4")) {
+        throw new Error("No downloadable MP4 audio format is available.");
+      }
+
+      const url = await format.decipher(youtubeClient.session.player);
+      if (!url) {
+        throw new Error("The audio download URL could not be resolved.");
+      }
+
+      LOGGER.info(
+        `Downloading ${downloadId} from ${resolved.client} · itag ${format.itag}`,
+      );
+      return {url, format};
+    }
+
+    async function downloadResolvedAudio(
+      downloadId: string,
+      trackInfo: YTTrackInfo | YTVideoInfo,
+      source: Awaited<ReturnType<typeof resolveDownloadSource>>,
+    ) {
+      const value = await downloadVideo(
+        downloadId,
+        source.url,
         true,
-        data => {
-          // TODO: Add Event to publish current complete download progress via DeviceEventEmitter
-          if (downloadRefs.current[id]) {
-            const progress =
-              data.totalBytesWritten / data.totalBytesExpectedToWrite;
+        data =>
+          updateDownloadProgress(
+            downloadRefs.current,
+            downloadId,
+            0,
+            data,
+            true,
+          ),
+        trackInfo.thumbnailImage.url,
+        data =>
+          updateDownloadProgress(
+            downloadRefs.current,
+            downloadId,
+            1,
+            data,
+            true,
+          ),
+      );
+      downloadRefs.current[downloadId] = value;
 
-            // Set progress in dependence to other download if exists
-            if (downloadRefs.current[id].download.length > 1) {
-              downloadRefs.current[id].progressDownloads[0] = progress;
-              downloadRefs.current[id].process =
-                (downloadRefs.current[id].progressDownloads[1] + progress) / 2;
-            } else {
-              downloadRefs.current[id].process = progress;
-            }
-          } else {
-            LOGGER.warn(
-              "Error updating video progress: ",
-              downloadRefs.current[id],
-            );
-          }
-          LOGGER.debug(
-            `Updating progress for ${id} video with ${downloadRefs.current[id].process}`,
-          );
-          DeviceEventEmitter.emit(
-            getVideoDownloadEventUpdate(id),
-            downloadRefs.current[id].process,
-          );
-        },
-        info.thumbnailImage.url,
-        data => {
-          if (downloadRefs.current[id]) {
-            const progress =
-              data.totalBytesWritten / data.totalBytesExpectedToWrite;
-            downloadRefs.current[id].progressDownloads[1] = progress;
-            downloadRefs.current[id].process =
-              (downloadRefs.current[id].progressDownloads[0] + progress) / 2;
-          } else {
-            LOGGER.warn(
-              "Error updating cover progress: ",
-              downloadRefs.current[id],
-            );
-          }
-          LOGGER.debug(
-            `Updating progress for ${id} cover with ${downloadRefs.current[id].process}`,
-          );
-        },
-      )
-        .then(async value => {
-          downloadRefs.current[id] = value;
-          LOGGER.debug("Download Object: ", value);
-          LOGGER.debug(`FileURL: ${value.fileURL}`);
-          const results = await Promise.all(
-            value.download.map(d => d.downloadAsync()),
-          );
-          if (results[0]) {
-            LOGGER.debug(`Video downloaded to: ${results[0].uri}`);
-            LOGGER.debug(`Video cover downloaded to: ${results[1]?.uri}`);
-            await insertVideo(
-              id,
-              info.title,
-              format.approx_duration_ms,
-              value.fileURL[1],
-              value.fileURL[0],
-              undefined,
-              info.author?.name,
-            );
-            LOGGER.debug("Insert downloaded video");
-          } else {
-            LOGGER.warn(`Download ${value.id} canceled`);
-          }
+      const [audioResult, coverResult] = await Promise.allSettled(
+        value.download.map(item => item.downloadAsync()),
+      );
 
-          delete downloadRefs.current[id];
-        })
-        .catch(LOGGER.warn);
+      if (audioResult.status === "rejected") {
+        throw audioResult.reason;
+      }
+      assertSuccessfulDownload(
+        audioResult.value,
+        value.fileURL[0],
+        "audio",
+        source.format.content_length,
+      );
+
+      let storedCoverUrl = trackInfo.thumbnailImage.url;
+      if (coverResult?.status === "fulfilled") {
+        try {
+          assertSuccessfulDownload(
+            coverResult.value,
+            value.fileURL[1],
+            "image",
+          );
+          storedCoverUrl = value.fileURL[1];
+        } catch (error) {
+          LOGGER.warn(`Cover download failed for ${downloadId}: `, error);
+          deleteRelativeVideoFile(value.fileURL[1]);
+        }
+      } else if (coverResult?.status === "rejected") {
+        LOGGER.warn(
+          `Cover download failed for ${downloadId}: `,
+          coverResult.reason,
+        );
+        deleteRelativeVideoFile(value.fileURL[1]);
+      }
+
+      const actualDurationMs =
+        trackInfo.durationSeconds &&
+        Number.isFinite(trackInfo.durationSeconds) &&
+        trackInfo.durationSeconds > 0
+          ? Math.round(trackInfo.durationSeconds * 1000)
+          : source.format.approx_duration_ms;
+      await insertVideo(
+        downloadId,
+        trackInfo.title,
+        actualDurationMs,
+        storedCoverUrl,
+        value.fileURL[0],
+        undefined,
+        trackInfo.author?.name,
+      );
+      DeviceEventEmitter.emit(getVideoDownloadEventUpdate(downloadId), 1);
+      delete downloadRefs.current[downloadId];
+      LOGGER.info(`Download completed for ${downloadId}`);
     }
   };
 
@@ -173,28 +230,28 @@ export default function useDownloadProcessor() {
     }
 
     const value = await downloadPlaylistCover(id, info.coverUrl, data => {
-      if (downloadRefs.current[id]) {
-        downloadRefs.current[id].process =
-          data.totalBytesWritten / data.totalBytesExpectedToWrite;
-      } else {
-        LOGGER.warn(
-          "Error updating cover progress: ",
-          downloadRefs.current[id],
-        );
+      const current = downloadRefs.current[id];
+      if (!current) {
+        return;
       }
-      LOGGER.debug(
-        `Updating progress for ${id} cover with ${downloadRefs.current[id].process}`,
-      );
+      current.process = getProgress(data);
     });
     downloadRefs.current[id] = value;
 
-    const result = await value.download[0].downloadAsync();
-    if (result) {
+    try {
+      const result = await value.download[0].downloadAsync();
+      assertSuccessfulDownload(
+        result,
+        value.fileURL[0],
+        "image",
+        undefined,
+        playlistDir,
+      );
       LOGGER.debug(`Playlist cover downloaded to ${result.uri}`);
       await createPlaylist(id, info.title, info.description, value.fileURL[0]);
       LOGGER.debug(`Insert downloaded playlist cover for ${value.id}`);
-    } else {
-      LOGGER.warn(`Downloaded playlist cover ${value.id} canceled`);
+    } finally {
+      delete downloadRefs.current[id];
     }
   };
 
@@ -207,11 +264,122 @@ export default function useDownloadProcessor() {
 
 // TODO: Rename to getAbsoluteDownloadURL?
 export function getAbsoluteVideoURL(url: string) {
-  return videoDir + url;
+  return new File(videoDir, url).uri;
 }
 
 export function getAbsolutePlaylistURL(url: string) {
-  return playlistDir + url;
+  return new File(playlistDir, url).uri;
+}
+
+export function isUsableDownloadedVideo(relativeUrl: string) {
+  const file = new File(videoDir, relativeUrl);
+  if (!file.exists || file.size < 12) {
+    return false;
+  }
+
+  let handle;
+  try {
+    handle = file.open(FileMode.ReadOnly);
+    const header = handle.readBytes(12);
+    return String.fromCharCode(...header.slice(4, 8)) === "ftyp";
+  } catch (error) {
+    LOGGER.warn(`Could not validate local media file ${relativeUrl}: `, error);
+    return false;
+  } finally {
+    handle?.close();
+  }
+}
+
+function deleteRelativeVideoFile(relativeUrl: string | undefined) {
+  if (!relativeUrl) {
+    return;
+  }
+  const file = new File(videoDir, relativeUrl);
+  if (file.exists) {
+    file.delete();
+  }
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function getProgress(data: FileSystem.DownloadProgressData) {
+  if (data.totalBytesExpectedToWrite <= 0) {
+    return 0;
+  }
+  return Math.min(1, data.totalBytesWritten / data.totalBytesExpectedToWrite);
+}
+
+function updateDownloadProgress(
+  downloads: DownloadRef,
+  id: string,
+  index: number,
+  data: FileSystem.DownloadProgressData,
+  emit: boolean,
+) {
+  const current = downloads[id];
+  if (!current) {
+    return;
+  }
+
+  current.progressDownloads[index] = getProgress(data);
+  current.process =
+    current.progressDownloads.reduce((sum, value) => sum + value, 0) /
+    current.progressDownloads.length;
+
+  if (emit) {
+    DeviceEventEmitter.emit(getVideoDownloadEventUpdate(id), current.process);
+  }
+}
+
+function assertSuccessfulDownload(
+  result: FileSystem.FileSystemDownloadResult | undefined,
+  relativeUrl: string | undefined,
+  expectedType: "audio" | "image",
+  expectedBytes?: number,
+  parentDirectory = videoDir,
+): asserts result is FileSystem.FileSystemDownloadResult {
+  if (!result) {
+    throw new Error("Download was cancelled.");
+  }
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(`Server returned HTTP ${result.status}.`);
+  }
+  if (!relativeUrl) {
+    throw new Error("Download destination is missing.");
+  }
+
+  const contentType = (
+    result.mimeType ??
+    result.headers["Content-Type"] ??
+    result.headers["content-type"] ??
+    ""
+  )
+    .split(";", 1)[0]
+    .toLowerCase();
+  const genericBinary =
+    !contentType ||
+    contentType === "application/octet-stream" ||
+    contentType === "binary/octet-stream";
+  if (!genericBinary && !contentType.startsWith(`${expectedType}/`)) {
+    throw new Error(
+      `Server returned ${contentType || "an unknown content type"} instead of ${expectedType}.`,
+    );
+  }
+
+  const file = new File(parentDirectory, relativeUrl);
+  if (!file.exists || file.size <= 0) {
+    throw new Error("The downloaded file is empty or missing.");
+  }
+  if (expectedBytes && file.size < expectedBytes) {
+    throw new Error(
+      `The downloaded file is incomplete (${file.size} of ${expectedBytes} bytes).`,
+    );
+  }
+  if (expectedType === "audio" && !isUsableDownloadedVideo(relativeUrl)) {
+    throw new Error("The server response is not a playable MP4 audio file.");
+  }
 }
 
 async function ensureDirExists(directory = downloadDir) {
@@ -251,30 +419,33 @@ async function downloadVideo(
     undefined,
     callback,
   );
-
-  let coverFileURL: string | undefined;
-  let coverDownload: DownloadResumable | undefined;
+  const downloads: DownloadResumable[] = [download];
+  const fileURLs = [videoURL];
 
   if (coverUrl) {
     console.log("Download cover as well!");
-    coverFileURL = `${id}/cover.jpg`;
+    const coverFileURL = `${id}/cover.jpg`;
     const coverFileFullURL = new File(videoDir, coverFileURL).uri;
-    coverDownload = FileSystem.createDownloadResumable(
-      coverUrl,
-      coverFileFullURL,
-      undefined,
-      coverUrlCallback,
+    downloads.push(
+      FileSystem.createDownloadResumable(
+        coverUrl,
+        coverFileFullURL,
+        undefined,
+        coverUrlCallback,
+      ),
     );
+    fileURLs.push(coverFileURL);
   }
 
   return {
     id,
-    download: coverUrl ? [download, coverDownload] : [download],
-    fileURL: coverUrl ? [videoURL, coverFileURL] : [videoURL],
+    download: downloads,
+    fileURL: fileURLs,
     process: 0,
-    progressDownloads: [0, 0],
-    type: "video",
-  } as DownloadObject;
+    progressDownloads: downloads.map(() => 0),
+    type: audioOnly ? "audio" : "video",
+    contentType: "video",
+  } satisfies DownloadObject;
 }
 
 async function downloadVideoCover(
@@ -343,6 +514,9 @@ function getPlaylistDir(id: string) {
   return new Directory(playlistDir, id);
 }
 
-export async function deleteVideoFilesIfExists(id: string) {
-  return getVideoDir(id).delete();
+export function deleteVideoFilesIfExists(id: string) {
+  const directory = getVideoDir(id);
+  if (directory.exists) {
+    directory.delete();
+  }
 }

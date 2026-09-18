@@ -38,8 +38,9 @@ export default function VideoScreenTablet({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;
   const {
     YTVideoInfo,
-    httpVideoURL,
-    hlsManifestUrl,
+    // Plan-Phase 4.1: `VideoPlayerPhone` reicht weder Fehler noch Fortschritt
+    // durch, deshalb bleibt die Ladder hier vorerst einstufig.
+    videoUrl,
     actionData,
     like,
     dislike,
@@ -57,11 +58,6 @@ export default function VideoScreenTablet({route, navigation}: Props) {
 
   const {bottom} = useSafeAreaInsets();
   const videoRef = useRef<VideoRef>(undefined);
-
-  const videoUrl = useMemo(
-    () => hlsManifestUrl ?? httpVideoURL,
-    [hlsManifestUrl, httpVideoURL],
-  );
 
   const [landscape, setLandscape] = useState(false);
   useOrientationChange(orientation => {

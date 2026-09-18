@@ -1,8 +1,8 @@
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 
 import {useAccountContext} from "@/context/AccountContext";
 import {useYoutubeContext} from "@/context/YoutubeContext";
-import {getAllPlaylistsAsElementData} from "@/downloader/DBData";
+import {isLocalPlaylist} from "@/downloader/DBData";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import {extractGrid} from "@/extraction/GridExtraction";
 import {ElementData} from "@/extraction/Types";
@@ -18,19 +18,37 @@ export default function useMusicLibrary() {
   const {playlists, fetchPlaylists} = usePlaylistManager();
 
   useEffect(() => {
-    // No login present -> Use local Database instead
-    if (loginData.accounts.length === 0) {
-      getAllPlaylistsAsElementData().then(setData).catch(console.warn);
-    } else if (youtube?.session.logged_in) {
+    if (loginData.accounts.length > 0 && youtube?.session.logged_in) {
       youtube?.music?.getLibrary().then(lib => {
         library.current = lib;
         lib.contents && setData(extractGrid(lib.contents[0]));
       });
-    } else {
+    } else if (loginData.accounts.length > 0) {
       // Fetch playlists from PlaylistManager
       fetchPlaylists().catch(console.warn);
     }
   }, []);
+
+  const libraryData = useMemo(() => {
+    // `playlists` is backed by a live database query. Returning it directly in
+    // local mode keeps playlists created after this hook mounted visible to
+    // consumers such as the Watch sync listener.
+    if (loginData.accounts.length === 0) {
+      return playlists;
+    }
+
+    // The remote music library does not contain locally stored playlists.
+    // Add those explicitly and avoid duplicates if a source exposes the same
+    // playlist more than once.
+    const localPlaylists = (playlists ?? []).filter(playlist =>
+      isLocalPlaylist(playlist.id),
+    );
+    const localIds = new Set(localPlaylists.map(playlist => playlist.id));
+    return [
+      ...localPlaylists,
+      ...(data ?? []).filter(element => !localIds.has(element.id)),
+    ];
+  }, [data, loginData.accounts.length, playlists]);
 
   const fetchContinuation = () => {
     const lib = continuation.current ?? library.current;
@@ -48,7 +66,7 @@ export default function useMusicLibrary() {
   };
 
   return {
-    data: data ?? playlists,
+    data: libraryData,
     fetchContinuation,
   };
 }

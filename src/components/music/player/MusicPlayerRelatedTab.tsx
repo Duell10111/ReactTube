@@ -8,9 +8,7 @@ import MusicHorizontalItem from "../MusicHorizontalItem";
 
 export function MusicPlayerRelatedTab() {
   const {currentItem} = useMusikPlayerContext();
-  const {relatedSections, message} = useMusicRelatedInfo(currentItem?.id ?? "");
-
-  console.log("Related: ", relatedSections);
+  const {relatedSections} = useMusicRelatedInfo(currentItem?.id ?? "");
 
   const renderItem = useCallback<ListRenderItem<HorizontalData>>(({item}) => {
     return <MusicHorizontalItem data={item} />;

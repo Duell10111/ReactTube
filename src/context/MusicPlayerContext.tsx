@@ -1,4 +1,10 @@
-import _ from "lodash";
+import TrackPlayer, {
+  Event,
+  PlaybackState,
+  type PlaybackErrorCode,
+  useIsPlaying,
+  useProgress,
+} from "@rntp/player";
 import React, {
   createContext,
   useCallback,
@@ -8,13 +14,6 @@ import React, {
   useState,
 } from "react";
 import {SharedValue, useSharedValue} from "react-native-reanimated";
-// import TrackPlayer, {
-//   Capability,
-//   Event,
-//   Track,
-//   TrackType,
-//   useTrackPlayerEvents,
-// } from "react-native-track-player";
 
 import useVideoDataGenerator from "../hooks/music/useVideoDataGenerator";
 import Logger from "../utils/Logger";
@@ -22,9 +21,10 @@ import {YTNodes} from "../utils/Youtube";
 
 import {useAppData} from "@/context/AppDataContext";
 import {useYoutubeContext} from "@/context/YoutubeContext";
-import {getUpNextForVideoWithPlaylist} from "@/downloader/DBData";
-import {findVideo} from "@/downloader/DownloadDatabaseOperations";
-import {Video} from "@/downloader/schema";
+import {
+  getTrackInfoForVideo,
+  getUpNextForVideoWithPlaylist,
+} from "@/downloader/DBData";
 import {
   VideoData,
   YTPlaylistPanel,
@@ -36,12 +36,36 @@ import {
   parseTrackInfoPlaylist,
   parseTrackInfoPlaylistContinuation,
 } from "@/extraction/YTElements";
-import {getAbsoluteVideoURL} from "@/hooks/downloader/useDownloadProcessor";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
+import {
+  audioSourceToMediaItem,
+  resolveAudioStreamingSource,
+} from "@/utils/music/AudioPlaybackSource";
+import {
+  getNextPlaylistItem,
+  getPreviousPlaylistItem,
+  RepeatOption,
+  shouldRepeatCurrent,
+  shufflePlaylistAfterCurrent,
+} from "@/utils/music/PlaylistPlayback";
 
-type PlayType = "Audio" | "Video";
+export type {RepeatOption} from "@/utils/music/PlaylistPlayback";
 
-export type RepeatOption = "RepeatOne" | "RepeatAll";
+export type MusicPlaybackStatus =
+  | "idle"
+  | "loading"
+  | "ready"
+  | "buffering"
+  | "playing"
+  | "paused"
+  | "ended"
+  | "error";
+
+export interface MusicPlaybackError {
+  code: PlaybackErrorCode;
+  message: string;
+  trackId?: string;
+}
 
 interface MusicPlayerContextType {
   setCurrentItem: (
@@ -69,28 +93,17 @@ interface MusicPlayerContextType {
   currentTime: SharedValue<number>;
   duration: SharedValue<number>;
   playing: boolean;
+  playbackStatus: MusicPlaybackStatus;
+  playbackError?: MusicPlaybackError;
   play: () => void;
   pause: () => void;
   previous: () => Promise<void>;
   next: () => Promise<void>;
   seek: (seconds: number) => void;
-  callbacks: {
-    onProgress: (durationSeconds: number) => void;
-    onEndReached: () => void;
-  };
   fetchMorePlaylistData: () => void;
   fetchMoreAutomixPlaylistData: () => void;
   addAsNextItem: (item: VideoData) => void;
 }
-
-// const events = [
-//   Event.PlaybackState,
-//   Event.PlaybackError,
-//   Event.PlaybackActiveTrackChanged,
-//   Event.PlaybackProgressUpdated,
-//   Event.RemoteNext,
-//   Event.RemotePrevious,
-// ];
 
 const LOGGER = Logger.extend("MUSIC_CTX");
 
@@ -101,20 +114,103 @@ interface MusicPlayerProviderProps {
   children?: React.ReactNode;
 }
 
+interface MusicPlayerProgressBridgeProps {
+  activeTrack: React.RefObject<YTTrackInfo | undefined>;
+  currentTime: SharedValue<number>;
+  duration: SharedValue<number>;
+}
+
+/**
+ * Keeps RNTP's React-state polling local to this otherwise invisible leaf.
+ * Only the Reanimated values escape, so progress updates do not re-render the
+ * provider and every consumer of MusicPlayerCtx.
+ */
+function MusicPlayerProgressBridge({
+  activeTrack,
+  currentTime,
+  duration,
+}: MusicPlayerProgressBridgeProps) {
+  const progress = useProgress(0.25);
+
+  useEffect(() => {
+    currentTime.value = progress.position;
+    duration.value =
+      progress.duration || activeTrack.current?.durationSeconds || 0;
+  }, [
+    activeTrack,
+    currentTime,
+    duration,
+    progress.duration,
+    progress.position,
+  ]);
+
+  return null;
+}
+
 export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const {appSettings} = useAppData();
   const {videoExtractor, videoExtractorNavigationEndpoint} =
     useVideoDataGenerator();
   const youtube = useYoutubeContext();
 
-  // Currently only support audio play type
-  const [playType, setPlayType] = useState<PlayType>("Audio");
-  const [playing, setPlaying] = useState(false);
+  const playing = useIsPlaying();
+  const [playbackStatus, setPlaybackStatus] =
+    useState<MusicPlaybackStatus>("idle");
+  const [playbackError, setPlaybackError] = useState<MusicPlaybackError>();
   const duration = useSharedValue(0);
   const currentTime = useSharedValue(0);
   const [playlist, setPlaylist] = useState<YTPlaylistPanel>();
   const playlistContinuation = useRef<YTPlaylistPanelContinuation>(undefined);
   const [currentVideoData, setCurrentVideoData] = useState<YTTrackInfo>();
+  const selectionGeneration = useRef(0);
+  const playbackGeneration = useRef(0);
+  const activeTrack = useRef<YTTrackInfo | undefined>(undefined);
+  const playbackIntent = useRef(false);
+  const replacementInProgress = useRef(false);
+  const retryGeneration = useRef<number | undefined>(undefined);
+  const endedGeneration = useRef<number | undefined>(undefined);
+  const refreshInFlight = useRef<
+    | {
+        generation: number;
+        promise: Promise<boolean>;
+      }
+    | undefined
+  >(undefined);
+  const [sourceExpiresAt, setSourceExpiresAt] = useState<number>();
+
+  const selectResolvedTrack = useCallback(
+    async (
+      request: Promise<YTTrackInfo>,
+      onSelected?: (track: YTTrackInfo) => void,
+    ): Promise<YTTrackInfo | undefined> => {
+      const generation = ++selectionGeneration.current;
+
+      try {
+        const track = await request;
+        if (generation !== selectionGeneration.current) {
+          LOGGER.debug(`Discarding stale track request for ${track.id}`);
+          return undefined;
+        }
+
+        setCurrentVideoData(track);
+        onSelected?.(track);
+        return track;
+      } catch (error: any) {
+        if (generation !== selectionGeneration.current) {
+          return undefined;
+        }
+
+        LOGGER.warn(error);
+        showMessage({
+          type: "warning",
+          message: "Error loading song",
+          description: String(error?.message ?? error),
+        });
+        return undefined;
+      }
+    },
+    [],
+  );
 
   // Automix data
   const [automix, setAutomix] = useState(false);
@@ -127,83 +223,6 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const shuffleBackup = useRef<YTPlaylistPanelItem[]>(undefined);
   const [repeat, setRepeat] = useState<RepeatOption>();
   // TODO: Add repeat all, one in the future here
-
-  // useTrackPlayerEvents(events, event => {
-  //   if (event.type === Event.PlaybackError) {
-  //     console.warn("An error occurred while playing the current track.");
-  //   }
-  //   if (event.type === Event.PlaybackState) {
-  //     if (event.state === "playing") {
-  //       setPlaying(true);
-  //     } else {
-  //       setPlaying(false);
-  //     }
-  //
-  //     if (event.state === "ended") {
-  //       onEndReached();
-  //     }
-  //   }
-  //   if (event.type === Event.PlaybackActiveTrackChanged) {
-  //     LOGGER.debug("Music Track Changed: ", event);
-  //     if (!event.track) {
-  //       onEndReached();
-  //     }
-  //   }
-  //   if (event.type === Event.PlaybackProgressUpdated) {
-  //     duration.value = event.duration;
-  //     currentTime.value = event.position;
-  //     // LOGGER.debug("CurrentTime: ", event.position);
-  //
-  //     // if (
-  //     //   currentVideoData?.durationSeconds &&
-  //     //   currentVideoData.durationSeconds > event.position
-  //     // ) {
-  //     //   LOGGER.debug("Music Track end reached! Triggering onEndReached!");
-  //     //   onEndReached();
-  //     // }
-  //   }
-  //
-  //   if (event.type === Event.RemotePlay) {
-  //     setPlaying(true);
-  //     TrackPlayer.play().catch(LOGGER.warn);
-  //   }
-  //
-  //   if (event.type === Event.RemotePause) {
-  //     setPlaying(false);
-  //     TrackPlayer.pause().catch(LOGGER.warn);
-  //   }
-  //
-  //   if (event.type === Event.RemotePrevious) {
-  //     previous().catch(LOGGER.warn);
-  //   }
-  //
-  //   if (event.type === Event.RemoteNext) {
-  //     next().catch(LOGGER.warn);
-  //   }
-  // });
-
-  // useEffect(() => {
-  //   TrackPlayer.updateOptions({
-  //     progressUpdateEventInterval: 1,
-  //     capabilities: [
-  //       Capability.Play,
-  //       Capability.Pause,
-  //       Capability.SkipToNext,
-  //       Capability.SkipToPrevious,
-  //       Capability.SeekTo,
-  //     ],
-  //   }).catch(LOGGER.warn);
-  // }, []);
-
-  // useEffect(() => {
-  //   if (playType === "Audio" && currentVideoData) {
-  //     // console.log("Current video Data: ", currentVideoData);
-  //     TrackPlayer.load(videoInfoToTrack(currentVideoData)).then(() => {
-  //       TrackPlayer.play().catch(LOGGER.warn);
-  //     });
-  //   }
-  //   duration.value = currentVideoData?.durationSeconds ?? 0;
-  // }, [currentVideoData]);
 
   useEffect(() => {
     if (automix && currentVideoData) {
@@ -226,17 +245,10 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       if (shuffle) {
         shuffleBackup.current = prevState.items;
       }
-      const currentIndex = prevState.items.findIndex(
-        item => item.id === currentVideoData?.id,
-      );
-
       return {
         ...prevState,
         items: shuffle
-          ? [
-              ...prevState.items.slice(0, currentIndex + 1),
-              ..._.shuffle(prevState.items.slice(currentIndex + 1)),
-            ]
+          ? shufflePlaylistAfterCurrent(prevState.items, currentVideoData?.id)
           : (shuffleBackup.current ?? []),
       };
     });
@@ -249,16 +261,9 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         // Save current playlist order
         shuffleBackup.current = p.items;
 
-        const currentIndex = p.items.findIndex(
-          item => item.id === curVideoData.id,
-        );
-
         return {
           ...p,
-          items: [
-            ...p.items.slice(0, currentIndex + 1),
-            ..._.shuffle(p.items.slice(currentIndex + 1)),
-          ],
+          items: shufflePlaylistAfterCurrent(p.items, curVideoData.id),
         };
       } else {
         // Do nothing if no shuffle enabled
@@ -286,8 +291,21 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         );
     } else {
       LOGGER.debug("Fetching up next playlist: ", curVideoData.title);
-      curVideoData.originalData
-        .getUpNext(false) // TODO: Add flag on Context to allow automix?
+      const isLocalTrack =
+        (curVideoData.originalData as {type?: string}).type === "Local";
+      if (isLocalTrack && !youtube?.music) {
+        LOGGER.debug("Skipping online up next before YouTube is initialized");
+        return;
+      }
+
+      const upNextRequest =
+        // A downloaded track only carries the local marker, not a TrackInfo
+        // instance. Playlist metadata may still be fetched by its YouTube id.
+        isLocalTrack
+          ? youtube!.music.getUpNext(curVideoData.id, false)
+          : curVideoData.originalData.getUpNext(false);
+
+      upNextRequest
         .then(p => {
           setPlaylist(
             shuffleUpNextPlaylist(parseTrackInfoPlaylist(p), curVideoData),
@@ -336,13 +354,15 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   };
 
   const fetchUpNextAutomixPlaylist = (curVideoData: YTTrackInfo) => {
-    // TODO: Add proper local type indicator
-    // @ts-ignore SHOW ABOVE
-    (curVideoData.originalData?.type &&
-    // @ts-ignore SHOW ABOVE
-    curVideoData.originalData.type === "Local" &&
-    youtube?.music
-      ? youtube.music.getUpNext(curVideoData.id, true)
+    const isLocalTrack =
+      (curVideoData.originalData as {type?: string}).type === "Local";
+    if (isLocalTrack && !youtube?.music) {
+      LOGGER.debug("Skipping automix before YouTube is initialized");
+      return;
+    }
+
+    (isLocalTrack
+      ? youtube!.music.getUpNext(curVideoData.id, true)
       : curVideoData.originalData.getUpNext(true)
     )
       .then(p => {
@@ -400,7 +420,12 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   useEffect(() => {
     if (appSettings.trackingEnabled && currentVideoData) {
-      currentVideoData.originalData.addToWatchHistory().catch(LOGGER.warn);
+      const addToWatchHistory = currentVideoData.originalData.addToWatchHistory;
+      if (typeof addToWatchHistory === "function") {
+        addToWatchHistory
+          .call(currentVideoData.originalData)
+          .catch(LOGGER.warn);
+      }
     }
   }, [currentVideoData, appSettings.trackingEnabled]);
 
@@ -409,94 +434,262 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     upNextUpdate = true,
     addToUpNext = false,
   ) => {
-    videoExtractor(videoData)
-      .then(curVideoData => {
-        setCurrentVideoData(curVideoData);
-        if (upNextUpdate) {
-          fetchUpNextPlaylist(curVideoData);
-          automix && fetchUpNextAutomixPlaylist(curVideoData);
-        } else if (addToUpNext && playlist) {
-          const playlistItem: YTPlaylistPanelItem = {
-            ...videoData,
-            selected: false,
+    selectResolvedTrack(videoExtractor(videoData), curVideoData => {
+      if (upNextUpdate) {
+        fetchUpNextPlaylist(curVideoData);
+        automix && fetchUpNextAutomixPlaylist(curVideoData);
+      } else if (addToUpNext && playlist) {
+        const playlistItem: YTPlaylistPanelItem = {
+          ...videoData,
+          selected: false,
+        };
+        setPlaylist(prevState => {
+          // Fallback for typechecks
+          if (!prevState) {
+            return undefined;
+          }
+          return {
+            ...prevState,
+            items: [...prevState?.items, playlistItem],
           };
-          setPlaylist(prevState => {
-            // Fallback for typechecks
-            if (!prevState) {
-              return undefined;
-            }
-            return {
-              ...prevState,
-              items: [...prevState?.items, playlistItem],
-            };
-          });
-
-          // Update Automix Playlist to remove selected item
-          setAutomixPlaylist(prevState => {
-            // Skip if automix not fetched
-            if (!prevState) {
-              return undefined;
-            }
-            return {
-              ...prevState,
-              items: [...prevState.items.filter(i => i.id !== playlistItem.id)],
-            };
-          });
-        }
-      })
-      .catch(error => {
-        LOGGER.warn(error);
-        showMessage({
-          type: "warning",
-          message: "Error loading song",
-          description: error.toString(),
         });
-      });
+
+        // Update Automix Playlist to remove selected item
+        setAutomixPlaylist(prevState => {
+          // Skip if automix not fetched
+          if (!prevState) {
+            return undefined;
+          }
+          return {
+            ...prevState,
+            items: [...prevState.items.filter(i => i.id !== playlistItem.id)],
+          };
+        });
+      }
+    }).catch(LOGGER.warn);
   };
   const setPlaylistViaEndpoint = (
     endpoint: YTNodes.NavigationEndpoint,
     upNextUpdate = true,
   ) => {
-    videoExtractorNavigationEndpoint(endpoint)
-      .then(curVideoData => {
-        setCurrentVideoData(curVideoData);
+    selectResolvedTrack(
+      videoExtractorNavigationEndpoint(endpoint),
+      curVideoData => {
         if (upNextUpdate) {
           fetchUpNextPlaylist(curVideoData);
           automix && fetchUpNextAutomixPlaylist(curVideoData);
         }
-      })
-      .catch(error => {
-        LOGGER.warn(error);
-        showMessage({
-          type: "warning",
-          message: "Error loading song",
-          description: error.toString(),
-        });
-      });
+      },
+    ).catch(LOGGER.warn);
   };
 
-  // TODO: Depreacted? as now done via setCurrentPlaylist
   const setPlaylistViaLocalDownload = async (id: string) => {
-    const localVideos = await findVideo(id);
+    await selectResolvedTrack(
+      (async () => {
+        const localTrack = await getTrackInfoForVideo(id);
+        if (!localTrack?.localFileUrl) {
+          throw new Error("Downloaded audio file is not available");
+        }
 
-    if (localVideos) {
-      // TODO: set currentVideoData?
-      // const track = localVideoToTrack(localVideos);
-      // LOGGER.warn(track);
-      // TrackPlayer.load(track)
-      //   .then(() => {
-      //     TrackPlayer.play().catch(LOGGER.warn);
-      //   })
-      //   .catch(LOGGER.warn);
-    }
+        const resolved = await resolveAudioStreamingSource(youtube, id, {
+          localUrl: localTrack.localFileUrl,
+        });
+        if (!resolved) {
+          throw new Error("Downloaded audio source is not playable");
+        }
+
+        return {...localTrack, audioSource: resolved.source};
+      })(),
+    );
   };
+
+  const refreshActiveSource = useCallback(
+    (generation: number, reason: "expiry" | "error"): Promise<boolean> => {
+      const pending = refreshInFlight.current;
+      if (pending?.generation === generation) {
+        return pending.promise;
+      }
+
+      const promise = (async () => {
+        const track = activeTrack.current;
+        if (!track?.audioSource) {
+          throw new Error("No active audio source to refresh");
+        }
+
+        const savedPosition = TrackPlayer.getProgress().position;
+        const shouldResume = playbackIntent.current || TrackPlayer.isPlaying();
+        replacementInProgress.current = true;
+        setPlaybackStatus("loading");
+        setPlaybackError(undefined);
+
+        const resolved = await resolveAudioStreamingSource(youtube, track.id, {
+          localUrl:
+            track.audioSource.kind === "local"
+              ? track.audioSource.url
+              : undefined,
+        });
+
+        if (
+          generation !== playbackGeneration.current ||
+          track.id !== activeTrack.current?.id
+        ) {
+          LOGGER.debug(`Discarding stale ${reason} refresh for ${track.id}`);
+          return false;
+        }
+        if (!resolved) {
+          throw new Error("No replacement audio source is available");
+        }
+
+        const position = Math.max(
+          savedPosition,
+          TrackPlayer.getProgress().position,
+        );
+        const refreshedTrack = {...track, audioSource: resolved.source};
+        TrackPlayer.setMediaItem(
+          audioSourceToMediaItem(refreshedTrack, resolved.source),
+        );
+        if (position > 0) {
+          TrackPlayer.seekTo(position);
+        }
+        if (shouldResume) {
+          playbackIntent.current = true;
+          TrackPlayer.play();
+        } else {
+          TrackPlayer.pause();
+        }
+
+        activeTrack.current = refreshedTrack;
+        setSourceExpiresAt(resolved.source.expires?.getTime());
+        LOGGER.info(`Refreshed ${reason} audio source for ${track.id}`);
+        return true;
+      })()
+        .catch((error: any) => {
+          if (generation !== playbackGeneration.current) {
+            return false;
+          }
+
+          LOGGER.error(
+            `Refreshing ${reason} audio source failed for ${
+              activeTrack.current?.id ?? "unknown"
+            }: `,
+            error,
+          );
+          showMessage({
+            type: "warning",
+            message: "Could not reload song",
+            description: String(error?.message ?? error),
+          });
+          setPlaybackStatus("error");
+          setPlaybackError({
+            code: "unknown",
+            message: String(error?.message ?? error),
+            trackId: activeTrack.current?.id,
+          });
+          return false;
+        })
+        .finally(() => {
+          if (refreshInFlight.current?.promise === promise) {
+            refreshInFlight.current = undefined;
+            replacementInProgress.current = false;
+          }
+        });
+
+      refreshInFlight.current = {generation, promise};
+      return promise;
+    },
+    [youtube],
+  );
+
+  useEffect(() => {
+    const generation = ++playbackGeneration.current;
+    retryGeneration.current = undefined;
+    endedGeneration.current = undefined;
+    refreshInFlight.current = undefined;
+    replacementInProgress.current = false;
+    setSourceExpiresAt(undefined);
+    setPlaybackError(undefined);
+
+    if (!currentVideoData) {
+      activeTrack.current = undefined;
+      setPlaybackStatus("idle");
+      return;
+    }
+
+    activeTrack.current = currentVideoData;
+    setPlaybackStatus("loading");
+    currentTime.value = 0;
+    duration.value = currentVideoData.durationSeconds ?? 0;
+
+    if (!currentVideoData.audioSource) {
+      LOGGER.error(`Track ${currentVideoData.id} has no playable audio source`);
+      showMessage({
+        type: "warning",
+        message: "Song cannot be played",
+        description: "No playable audio source is available.",
+      });
+      setPlaybackStatus("error");
+      setPlaybackError({
+        code: "source",
+        message: "No playable audio source is available.",
+        trackId: currentVideoData.id,
+      });
+      return;
+    }
+
+    try {
+      TrackPlayer.setMediaItem(
+        audioSourceToMediaItem(currentVideoData, currentVideoData.audioSource),
+      );
+      if (generation !== playbackGeneration.current) {
+        return;
+      }
+
+      setSourceExpiresAt(currentVideoData.audioSource.expires?.getTime());
+      playbackIntent.current = true;
+      TrackPlayer.play();
+    } catch (error: any) {
+      LOGGER.error(`Loading track ${currentVideoData.id} failed: `, error);
+      showMessage({
+        type: "warning",
+        message: "Error loading song",
+        description: String(error?.message ?? error),
+      });
+      setPlaybackStatus("error");
+      setPlaybackError({
+        code: "unknown",
+        message: String(error?.message ?? error),
+        trackId: currentVideoData.id,
+      });
+    }
+  }, [currentTime, currentVideoData, duration]);
+
+  useEffect(() => {
+    if (!sourceExpiresAt) {
+      return;
+    }
+
+    const generation = playbackGeneration.current;
+    const delay = Math.max(0, sourceExpiresAt - Date.now() - 60_000);
+    const timer = setTimeout(() => {
+      refreshActiveSource(generation, "expiry").catch(LOGGER.warn);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [currentVideoData?.id, refreshActiveSource, sourceExpiresAt]);
+
+  useEffect(() => {
+    return () => {
+      selectionGeneration.current += 1;
+      playbackGeneration.current += 1;
+    };
+  }, []);
 
   const onEndReached = useCallback(async () => {
-    if (repeat === "RepeatOne") {
+    if (shouldRepeatCurrent(repeat)) {
       LOGGER.debug("Repeating same song");
-      // TrackPlayer.skipToPrevious(0)
-      //   .then(() => TrackPlayer.play())
-      //   .catch(LOGGER.warn);
+      TrackPlayer.seekTo(0);
+      playbackIntent.current = true;
+      TrackPlayer.play();
       return;
     }
 
@@ -511,7 +704,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
           // Fetch next playlist items?
           const contData = await fetchMorePlaylistData();
           if (contData) {
-            videoExtractor(contData.items[0]).then(setCurrentVideoData);
+            await selectResolvedTrack(videoExtractor(contData.items[0]));
             return; // Return to skip Repeat All
           } else if (!repeat && automix && automixPlaylist) {
             // Set first Automix item as next item
@@ -523,70 +716,190 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
             );
           }
           if (repeat === "RepeatAll") {
-            const nextElement = playlist.items[0];
-            videoExtractor(nextElement).then(setCurrentVideoData);
+            const nextElement = getNextPlaylistItem(
+              playlist.items,
+              currentVideoData?.id,
+              repeat,
+            );
+            if (!nextElement) {
+              return;
+            }
+            await selectResolvedTrack(videoExtractor(nextElement));
           }
         } else {
-          const nextElement = playlist.items[newIndex];
-          videoExtractor(nextElement).then(setCurrentVideoData);
+          const nextElement = getNextPlaylistItem(
+            playlist.items,
+            currentVideoData?.id,
+            repeat,
+          );
+          if (!nextElement) {
+            return;
+          }
+          await selectResolvedTrack(videoExtractor(nextElement));
         }
       } else if (repeat) {
         // Item not found in playlist repeat the current item if repeat is set
-        // TrackPlayer.skipToPrevious(0).catch(LOGGER.warn);
       }
     }
-  }, [currentVideoData, playlist, automixPlaylist, automix, repeat]);
+  }, [
+    currentVideoData,
+    playlist,
+    automixPlaylist,
+    automix,
+    repeat,
+    selectResolvedTrack,
+    videoExtractor,
+  ]);
 
-  const play = async () => {
-    if (playType === "Audio") {
-      // await TrackPlayer.play();
-    }
+  useEffect(() => {
+    const stateSubscription = TrackPlayer.addEventListener(
+      Event.PlaybackStateChanged,
+      ({state}) => {
+        switch (state) {
+          case PlaybackState.Idle:
+            setPlaybackStatus("idle");
+            break;
+          case PlaybackState.Ready:
+            setPlaybackStatus(TrackPlayer.isPlaying() ? "playing" : "ready");
+            break;
+          case PlaybackState.Buffering:
+            setPlaybackStatus("buffering");
+            break;
+          case PlaybackState.Ended:
+            setPlaybackStatus("ended");
+            break;
+          case PlaybackState.Error:
+            setPlaybackStatus("error");
+            break;
+        }
+
+        if (state !== PlaybackState.Ended) {
+          if (state === PlaybackState.Ready) {
+            endedGeneration.current = undefined;
+          }
+          return;
+        }
+
+        const generation = playbackGeneration.current;
+        if (endedGeneration.current === generation) {
+          return;
+        }
+
+        endedGeneration.current = generation;
+        onEndReached().catch(LOGGER.warn);
+      },
+    );
+
+    const playingSubscription = TrackPlayer.addEventListener(
+      Event.IsPlayingChanged,
+      ({playing: isPlaying}) => {
+        if (isPlaying) {
+          playbackIntent.current = true;
+          endedGeneration.current = undefined;
+          setPlaybackStatus("playing");
+          return;
+        }
+
+        const state = TrackPlayer.getPlaybackState();
+        if (
+          !replacementInProgress.current &&
+          state !== PlaybackState.Buffering &&
+          state !== PlaybackState.Error
+        ) {
+          playbackIntent.current = false;
+          setPlaybackStatus(state === PlaybackState.Ready ? "paused" : "idle");
+        }
+      },
+    );
+
+    const transitionSubscription = TrackPlayer.addEventListener(
+      Event.MediaItemTransition,
+      ({item}) => {
+        LOGGER.debug(`Active media item changed to ${item?.mediaId ?? "none"}`);
+      },
+    );
+
+    const errorSubscription = TrackPlayer.addEventListener(
+      Event.PlaybackError,
+      ({code, message}) => {
+        const generation = playbackGeneration.current;
+        const trackId = activeTrack.current?.id ?? "unknown";
+        const nativeTrackId = TrackPlayer.getActiveMediaItem()?.mediaId;
+        LOGGER.error(
+          `Music playback failed (${code}) for ${trackId}: ${message}`,
+        );
+
+        if (nativeTrackId && nativeTrackId !== trackId) {
+          LOGGER.debug(
+            `Ignoring stale playback error for native item ${nativeTrackId}`,
+          );
+          return;
+        }
+
+        setPlaybackStatus("error");
+        setPlaybackError({code, message, trackId});
+
+        if (retryGeneration.current === generation) {
+          showMessage({
+            type: "warning",
+            message: "Playback failed",
+            description: message,
+          });
+          return;
+        }
+
+        retryGeneration.current = generation;
+        showMessage({
+          type: "warning",
+          message: "Playback interrupted",
+          description: `${message} Retrying once…`,
+        });
+        refreshActiveSource(generation, "error").catch(LOGGER.warn);
+      },
+    );
+
+    return () => {
+      stateSubscription.remove();
+      playingSubscription.remove();
+      transitionSubscription.remove();
+      errorSubscription.remove();
+    };
+  }, [onEndReached, refreshActiveSource]);
+
+  const play = () => {
+    playbackIntent.current = true;
+    setPlaybackError(undefined);
+    TrackPlayer.play();
   };
 
-  const pause = async () => {
-    if (playType === "Audio") {
-      // await TrackPlayer.pause();
-    }
+  const pause = () => {
+    playbackIntent.current = false;
+    TrackPlayer.pause();
   };
 
-  const seek = async (seconds: number) => {
-    if (playType === "Audio") {
-      // await TrackPlayer.seekTo(seconds);
-    }
+  const seek = (seconds: number) => {
+    TrackPlayer.seekTo(seconds);
   };
 
   const previous = async () => {
     if (playlist) {
-      const currentIndex = playlist.items.findIndex(
-        v => v.id === currentVideoData?.id,
+      const previousElement = getPreviousPlaylistItem(
+        playlist.items,
+        currentVideoData?.id,
       );
-      if (currentIndex > 0) {
-        const newIndex = currentIndex - 1;
-        LOGGER.debug(`Switching to newIndex: ${newIndex}`);
-        if (newIndex >= playlist.items.length) {
-          // Fetch next playlist items?
-          const contData = await fetchMorePlaylistData();
-          contData &&
-            videoExtractor(contData.items[0]).then(setCurrentVideoData);
-        } else {
-          const nextElement = playlist.items[newIndex];
-          videoExtractor(nextElement).then(setCurrentVideoData);
-        }
+      if (previousElement) {
+        LOGGER.debug(`Switching to previous item: ${previousElement.id}`);
+        await selectResolvedTrack(videoExtractor(previousElement));
       }
     } else if (
       currentVideoData?.playlist &&
       currentVideoData.playlist.current_index > 0
     ) {
-      // TODO: Remove as not needed anymore?
-      console.log(
-        "Playlist",
-        currentVideoData.playlist.content.map(v => v.title),
-      );
       const newIndex = currentVideoData.playlist.current_index - 1;
       LOGGER.debug(`Switching to newIndex: ${newIndex}`);
       const nextElement = currentVideoData.playlist.content[newIndex];
       if (nextElement.type === "video") {
-        videoExtractor(nextElement).then(setCurrentVideoData);
+        await selectResolvedTrack(videoExtractor(nextElement));
       }
     }
   };
@@ -637,6 +950,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         currentTime,
         playlist,
         playing,
+        playbackStatus,
+        playbackError,
         // Actions
         play,
         pause,
@@ -648,10 +963,6 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         setShuffle,
         repeat,
         setRepeat,
-        // @ts-ignore
-        callbacks: {
-          onEndReached,
-        },
         // Playlist fetch more
         fetchMorePlaylistData: fetchPlaylistDataWrapper,
         fetchMoreAutomixPlaylistData: fetchMoreUpNextAutomixPlaylist,
@@ -661,6 +972,11 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         automixPlaylist,
         addAsNextItem,
       }}>
+      <MusicPlayerProgressBridge
+        activeTrack={activeTrack}
+        currentTime={currentTime}
+        duration={duration}
+      />
       {children}
     </MusicPlayerCtx.Provider>
   );
@@ -669,26 +985,3 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 export function useMusikPlayerContext() {
   return useContext(MusicPlayerCtx);
 }
-
-// function videoInfoToTrack(videoInfo: YTTrackInfo) {
-//   return {
-//     id: videoInfo.id, // Set id for later find in queue
-//     // TODO: fix
-//     url: videoInfo.originalData.streaming_data?.hls_manifest_url,
-//     title: videoInfo.title,
-//     artist: videoInfo.author?.name,
-//     artwork: videoInfo.thumbnailImage.url,
-//     type: "hls",
-//   } as Track;
-// }
-
-// function localVideoToTrack(video: Video) {
-//   return {
-//     id: video.id,
-//     // @ts-ignore TODO: fix
-//     url: getAbsoluteVideoURL(video.fileUrl),
-//     title: video.name,
-//     type: TrackType.Default,
-//     endTime: video.duration,
-//   } as Track;
-// }

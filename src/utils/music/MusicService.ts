@@ -1,23 +1,27 @@
-// import {Platform} from "react-native";
-// import TrackPlayer, {Event} from "react-native-track-player";
-//
-// export default async function playbackService() {
-//   console.log("Setup Player");
-//   if (Platform.OS === "ios") {
-//     await TrackPlayer.setupPlayer({
-//       autoHandleInterruptions: true,
-//     });
-//   }
-//
-//   TrackPlayer.addEventListener(Event.RemotePlay, () => TrackPlayer.play());
-//
-//   TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
-//
-//   // TrackPlayer.addEventListener(Event.RemotePrevious, () =>
-//   //   TrackPlayer.skipToPrevious(),
-//   // );
-//
-//   TrackPlayer.addEventListener(Event.RemoteSeek, event =>
-//     TrackPlayer.seekTo(event.position),
-//   );
-// }
+import TrackPlayer, {Event} from "@rntp/player";
+
+import LOGGER from "../Logger";
+
+let isPlaybackSessionRegistered = false;
+
+export default function musicPlaybackSession(): void {
+  // Play/Pause und Seek werden über setCommands nativ ausgeführt. Die
+  // prozessweite Session bleibt für Diagnose verfügbar, wenn kein React-Baum
+  // gemountet ist (z. B. während reiner Hintergrundwiedergabe).
+  TrackPlayer.addEventListener(Event.PlaybackError, ({code, message}) => {
+    LOGGER.error(`Music playback failed (${code}): ${message}`);
+  });
+}
+
+export function registerMusicPlaybackSession(): void {
+  if (isPlaybackSessionRegistered) {
+    return;
+  }
+
+  try {
+    TrackPlayer.registerPlaybackSession(musicPlaybackSession);
+    isPlaybackSessionRegistered = true;
+  } catch (error) {
+    LOGGER.error("Music playback session registration failed: ", error);
+  }
+}

@@ -1,6 +1,10 @@
 import _ from "lodash";
 
-import {getThumbnail, parseThumbnailOverlays} from "./Misc";
+import {
+  getDurationFromThumbnailOverlays,
+  getThumbnail,
+  parseThumbnailOverlays,
+} from "./Misc";
 import {
   Author,
   ChannelData,
@@ -249,9 +253,9 @@ export function getVideoData(
         duration:
           ytNode.content_type === "TILE_CONTENT_TYPE_SHORTS"
             ? "SHORT"
-            : ytNode.header?.thumbnail_overlays?.firstOfType(
-                YTNodes.ThumbnailOverlayTimeStatus,
-              )?.text,
+            : getDurationFromThumbnailOverlays(
+                ytNode.header?.thumbnail_overlays,
+              ),
         author: authorObject,
         short_views: views,
         publishDate: published,

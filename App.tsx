@@ -1,3 +1,4 @@
+import "./src/utils/RequireCycleWarnings";
 import "react-native-url-polyfill/auto";
 import "event-target-polyfill";
 import "fast-text-encoding";

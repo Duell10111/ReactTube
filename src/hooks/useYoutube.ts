@@ -1,14 +1,54 @@
 import {useEffect, useState} from "react";
 
-import {Innertube} from "../utils/Youtube";
+import {Innertube, UniversalCache} from "../utils/Youtube";
 
 import {useAppData} from "@/context/AppDataContext";
+import {
+  clearInnertubeSessionCache,
+  fetchVisitorData,
+  getStoredVisitorData,
+  storeVisitorData,
+} from "@/utils/InnertubeSession";
 import Logger from "@/utils/Logger";
 import {parseLanguage} from "@/utils/YTLanguages";
 
-const visitorDataKey = "visitorDataYT";
-
 const LOGGER = Logger.extend("INNERTUBE");
+
+/**
+ * Besorgt die Session-Identität — Plan-Phase 1.6.
+ *
+ * `visitorData` muss **server-ausgestellt** sein; ein selbst erzeugtes führt dazu,
+ * dass die HLS-fähigen Clients mit `LOGIN_REQUIRED` antworten. Deshalb wird es hier
+ * explizit geholt statt dem Konfigurationsabruf überlassen — und der Session-Cache
+ * von youtubei.js wird verworfen, wenn kein eigener Wert vorliegt, weil dieser sonst
+ * eine alte Identität wieder einspielt.
+ */
+async function resolveVisitorData(): Promise<{
+  value?: string;
+  source: "gespeichert" | "neu geholt" | "nicht verfügbar";
+}> {
+  const stored = getStoredVisitorData();
+
+  if (stored) {
+    return {value: stored, source: "gespeichert"};
+  }
+
+  await clearInnertubeSessionCache();
+
+  try {
+    const fetched = await fetchVisitorData();
+
+    if (fetched) {
+      storeVisitorData(fetched);
+      return {value: fetched, source: "neu geholt"};
+    }
+  } catch (error) {
+    LOGGER.warn("visitorData konnte nicht geholt werden: ", error);
+  }
+
+  // Ohne eigenen Wert übernimmt youtubei.js die Beschaffung beim Konfigurationsabruf.
+  return {source: "nicht verfügbar"};
+}
 
 export default function useYoutube() {
   const [youtube, setYoutube] = useState<Innertube>();
@@ -16,45 +56,24 @@ export default function useYoutube() {
   const language = parseLanguage(appSettings);
 
   useEffect(() => {
-    // let visitorData = Settings.get(visitorDataKey);
-    // if (true) {
-    //   visitorData = makeid(24);
-    //   Settings.set({
-    //     [visitorDataKey]: visitorData,
-    //   });
-    // }
+    resolveVisitorData()
+      .then(async visitor => {
+        const instance = await Innertube.create({
+          lang: language.key,
+          // Hält das Player-Skript über App-Starts hinweg.
+          cache: new UniversalCache(true),
+          visitor_data: visitor.value,
+          // cookie: "SOCS=CAISEwgDEgk2NjUyNDgyNDcaAmRlIAEaBgiAuY-2Bg",
+        });
 
-    Innertube.create({
-      lang: language.key,
-      // cookie: "SOCS=CAISEwgDEgk2NjUyNDgyNDcaAmRlIAEaBgiAuY-2Bg",
-    })
-      .then(setYoutube)
-      .catch(console.warn);
-    LOGGER.debug("Created Innertube Object");
+        LOGGER.debug(
+          `Innertube bereit · Player sts ${instance.session.player?.signature_timestamp ?? "?"} · ` +
+            `visitorData ${visitor.source} (${instance.session.context.client.visitorData?.slice(0, 16) ?? "?"}…)`,
+        );
+        setYoutube(instance);
+      })
+      .catch(e => LOGGER.warn("Innertube-Erzeugung fehlgeschlagen: ", e));
   }, []);
 
-  // useEffect(() => {
-  //   // TODO: Check if visitorData is wanted
-  //   if (youtube && true) {
-  //     youtube.actions
-  //       .execute("/visitor_id?key=AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8")
-  //       .then(response => {
-  //         console.log("VisitorData: ", JSON.stringify(response.data));
-  //       });
-  //   }
-  // }, [youtube]);
-
   return youtube;
-}
-
-function makeid(length: number) {
-  let result = "";
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-  const charactersLength = characters.length;
-  let counter = 0;
-  while (counter < length) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    counter += 1;
-  }
-  return result;
 }

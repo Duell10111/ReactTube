@@ -14,6 +14,7 @@ struct ContentView: View {
 struct watchApp: App {
     @State private var musicPlayerManager = MusicPlayerManager.shared
     @State private var downloadManager = DownloadManager.shared
+    @State private var watchStatus = WatchStatus.shared
   
     @Environment(\.scenePhase) var scenePhase
     let session = SessionSyncStruct.shared
@@ -23,6 +24,7 @@ struct watchApp: App {
             .modelContainer(DataController.shared.container)
             .environment(musicPlayerManager)
             .environment(downloadManager)
+            .environment(watchStatus)
         }.backgroundTask(.urlSession) { id in
           debugPrint("handleEventsForBackgroundURLSession: \(id)")
           // TODO: Adapt for DownloadManager

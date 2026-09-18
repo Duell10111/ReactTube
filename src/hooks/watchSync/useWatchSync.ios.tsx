@@ -1,14 +1,14 @@
 import {
   addMessageListener,
   addFileTransferFinishedListener,
-  sendMessage,
   sendFile,
   getCurrentFileTransfers,
+  transferUserInfo,
   updateApplicationContext,
   useInstalled,
   FileTransferInfo,
 } from "expo-watch-connectivity";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 
 import {handleWatchMessage} from "./WatchYoutubeAPI";
 import {getAbsoluteVideoURL} from "../downloader/useDownloadProcessor";
@@ -40,6 +40,8 @@ export default function useWatchSync() {
   // Hook data providing hybrid data access
   const library = useMusicLibrary();
   const playlistManager = usePlaylistManager();
+  const watchDataRef = useRef({library, playlistManager, videos});
+  watchDataRef.current = {library, playlistManager, videos};
 
   useEffect(() => {
     // TODO: Add check if app is installed/paired
@@ -94,7 +96,10 @@ export default function useWatchSync() {
         messageFromWatch.id
       ) {
         console.log("Received download message from watch: ", messageFromWatch);
-        sendDownloadToWatch(messageFromWatch.id, videos).catch(console.warn);
+        sendDownloadToWatch(
+          messageFromWatch.id,
+          watchDataRef.current.videos,
+        ).catch(console.warn);
       } else if (
         messageFromWatch.type === "youtubeAPI" &&
         messageFromWatch.payload
@@ -106,16 +111,12 @@ export default function useWatchSync() {
         handleWatchMessage(
           innertube,
           messageFromWatch.payload,
-          library,
-          playlistManager,
+          watchDataRef.current.library,
+          watchDataRef.current.playlistManager,
         )
           .then(async response => {
             if (Array.isArray(response)) {
-              await Promise.all(
-                response.map(res => {
-                  sendYTAPIMessage(res);
-                }),
-              );
+              await Promise.all(response.map(res => sendYTAPIMessage(res)));
             } else if (response) {
               await sendYTAPIMessage(response);
             }
@@ -171,10 +172,6 @@ export default function useWatchSync() {
   }, []);
 
   useEffect(() => {
-    sendMessage({test: "test"}).catch(LOGGER.warn);
-  }, []);
-
-  useEffect(() => {
     const sub = addFileTransferFinishedListener(info => {
       LOGGER.debug(`Finished file transfer with info: ${info}`);
       if (info.error) {
@@ -197,15 +194,40 @@ export default function useWatchSync() {
 }
 
 async function sendYTAPIMessage(response: any) {
-  const ytResponse = {
+  const ytResponse = sanitizeWatchPayload({
     type: "youtubeAPI",
     payload: response,
-  };
+  });
   LOGGER.debug(
     "Sending WATCH YT API response: ",
     JSON.stringify(ytResponse, null, 2),
   );
-  await sendMessage(ytResponse);
+  const accepted = await transferUserInfo(ytResponse);
+  if (!accepted) {
+    throw new Error("Watch Connectivity is not active or rejected the payload");
+  }
+}
+
+function sanitizeWatchPayload(value: any): any {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map(item => sanitizeWatchPayload(item))
+      .filter(item => item !== undefined);
+  }
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .map(([key, item]) => [key, sanitizeWatchPayload(item)] as const)
+        .filter(([, item]) => item !== undefined),
+    );
+  }
+  return value;
 }
 
 async function sendPlaylistToWatch(

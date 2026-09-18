@@ -1,11 +1,7 @@
-import {
-  createContext,
-  MutableRefObject,
-  ReactNode,
-  useContext,
-  useEffect,
-} from "react";
+import {createContext, MutableRefObject, ReactNode, useContext} from "react";
 
+import ErrorComponent from "../components/general/ErrorComponent";
+import LoadingComponent from "../components/general/LoadingComponent";
 import useDownloadProcessor, {
   DownloadRef,
 } from "../hooks/downloader/useDownloadProcessor";
@@ -13,7 +9,6 @@ import useDownloadProcessor, {
 import useWatchSync from "../hooks/watchSync/useWatchSync";
 
 import {useMigration} from "@/downloader/DownloadDatabaseOperations";
-import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 export interface WatchFileTransferInfo {
   uri: string;
@@ -40,21 +35,25 @@ interface DownloaderContextProps {
 }
 
 export function DownloaderContext({children}: DownloaderContextProps) {
-  const {downloadRefs, download} = useDownloadProcessor();
-
   const {success, error} = useMigration();
-  console.log("Success: ", success);
-  console.log("Error: ", error);
 
-  useEffect(() => {
-    if (error !== undefined) {
-      showMessage({
-        type: "danger",
-        message: "Local DB Migration failed!",
-        description: "Try deleting and reinstalling your app",
-      });
-    }
-  }, [error]);
+  if (error) {
+    return (
+      <ErrorComponent text={`Local DB migration failed: ${error.message}`} />
+    );
+  }
+
+  if (!success) {
+    return <LoadingComponent />;
+  }
+
+  return (
+    <InitializedDownloaderContext>{children}</InitializedDownloaderContext>
+  );
+}
+
+function InitializedDownloaderContext({children}: DownloaderContextProps) {
+  const {downloadRefs, download} = useDownloadProcessor();
 
   const {watchTransfers, upload, sendPlaylist} = useWatchSync();
 

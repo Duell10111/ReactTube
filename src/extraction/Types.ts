@@ -145,6 +145,12 @@ export interface YTVideoInfo {
   durationSeconds?: number;
   // Playback urls
   hls_manifest_url?: string;
+  /**
+   * `file://`-URI des selbst gebauten HLS-Manifests (Plan-Phase 2c).
+   * Hat Vorrang vor `hls_manifest_url`: 2160p in av01 statt avc1 bis 1080p,
+   * und getrennte Tonspuren statt gemuxtem Ton.
+   */
+  generated_hls_url?: string;
   best_format?: YTFormat;
   expires?: Date;
   // Playability Status
@@ -168,6 +174,17 @@ export interface YTVideoInfoCommentEntryPointHeader {
     avatar_thumbnail?: Thumbnail;
     text: string;
   };
+}
+
+export type AudioPlaybackSourceKind = "local" | "direct" | "youtube-hls";
+
+export interface AudioPlaybackSource {
+  kind: AudioPlaybackSourceKind;
+  url: string;
+  mimeType: string;
+  client?: string;
+  expires?: Date;
+  formatItag?: number;
 }
 
 // Make YTTrackInfo extend from VideoInfo or BasicVideoInfoType?
@@ -203,6 +220,10 @@ export interface YTTrackInfo {
   // Music Properties
   durationSeconds?: number;
   localPlaylistId?: string;
+  /** Lokale Datei, falls der Titel heruntergeladen wurde. */
+  localFileUrl?: string;
+  /** Bereits aufgelöste, abspielbare Audioquelle für RNTP. */
+  audioSource?: AudioPlaybackSource;
 }
 
 export interface YTPlaylistPanel {
