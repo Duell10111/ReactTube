@@ -1,6 +1,7 @@
 {
   "name": "reacttube",
   "version": "0.3.2",
+  "main": "index.js",
   "dependencies": {
     "@craftzdog/react-native-buffer": "6.1.2",
     "@duell10111/apple-targets": "0.0.6-alpha.1",
@@ -12,6 +13,7 @@
     "@react-navigation/native-stack": "7.19.2",
     "@rneui/base": "4.0.0-rc.8",
     "@rneui/themed": "4.0.0-rc.8",
+    "@rntp/player": "5.9.2",
     "drizzle-orm": "0.38.1",
     "event-target-polyfill": "0.0.4",
     "events": "3.3.0",
@@ -61,7 +63,7 @@
     "rn-native-search-bar": "1.0.0-beta.13",
     "stream-browserify": "3.0.0",
     "web-streams-polyfill": "4.2.0",
-    "youtubei.js": "npm:@duell10111/youtubei.js@18.0.0-beta.1"
+    "youtubei.js": "file:../../YouTube.js"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
@@ -108,6 +110,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "test": "node --test test/*.test.mjs",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit"
   }

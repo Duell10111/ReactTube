@@ -115,8 +115,9 @@ interface ItemProps {
 function VideoItem({videoId, index}: ItemProps) {
   const {
     YTVideoInfo,
-    httpVideoURL,
-    hlsManifestUrl,
+    videoUrl,
+    reportPlaybackFailure,
+    reportProgress,
     actionData,
     like,
     dislike,
@@ -126,11 +127,6 @@ function VideoItem({videoId, index}: ItemProps) {
   const {bottom} = useSafeAreaInsets();
 
   const [paused, setPaused] = useState(false);
-
-  const videoUrl = useMemo(
-    () => hlsManifestUrl ?? httpVideoURL,
-    [hlsManifestUrl, httpVideoURL],
-  );
 
   const {selected} = useContext(reelContext);
 
@@ -170,6 +166,8 @@ function VideoItem({videoId, index}: ItemProps) {
       <Animated.View style={styles.videoContainer}>
         <VideoComponent
           url={videoUrl}
+          onPlaybackFailure={reportPlaybackFailure}
+          onProgress={data => reportProgress(data.currentTime)}
           style={[styles.videoComponentFullscreen]}
           videoInfo={YTVideoInfo}
           fullscreen={false}

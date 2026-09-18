@@ -26,8 +26,9 @@ export default function VideoScreenPhone({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;
   const {
     YTVideoInfo,
-    httpVideoURL,
-    hlsManifestUrl,
+    // Plan-Phase 4.1: `VideoPlayerPhone` reicht weder Fehler noch Fortschritt
+    // durch, deshalb bleibt die Ladder hier vorerst einstufig.
+    videoUrl,
     actionData,
     like,
     dislike,
@@ -46,11 +47,6 @@ export default function VideoScreenPhone({route, navigation}: Props) {
   const {style} = useAppStyle();
   const {bottom} = useSafeAreaInsets();
   const videoRef = useRef<VideoRef>(undefined);
-
-  const videoUrl = useMemo(
-    () => hlsManifestUrl ?? httpVideoURL,
-    [hlsManifestUrl, httpVideoURL],
-  );
 
   // TODO: Currently causing more issues than it helps :/
   // const {orientation} = useOrientationChangeMotionSensor();

@@ -181,8 +181,12 @@ func addPlaylistData(_ modelContext: ModelContext, id: String, title: String? = 
     if !existingEntry {
       modelContext.insert(playlist)
     }
+
+    if modelContext.hasChanges {
+      try modelContext.save()
+    }
   } catch {
-    print("Error inserting Download Data: \(error)")
+    print("Error inserting Playlist Data: \(error)")
   }
 }
 

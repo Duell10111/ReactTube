@@ -59,12 +59,8 @@ class PlaylistManager {
           arr.append((v.0, audio))
         } else {
           // TODO: Send request for missing video Streaming Data
-          videos.forEach { video, audio in
-            if audio == nil {
-              requestVideo(id: video.id)
-            }
-          }
-          break;
+          requestVideo(id: v.0.id)
+          continue
         }
       }
       return arr

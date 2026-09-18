@@ -84,6 +84,13 @@ export default function SettingsScreen({navigation}: Props) {
           value={appSettings.trackingEnabled ? "True" : "False"}
           onPress={() => navigate("TrackingSelector")}
         />
+        <SettingsItem
+          icon={"activity"}
+          iconBackground={"#34c759"}
+          label={"Playback diagnostics"}
+          value={""}
+          onPress={() => navigate("PlaybackDiagnostics")}
+        />
         <SettingsButton label={"Clear all"} onPress={() => clearAllData()} />
         <SettingsButton label={"Logout"} onPress={() => logout()} />
       </SettingsSection>

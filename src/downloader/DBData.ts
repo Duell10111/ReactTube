@@ -29,6 +29,7 @@ import {
   deleteVideoFilesIfExists,
   getAbsolutePlaylistURL,
   getAbsoluteVideoURL,
+  isUsableDownloadedVideo,
 } from "@/hooks/downloader/useDownloadProcessor";
 
 const defaultImageUri = Asset.Asset.fromModule(
@@ -45,7 +46,24 @@ const defaultThumbnail: Thumbnail = {
 
 export async function getTrackInfoForVideo(id: string) {
   const video = await findVideo(id);
-  return video ? mapVideoToTrackInfo(video) : video;
+  if (!video) {
+    return video;
+  }
+
+  if (video.fileUrl && !isUsableDownloadedVideo(video.fileUrl)) {
+    const remoteCoverUrl = video.coverUrl?.startsWith("http")
+      ? video.coverUrl
+      : undefined;
+    deleteVideoFilesIfExists(id);
+    await deleteVideoLocalFileReferences(id, remoteCoverUrl);
+    return mapVideoToTrackInfo({
+      ...video,
+      fileUrl: null,
+      coverUrl: remoteCoverUrl ?? null,
+    });
+  }
+
+  return mapVideoToTrackInfo(video);
 }
 
 export function useVideos() {
@@ -190,6 +208,8 @@ function mapVideoToElementData(
   videoData: Video,
   playlistId?: string,
 ): VideoData {
+  const durationSeconds = getStoredDurationSeconds(videoData);
+
   return {
     originalNode: {type: "Local"} as any,
     type: "video",
@@ -197,10 +217,10 @@ function mapVideoToElementData(
     title: videoData.name ?? "Unknown title",
     // @ts-ignore ID currently not known
     author: {name: videoData.author},
-    duration: videoData.duration
-      ? Duration.fromObject({seconds: videoData.duration}).toFormat("mm:ss")
+    duration: durationSeconds
+      ? Duration.fromObject({seconds: durationSeconds}).toFormat("mm:ss")
       : undefined,
-    durationSeconds: videoData.duration ?? undefined,
+    durationSeconds,
     // @ts-ignore No height or width available
     thumbnailImage: videoData.coverUrl
       ? {
@@ -226,16 +246,7 @@ function mapVideoToYTPlaylistPanelItem(
 
 function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
   return {
-    // @ts-ignore Ignore missing data
-    originalData: {
-      type: "Local",
-      // @ts-ignore Ignore missing data
-      streaming_data: {
-        hls_manifest_url: videoData.fileUrl
-          ? getAbsoluteVideoURL(videoData.fileUrl)
-          : undefined,
-      },
-    },
+    originalData: {type: "Local"} as any,
     id: videoData.id,
     title: videoData.name ?? "Unknown title",
     author: {
@@ -244,7 +255,10 @@ function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
       // @ts-ignore TODO: Fix to allow no author?!
       name: videoData.author,
     },
-    durationSeconds: videoData.duration ?? undefined,
+    durationSeconds: getStoredDurationSeconds(videoData),
+    localFileUrl: videoData.fileUrl
+      ? getAbsoluteVideoURL(videoData.fileUrl)
+      : undefined,
     // @ts-ignore Ignore issue with no height and width for cover available
     thumbnailImage: videoData.coverUrl
       ? {
@@ -252,6 +266,15 @@ function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
         }
       : defaultThumbnail,
   };
+}
+
+/** Downloaded files store milliseconds; remote-only records use seconds. */
+function getStoredDurationSeconds(videoData: Video): number | undefined {
+  if (!videoData.duration) {
+    return undefined;
+  }
+
+  return videoData.fileUrl ? videoData.duration / 1000 : videoData.duration;
 }
 
 function mapCoverURLToImageURL(

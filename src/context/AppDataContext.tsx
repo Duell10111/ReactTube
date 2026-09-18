@@ -12,6 +12,15 @@ export interface AppSettings {
   ownOverlayEnabled?: boolean;
   hlsEnabled?: boolean;
   localHlsEnabled?: boolean;
+  /**
+   * AV1 im selbst gebauten Manifest anbieten (Plan-Phase 2c).
+   *
+   * Nur so kommt 1440p/2160p zustande — YouTube liefert avc1 höchstens in 1080p.
+   * Hardware-dekodiert wird AV1 aber erst ab Apple TV 4K (3. Gen); wo der
+   * Decoder fehlt, hängt der Player stumm, statt einen Fehler zu melden.
+   * Deshalb aus, bis man es bewusst einschaltet.
+   */
+  av1Enabled?: boolean;
   languageSelected?: string;
   trackingEnabled?: boolean;
 }

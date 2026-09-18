@@ -30,11 +30,14 @@ class DownloadManager {
     checkDownloads()
   }
 
-  func downloadVideo(video: Video) {
-    if let streamURL = video.downloadURL, let date = video.validUntil, let uri = URL(string: streamURL) {
+  @discardableResult
+  func downloadVideo(video: Video) -> Bool {
+    var didStartAudioDownload = false
+
+    if let streamURL = video.downloadURL, video.validUntil != nil, let uri = URL(string: streamURL) {
       print("Started download \(video.id)")
       let request = URLRequest(url: uri)
-      let id = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
+      _ = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
         print("Progrss: \(progress)")
         self.progressDownloads[video.id] = Double(progress)
       }) { error, fileUrl in
@@ -48,9 +51,6 @@ class DownloadManager {
             if let saveURL = saveDownload {
               Task {
                 await self.receiveFileUpload(id: video.id, fileURL: saveURL, duration: video.durationMillis)
-                self.activeDownloads.removeAll { download in
-                  download.id == video.id
-                }
                 print("Saved Download")
               }
             }
@@ -60,8 +60,12 @@ class DownloadManager {
           download.id == video.id
         }
         self.progressDownloads.removeValue(forKey: video.id)
+        // Keep draining the queue even when the video has no cover or the
+        // optional cover download fails.
+        self.checkDownloads()
       }
       activeDownloads.append(ActiveDownload(id: video.id))
+      didStartAudioDownload = true
     } else {
       print("Video metadata not available needed for Download")
     }
@@ -70,7 +74,7 @@ class DownloadManager {
     if let coverURL = video.coverURL, let uri = URL(string: coverURL) {
       print("Started image download \(video.id)")
       let request = URLRequest(url: uri)
-      let id = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
+      _ = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
         print("Progrss Image: \(progress)")
       }) { error, fileUrl in
         if let error = error {
@@ -93,13 +97,17 @@ class DownloadManager {
       }
     }
 
+    return didStartAudioDownload
   }
 
   func checkDownloads() {
     Task(priority: .background) {
       print("Checking downloads...")
 
-      for video in pendingDownloads {
+      // Iterate over a snapshot so successfully started downloads can be
+      // removed from the pending set without mutating the collection being
+      // enumerated.
+      for video in Array(pendingDownloads) {
         // Do not create a while loop here as this probably causes battery issues. Instead trigger check method after finish of download.
 //        while activeDownloads.count > 4 {
 //          do {
@@ -113,7 +121,9 @@ class DownloadManager {
           print("More than 4 downloads active. Exiting loop for now...")
           break
         }
-        downloadVideo(video: video)
+        if downloadVideo(video: video) {
+          pendingDownloads.remove(video)
+        }
       }
     }
   }

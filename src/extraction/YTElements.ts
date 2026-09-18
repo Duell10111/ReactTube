@@ -48,6 +48,33 @@ import {
 } from "@/extraction/ArrayExtraction";
 import {parseHorizontalNode} from "@/extraction/ShelfExtraction";
 
+/**
+ * Wählt ein Format, das sich als **eine** URL abspielen lässt.
+ *
+ * `chooseFormat` wirft, wenn nichts passt — der frühere `??`-Ausdruck kam deshalb
+ * nie beim Audio-Zweig an, sobald es (wie inzwischen üblich) keine muxed Formate
+ * mehr gibt. Jeder Versuch steht jetzt für sich.
+ *
+ * Bleibt ohne Ergebnis, wenn die Antwort nur adaptive Formate enthält: getrennte
+ * Video- und Audiospuren brauchen ein Manifest, keine Einzel-URL.
+ */
+function chooseBestSingleUrlFormat(
+  videoInfo: YT.VideoInfo | YTTV.VideoInfo,
+): Misc.Format | undefined {
+  for (const options of [
+    {type: "video+audio", quality: "best"},
+    {type: "audio", quality: "best"},
+  ] as const) {
+    try {
+      return videoInfo.chooseFormat(options);
+    } catch {
+      // Nächste Möglichkeit versuchen.
+    }
+  }
+
+  return undefined;
+}
+
 // TODO: Also parse buttons available, if available?!
 export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
   const thumbnail = videoInfo.basic_info.thumbnail
@@ -58,21 +85,7 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
 
   const chapters = extractChaptersFromVideoInfo(videoInfo);
 
-  let best_format: Misc.Format | undefined = undefined;
-
-  try {
-    best_format =
-      videoInfo.chooseFormat({
-        type: "video+audio",
-        quality: "best",
-      }) ??
-      videoInfo.chooseFormat({
-        type: "audio",
-        quality: "best",
-      });
-  } catch (e) {
-    console.warn("Error while matching formats: ", e);
-  }
+  const best_format = chooseBestSingleUrlFormat(videoInfo);
 
   // TODO: Check?
   // @ts-ignore
@@ -118,6 +131,9 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
         }
       : undefined,
     hls_manifest_url: videoInfo.streaming_data?.hls_manifest_url,
+    // Grundlage der Auffrischung vor Ablauf (Plan-Phase 4.2): ohne dieses Feld
+    // bleibt `expires` undefiniert und der Timer in `useVideoDetails` läuft nie an.
+    expires: videoInfo.streaming_data?.expires,
     best_format: best_format ? parseFormat(best_format) : undefined,
   } as YTVideoInfo;
 }
@@ -129,23 +145,7 @@ export function getElementDataFromTVVideoInfo(videoInfo: YTTV.VideoInfo) {
         .find(thumb => !thumb.url.endsWith("webp")) // Do not use webp for iOS!
     : undefined;
 
-  let best_format: Misc.Format | undefined = undefined;
-
-  try {
-    best_format =
-      videoInfo.chooseFormat({
-        type: "video+audio",
-        quality: "best",
-      }) ??
-      videoInfo.chooseFormat({
-        type: "audio",
-        quality: "best",
-      });
-  } catch (e) {
-    console.warn("Error while matching formats: ", e);
-  }
-
-  console.log("TVVVVV");
+  const best_format = chooseBestSingleUrlFormat(videoInfo);
 
   // TODO: Check?
   // @ts-ignore
@@ -190,6 +190,7 @@ export function getElementDataFromTVVideoInfo(videoInfo: YTTV.VideoInfo) {
         }
       : undefined,
     hls_manifest_url: videoInfo.streaming_data?.hls_manifest_url,
+    expires: videoInfo.streaming_data?.expires,
     best_format: best_format ? parseFormat(best_format) : undefined,
   } as YTVideoInfo;
 }

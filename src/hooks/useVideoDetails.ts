@@ -10,10 +10,87 @@ import {
   getElementDataFromTVVideoInfo,
   getElementDataFromVideoInfo,
 } from "@/extraction/YTElements";
+import {
+  buildGeneratedHls,
+  type GeneratedHlsOptions,
+} from "@/utils/GeneratedHls";
 import Logger from "@/utils/Logger";
+import {describeStreamingData} from "@/utils/PlaybackDiagnostics";
+import {
+  buildPlaybackLadder,
+  sameLadder,
+  type PlaybackStep,
+} from "@/utils/PlaybackLadder";
+import {
+  playbackModeFromSettings,
+  resolveStreamingSource,
+  type PlaybackMode,
+  type StreamingSource,
+} from "@/utils/PlaybackSource";
 import {YT, YTTV, YTNodes} from "@/utils/Youtube";
 
 const LOGGER = Logger.extend("VIDEO");
+
+/**
+ * Abstand zum Videoende, ab dem eine Fortsetzungsmarke nicht mehr gilt.
+ *
+ * Wer bis kurz vor Schluss geschaut hat, will beim nächsten Mal von vorn
+ * anfangen und nicht auf den Abspann springen. Vor allem aber: eine Marke
+ * **hinter** dem Ende lässt AVPlayer hängen — gemessen mit einem 218,778 s
+ * langen Video und einer Marke bei 219 s, der Player blieb stumm im
+ * Ladezustand, ohne Fehler zu melden.
+ */
+const RESUME_DEAD_ZONE_SECONDS = 5;
+
+/**
+ * Bringt eine Fortsetzungsmarke in den gültigen Bereich.
+ *
+ * @returns die Sekunde, an der eingestiegen wird, oder `undefined` für „von
+ *   vorn".
+ */
+function clampResumePosition(
+  seconds: number | undefined,
+  durationSeconds: number | undefined,
+): number | undefined {
+  if (!seconds || seconds <= 0) {
+    return undefined;
+  }
+
+  if (!durationSeconds) {
+    return seconds;
+  }
+
+  return seconds < durationSeconds - RESUME_DEAD_ZONE_SECONDS
+    ? seconds
+    : undefined;
+}
+
+/**
+ * Baut das eigene Manifest, wenn die Quelle es hergibt (Plan-Phase 2c).
+ *
+ * Bewusst vor dem Veröffentlichen der Metadaten: der Bau kostet einen
+ * Range-Request je Rendition (rund eine halbe Sekunde). Würde er nachlaufen,
+ * bekäme der Player erst YouTubes Manifest und danach unseres — und startete
+ * die Wiedergabe sichtbar neu.
+ */
+async function generateIfPossible(
+  streaming: StreamingSource,
+  mode: PlaybackMode,
+  options: GeneratedHlsOptions,
+) {
+  // Nur bauen, wenn er auch gewählt ist. Sonst kostet er anderthalb Sekunden
+  // Startzeit und steht anschließend ungenutzt in der Ladder — bei
+  // „YouTube-HLS" ist das die falsche erste Stufe.
+  if (mode !== "generated" || !streaming.canGenerateHls) {
+    return undefined;
+  }
+
+  return buildGeneratedHls(
+    streaming.info,
+    streaming.info.basic_info.id ?? "video",
+    options,
+  );
+}
 
 export default function useVideoDetails(
   videoId: string | YTNodes.NavigationEndpoint,
@@ -33,9 +110,9 @@ export default function useVideoDetails(
   const [watchNextSections, setWatchNextSections] =
     useState<HorizontalData[]>();
   const {appSettings} = useAppData();
+  /** Der gewählte Weg — bestimmt Client-Kette, Manifestbau und Ladder-Reihenfolge. */
+  const playbackMode = playbackModeFromSettings(appSettings);
   const [startTime, setStartTime] = useState<number>();
-
-  console.log("Starttime: ", startTime);
 
   // TODO: Maybe replace with fkt in the future?
   const [refresh, setRefresh] = useState<boolean>(false);
@@ -46,28 +123,56 @@ export default function useVideoDetails(
         ? ((videoId.payload.startTimeSeconds as number) ?? passedStartSeconds)
         : passedStartSeconds;
     if (client === "TV") {
+      // Plan-Phase 1.8: Endpunkte getrennt beziehen. Die Metadaten kommen von der
+      // angemeldeten TV-Instanz (nur sie liefert Watch-Next und Transport-Controls),
+      // die Streams von der anonymen Instanz über die Client-Kette — der TV-Client
+      // antwortet auf /player unabhängig vom Login mit UNPLAYABLE.
       Promise.all([
         tvYoutube?.tv?.getInfo(videoId),
-        youtube && appSettings.hlsEnabled
-          ? youtube
-              .getInfo(videoId, {client: "IOS"})
-              .catch(error =>
-                LOGGER.warn(
-                  `Error fetching normal streaming data. Error ${error}`,
-                ),
-              )
+        youtube
+          ? resolveStreamingSource(youtube, videoId, {
+              mode: playbackMode,
+            })
           : undefined,
       ])
-        .then(([tvInfo, normalInfo]) => {
+        .then(async ([tvInfo, streaming]) => {
+          // Plan-Phase 0.4: festhalten, was die Clients tatsächlich geliefert haben.
+          LOGGER.info(describeStreamingData(tvInfo, "TV (Metadaten)"));
+          if (streaming) {
+            LOGGER.info(
+              describeStreamingData(
+                streaming.info,
+                `${streaming.client} (Streams)`,
+              ),
+            );
+          }
           if (tvInfo) {
             videoTVRef.current = tvInfo;
             const parsedDataTV = getElementDataFromTVVideoInfo(tvInfo);
-            if (normalInfo) {
-              const parsed = getElementDataFromVideoInfo(normalInfo);
+            if (streaming) {
+              const parsed = getElementDataFromVideoInfo(streaming.info);
               parsedDataTV.chapters = parsed.chapters;
               parsedDataTV.hls_manifest_url = parsed.hls_manifest_url;
               parsedDataTV.expires = parsed.expires;
+              // Die TV-Antwort enthält keine Formate — das Abspielformat muss
+              // aus der Antwort des Stream-Clients kommen.
+              parsedDataTV.best_format = parsed.best_format;
+              // Die Dauer entscheidet, ob eine Fortsetzungsmarke noch gilt —
+              // liefert die TV-Antwort keine (sie ist UNPLAYABLE und trägt
+              // keine streaming_data), kommt sie vom Stream-Client.
+              parsedDataTV.durationSeconds =
+                parsedDataTV.durationSeconds ?? parsed.durationSeconds;
               parsedDataTV.playlist = parsedDataTV.playlist ?? parsed.playlist;
+            }
+            // Vor dem Veröffentlichen der Metadaten: sonst bekäme der Player
+            // erst YouTubes Manifest und eine halbe Sekunde später unseres —
+            // ein sichtbarer Neustart der Wiedergabe.
+            if (streaming) {
+              parsedDataTV.generated_hls_url = await generateIfPossible(
+                streaming,
+                playbackMode,
+                {allowAv1: appSettings.av1Enabled},
+              );
             }
             setVideoInfo(parsedDataTV);
             setWatchNextSections(parsedDataTV.watchNextSections);
@@ -81,16 +186,29 @@ export default function useVideoDetails(
         })
         .catch(LOGGER.warn);
     } else {
-      youtube
-        ?.getInfo(videoId, {client: appSettings.hlsEnabled ? "IOS" : undefined})
-        ?.then(info => {
-          videoRef.current = info;
-          const parsedData = getElementDataFromVideoInfo(info);
-          setVideoInfo(parsedData);
-          parsedData.watchNextFeed &&
-            setWatchNextFeed(parsedData.watchNextFeed);
+      youtube &&
+        resolveStreamingSource(youtube, videoId, {
+          mode: playbackMode,
         })
-        .catch(LOGGER.warn);
+          .then(async streaming => {
+            if (!streaming) {
+              return;
+            }
+            LOGGER.info(
+              describeStreamingData(streaming.info, `${streaming.client}`),
+            );
+            videoRef.current = streaming.info;
+            const parsedData = getElementDataFromVideoInfo(streaming.info);
+            parsedData.generated_hls_url = await generateIfPossible(
+              streaming,
+              playbackMode,
+              {allowAv1: appSettings.av1Enabled},
+            );
+            setVideoInfo(parsedData);
+            parsedData.watchNextFeed &&
+              setWatchNextFeed(parsedData.watchNextFeed);
+          })
+          .catch(LOGGER.warn);
     }
     // TODO: Fix duplicate reset to starttime on refresh
     // Only set if not set previously
@@ -100,7 +218,15 @@ export default function useVideoDetails(
       }
       return startTimeSeconds;
     });
-  }, [appSettings.hlsEnabled, videoId, youtube, tvYoutube, client, refresh]);
+  }, [
+    playbackMode,
+    appSettings.av1Enabled,
+    videoId,
+    youtube,
+    tvYoutube,
+    client,
+    refresh,
+  ]);
 
   // TODO: Add tracking again once reworked
   // useEffect(() => {
@@ -116,18 +242,130 @@ export default function useVideoDetails(
       setHttpVideoURL(undefined);
       return;
     }
-    videoInfo?.best_format?.originalFormat
+    const format = videoInfo?.best_format;
+    format?.originalFormat
       ?.decipher(youtube.actions.session.player)
-      .then(setHttpVideoURL)
+      .then(url => {
+        LOGGER.info(
+          `Decipher ok: itag=${format.originalFormat?.itag} ${format.type} ` +
+            `${format.originalFormat?.quality_label ?? ""} · host=${url.split("/")[2]}`,
+        );
+        setHttpVideoURL(url);
+      })
       .catch(e => {
-        LOGGER.debug(
-          "Error while decrypting best format: ",
-          e,
-          videoInfo?.best_format,
+        LOGGER.warn(
+          `Decipher fehlgeschlagen (itag=${format?.originalFormat?.itag}): ${String(
+            e?.message ?? e,
+          )} — unter Hermes ist das der erwartete Ausfall, siehe Einstellungen ▸ Playback diagnostics`,
         );
         setHttpVideoURL(undefined);
       });
   }, [videoInfo, youtube]);
+
+  /**
+   * Die Stufen, die für dieses Video bereitstehen (Plan-Phase 4.1), und auf
+   * welcher gerade gespielt wird.
+   */
+  const ladder = useMemo(
+    () =>
+      buildPlaybackLadder(
+        {
+          generatedHlsUrl: videoInfo?.generated_hls_url,
+          youtubeHlsUrl: videoInfo?.hls_manifest_url,
+          progressiveUrl: httpVideoURL,
+        },
+        playbackMode,
+      ),
+    [
+      videoInfo?.generated_hls_url,
+      videoInfo?.hls_manifest_url,
+      httpVideoURL,
+      playbackMode,
+    ],
+  );
+
+  const [ladderIndex, setLadderIndex] = useState(0);
+  const ladderRef = useRef<PlaybackStep[]>([]);
+  const ladderIndexRef = useRef(0);
+
+  // Eine neue Quellenlage — anderes Video, Aktualisierung, umgestellte
+  // Einstellung — beginnt wieder oben. Ein bloßes Nachreichen derselben Stufen
+  // darf die Ladder dagegen nicht zurücksetzen, sonst landet ein gerade
+  // abgestiegener Player sofort wieder auf der defekten Stufe.
+  useEffect(() => {
+    if (!sameLadder(ladderRef.current, ladder)) {
+      ladderRef.current = ladder;
+      ladderIndexRef.current = 0;
+      setLadderIndex(0);
+    }
+  }, [ladder]);
+
+  const currentStep = ladder[Math.min(ladderIndex, ladder.length - 1)];
+
+  /**
+   * Die Sekunde, an der eingestiegen wird — gegen die Videodauer geprüft.
+   *
+   * Erst hier, weil die Dauer aus den Metadaten kommt und beim Setzen der Marke
+   * noch nicht feststeht.
+   */
+  const resumeSeconds = useMemo(
+    () => clampResumePosition(startTime, videoInfo?.durationSeconds),
+    [startTime, videoInfo?.durationSeconds],
+  );
+
+  useEffect(() => {
+    if (startTime && resumeSeconds === undefined) {
+      LOGGER.info(
+        `Fortsetzungsmarke bei ${Math.floor(startTime)} s liegt am Ende des ` +
+          `${videoInfo?.durationSeconds ?? "?"} s langen Videos — Start von vorn.`,
+      );
+    }
+  }, [startTime, resumeSeconds, videoInfo?.durationSeconds]);
+
+  /** Letzte bekannte Abspielposition — überlebt Stufenwechsel und Auffrischung. */
+  const positionRef = useRef(0);
+
+  const reportProgress = useCallback((seconds: number) => {
+    positionRef.current = seconds;
+  }, []);
+
+  /**
+   * Meldet, dass die laufende Stufe nicht trägt — als Fehler oder als
+   * Stillstand.
+   *
+   * @returns ob noch eine Stufe übrig war.
+   */
+  const reportPlaybackFailure = useCallback((reason: string) => {
+    // Bewusst über Refs statt über den State-Updater: dort hätte das Protokoll
+    // als Seiteneffekt gestanden, den React doppelt ausführen darf.
+    const index = ladderIndexRef.current;
+    const steps = ladderRef.current;
+    const next = index + 1;
+
+    if (next >= steps.length) {
+      LOGGER.warn(
+        `Wiedergabe gescheitert (${reason}) — keine weitere Stufe vorhanden.`,
+      );
+      return;
+    }
+
+    LOGGER.warn(
+      `Wiedergabe gescheitert (${reason}) auf Stufe ${index + 1}/${steps.length} — ` +
+        `weiter mit ${steps[next].label}${
+          positionRef.current > 0
+            ? ` ab ${Math.floor(positionRef.current)} s`
+            : ""
+        }.`,
+    );
+
+    ladderIndexRef.current = next;
+    setLadderIndex(next);
+
+    // Die nächste Stufe fängt dort an, wo die vorige stehengeblieben ist.
+    if (positionRef.current > 0) {
+      setStartTime(positionRef.current);
+    }
+  }, []);
 
   LOGGER.debug("Video: ", httpVideoURL);
 
@@ -150,28 +388,46 @@ export default function useVideoDetails(
     }
   }, []);
 
-  // // Trigger refresh if streaming data expired
-  // const targetTimestamp = Video?.streaming_data?.expires?.getDate?.();
-  // useEffect(() => {
-  //   if (!targetTimestamp) {
-  //     return;
-  //   }
-  //   // Berechnen Sie, wie lange gewartet werden muss, bis der Effekt ausgelöst wird
-  //   const now = Date.now();
-  //   const delay = targetTimestamp - now;
-  //
-  //   if (delay > 0) {
-  //     // Setzen Sie einen Timer, um den Effekt nach der berechneten Verzögerung auszulösen
-  //     const timer = setTimeout(() => {
-  //       // Refresh Video Data
-  //       fetchVideoData();
-  //       LOGGER.info("Refresh expired streaming data!");
-  //     }, delay);
-  //
-  //     // Bereinigungsfunktion, um den Timer zu löschen
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [targetTimestamp]);
+  /**
+   * Frischt die Streaming-Daten auf, bevor sie ablaufen — Plan-Phase 4.2.
+   *
+   * Die Segment-URLs tragen ein `expire` von rund vier Stunden. Das reicht für
+   * die meisten Videos, aber nicht für ein pausiertes, ein langes, oder eines,
+   * das aus dem Hintergrund zurückkommt: danach antwortet googlevideo mit 403,
+   * und weil ein hängender Player keinen Fehler meldet, sieht das aus wie ein
+   * Einfrieren. Das selbst gebaute Manifest ist besonders betroffen — es backt
+   * die URLs in die Playlists ein.
+   *
+   * Ersetzt den auskommentierten Block, der hier stand: der frischte ohne
+   * Vorlauf und ohne Position auf.
+   */
+  const expiresAt = videoInfo?.expires?.getTime();
+
+  useEffect(() => {
+    if (!expiresAt) {
+      return;
+    }
+
+    // Eine Minute Vorlauf, damit der Austausch fertig ist, bevor die alten URLs
+    // ungültig werden.
+    const delay = expiresAt - Date.now() - 60_000;
+
+    if (delay <= 0) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      LOGGER.info(
+        `Streaming-Daten laufen ab — Auffrischung bei ${Math.floor(
+          positionRef.current,
+        )} s.`,
+      );
+      setStartTime(positionRef.current > 0 ? positionRef.current : undefined);
+      setRefresh(previous => !previous);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [expiresAt]);
 
   // Actions:
 
@@ -248,9 +504,19 @@ export default function useVideoDetails(
 
   return {
     YTVideoInfo: videoInfo,
-    hlsManifestUrl: videoInfo?.hls_manifest_url,
+    // Das eigene Manifest hat Vorrang — es trägt mehrsprachigen Ton und mit AV1
+    // 4K. Fehlt es, bleibt YouTubes eigenes (Phase 2a) der Weg.
+    hlsManifestUrl: videoInfo?.generated_hls_url ?? videoInfo?.hls_manifest_url,
     httpVideoURL,
-    startTime,
+    /** Die Quelle, die gerade gilt — Ergebnis der Ladder aus Plan-Phase 4.1. */
+    videoUrl: currentStep?.uri,
+    playbackSource: currentStep,
+    playbackLadderSize: ladder.length,
+    playbackLadderStep:
+      Math.min(ladderIndex, Math.max(ladder.length - 1, 0)) + 1,
+    reportPlaybackFailure,
+    reportProgress,
+    startTime: resumeSeconds,
     watchNextFeed,
     fetchNextVideoContinue,
     watchNextSections,
@@ -260,11 +526,9 @@ export default function useVideoDetails(
     dislike,
     removeRating,
     addToWatchHistory,
-    refresh: (resumeSeconds?: number) => {
-      // TODO: Set Starttime to start from current state?
-      console.log("Resume: ", resumeSeconds);
-      setStartTime(resumeSeconds);
-      setRefresh(!refresh);
+    refresh: (continueAtSeconds?: number) => {
+      setStartTime(continueAtSeconds ?? positionRef.current ?? undefined);
+      setRefresh(previous => !previous);
     },
   };
 }

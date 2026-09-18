@@ -1,7 +1,6 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {ButtonGroup} from "@rneui/base";
-import {Duration} from "luxon";
-import React, {useMemo, useState} from "react";
+import React, {useState} from "react";
 import {Image, StyleSheet, Text, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
@@ -25,30 +24,12 @@ type Props = NativeStackScreenProps<RootStackParamList, "MusicPlayerScreen">;
 
 export function MusicPlayerScreen({route, navigation}: Props) {
   const {bottom} = useSafeAreaInsets();
-  const {currentItem} = useMusikPlayerContext();
+  const {currentItem, playbackError} = useMusikPlayerContext();
   const {download} = useDownloaderContext();
 
   const [openTab, setOpenTab] = useState<Tab>();
 
   const {save} = usePlaylistManagerContext();
-
-  const hlsAudio = useMemo(
-    () => currentItem?.originalData?.streaming_data?.hls_manifest_url,
-    [currentItem],
-  );
-
-  // const {videoData, hlsAudio} = useMusicPlayer(
-  //   route.params.navEndpoint ?? route.params.videoId,
-  // );
-
-  // const [playing, setPlaying] = useState(false);
-
-  // console.log("VideoData: ", currentItem);
-  // console.log("VideoDataPlaylist", currentItem?.playlist?.current_index);
-  // console.log(
-  //   "VideoDataPlaylistData",
-  //   currentItem?.playlist?.content?.map(v => v.title),
-  // );
 
   usePhoneOrientationLocker();
 
@@ -91,18 +72,14 @@ export function MusicPlayerScreen({route, navigation}: Props) {
           source={{uri: currentItem?.thumbnailImage.url}}
           resizeMode={"contain"}
         />
-        {/*<Video*/}
-        {/*  source={{uri: hlsAudio}}*/}
-        {/*  style={{width: "80%", aspectRatio: 1, backgroundColor: "orange"}}*/}
-        {/*  playInBackground*/}
-        {/*  controls*/}
-        {/*  paused={!playing}*/}
-        {/*  onEnd={callbacks.onEndReached}*/}
-        {/*  // muted*/}
-        {/*/>*/}
       </View>
       <View style={styles.bottomContainer}>
         <MusicPlayerTitle />
+        {playbackError ? (
+          <Text accessibilityRole={"alert"} style={styles.playbackError}>
+            {playbackError.message}
+          </Text>
+        ) : null}
         <MusicPlayerSlider />
         <View style={styles.buttonContainer}>
           <MusicPlayerActionButton
@@ -121,15 +98,19 @@ export function MusicPlayerScreen({route, navigation}: Props) {
             title={"Download"}
             onPress={() => {
               if (currentItem) {
+                showMessage({type: "info", message: "Download started"});
                 download(currentItem.id)
                   .then(() =>
-                    showMessage({type: "success", message: "Started download"}),
+                    showMessage({
+                      type: "success",
+                      message: "Download complete",
+                    }),
                   )
                   .catch(error => {
                     showMessage({
                       type: "warning",
-                      message: "Error starting download",
-                      description: error.message,
+                      message: "Download failed",
+                      description: String(error?.message ?? error),
                     });
                   });
               }
@@ -199,9 +180,10 @@ const styles = StyleSheet.create({
   bottomActionTextStyle: {
     color: "white",
   },
+  playbackError: {
+    color: "#ffb4ab",
+    marginHorizontal: 8,
+    marginTop: 4,
+    textAlign: "center",
+  },
 });
-
-function secondsToReadableString(seconds: number) {
-  const dur = Duration.fromObject({seconds});
-  return dur.toFormat("mm:ss");
-}

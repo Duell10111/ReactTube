@@ -6,46 +6,55 @@ import {useYoutubeContext} from "@/context/YoutubeContext";
 import {getTrackInfoForVideo} from "@/downloader/DBData";
 import {VideoData, YTTrackInfo} from "@/extraction/Types";
 import {getElementDataFromTrackInfo} from "@/extraction/YTElements";
+import {resetRejectedPlaybackSession} from "@/utils/PlaybackResolver";
+import {resolveAudioStreamingSource} from "@/utils/music/AudioPlaybackSource";
 
 export default function useVideoDataGenerator() {
   const youtube = useYoutubeContext();
 
-  const videoExtractor = useCallback(
-    async (videoData: VideoData) => {
-      // console.log("VideoExtractor", videoData);
-      // TODO: Check if navEndpoint contains at least a videoId as browseId only does not work. :/
-      // const useNav =
-      //   videoData.navEndpoint && videoData.navEndpoint?.payload?.videoId;
-      // TODO: Check if localData in DB available?
-      let element: YTTrackInfo;
-      const localData = await getTrackInfoForVideo(videoData.id);
-      if (
-        localData &&
-        localData.originalData.streaming_data?.hls_manifest_url
-      ) {
-        element = localData;
-      } else {
-        const [info, classicInfo] = await Promise.all([
-          youtube!.music.getInfo(videoData.navEndpoint ?? videoData.id),
-          youtube!.getInfo(videoData.navEndpoint ?? videoData.id, {
-            client: "IOS",
-          }),
-        ]);
-        // Patch YT Music StreamingData
-        info.streaming_data = classicInfo.streaming_data;
-        element = getElementDataFromTrackInfo(info);
+  const resolveTrack = useCallback(
+    async (
+      target: string | YTNodes.NavigationEndpoint,
+      localData?: YTTrackInfo,
+    ): Promise<YTTrackInfo> => {
+      if (localData?.localFileUrl) {
+        const resolvedSource = await resolveAudioStreamingSource(
+          youtube,
+          target,
+          {localUrl: localData.localFileUrl},
+        );
+
+        if (!resolvedSource) {
+          throw new Error("Local audio source is not available");
+        }
+
+        localData.audioSource = resolvedSource.source;
+        return localData;
       }
 
-      // Set Local Playlist ID if a local element called
-      element.localPlaylistId = videoData.localPlaylistId;
+      if (!youtube) {
+        throw new Error("YouTube session is not ready");
+      }
 
-      // Check if bot detection is active
-      if (
-        element.originalData.playability_status?.status === "LOGIN_REQUIRED"
-      ) {
-        throw Error(
-          `Login Required: ${element.originalData.playability_status?.reason}`,
-        );
+      const [resolvedSource, info] = await Promise.all([
+        resolveAudioStreamingSource(youtube, target),
+        youtube.music.getInfo(target),
+      ]);
+
+      if (!resolvedSource?.info) {
+        throw new Error("No playable audio source available");
+      }
+
+      // Metadaten kommen aus YouTube Music, Streaming-Daten ausschließlich aus
+      // der anonymen, gehärteten Audio-Client-Kette.
+      info.streaming_data = resolvedSource.info.streaming_data;
+
+      const element = getElementDataFromTrackInfo(info);
+      element.audioSource = resolvedSource.source;
+
+      if (info.playability_status?.status === "LOGIN_REQUIRED") {
+        resetRejectedPlaybackSession("audio-metadata");
+        throw new Error(`Login Required: ${info.playability_status.reason}`);
       }
 
       return element;
@@ -53,19 +62,27 @@ export default function useVideoDataGenerator() {
     [youtube],
   );
 
+  const videoExtractor = useCallback(
+    async (videoData: VideoData) => {
+      const localData = await getTrackInfoForVideo(videoData.id);
+      const element = await resolveTrack(
+        videoData.navEndpoint ?? videoData.id,
+        localData,
+      );
+
+      // Set Local Playlist ID if a local element called
+      element.localPlaylistId = videoData.localPlaylistId;
+
+      return element;
+    },
+    [resolveTrack],
+  );
+
   const videoExtractorNavigationEndpoint = useCallback(
     async (navigationEndpoint: YTNodes.NavigationEndpoint) => {
-      console.log("videoExtractorNavigationEndpoint");
-      const [info, classicInfo] = await Promise.all([
-        youtube!.music.getInfo(navigationEndpoint),
-        youtube!.getInfo(navigationEndpoint, {client: "IOS"}),
-      ]);
-      // Patch YT Music StreamingData
-      info.streaming_data = classicInfo.streaming_data;
-
-      return getElementDataFromTrackInfo(info);
+      return resolveTrack(navigationEndpoint);
     },
-    [youtube],
+    [resolveTrack],
   );
 
   return {videoExtractor, videoExtractorNavigationEndpoint};

@@ -10,9 +10,7 @@ import {MusicPlayerPlaylistAutomixList} from "@/components/music/player/MusicPla
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {YTPlaylistPanelItem} from "@/extraction/Types";
 
-interface MusicPlayerPlaylistListProps {}
-
-export function MusicPlayerPlaylistList({}: MusicPlayerPlaylistListProps) {
+export function MusicPlayerPlaylistList() {
   const {currentItem, playlist, setCurrentItem, fetchMorePlaylistData} =
     useMusikPlayerContext();
 
