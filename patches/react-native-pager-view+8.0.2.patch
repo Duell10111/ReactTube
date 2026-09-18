@@ -7,7 +7,7 @@ index 0ea42a1..aeb0541 100644
    s.authors      = package["author"]
  
 -  s.platforms    = { :ios => "10.0", :visionos => "1.0" }
-+  s.platforms    = { :ios => "10.0", :tvos => "15.1", :visionos => "1.0" }
++  s.platforms    = { :ios => "10.0", :tvos => "16.4", :visionos => "1.0" }
    s.source       = { :git => "https://github.com/callstack/react-native-pager-view.git", :tag => "#{s.version}" }
  
    s.source_files = "ios/**/*.{h,m,mm,swift}"

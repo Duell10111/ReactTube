@@ -1,10 +1,10 @@
 import {useCallback, useState} from "react";
 import {Platform, Settings} from "react-native";
-import {MMKV} from "react-native-mmkv";
+import {createMMKV} from "react-native-mmkv";
 
 // TODO: Add concrete Android implementation
 
-const storage = new MMKV({
+const storage = createMMKV({
   id: "settings-storage",
 });
 

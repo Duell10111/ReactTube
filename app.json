@@ -27,7 +27,7 @@
         {
           "isTV": true,
           "showVerboseWarnings": false,
-          "tvosDeploymentTarget": "15.1",
+          "tvosDeploymentTarget": "16.4",
           "removeFlipperOnAndroid": false,
           "androidTVBanner": "./assets/images/tv/tv_banner.png",
           "androidTVIcon": "assets/images/tv/app_store_icon.png",
@@ -43,7 +43,12 @@
         }
       ],
       [
-        "expo-build-properties"
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
       ],
       [
         "@duell10111/apple-targets",
@@ -67,6 +72,12 @@
         }
       ],
       "expo-sqlite",
+      [
+        "expo-status-bar",
+        {
+          "style": "light"
+        }
+      ],
       "./fmt_path.js"
     ],
     "name": "reacttube",
@@ -74,10 +85,6 @@
     "version": "0.3.2",
     "userInterfaceStyle": "dark",
     "primaryColor": "#556BFD",
-    "backgroundColor": "#000000",
-    "androidStatusBar": {
-      "barStyle": "light-content",
-      "backgroundColor": "#000000"
-    }
+    "backgroundColor": "#000000"
   }
 }

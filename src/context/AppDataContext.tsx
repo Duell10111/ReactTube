@@ -1,9 +1,9 @@
 import React, {createContext, useCallback, useContext, useState} from "react";
-import {MMKV} from "react-native-mmkv";
+import {createMMKV} from "react-native-mmkv";
 
 // TODO: Use MMKV For this to support Android
 
-const storage = new MMKV({id: "settings"});
+const storage = createMMKV({id: "settings"});
 
 const settingsKey = "appSettings";
 
