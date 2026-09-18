@@ -18,6 +18,56 @@
 
 **Leitgedanke der Reihenfolge:** Die adaptiven Formate → HLS (Phase 2) sind die *Zwischenlösung auf dem Weg zu SABR*, nicht ein konkurrierender Ansatz. Derselbe Generator, dieselbe Player-Anbindung; SABR tauscht später nur die Segmentquelle aus. Nichts an Phase 2 ist Wegwerfarbeit.
 
+
+---
+
+## 0b. Ergebnisse aus Phase 0 *(gemessen 2026-09-19)*
+
+Vollständiger Report: `YouTube.js/docs/playback-matrix.md` (+ `.json`), erzeugt von
+`YouTube.js/dev-scripts/playback-matrix.mjs` (`npm run matrix`). 6 Videos × 10 Clients = 60 Proben.
+
+### Client-Matrix
+
+| Client | spielbar | HLS-tauglich (mp4 V+A mit sidx) | Befund |
+|---|---|---|---|
+| `TV_SIMPLY` | 6/6 | **6/6** | Klartext-URLs, 4K, vollständig |
+| `IOS` | 6/6 | **6/6** | Klartext-URLs, 4K, vollständig |
+| `VISIONOS` | 6/6 | **6/6** | wie IOS, zusätzlich teils YT-HLS-Manifest |
+| `ANDROID_VR` | 6/6 | **6/6** | Klartext-URLs, 4K |
+| `ANDROID` | 6/6 | 0/6 | 35 von 36 Formaten **SABR-only**, kein Decipher möglich |
+| `MWEB` | 6/6 | 2/6 | Klartext-URLs, aber **HTTP 403** auf die Medien-URL ⇒ PoToken nötig |
+| `WEB` | 6/6 | 0/6 | **alle** Formate SABR-only (0 URLs, 0 Cipher) |
+| `TV` | 0/6 | 0/6 | `UNPLAYABLE: The page needs to be reloaded.` |
+| `TV_EMBEDDED` | 0/6 | 0/6 | `This video is unavailable` |
+| `WEB_EMBEDDED` | 0/6 | 0/6 | `This video is unavailable` |
+
+### Was das für den Plan bedeutet
+
+1. **Der aktuelle Hauptpfad der App ist tot — und die Ursache ist geklärt.** `TV` liefert in 6 von 6 Fällen `UNPLAYABLE: The page needs to be reloaded.` Nachgeprüft wurde (Details: `YouTube.js/docs/tv-client-findings.md`, reproduzierbar mit `node dev-scripts/tv-client-probe.mjs`):
+   - **Veraltete Client-Werte sind es nicht.** Getestet mit SmartTubes exakten Werten für `TV` (7.20260901.15.00 + Cobalt-25-UA) und `TV_DOWNGRADED` (5.20260901 + Cobalt-4-UA), je mit und ohne `Referer` — **alle fünf Varianten bleiben UNPLAYABLE**. Ein Wertabgleich mit SmartTube behebt das Problem nicht (schadet aber auch nicht).
+   - **Ein server-ausgestelltes `visitorData` ist es auch nicht.** Über `POST /youtubei/v1/visitor_id` beschafft (SmartTube-Verfahren) — TV bleibt UNPLAYABLE.
+   - **Ursache:** TVHTML5 gibt unangemeldet keine Streams mehr heraus. SmartTube kommt zum selben Schluss und hat `AppClient.TV` aus der anonymen Liste auskommentiert (`VideoInfoService.java:38`), nutzt ihn nur noch in `getAuthVideoInfo()`. Erschwerend verdrahtet `YTTV.getInfo` `client: 'TV'` fest (`src/core/clients/TV.ts:49`) und schließt den Parameter im Typ aus.
+   - **Wichtig:** `/player` und `/next` sind getrennte Anfragen. Der TV-Client liefert `/next` **vollständig** (watch_next mit 11 Einträgen, transport_controls, primary_info, player_overlays, autoplay) — nur `/player` ist tot. `TV_SIMPLY` ist genau umgekehrt: 31 Formate bis 2160p, aber **kein** watch_next und keine transport_controls.
+   ⇒ Die Lösung ist nicht der Client-Wechsel, sondern die **Trennung der Endpunkte** (siehe Phase 1.8).
+2. **Phase 2 ist bestätigt.** Für alle vier tauglichen Clients liefert dasselbe Videopaar: itag **401** (AV1, 2160p) + itag **140** (AAC) — mit `init_range`/`index_range`, HTTP 206, `Accept-Ranges: bytes`, und einer auswertbaren **sidx-Box mit 195 Segmenten / 1051 s**. Der HLS-Weg über adaptive Formate trägt.
+3. **Nur mp4 hat eine sidx-Box.** itag 315/337 (VP9 in WebM) liefern keine — WebM legt den Index als Cues ab. Für AVPlayer ohnehin unbrauchbar ⇒ **der Generator beschränkt sich auf mp4** (avc1/av01), der sidx-Parser muss nur mp4 können.
+4. **AV1 ist nicht überall hardwarebeschleunigt.** itag 401 ist AV1; nur Apple TV 4K (3. Gen) dekodiert das in Hardware. Die Codec-Präferenz aus 2.5 ist damit kein Komfort-Feature, sondern Pflicht (avc1-Fallback für ältere Geräte).
+5. **SABR funktioniert ohne PoToken.** Ein von Hand kodierter `VideoPlaybackAbrRequest` (ClientAbrState + `selected_format_ids` + ustreamer-Config + StreamerContext, **kein** PoToken) wird von `IOS`, `VISIONOS`, `ANDROID` und `ANDROID_VR` mit **HTTP 200** und echten Mediendaten beantwortet. `TV_SIMPLY` und `WEB` antworten mit 403.
+   ⇒ **Phase 5 (PoToken) ist keine Vorbedingung für Phase 6 (SABR) mehr.** Die Reihenfolge ändert sich entsprechend (siehe §4).
+6. **Die SmartTube-Protos stimmen.** Die Antwort enthält `SELECTABLE_FORMATS`, `STREAM_PROTECTION_STATUS` (1:2), `REQUEST_IDENTIFIER`, `REQUEST_CANCELLATION_POLICY`, `NEXT_REQUEST_POLICY` (15000/15000/60000 + Playback-Cookie), `PLAYBACK_START_POLICY` sowie `MEDIA_HEADER` → `MEDIA`×n → `MEDIA_END` je Format. Die `MEDIA_HEADER`-Felder (itag 401, `lmt`, `sequence_number`, `content_length`, `time_range`) decken sich exakt mit `media_header.proto`. Phase 6.1/6.2 sind damit vorab validiert.
+7. **WEB und ANDROID sind bereits SABR-only.** Ohne Phase 6 sind diese Clients für die App dauerhaft verloren — das bestätigt Entscheidung 4.
+
+### Stand der Phase-0-Aufgaben
+
+| Aufgabe | Stand |
+|---|---|
+| 0.1 Hermes-Check | Code steht (`src/utils/PlaybackDiagnostics.ts`, Screen unter *Einstellungen ▸ Playback diagnostics*) — **muss noch im Release-Build auf Apple TV ausgeführt werden** |
+| 0.2 Client-Matrix | ✅ erledigt, Report liegt vor |
+| 0.3 SABR-Aufklärung | ✅ erledigt, SABR liefert Medien ohne PoToken |
+| 0.4 In-App-Logging | ✅ erledigt (`useVideoDetails.ts`, `VideoPlayerNative.tsx`, Logger-Tag `PLAYBACK`) |
+| Testset vervollständigen | **offen**: Altersbeschränkt, Geo-beschränkt, Live, Post-Live-DVR, Multi-Audio, Shorts — IDs in `YouTube.js/dev-scripts/playback-testset.json` eintragen und `npm run matrix` erneut laufen lassen |
+| Angemeldete Session prüfen | **offen**: die Matrix lief **anonym**. Ob `TV` mit OAuth wieder Streams liefert (SmartTube nutzt ihn genau dafür), beantwortet der Diagnose-Screen mit eingeloggtem Konto. Falls ja, gehört `TV` für angemeldete Nutzer an den Anfang der Kette (Premium-Formate) mit Fallback auf `TV_SIMPLY` |
+
 ---
 
 ## 1. Ausgangslage (Ist-Analyse)
@@ -101,7 +151,7 @@
 
 ## 3. Umsetzung
 
-### Phase 0 — Diagnose & Testharness *(~1–2 Tage, blockiert alles)*
+### Phase 0 — Diagnose & Testharness *(✅ weitgehend erledigt, Ergebnisse siehe §0b)*
 
 0.1 **Hermes-Check (blockierend).** Dev-Button in der App: `new Function("return 1+1")()` sowie ein echter `format.decipher()`-Aufruf im **Release**-Build auf Apple TV. Entscheidet, ob 1.7 (JS-Engine) Pflicht ist.
 0.2 **Client-Matrix-Test im Fork.** Neu: `tests/playback-matrix.test.ts` (vitest ist eingerichtet). Für Video-Set × Client (`IOS`, `VISIONOS`, `ANDROID_VR`, `TV`, `TV_DOWNGRADED`, `TV_SIMPLY`, `TV_EMBEDDED`, `WEB_EMBEDDED`, `MWEB`, `WEB`) protokollieren:
@@ -119,11 +169,29 @@
 1.1 **`file:`-Anbindung.** `package.json`: `"youtubei.js": "file:../../YouTube.js"`; `metro.config.js`: `watchFolders` auf den Fork; `npm run watch` im Fork für Live-Builds nach `dist/`. Stolperfalle: Metro löst `file:`-Symlinks nur mit `unstable_enableSymlinks` sauber auf — notfalls `dist/` per `resolver.extraNodeModules` mappen.
 1.2 **`TV_DOWNGRADED`** in `src/utils/Constants.ts` + `HTTPClient.ts#adjustContext` (ab Z. 206) ergänzen, in `SUPPORTED_CLIENTS` aufnehmen. Vorbild `AppClient.kt:44`.
 1.3 **UA-Header für TV-Clients.** `HTTPClient.ts:95-104` setzt `User-Agent` bisher nur für ANDROID/IOS/ANDROID_VR/VISIONOS; TV_DOWNGRADED funktioniert nur mit passender alter Cobalt-UA.
-1.4 **`Innertube#getPlayableInfo(target, { clients, accept })`** (neu, `src/core/clients/PlaybackResolver.ts`): iteriert die Kette, bricht beim ersten `accept()`-Treffer ab (Default: `status === 'OK'` **und** verwertbares Video-Format), zweiter Durchlauf mit gelockertem Prädikat (analog `firstPlayable()`); liefert `{ info, client, attempts[] }`. Der heutige Ad-hoc-Merge "TV für Metadaten + IOS für Streams" (`useVideoDetails.ts:52-78`) wandert als Merge-Hook hierher.
+1.4 **`Innertube#getPlayableInfo(target, { clients, accept })`** (neu, `src/core/clients/PlaybackResolver.ts`). Gemessene Startkette aus §0b:
+```ts
+const PLAYBACK_CLIENTS = ['TV_SIMPLY', 'IOS', 'VISIONOS', 'ANDROID_VR'];  // je 6/6
+// bewusst nicht in der Kette: TV / TV_EMBEDDED / WEB_EMBEDDED (0/6),
+// WEB + ANDROID (SABR-only, erst ab Phase 6), MWEB (403 ohne PoToken, erst ab Phase 5)
+```
+   Die Funktion iteriert die Kette, bricht beim ersten `accept()`-Treffer ab (Default: `status === 'OK'` **und** verwertbares Video-Format), zweiter Durchlauf mit gelockertem Prädikat (analog `firstPlayable()`); liefert `{ info, client, attempts[] }`. Der heutige Ad-hoc-Merge "TV für Metadaten + IOS für Streams" (`useVideoDetails.ts:52-78`) wandert als Merge-Hook hierher.
 1.5 **`Player#decipherMany(urls)`** (`src/core/Player.ts`): alle `n`/`sig` in **einem** `Platform.shim.eval`-Call (Vorbild `VideoInfoServiceBase.decipherFormats`). Ohne das kostet ein Manifest mit ~40 Formaten 40 Engine-Aufrufe. `MediaInfo.ts` darauf umstellen.
 1.6 **Session persistieren (App).** `useYoutube.ts`: `Innertube.create({ lang, cache: new UniversalCache(true), visitor_data })`; `visitor_data` einmalig erzeugen und in MMKV ablegen (der auskommentierte Code dort ist der richtige Ansatz). Player-Cache läuft über den bestehenden MMKV-`Cache` (`src/ytjs/react-native.ts:17`).
 1.7 **Falls 0.1 negativ:** JS-Engine für den Player-Code — `react-native-webview` (für Phase 5 ohnehin nötig, daher erste Wahl), alternativ QuickJS via `react-native-nitro-modules` (bereits Dependency). Andockpunkt bleibt `eval` in `src/ytjs/react-native.ts:106`.
-1.8 **`src/hooks/video/usePlaybackSource.ts`** (neu): kapselt Client-Kette, Quelle, Fehler-Ladder. `useVideoDetails.ts` verliert `httpVideoURL`/`best_format`. Aufrufer: `VideoScreen.tsx:102`, `VideoScreenPhone.tsx:51`, `VideoScreenTablet.tsx:62`, `ReelVideoScreen.tsx:131`.
+1.8 **TV-Endpunkte trennen (aus §0b Befund 1) — die eigentliche Ursachenbehebung.** In `src/core/clients/TV.ts#getInfo` bekommt der `/player`-Aufruf einen konfigurierbaren Client, der `/next`-Aufruf bleibt auf `TV`:
+```ts
+async getInfo(
+  target: string | NavigationEndpoint,
+  options?: Omit<GetVideoInfoOptions, 'client'> & { player_client?: InnerTubeClient }
+) {
+  const extra_payload = { playbackContext: { … }, client: options?.player_client ?? 'TV' };
+  const watch_response      = watch_endpoint.call(this.#actions, extra_payload);
+  const watch_next_response = watch_next_endpoint.call(this.#actions, { client: 'TV' }); // bleibt TV
+}
+```
+   Den `player_client` liefert `getPlayableInfo` (1.4) und rotiert ihn im Fehlerfall. Die App behält damit ihre TV-Oberfläche **und** bekommt spielbare Streams — ohne diese Änderung bleibt der TV-Pfad `UNPLAYABLE`.
+1.9 **`src/hooks/video/usePlaybackSource.ts`** (neu): kapselt Client-Kette, Quelle, Fehler-Ladder. `useVideoDetails.ts` verliert `httpVideoURL`/`best_format`. Aufrufer: `VideoScreen.tsx:102`, `VideoScreenPhone.tsx:51`, `VideoScreenTablet.tsx:62`, `ReelVideoScreen.tsx:131`.
 
 ---
 
@@ -139,7 +207,8 @@ Das ist der Schritt, der die Wiedergabe repariert. Er nutzt die klassischen `ada
    **Klappt es nicht** → Phase 3 wird vorgezogen, der Rest von Phase 2 bleibt unverändert (nur die Ablage der Playlist wechselt von `file://` auf `http://127.0.0.1`).
    *Diesen Spike vor allem anderen machen — er kostet einen halben Tag und verschiebt ggf. eine Woche Arbeit.*
 
-2.1 **`src/utils/Mp4SidxParser.ts` im Fork (der einzige echte Neubau).** Der Fork liefert für VOD heute nur `base_url + index_range + init_range` (`StreamingInfo.ts`, SegmentBase-Semantik) — ExoPlayer löst den `sidx` selbst auf, AVPlayer kann das nicht und braucht die Segmentliste explizit. Also: pro exponierter Rendition **ein** Range-Request auf `index_range` (wenige KB, parallel), `sidx`-Box parsen (Timescale, `reference_count`, je Eintrag `referenced_size` + `subsegment_duration`) ⇒ exakte Byte-Offsets und Dauern. Ergebnis cachen. ~150 Zeilen, gut dokumentiertes Boxformat, unit-testbar gegen ein Fixture.
+2.1 **`src/utils/Mp4SidxParser.ts` im Fork (der einzige echte Neubau).** In Phase 0 bereits als Referenz validiert — `YouTube.js/dev-scripts/lib/sidx.mjs` parst die Boxen der echten Formate korrekt (itag 401: 195 Segmente, timescale 24000). Die TS-Fassung kann davon abgeleitet werden. Der Fork liefert für VOD heute nur `base_url + index_range + init_range` (`StreamingInfo.ts`, SegmentBase-Semantik) — ExoPlayer löst den `sidx` selbst auf, AVPlayer kann das nicht und braucht die Segmentliste explizit. Also: pro exponierter Rendition **ein** Range-Request auf `index_range` (wenige KB, parallel), `sidx`-Box parsen (Timescale, `reference_count`, je Eintrag `referenced_size` + `subsegment_duration`) ⇒ exakte Byte-Offsets und Dauern. Ergebnis cachen. ~150 Zeilen, gut dokumentiertes Boxformat, unit-testbar gegen ein Fixture.
+   **Nur mp4 (§0b Befund 3):** VP9-in-WebM (itag 315/337) hat keine sidx-Box und ist für AVPlayer ohnehin unbrauchbar — der Generator filtert auf `mime_type` mit `mp4`.
    *Notnagel, falls ein Format kein `index_range` hat:* Ein-Segment-Playlist (ganze Datei als ein `EXTINF` + `EXT-X-BYTERANGE`). Spielt, aber Seek ist grob und ABR entfällt — nur als Fallback pro Format, nicht als Standard.
 
 2.2 **`src/utils/HlsManifest.ts` im Fork**, gespeist aus derselben `getStreamingInfo()`-Struktur wie `DashManifest.tsx`. In drei lauffähigen Stufen, damit früh etwas spielt:
@@ -153,7 +222,9 @@ Das ist der Schritt, der die Wiedergabe repariert. Er nutzt die klassischen `ada
 
 2.3 **App-Anbindung.** `usePlaybackSource` baut das Manifest, legt es ab (2.0) und gibt `{uri, type:"m3u8"}` an `VideoPlayerNative.tsx`. `selectedAudioTrack` auf Sprach-Auswahl statt Index umstellen, `selectedVideoTrack` an das Qualitätslimit koppeln.
 2.4 **Android mitnehmen.** `toDash()` existiert — Manifest ablegen, `{uri, type:"mpd"}`. Feinschliff in Phase 7.
-2.5 **Settings umbauen.** `PlayerResolutionSelector`: statt "HTTP | HLS" künftig *Max. Qualität* (Auto/4K/1440p/1080p/720p), *Codec-Präferenz* (AV1/VP9/H264 — HW-Decoding der Apple-TV-Generation beachten), *Audiosprache*, *Stable Volume*. Alt-Keys `hlsEnabled`/`localHlsEnabled` migrieren.
+2.5 **Settings umbauen.** `PlayerResolutionSelector`: statt "HTTP | HLS" künftig *Max. Qualität* (Auto/4K/1440p/1080p/720p), *Codec-Präferenz*, *Audiosprache*, *Stable Volume*.
+   **Pflicht, nicht Komfort (§0b Befund 4):** das beste Format ist durchweg itag 401 = **AV1**, hardwarebeschleunigt nur auf Apple TV 4K (3. Gen). Ohne avc1-Fallback ruckelt es auf älteren Geräten.
+   Alt-Keys `hlsEnabled`/`localHlsEnabled` migrieren.
 2.6 **Mitziehen:** `useDownloadProcessor.ts:64` und der Musik-Pfad (`useVideoDataGenerator.ts:24-64`) auf die neue Formatauswahl (Audio-only statt muxed) umstellen.
 
 **Was Phase 2 nicht löst:** Clients, die gar keine `adaptive_formats` mehr liefern, sondern nur `server_abr_streaming_url`. Genau dafür kommt Phase 6 — die Zwischenlösung kauft Zeit und liefert die halbe Infrastruktur (Generator, Player-Anbindung, Settings, Ladder) gleich mit.
@@ -193,20 +264,24 @@ stopServer(): Promise<void>
 
 ---
 
-### Phase 5 — PoToken (BotGuard) *(~3–5 Tage, Pflicht für Phase 6)*
+### Phase 5 — PoToken (BotGuard) *(~3–5 Tage; **nach** §0b nicht mehr Vorbedingung für Phase 6)*
+
+Phase 0 hat gezeigt: SABR liefert für `IOS`/`VISIONOS`/`ANDROID`/`ANDROID_VR` auch **ohne** PoToken Medien (HTTP 200). PoToken bleibt trotzdem sinnvoll — aber für andere Zwecke: WEB-Clients freischalten, die 403 bei `MWEB` beheben, altersbeschränkte und geo-blockierte Videos erreichen, und als Reserve, falls YouTube die Attestierung auch für die jetzt offenen Clients scharf schaltet (`STREAM_PROTECTION_STATUS` kommt in den Antworten bereits mit).
 
 5.1 `react-native-webview` + unsichtbares WebView, das die BotGuard-Challenge löst. Portierung von `potokennp2/generators/PoTokenWebView.kt` + `misc/JavaScriptUtil.kt` (MIT — direkte Übernahme mit Copyright-Hinweis zulässig).
 5.2 Trennung wie in SmartTube: **session**-PoT (aus `visitorData`, für Streaming-URLs `&pot=`) und **content**-PoT (aus `videoId`, für den Player-Request), Cache + Reset-Cooldown (`PoTokenGate.kt:96-116`).
 5.3 Fork: `getPlayableInfo` reicht pro Client den passenden PoT durch (`Innertube.getInfo` unterstützt `options.po_token` bereits, `Innertube.ts:104`); nur für `isWebPotRequired`-Clients anfordern.
-5.4 **Für SABR essenziell:** der PoToken geht dort **als Bytes** in den Request-Payload, nicht base64-kodiert als Query-Param — siehe `src/core/Player.ts:204`.
+5.4 **Wenn SABR ihn doch verlangt:** der PoToken geht dort **als Bytes** in den Request-Payload (StreamerContext-Feld 2), nicht base64-kodiert als Query-Param — siehe `src/core/Player.ts:204` und `dev-scripts/playback-matrix.mjs#buildAbrRequest`.
 
 ---
 
-### Phase 6 — SABR *(~1,5–2,5 Wochen, Hauptpfad)*
+### Phase 6 — SABR *(~1,5–2,5 Wochen, Hauptpfad — kann direkt nach Phase 4 beginnen)*
 
-6.1 **Protos.** `protos/sabr/**` aus `SmartTube/exoplayer-amzn-2.10.6/library/sabr/src/main/proto/` übernehmen (Apache-2.0, Header erhalten): `video_playback_abr_request`, `client_abr_state`, `media_header`, `format_initialization_metadata`, `sabr_redirect`, `sabr_error`, `sabr_seek`, `sabr_context_update`, `sabr_context_sending_policy`, `next_request_policy`, `stream_protection_status`, `buffered_range`, `streamer_context`, `playback_cookie`, `time_range`, `media_capabilities`, `ump_part_id`. Generierung über `npm run build:proto` (`@bufbuild/protobuf` ist Dependency).
+Vorarbeit aus Phase 0: ein handkodierter Request wird bereits akzeptiert, die Antwortstruktur ist bekannt (§0b Befund 5/6). `dev-scripts/lib/proto.mjs` (Writer + UMP-Reader) und `dev-scripts/playback-matrix.mjs#buildAbrRequest` sind die lauffähige Referenz für 6.1–6.3.
+
+6.1 **Protos.** Bestätigt durch Phase 0. `protos/sabr/**` aus `SmartTube/exoplayer-amzn-2.10.6/library/sabr/src/main/proto/` übernehmen (Apache-2.0, Header erhalten): `video_playback_abr_request`, `client_abr_state`, `media_header`, `format_initialization_metadata`, `sabr_redirect`, `sabr_error`, `sabr_seek`, `sabr_context_update`, `sabr_context_sending_policy`, `next_request_policy`, `stream_protection_status`, `buffered_range`, `streamer_context`, `playback_cookie`, `time_range`, `media_capabilities`, `ump_part_id`. Generierung über `npm run build:proto` (`@bufbuild/protobuf` ist Dependency).
 6.2 **UMP-Decoder** `src/core/sabr/UmpDecoder.ts` — VarInt-Part-Header, Part-Dispatch. Semantik aus `parser/ump/UMPDecoder.java`.
-6.3 **`src/core/sabr/SabrStream.ts`** — Portierung von `SabrProcessor.java`/`SabrStream.java`: `ClientAbrState` fortschreiben, `MediaHeader`/`FormatInitializationMetadata` verarbeiten, `SabrRedirect` folgen, `SabrContextUpdate` anwenden, `NextRequestPolicy` respektieren, `StreamProtectionStatus` auswerten (⇒ PoToken erneuern).
+6.3 **`src/core/sabr/SabrStream.ts`** — Portierung von `SabrProcessor.java`/`SabrStream.java`. Gemessene Antwortstruktur: `SELECTABLE_FORMATS` → `STREAM_PROTECTION_STATUS` → `REQUEST_IDENTIFIER` → `NEXT_REQUEST_POLICY` (15000/15000/60000 + Cookie) → `START_BW_SAMPLING_HINT` → je Format `MEDIA_HEADER` → `MEDIA`×n (je 32 KB) → `MEDIA_END`. Aufgaben: `ClientAbrState` fortschreiben, `MediaHeader`/`FormatInitializationMetadata` verarbeiten, `SabrRedirect` folgen, `SabrContextUpdate` anwenden, `NextRequestPolicy` respektieren, `StreamProtectionStatus` auswerten (⇒ PoToken erneuern).
    Eingaben: `server_abr_streaming_url` + `player_config.media_common_config.media_ustreamer_request_config.video_playback_ustreamer_config` (beide parst der Fork bereits, `parser.ts:434-442`) + PoToken aus Phase 5.
 6.4 **Manifest.** `getStreamingInfo(..., { is_sabr: true })` erzeugt bereits `sabr://video?key=…` (`StreamingInfo.ts:332-338`). `toHLS({ mode:'segments' })` bzw. `toDash()` mappen diese Keys auf `/seg/:token/:fmt/:n.m4s`.
 6.5 **SABR-Proxy im Modul.** `registerSabrSource()` hängt einen JS-Handler an einen Pfad; der Server ruft ihn pro Segment-Request auf, der Handler zieht das Segment aus dem `SabrStream`.
@@ -230,39 +305,41 @@ stopServer(): Promise<void>
 ## 4. Reihenfolge & Aufwand
 
 ```
-0 Diagnose ─▶ 1 Fork/Session/Fallback ─▶ 2 adaptive→HLS (Apple TV spielt) ─▶ 4 Robustheit
-                                              │                                    │
-                                              └── 3 media-server ──────────────────┴─▶ 5 PoToken ─▶ 6 SABR ─▶ 7 Android/Abschluss
-                                                  (falls 2.0 scheitert,
-                                                   sonst erst vor Phase 6)
+0 Diagnose ✅ ─▶ 1 Fork/Session/Fallback ─▶ 2 adaptive→HLS (Apple TV spielt) ─▶ 4 Robustheit
+                                                 │                                   │
+                                                 └── 3 media-server ─────────────────┴─▶ 6 SABR ─▶ 7 Android/Abschluss
+                                                     (falls 2.0 scheitert,                   ▲
+                                                      sonst spätestens für Phase 6)          │
+                                                                              5 PoToken ─────┘ (parallel, entkoppelt)
 ```
 
-Nach **Phase 2** ist das Kernversprechen erfüllt ("spielt wie SmartTube" auf Apple TV) — im günstigen Fall (2.0 klappt) ohne eine Zeile Nativ-Code. Phase 5+6 sind wegen Entscheidung 4 fest eingeplant.
+Nach **Phase 2** ist das Kernversprechen erfüllt ("spielt wie SmartTube" auf Apple TV) — im günstigen Fall (2.0 klappt) ohne eine Zeile Nativ-Code.
+**Geändert nach Phase 0:** Phase 5 (PoToken) liegt nicht mehr auf dem Weg zu Phase 6, sondern läuft parallel. Sie schaltet WEB/MWEB frei und ist die Reserve, falls die Attestierung scharf geschaltet wird.
 
 | Phase | Aufwand | Risiko |
 |---|---|---|
-| 0 Diagnose | 1–2 T | niedrig |
+| 0 Diagnose | ✅ erledigt | – |
 | 1 Fork/Session/Fallback | 3–4 T | mittel (JS-Engine, falls Hermes blockt) |
 | 2 adaptive → HLS | 5–7 T | **hoch** (AVPlayer ist wählerisch; 2.0 + 2.2a entschärfen früh) |
 | 3 media-server | 4–6 T | mittel (erstes eigenes Nativ-Modul im Projekt) |
 | 4 Robustheit | 2–3 T | niedrig |
-| 5 PoToken | 3–5 T | hoch (BotGuard ändert sich häufig) |
-| 6 SABR | 1,5–2,5 W | **sehr hoch** (undokumentiert, aber mit Apache-2.0-Vorlage machbar) |
+| 5 PoToken | 3–5 T | hoch (BotGuard ändert sich häufig) — **nicht mehr blockierend** |
+| 6 SABR | 1,5–2,5 W | hoch — durch Phase 0 deutlich gesunken (Request akzeptiert, Antwortstruktur bekannt) |
 | 7 Android + Abschluss | 3–4 T | niedrig |
 
-**Gesamt: ~7–9 Wochen** Vollzeit. **Erste spürbare Verbesserung auf Apple TV: ~2 Wochen** (Ende 2.2a).
+**Gesamt: ~6–8 Wochen** Vollzeit (Phase 0 erledigt, Phase 5 nicht mehr blockierend). **Erste spürbare Verbesserung auf Apple TV: ~2 Wochen** (Ende 2.2a).
 
 ## 5. Risiken & Gegenmaßnahmen
 
 | Risiko | Gegenmaßnahme |
 |---|---|
-| Hermes kann den Player-Code nicht ausführen | Phase 0.1 zuerst; WebView-Engine als Plan B (für Phase 5 ohnehin nötig) |
+| Hermes kann den Player-Code nicht ausführen | Diagnose-Screen steht (*Einstellungen ▸ Playback diagnostics*), **Release-Build-Lauf steht noch aus**; WebView-Engine als Plan B. Entschärft dadurch, dass alle vier Clients der Kette Klartext-URLs liefern und gar kein Decipher nötig ist |
 | AVPlayer akzeptiert `file://`-Playlist nicht | Spike 2.0 (halber Tag); Fallback = Phase 3 vorziehen, Rest von Phase 2 unverändert |
 | AVPlayer akzeptiert generiertes HLS grundsätzlich nicht | 2.2a als kleinstmöglicher Beweis vor dem Vollausbau; scheitert auch das, bleibt nur YouTube-HLS + muxed — dann wird Phase 6 zur einzigen Lösung und rückt vor |
 | `sidx`-Requests bremsen den Start | Nur für exponierte Renditions, parallel, Ergebnis cachen; Renditions notfalls auf 4–5 begrenzen |
 | Format ohne `index_range` | Ein-Segment-Playlist als Notnagel pro Format (2.1) |
 | Lokaler Server auf tvOS (Sandbox/Background/ATS) | `NSAllowsLocalNetworking`, Loopback-only, Lebensdauer an den Screen gekoppelt; Hintergrund-Audio explizit testen |
-| SABR-Protokoll ändert sich | Protos und `ClientAbrState`-Felder isoliert halten; Flag + automatischer Fallback auf Phase 2 |
-| YouTube ändert Clients/Player wöchentlich | Client-Liste/Versionen als konfigurierbare Konstanten; Matrix-Test als Frühwarnsystem |
+| SABR-Protokoll ändert sich | Protos und `ClientAbrState`-Felder isoliert halten; Flag + automatischer Fallback auf Phase 2; `npm run matrix` im Fork als Frühwarnung |
+| YouTube ändert Clients/Player wöchentlich | Client-Liste/Versionen als konfigurierbare Konstanten; `npm run matrix` im Fork regelmäßig laufen lassen und `docs/playback-matrix.md` diffen |
 | `file:`-Dependency + Metro-Caching | Bei unerklärlichen Fehlern `npx expo start -c`; Fork-`dist/` per `extraNodeModules` mappen |
 | Regressionen in Musik/Download/Watch-App | Phase 2.6 fest eingeplant, nicht nachgelagert |

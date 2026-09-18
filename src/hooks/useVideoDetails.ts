@@ -11,6 +11,7 @@ import {
   getElementDataFromVideoInfo,
 } from "@/extraction/YTElements";
 import Logger from "@/utils/Logger";
+import {describeStreamingData} from "@/utils/PlaybackDiagnostics";
 import {YT, YTTV, YTNodes} from "@/utils/Youtube";
 
 const LOGGER = Logger.extend("VIDEO");
@@ -59,6 +60,13 @@ export default function useVideoDetails(
           : undefined,
       ])
         .then(([tvInfo, normalInfo]) => {
+          // Plan-Phase 0.4: festhalten, was die Clients tatsächlich geliefert haben.
+          LOGGER.info(describeStreamingData(tvInfo, "TV"));
+          if (normalInfo) {
+            LOGGER.info(
+              describeStreamingData(normalInfo, "IOS (HLS-Ergänzung)"),
+            );
+          }
           if (tvInfo) {
             videoTVRef.current = tvInfo;
             const parsedDataTV = getElementDataFromTVVideoInfo(tvInfo);
@@ -84,6 +92,12 @@ export default function useVideoDetails(
       youtube
         ?.getInfo(videoId, {client: appSettings.hlsEnabled ? "IOS" : undefined})
         ?.then(info => {
+          LOGGER.info(
+            describeStreamingData(
+              info,
+              appSettings.hlsEnabled ? "IOS" : "Standard-Client",
+            ),
+          );
           videoRef.current = info;
           const parsedData = getElementDataFromVideoInfo(info);
           setVideoInfo(parsedData);
@@ -116,14 +130,21 @@ export default function useVideoDetails(
       setHttpVideoURL(undefined);
       return;
     }
-    videoInfo?.best_format?.originalFormat
+    const format = videoInfo?.best_format;
+    format?.originalFormat
       ?.decipher(youtube.actions.session.player)
-      .then(setHttpVideoURL)
+      .then(url => {
+        LOGGER.info(
+          `Decipher ok: itag=${format.originalFormat?.itag} ${format.type} ` +
+            `${format.originalFormat?.quality_label ?? ""} · host=${url.split("/")[2]}`,
+        );
+        setHttpVideoURL(url);
+      })
       .catch(e => {
-        LOGGER.debug(
-          "Error while decrypting best format: ",
-          e,
-          videoInfo?.best_format,
+        LOGGER.warn(
+          `Decipher fehlgeschlagen (itag=${format?.originalFormat?.itag}): ${String(
+            e?.message ?? e,
+          )} — unter Hermes ist das der erwartete Ausfall, siehe Einstellungen ▸ Playback diagnostics`,
         );
         setHttpVideoURL(undefined);
       });

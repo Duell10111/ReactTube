@@ -1,11 +1,19 @@
-import {forwardRef, useImperativeHandle, useRef} from "react";
+import {forwardRef, useCallback, useImperativeHandle, useRef} from "react";
 import {StyleSheet} from "react-native";
-import Video, {ResizeMode, VideoRef} from "react-native-video";
+import Video, {
+  OnVideoErrorData,
+  ResizeMode,
+  VideoRef,
+} from "react-native-video";
 
 import {
   VideoComponentRefType,
   VideoComponentType,
 } from "./videoPlayer/VideoPlayer";
+
+import Logger from "@/utils/Logger";
+
+const LOGGER = Logger.extend("PLAYBACK");
 
 const VideoPlayerNative = forwardRef<
   VideoComponentRefType,
@@ -15,6 +23,21 @@ const VideoPlayerNative = forwardRef<
   const videoInfo = props.props.videoInfo;
 
   const videoRef = useRef<VideoRef>(undefined);
+
+  // Plan-Phase 0.4: Fehler des nativen Players mit Quelle protokollieren —
+  // Grundlage für die Fehler-Ladder aus Phase 4.
+  const onError = useCallback(
+    (errorData: OnVideoErrorData) => {
+      const uri: string | undefined = props.props.hlsUrl ?? props.props.url;
+      LOGGER.warn(
+        `Player-Fehler · source=${props.props.hlsUrl ? "YT-HLS" : "HTTP"} · ` +
+          `host=${uri?.split("/")[2] ?? "?"} · ` +
+          `error=${JSON.stringify(errorData?.error ?? errorData)}`,
+      );
+      props.onError?.(errorData);
+    },
+    [props],
+  );
 
   useImperativeHandle(ref, () => {
     return {
@@ -54,7 +77,7 @@ const VideoPlayerNative = forwardRef<
       }
       onLoad={props.onLoad}
       onSeek={props.onSeek}
-      onError={props.onError}
+      onError={onError}
       onProgress={props.onProgress}
       onEnd={props.onEnd}
       onAudioTracks={props.onAudioTracks}
