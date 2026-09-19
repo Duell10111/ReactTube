@@ -40,8 +40,12 @@ export default function VideoScreen({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;
   const {
     YTVideoInfo,
-    httpVideoURL,
-    hlsManifestUrl,
+    videoUrl,
+    playbackSource,
+    playbackLadderStep,
+    playbackLadderSize,
+    reportPlaybackFailure,
+    reportProgress,
     startTime,
     watchNextFeed,
     fetchNextVideoContinue,
@@ -98,11 +102,6 @@ export default function VideoScreen({route, navigation}: Props) {
     TVEventControl.enableTVMenuKey();
   });
 
-  const videoUrl = useMemo(
-    () => hlsManifestUrl ?? httpVideoURL,
-    [hlsManifestUrl, httpVideoURL],
-  );
-
   if (!YTVideoInfo) {
     return (
       <View
@@ -142,8 +141,20 @@ export default function VideoScreen({route, navigation}: Props) {
             url: videoUrl,
             startPosition: startTime ? startTime * 1000 : undefined,
             videoInfo: YTVideoInfo.originalData,
+            onPlaybackFailure: reportPlaybackFailure,
             onPlaybackInfoUpdate: infos => {
-              setPlaybackInfos({resolution: infos.height.toString() + "p"});
+              setPlaybackInfos({
+                // Plan-Phase 4.3: was gerade wirklich läuft — Quelle, Stufe und
+                // Auflösung, damit ein Fehlverhalten ohne Xcode erkennbar ist.
+                resolution:
+                  `${infos.height}p` +
+                  (playbackSource
+                    ? ` · ${playbackSource.label}` +
+                      (playbackLadderSize > 1
+                        ? ` (${playbackLadderStep}/${playbackLadderSize})`
+                        : "")
+                    : ""),
+              });
             },
           }}
           metadata={{
@@ -184,6 +195,7 @@ export default function VideoScreen({route, navigation}: Props) {
           }}
           videoID={YTVideoInfo.id}
           onProgress={data => {
+            reportProgress(data.currentTime);
             if (
               appSettings.trackingEnabled &&
               (!currentTimeRef.current ||
@@ -225,9 +237,11 @@ export default function VideoScreen({route, navigation}: Props) {
       ) : (
         <VideoComponent
           url={videoUrl}
-          hlsUrl={YTVideoInfo.hls_manifest_url}
+          startPositionSeconds={startTime}
+          onPlaybackFailure={reportPlaybackFailure}
           videoInfo={YTVideoInfo}
           onProgress={data => {
+            reportProgress(data.currentTime);
             if (
               appSettings.trackingEnabled &&
               (!currentTimeRef.current ||

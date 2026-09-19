@@ -145,6 +145,12 @@ export interface YTVideoInfo {
   durationSeconds?: number;
   // Playback urls
   hls_manifest_url?: string;
+  /**
+   * `file://`-URI des selbst gebauten HLS-Manifests (Plan-Phase 2c).
+   * Hat Vorrang vor `hls_manifest_url`: 2160p in av01 statt avc1 bis 1080p,
+   * und getrennte Tonspuren statt gemuxtem Ton.
+   */
+  generated_hls_url?: string;
   best_format?: YTFormat;
   expires?: Date;
   // Playability Status

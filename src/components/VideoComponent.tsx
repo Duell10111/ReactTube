@@ -1,5 +1,5 @@
 import {useIsFocused} from "@react-navigation/native";
-import React, {useEffect, useMemo, useRef, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef} from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -20,9 +20,30 @@ import {YTChapter, YTVideoInfo} from "@/extraction/Types";
 
 const LOGGER = Logger.extend("VIDEO");
 
+/**
+ * So lange darf ein Ladevorgang ohne Ergebnis bleiben, bevor die Quelle als
+ * gescheitert gilt. Großzügig bemessen: eine langsame Leitung soll nicht
+ * fälschlich eine Stufe kosten, ein toter Decoder aber auch nicht ewig hängen.
+ */
+const STALL_TIMEOUT_MS = 20_000;
+
 interface Props {
+  /**
+   * Die Quelle, die gerade gilt.
+   *
+   * Welche das ist, entscheidet die Ladder in `useVideoDetails` (Plan-Phase
+   * 4.1) — dieser Player spielt sie nur und meldet zurück, wenn sie nicht
+   * trägt. Bis Phase 2c stand hier eine zweite Quelle (`hlsUrl ?? url`), die
+   * die gewählte verdrängte; der Fehler kostete einen ganzen Gerätelauf.
+   */
   url: string;
-  hlsUrl?: string;
+  /** Position, an der eingestiegen wird — trägt die Stelle über einen Stufenwechsel. */
+  startPositionSeconds?: number;
+  /**
+   * Meldet, dass diese Quelle nicht trägt: als Fehler oder als Stillstand.
+   * Die Ladder entscheidet, was daraus folgt.
+   */
+  onPlaybackFailure?: (reason: string) => void;
   style?: StyleProp<ViewStyle>;
   videoInfo?: YTVideoInfo;
   chapters?: YTChapter[];
@@ -42,7 +63,8 @@ interface Props {
 
 export default function VideoComponent({
   url,
-  hlsUrl,
+  startPositionSeconds,
+  onPlaybackFailure,
   videoInfo,
   fullscreen,
   style,
@@ -54,7 +76,36 @@ export default function VideoComponent({
 }: Props) {
   const playerRef = useRef<VideoRef>(undefined);
   const isFocused = useIsFocused();
-  const [failbackURL, setFailbackUrl] = useState(false);
+
+  /**
+   * Stillstands-Wächter — Plan-Phase 4.1.
+   *
+   * **Warum `onError` nicht genügt:** fehlt dem Gerät der Decoder, meldet
+   * AVPlayer keinen Fehler. Gemessen mit einem Manifest, das nur AV1 anbot,
+   * starb der Media-Server-Prozess, `onLoad` kam nie, `onError` auch nicht —
+   * für den Benutzer ein Ladebalken ohne Ende. Bleibt das Laden also zu lange
+   * ohne Ergebnis, gilt die Quelle als gescheitert.
+   */
+  const stallTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const clearStallTimer = useCallback(() => {
+    if (stallTimer.current) {
+      clearTimeout(stallTimer.current);
+      stallTimer.current = undefined;
+    }
+  }, []);
+
+  const armStallTimer = useCallback(() => {
+    clearStallTimer();
+    stallTimer.current = setTimeout(() => {
+      onPlaybackFailure?.(
+        `kein Ladeergebnis nach ${STALL_TIMEOUT_MS / 1000} s`,
+      );
+    }, STALL_TIMEOUT_MS);
+  }, [clearStallTimer, onPlaybackFailure]);
+
+  // Ein Quellenwechsel räumt den Wächter ab; der neue Ladevorgang bewaffnet ihn.
+  useEffect(() => clearStallTimer, [clearStallTimer, url]);
 
   const parsedChapters = useMemo(() => {
     return videoInfo?.chapters?.map(mapChapters) ?? [];
@@ -68,19 +119,7 @@ export default function VideoComponent({
     }
   }, [fullscreen]);
 
-  // As changing url causes duplicate errors
-  if (failbackURL) {
-    return (
-      <VideoComponent
-        url={url}
-        style={style}
-        videoInfo={videoInfo}
-        {...callbacks}
-      />
-    );
-  }
-
-  const videoURL = hlsUrl ?? url;
+  const videoURL = url;
 
   return (
     <>
@@ -104,9 +143,7 @@ export default function VideoComponent({
             imageUri: videoInfo?.thumbnailImage?.url,
           },
         }}
-        style={
-          (style as any) ?? [styles.fullScreen, StyleSheet.absoluteFill]
-        }
+        style={(style as any) ?? [styles.fullScreen, StyleSheet.absoluteFill]}
         controls={controls !== undefined ? controls : true}
         paused={paused !== undefined ? paused : !isFocused}
         fullscreen={fullscreen ?? true}
@@ -121,20 +158,37 @@ export default function VideoComponent({
         showNotificationControls
         // Event listener
         onLoad={(data: any) => {
-          LOGGER.debug("Video Loading...", JSON.stringify(data, null, 4));
+          clearStallTimer();
+          LOGGER.debug(
+            `Video geladen (${describeSource(videoURL)}): ` +
+              `${data?.naturalSize?.width}x${data?.naturalSize?.height}, ` +
+              `${data?.audioTracks?.length ?? 0} Tonspur(en)`,
+          );
           callbacks.onPlaybackInfoUpdate?.({
             width: data?.naturalSize?.width,
             height: data?.naturalSize?.height,
           });
-        }}
-        onProgress={callbacks.onProgress}
-        onLoadStart={() => LOGGER.debug("Video Start Loading...")}
-        onError={(error: any) => {
-          LOGGER.warn("Error playing video: ", JSON.stringify(error));
-          if (hlsUrl) {
-            setFailbackUrl(true);
-            LOGGER.warn("Switching to fallback url");
+
+          // Die Stelle über einen Stufenwechsel hinweg halten.
+          if (startPositionSeconds && startPositionSeconds > 0) {
+            playerRef.current?.seek?.(startPositionSeconds);
           }
+        }}
+        onProgress={data => {
+          // Es läuft — der Wächter wird nicht mehr gebraucht.
+          clearStallTimer();
+          callbacks.onProgress?.(data);
+        }}
+        onLoadStart={() => {
+          LOGGER.debug(`Video lädt… (${describeSource(videoURL)})`);
+          armStallTimer();
+        }}
+        onError={(error: any) => {
+          clearStallTimer();
+          LOGGER.warn(
+            `Player-Fehler (${describeSource(videoURL)}): ${JSON.stringify(error)}`,
+          );
+          onPlaybackFailure?.(JSON.stringify(error?.error ?? error));
         }}
         onEnd={() => {
           LOGGER.debug("End reached");
@@ -143,6 +197,14 @@ export default function VideoComponent({
       />
     </>
   );
+}
+
+/** Kurzname der Quelle fürs Protokoll — damit erkennbar ist, was wirklich lief. */
+function describeSource(uri?: string) {
+  if (!uri) return "keine Quelle";
+  if (uri.startsWith("file://")) return "eigenes HLS";
+  if (uri.includes(".m3u8")) return "YouTube-HLS";
+  return "progressiv";
 }
 
 const styles = StyleSheet.create({

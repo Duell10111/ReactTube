@@ -225,6 +225,40 @@ tv.getInfo (App-Pfad): UNPLAYABLE · 0 Formate
 
 **Verifikation:** `node dev-scripts/phase1-verify.mjs` im Fork prüft alle Punkte gegen die echte API (alle grün). Die Playback-Matrix dient als Regressionsnetz — sie hat während der Umsetzung einen echten Fehler gefangen: im Bulk-Decipher hieß das Signaturfeld `sig`, der Script-Generator las `s`, wodurch alle Cipher-Formate eine leere Signatur bekamen. TV_SIMPLY fiel dadurch von 6/6 auf 4/6. Die Verifikation deckt den Cipher-Pfad jetzt explizit ab (`decipher()` ruft intern `decipherMany()`, ein Vergleich beider Wege hätte den Fehler nicht gefunden).
 
+**Nachträglich behoben (aufgefallen beim ersten Gerätetest der Wiedergabe):** Die
+Persistenz aus 1.6 speicherte ein **selbst erzeugtes** `visitorData` — das akzeptiert
+YouTube nicht. Gemessen: `VISIONOS`, `ANDROID_VR` und `TV_DOWNGRADED` antworten dann
+mit `LOGIN_REQUIRED`, `TV_SIMPLY` mit `UNPLAYABLE`, und damit fällt auch das
+HLS-Manifest weg — die Kette landete beim progressiven Notfallweg. Lässt man
+`visitor_data` beim Erzeugen weg, besorgt sich die Session beim Konfigurationsabruf
+selbst einen gültigen Wert; **dieser** wird jetzt aufbewahrt (max. 7 Tage) und beim
+nächsten Start wiederverwendet. **Zweiter Anlauf nötig:** der Wert steckt zusätzlich im Session-Cache von
+youtubei.js, der unter dem **festen** Schlüssel `innertube_session_data` liegt
+(`Session.ts:337`) und unabhängig von den Session-Argumenten wiederverwendet wird —
+ein Neustart ohne `visitor_data` spielte die alte Identität also wieder ein. Die App
+holt das `visitorData` jetzt **explizit** über `POST /youtubei/v1/visitor_id`
+(SmartTubes `VisitorApi.kt`) und verwirft den Session-Cache, wenn kein eigener Wert
+vorliegt. In Node gegen den nachgestellten Gerätezustand verifiziert: vergifteter
+Cache → alle HLS-Clients kaputt; nach dem Fix alle sechs Clients `OK`, `VISIONOS` mit
+HLS, auch im Folgestart. Zusätzlich verwirft die App Identität **und** Session-Cache,
+sobald ein Client `LOGIN_REQUIRED` meldet. Ebenfalls behoben: `chooseFormat` wirft, statt
+`undefined` zu liefern — der `??`-Ausdruck in `YTElements.ts` kam deshalb nie beim
+Audio-Zweig an, sobald eine Antwort keine muxed Formate mehr enthielt (inzwischen der
+Normalfall).
+
+**Nachträglich behoben (aufgefallen beim ersten Gerätestart):** Das Aktivieren des
+Caches (1.6) hat zwei Fehler im Cache-Shim der App (`src/ytjs/react-native.ts`)
+freigelegt, der bis dahin nie benutzt wurde — `get()` warf bei einem *fehlenden*
+Schlüssel „An unexpected file was found in place of the cache key" statt `undefined`
+zurückzugeben (das verhinderte die Innertube-Erzeugung komplett), und `set()` schrieb
+die serialisierten Player-Daten über `TextDecoder` als Text, was die Bytes zerstört
+hätte. Beides läuft jetzt binär über `file.bytes()` / `file.write(Uint8Array)`.
+Außerdem sind die tiefen Importe aus `youtubei.js/dist/...` durch die öffentliche API
+ersetzt (Metro-Warnungen „not listed in exports" sind weg); dabei fiel ein veraltetes
+`info`-Feld im Shim auf, das der aktuelle `PlatformShim` nicht mehr kennt — es war nur
+unsichtbar, weil ein `@ts-ignore` den ganzen `Platform.load`-Aufruf von der
+Typprüfung ausgenommen hatte.
+
 **Abweichungen von der Planung:**
 - 1.9 ist als Helfer-Modul `utils/PlaybackSource.ts` umgesetzt, nicht als Hook `usePlaybackSource`. Der Hook entsteht in Phase 2, wo er Manifest-Erzeugung, Ablauf-Timer und Fehler-Ladder zusammenhält — jetzt hätte er nur einen Aufruf gekapselt.
 - Die App nutzt **nicht** `TV#getPlayableInfo` (ein Aufruf), sondern holt Metadaten und Streams aus **zwei Instanzen** und führt sie zusammen. Grund: `skip_auth` ist auf einer angemeldeten Session noch nicht auf dem Gerät verifiziert, die Zwei-Instanzen-Variante funktioniert unabhängig davon. `TV#getPlayableInfo` liegt im Fork bereit und ist der nächste Schritt, sobald ein Gerätelauf bestätigt, dass `skip_auth` auf angemeldeten Sessions greift.
@@ -279,9 +313,132 @@ async getInfo(
 
 ---
 
-### Phase 2 — Adaptive Formats → HLS auf Apple TV *(~5–7 Tage, Zwischenlösung, komplett ohne Nativ-Code)*
+### Phase 2 — Adaptives Streaming auf Apple TV *(neu geschnitten nach Messung, 2026-09-19)*
 
-Das ist der Schritt, der die Wiedergabe repariert. Er nutzt die klassischen `adaptive_formats` (getrennte Video-/Audio-Streams mit `init_range`/`index_range`) und gießt sie in ein HLS-Playlist — dasselbe, was SmartTube mit seinem MPD-Builder für ExoPlayer tut, nur im Format, das AVPlayer versteht.
+> **Korrigierter Befund (2026-09-19, zweite Messung):** Die Byte-Range-Kappung ist
+> eine **Client-Eigenschaft**, keine Frage der Autorisierung. `VISIONOS` liefert
+> adaptive Formate über `Range` **vollständig** — nachgemessen 152 MB itag 401
+> (2160p AV1) am Stück, jedes Segment HTTP 206. `IOS`, `TV_SIMPLY` und
+> `ANDROID_VR` kippen ab rund 0,37 MB auf 403.
+>
+> Die frühere Hypothese, dafür fehle ein PoToken, ist **widerlegt**: ein echter
+> BotGuard-PoToken (12 h TTL, an dasselbe `visitorData` gebunden) und ein
+> Cold-Start-Token ändern an den 403 nichts, und `WEB` bleibt auch mit
+> content-gebundenem Token SABR-only. Messung und Skripte:
+> `YouTube.js/docs/byte-range-cap.md`, `dev-scripts/potoken-probe.mjs`.
+>
+> **Folge für die Reihenfolge:** Phase 2b (PoToken) ist **keine Vorbedingung**
+> für 2c. Der eigene Generator ist gebaut und gegen die echten Server verifiziert;
+> 2b rutscht dahinter und dient nur noch als Reserve.
+>
+> Erreichbare Qualität auf AVPlayer, gemessen:
+>
+> | Weg | max. Höhe | Audiospuren | Stand |
+> |---|---|---|---|
+> | YouTube-HLS | 1080p (avc1; die 2160p-Varianten sind VP9, das AVPlayer nicht dekodiert) | gemuxt, keine Sprachwahl | ✅ Phase 2a |
+> | eigenes HLS aus adaptiven Formaten | **2160p** (av01) | getrennt, mehrsprachig | ✅ Phase 2c, Node-verifiziert |
+> | SABR | 2160p | getrennt, mehrsprachig | Phase 6 |
+
+#### Phase 2a — YouTubes HLS nutzen *(✅ umgesetzt)*
+
+| Punkt | Umsetzung |
+|---|---|
+| HLS als Pflichtkriterium | `utils/PlaybackSource.ts`: erste Runde akzeptiert nur Clients **mit** `hls_manifest_url`, Client-Reihenfolge `VISIONOS → IOS → TV_SIMPLY → …`. Zweite Runde fällt auf progressive Formate zurück und protokolliert, dass die Wiedergabe früh abbricht. |
+| HLS als Standard | `useVideoDetails.ts` + `PlayerResolutionSelector`: HLS ist der Vorgabewert, der progressive Weg nur noch Notausgang zum Vergleichen. |
+| sidx-Parser (2.1) | ✅ vorgezogen: `YouTube.js/src/utils/Mp4SidxParser.ts` samt Fixture `tests/fixtures/sidx-itag160.bin`. Wird für 2c gebraucht und ist gegen echte Formate verifiziert. |
+
+**Verifikation:** `node dev-scripts/phase2a-verify.mjs` — alle 6 Testvideos, `VISIONOS`
+liefert das Manifest, avc1 bis 1080p, Segmentstichproben am Anfang, in der Mitte und
+am Ende je HTTP 200.
+
+**Ergebnis auf dem Gerät:** adaptives 1080p auf Apple TV, mit Qualitätsumschaltung
+durch AVPlayer — ohne eigenen Server und ohne Generator.
+
+#### Phase 2c — Eigener HLS-Generator *(✅ umgesetzt, Gerätetest offen)*
+
+Entstanden **ohne** PoToken, weil `VISIONOS` die Byte-Ranges vollständig bedient.
+Nutzen gegenüber 2a: **2160p über av01** und **getrennte, mehrsprachige Tonspuren**.
+
+| Punkt | Umsetzung |
+|---|---|
+| 2.1 sidx-Parser | ✅ bereits in 2a: `YouTube.js/src/utils/Mp4SidxParser.ts` |
+| 2.2 Generator | ✅ `YouTube.js/src/utils/HlsManifest.ts` + `src/types/HlsOptions.ts`, exportiert als `FormatUtils.toHLS` und `MediaInfo#toHLS`. Master mit `EXT-X-STREAM-INF` je Videorendition und `EXT-X-MEDIA:TYPE=AUDIO` je Tonspur (inkl. DRC-/Voice-Boost-Labels), Medien-Playlists mit `EXT-X-MAP` aus `init_range` und `EXT-X-BYTERANGE` je Segment. Durchgängig `#EXT-X-VERSION:7`, `#EXT-X-INDEPENDENT-SEGMENTS`, `#EXT-X-PLAYLIST-TYPE:VOD`. Zwei Ausgabemodi sind vorgesehen: `mode:'byterange'` (umgesetzt) und `mode:'segments'` für SABR (wirft noch). Live/Post-Live-DVR werden abgelehnt — dort gilt YouTubes `hls_manifest_url`. |
+| Client-Bedingung | ✅ `CLIENTS_FULL_BYTE_RANGE` in `src/utils/PlaybackSource.ts`; `resolveStreamingSource` kennt jetzt `mode: "generated" \| "youtube-hls" \| "progressive"` und fällt über das neue `clients_fallback` des Resolvers auf die HLS-Kette zurück, wenn kein ungekappter Client antwortet. |
+| 2.0 Serverlos-Ablage | ✅ `src/utils/GeneratedHls.ts` schreibt Master und Medien-Playlists nach `cacheDirectory/generated-hls/<videoId>-<ms>/` und gibt das `file://…/master.m3u8` zurück; alte Verzeichnisse werden aufgeräumt. **Kein Nativ-Modul nötig — Phase 3 bleibt damit SABR vorbehalten.** |
+| 2.3 App-Anbindung | ✅ `useVideoDetails` baut das Manifest nach dem Abruf in einem eigenen Effekt und gibt es als `hlsManifestUrl` vor YouTubes Manifest aus. Schlägt der Bau fehl, bleibt es bei 2a. |
+| 2.5 Einstellung | ✅ `PlayerResolutionSelector`: „Eigenes HLS — 4K, mehrsprachig" / „YouTube-HLS" / „Progressiv"; der Alt-Schlüssel `localHlsEnabled` trägt jetzt den Generator. |
+
+**Verifikation (Node, gegen die echten Server):** `node dev-scripts/phase2c-verify.mjs`
+— alle 6 Testvideos, 6 Varianten bis 2160p, 1–2 Tonspuren, Init-Range plus
+Segmente am Anfang, in der Mitte und am Ende je HTTP 206 mit exakter Länge.
+
+**Gerätelauf 2026-09-19 (Simulator):** `VISIONOS OK · eigenes HLS möglich · 1
+Versuch` und `Eigenes HLS gebaut: 8 Playlists in 495 ms`. Dabei fiel auf, dass der
+Player das Manifest gar nicht bekam: `VideoComponent` benutzte `hlsUrl ?? url` und
+`VideoScreen` reichte als `hlsUrl` YouTubes Manifest durch — das verdrängte die
+gewählte Quelle. Behoben: `hlsUrl` ist jetzt die **zweite Stufe** einer Ladder
+(erst die gewählte Quelle, bei Player-Fehler YouTubes Manifest), und das
+Protokoll nennt die tatsächlich geladene Stufe. Ebenfalls behoben: das Manifest
+wird **vor** `setVideoInfo` gebaut, sonst startete die Wiedergabe erst mit
+YouTubes Manifest und nach einer halben Sekunde sichtbar neu.
+
+**Zweiter Gerätelauf (Simulator):** `Video Start Loading... (eigenes HLS, Stufe
+1/2)` — AVPlayer **nimmt das `file://`-Playlist mit entfernten Segment-URLs an**,
+Spike 2.0 ist damit beantwortet. Die Wiedergabe blieb aber im Ladezustand hängen,
+und der Systemlog zeigte den Grund: `FigMediaServicesProcessDeathMonitoring
+signalled err=-12780` — der Media-Server-Prozess starb.
+
+Ursache war der Generator selbst: `pickVideoRenditions` behielt **eine** Rendition
+je Höhe und ließ die Codec-Präferenz gewinnen. Weil YouTube av01 in jeder Höhe
+anbietet, bestand das Manifest damit ausschließlich aus AV1 (6 von 6 Varianten,
+`grep -c avc1` = 0) — genau das, wovor §0b Befund 4 warnt. Ein Player ohne
+AV1-Decoder hat dann nichts, was er auswählen könnte.
+
+Behoben: eine Codec-Familie wird nie mehr ganz verworfen. Die **erste** Familie
+mit Renditions bildet die Grundleiter, die übrigen steuern nur Höhen bei, die
+jene nicht erreicht — also genau die 1440p/2160p, die es nur in av01 gibt.
+Vorgabe im Fork ist jetzt `['avc1', 'av01']`. In der App ist AV1 eine **eigene
+Auswahl** („Eigenes HLS + AV1"), weil ein fehlender Decoder sich nicht als Fehler
+meldet, sondern als stiller Stillstand — die Ladder greift dort nicht.
+
+**Offen:**
+- **Gerätetest auf echter Hardware** — A/V-Sync, Seek, Variantenwechsel, und ob
+  AV1 auf Apple TV 4K (3. Gen) trägt.
+- **Ein hängender Player bricht die Ladder nicht.** AVPlayer meldete keinen
+  Fehler, also schaltete `VideoComponent` nicht auf die nächste Stufe. Ein
+  Stillstands-Wächter (kein `onLoad`/`onProgress` binnen n Sekunden ⇒ nächste
+  Stufe) gehört zu Phase 4.
+- `chooseBestSingleUrlFormat` (`src/extraction/YTElements.ts`) fällt ohne
+  gemuxtes Format auf **Audio-only** zurück — im Gerätelauf `Decipher ok:
+  itag=140 audio`. Als letzte Stufe der Ladder hieße das Ton ohne Bild; gehört
+  zur `best_format`-Aufräumaktion in Phase 7.
+- 2.4 Android/DASH (Phase 7), 2.2c Untertitel als `EXT-X-MEDIA:TYPE=SUBTITLES`,
+  2.6 Download- und Musik-Pfad auf die neue Formatauswahl.
+- Codec-Präferenz je Gerät setzen: `GeneratedHlsOptions.codecPreference` ist da,
+  die Gerätekennung fehlt noch. Ohne `avc1`-Fallback ruckelt AV1 auf allem außer
+  Apple TV 4K (3. Gen) — §0b Befund 4.
+
+#### Phase 2b — PoToken *(zurückgestellt, keine Vorbedingung mehr)*
+
+Gemessen ohne Wirkung auf die drei Dinge, für die er vorgesehen war: er hebt die
+Byte-Range-Kappung **nicht** auf, SABR braucht ihn **nicht** (§0b Befund 5), und
+`WEB` bleibt mit ihm SABR-only. Bleibt als Reserve, falls die Attestierung scharf
+geschaltet wird, und für altersbeschränkte Videos.
+
+**Was schon steht:** `YouTube.js/dev-scripts/lib/potoken.mjs` erzeugt session- und
+content-gebundene Token über `bgutils-js` — in Node, mit `jsdom` als Umgebung,
+BotGuard läuft in gut einer Sekunde durch. Das ist die Referenz, falls die Phase
+wieder aufgenommen wird.
+
+**Der offene Brocken für das Gerät:** tvOS hat **kein WKWebView**, der Weg aus
+SmartTubes `PoTokenWebView.kt` ist dort also verbaut. Bliebe BotGuard in Hermes
+mit selbst gestellten Browser-Objekten — SmartTube hat genau das mit V8 versucht
+und im Quelltext als gescheitert vermerkt (`PoTokenV8.kt`: *„It's impossible to
+build full fledged browser-like environment using the V8 engine"*). Vor jeder
+weiteren Zeile hier gehört dieser Spike gemacht.
+
+Die ursprünglich geplanten Punkte 2.0 bis 2.6 stehen unten; 2.0 bis 2.3 und 2.5
+sind erledigt, der Rest bleibt offen.
 
 2.0 **Serverlos-Spike zuerst (spart u. U. Phase 3 vorerst komplett).** Ein *handgeschriebenes* Master-Playlist für ein bekanntes Video in `expo-file-system` `cacheDirectory` schreiben und als `file://…/master.m3u8` an `react-native-video` geben. Zu prüfen:
    (a) akzeptiert AVPlayer ein lokales Playlist mit **remote** Segment-URLs?
@@ -337,20 +494,36 @@ stopServer(): Promise<void>
 
 ---
 
-### Phase 4 — Robustheit wie SmartTube *(~2–3 Tage)*
+### Phase 4 — Robustheit wie SmartTube *(✅ umgesetzt, Gerätetest offen)*
 
-4.1 **Fehler-Ladder** in `usePlaybackSource`, ausgelöst von `onError`:
-   1. Quelle neu aufbauen (URL-Refresh) → 2. nächster Client (SmartTube `switchNextFormat`) → 3. PoToken-Cache leeren + Client wiederholen (ab Phase 5) → 4. YouTubes eigenes HLS → 5. muxed Format als letzte Rettung.
-   Jeder Schritt behält die Position (`getCurrentPositionSeconds()` existiert in `VideoComponentRefType`).
-4.2 **Expiry-Refresh.** Timer auf `streaming_data.expires` − 60 s ⇒ Player-Response neu holen, Manifest ersetzen, an gleicher Position weiterspielen (ersetzt den auskommentierten Block `useVideoDetails.ts:134-158`).
-4.3 **Manuelle Umschaltung** + Anzeige von Client/itag/Auflösung im Overlay (Debug-Hilfe wie SmartTubes Format-Switch).
-4.4 **Persistenz** des zuletzt erfolgreichen Clients in MMKV (`persistRecentTypeIfNeeded`-Äquivalent).
+| Punkt | Umsetzung |
+|---|---|
+| 4.1 Fehler-Ladder | ✅ `src/utils/PlaybackLadder.ts` stellt die Stufen zusammen (eigenes HLS → YouTube-HLS → progressiv, Doppelte fallen raus), `useVideoDetails` hält die aktuelle Stufe und gibt `videoUrl`, `playbackSource` und `reportPlaybackFailure` heraus. Die Player spielen nur noch und melden zurück. Jede Stufe steigt an der Stelle ein, an der die vorige stehenblieb (`positionRef` ⇒ `startTime`). |
+| **Stillstands-Wächter** | ✅ **Der Zusatz, den der Gerätelauf erzwungen hat:** `onError` allein genügt nicht — fehlt dem Gerät der Decoder, meldet AVPlayer gar nichts und bleibt stumm im Ladezustand. Kommt binnen 20 s kein `onLoad`/`onProgress`, gilt die Quelle als gescheitert. In beiden Playern (`VideoComponent`, `VideoPlayerNative`). |
+| 4.2 Expiry-Refresh | ✅ Timer auf `streaming_data.expires` − 60 s, frischt die Quelle auf und steigt an derselben Stelle wieder ein. Ersetzt den auskommentierten Block, der ohne Vorlauf und ohne Position arbeitete. Besonders nötig beim eigenen Manifest, das die URLs in die Playlists einbackt. |
+| 4.3 Anzeige | ✅ (teilweise) Das Overlay zeigt neben der Auflösung jetzt Quelle und Stufe, z. B. `1080p · eigenes HLS (1/2)`. **Manuelle Umschaltung fehlt** — die Ladder greift bisher nur automatisch. |
+| 4.4 Persistenz | ✅ `rememberSuccessfulClient` in `PlaybackSource.ts` legt je Modus den zuletzt erfolgreichen Client in MMKV ab und stellt ihn beim nächsten Mal an den Anfang der Kette. Nur Treffer der ersten Runde zählen — eine Notlösung als Favorit zu merken würde die Kette in die falsche Richtung ziehen. |
+
+**Offen:**
+- Gerätetest: greift die Ladder wirklich, wenn eine Stufe ausfällt, und steigt sie
+  an der richtigen Stelle wieder ein?
+- `VideoPlayerPhone` (Telefon/Tablet) reicht weder Fehler noch Fortschritt durch —
+  dort ist die Ladder vorerst einstufig.
+- Ein Stillstand **mitten** in der Wiedergabe (endloses Nachpuffern) löst nichts
+  aus; der Wächter deckt nur den Ladevorgang ab.
 
 ---
 
-### Phase 5 — PoToken (BotGuard) *(~3–5 Tage; **nach** §0b nicht mehr Vorbedingung für Phase 6)*
+### Phase 5 — PoToken (BotGuard) → **läuft als Phase 2b**
 
-Phase 0 hat gezeigt: SABR liefert für `IOS`/`VISIONOS`/`ANDROID`/`ANDROID_VR` auch **ohne** PoToken Medien (HTTP 200). PoToken bleibt trotzdem sinnvoll — aber für andere Zwecke: WEB-Clients freischalten, die 403 bei `MWEB` beheben, altersbeschränkte und geo-blockierte Videos erreichen, und als Reserve, falls YouTube die Attestierung auch für die jetzt offenen Clients scharf schaltet (`STREAM_PROTECTION_STATUS` kommt in den Antworten bereits mit).
+> Diese Phase ist nach der Messung aus Phase 2 vorgezogen worden und heißt dort **2b**.
+> Die Beschreibung unten bleibt maßgeblich, die Einordnung hat sich geändert:
+
+Für **SABR** ist PoToken keine Vorbedingung — das hat Phase 0 gezeigt (`IOS`, `VISIONOS`,
+`ANDROID`, `ANDROID_VR` liefern SABR-Medien ohne ihn). Für den **eigenen HLS-Generator**
+ist er es sehr wahrscheinlich doch: die Byte-Range-Auslieferung bricht ohne `pot` nach
+0,37 MB ab (`YouTube.js/docs/byte-range-cap.md`). Darüber hinaus schaltet er WEB-Clients
+frei, behebt den 403 bei `MWEB` und erreicht altersbeschränkte sowie geo-blockierte Videos.
 
 5.1 `react-native-webview` + unsichtbares WebView, das die BotGuard-Challenge löst. Portierung von `potokennp2/generators/PoTokenWebView.kt` + `misc/JavaScriptUtil.kt` (MIT — direkte Übernahme mit Copyright-Hinweis zulässig).
 5.2 Trennung wie in SmartTube: **session**-PoT (aus `visitorData`, für Streaming-URLs `&pot=`) und **content**-PoT (aus `videoId`, für den Player-Request), Cache + Reset-Cooldown (`PoTokenGate.kt:96-116`).
@@ -389,36 +562,42 @@ Vorarbeit aus Phase 0: ein handkodierter Request wird bereits akzeptiert, die An
 ## 4. Reihenfolge & Aufwand
 
 ```
-0 Diagnose ✅ ─▶ 1 Fork/Session/Fallback ─▶ 2 adaptive→HLS (Apple TV spielt) ─▶ 4 Robustheit
-                                                 │                                   │
-                                                 └── 3 media-server ─────────────────┴─▶ 6 SABR ─▶ 7 Android/Abschluss
-                                                     (falls 2.0 scheitert,                   ▲
-                                                      sonst spätestens für Phase 6)          │
-                                                                              5 PoToken ─────┘ (parallel, entkoppelt)
+0 Diagnose ✅ ─▶ 1 Fork/Session/Fallback ✅ ─▶ 2a YouTube-HLS ✅ ─▶ 2c eigener Generator ✅ (2160p av01, Gerätetest offen)
+                                                                            │
+                                                                            ├─▶ 4 Robustheit ✅
+                                                                            │
+                                                     3 media-server ───────┴─▶ 6 SABR ─▶ 7 Android/Abschluss
+
+                                                     2b PoToken — zurückgestellt, nur noch Reserve
 ```
 
-Nach **Phase 2** ist das Kernversprechen erfüllt ("spielt wie SmartTube" auf Apple TV) — im günstigen Fall (2.0 klappt) ohne eine Zeile Nativ-Code.
-**Geändert nach Phase 0:** Phase 5 (PoToken) liegt nicht mehr auf dem Weg zu Phase 6, sondern läuft parallel. Sie schaltet WEB/MWEB frei und ist die Reserve, falls die Attestierung scharf geschaltet wird.
+Nach **Phase 2** ist das Kernversprechen erfüllt ("spielt wie SmartTube" auf Apple TV) — und zwar ohne eine Zeile Nativ-Code: die Playlists liegen als Dateien im Cache, die Segmente holt AVPlayer direkt bei googlevideo.
+**Geändert nach Phase 2b-Messung:** PoToken liegt auf keinem der Wege mehr. Er hebt die Byte-Range-Kappung nicht auf, SABR braucht ihn nicht, und `WEB` bleibt mit ihm SABR-only. Er bleibt Reserve, falls die Attestierung scharf geschaltet wird.
 
 | Phase | Aufwand | Risiko |
 |---|---|---|
 | 0 Diagnose | ✅ erledigt | – |
 | 1 Fork/Session/Fallback | 3 T | niedrig (JS-Engine-Risiko ist weg) |
-| 2 adaptive → HLS | 5–7 T | **hoch** (AVPlayer ist wählerisch; 2.0 + 2.2a entschärfen früh) |
+| 2a YouTube-HLS | ✅ erledigt | – |
+| 2c eigener Generator | ✅ erledigt (Gerätetest offen) | – |
+| 2b PoToken | 3–5 T | hoch — **zurückgestellt**, gemessen ohne Wirkung; auf tvOS zusätzlich ohne WebView |
 | 3 media-server | 4–6 T | mittel (erstes eigenes Nativ-Modul im Projekt) |
-| 4 Robustheit | 2–3 T | niedrig |
-| 5 PoToken | 3–5 T | hoch (BotGuard ändert sich häufig) — **nicht mehr blockierend** |
+| 4 Robustheit | ✅ erledigt (Gerätetest offen) | – |
 | 6 SABR | 1,5–2,5 W | hoch — durch Phase 0 deutlich gesunken (Request akzeptiert, Antwortstruktur bekannt) |
 | 7 Android + Abschluss | 3–4 T | niedrig |
 
-**Gesamt: ~6–8 Wochen** Vollzeit (Phase 0 erledigt, Phase 5 nicht mehr blockierend). **Erste spürbare Verbesserung auf Apple TV: ~2 Wochen** (Ende 2.2a).
+**Die Wiedergabequalität ist am Ziel — der Beweis auf dem Gerät fehlt noch:**
+2a brachte adaptives 1080p über YouTubes eigenes Manifest, 2c erreicht in der
+Node-Messung 2160p in av01 mit getrennten Tonspuren. Was noch aussteht, ist der
+Gerätetest, ob AVPlayer die erzeugten Playlists annimmt.
 
 ## 5. Risiken & Gegenmaßnahmen
 
 | Risiko | Gegenmaßnahme |
 |---|---|
 | ~~Hermes kann den Player-Code nicht ausführen~~ | **Erledigt**: auf dem Gerät gemessen, `new Function`/`eval` funktionieren, Decipher läuft. Zusätzlich entschärft dadurch, dass alle Clients der Kette Klartext-URLs liefern |
-| AVPlayer akzeptiert `file://`-Playlist nicht | Spike 2.0 (halber Tag); Fallback = Phase 3 vorziehen, Rest von Phase 2 unverändert |
+| AVPlayer akzeptiert `file://`-Playlist nicht | **Das ist der noch offene Gerätetest.** Generator und Ablage stehen; scheitert AVPlayer daran, wechselt nur die Ablage von `file://` auf `http://127.0.0.1` und Phase 3 rückt vor |
+| `VISIONOS` verliert die ungekappte Byte-Range-Auslieferung | `phase2c-verify.mjs` als Frühwarnung; die App fällt über `clients_fallback` automatisch auf YouTubes Manifest zurück, SABR (Phase 6) ist der Ausweg |
 | AVPlayer akzeptiert generiertes HLS grundsätzlich nicht | 2.2a als kleinstmöglicher Beweis vor dem Vollausbau; scheitert auch das, bleibt nur YouTube-HLS + muxed — dann wird Phase 6 zur einzigen Lösung und rückt vor |
 | `sidx`-Requests bremsen den Start | Nur für exponierte Renditions, parallel, Ergebnis cachen; Renditions notfalls auf 4–5 begrenzen |
 | Format ohne `index_range` | Ein-Segment-Playlist als Notnagel pro Format (2.1) |

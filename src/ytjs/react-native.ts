@@ -1,18 +1,33 @@
 // React-Native Platform Support
 /* eslint-disable object-shorthand */
-import {Buffer} from "@craftzdog/react-native-buffer";
 import {File, Directory, Paths} from "expo-file-system";
 import crypto from "react-native-quick-crypto";
 import {ReadableStream} from "web-streams-polyfill";
-import {Types} from "youtubei.js";
-// @ts-ignore Ignore no type definitions found
-import CustomEvent from "youtubei.js/dist/src/platform/polyfills/node-custom-event.js";
-// @ts-ignore Ignore no type definitions found
-import {ICache} from "youtubei.js/dist/src/types/Cache.js";
-// @ts-ignore Ignore no type definitions found
-import {FetchFunction} from "youtubei.js/dist/src/types/PlatformShim.js";
-// @ts-ignore Ignore no type definitions found
-import {Platform} from "youtubei.js/dist/src/utils/Utils.js";
+import {Platform, Types} from "youtubei.js";
+
+type ICache = Types.ICache;
+type FetchFunction = Types.FetchFunction;
+
+/**
+ * CustomEvent fehlt in React Native.
+ *
+ * Bewusst hier definiert statt aus youtubei.js/dist/... importiert: tiefe
+ * Importe stehen nicht in der `exports`-Map des Pakets, was Metro bei der
+ * `file:`-Anbindung mit einer Warnung quittiert.
+ * Siehe https://github.com/nodejs/node/issues/40678#issuecomment-1126944677
+ */
+class CustomEventPolyfill extends Event {
+  #detail: any;
+
+  constructor(type: string, options?: CustomEventInit<any>) {
+    super(type, options);
+    this.#detail = options?.detail ?? null;
+  }
+
+  get detail() {
+    return this.#detail;
+  }
+}
 
 class Cache implements ICache {
   #persistent_directory: string;
@@ -51,50 +66,46 @@ class Cache implements ICache {
   async get(key: string) {
     await this.#createCache();
     const file = new File(this.cache_dir, key);
-    try {
-      const stat = file.info();
-      if (stat.exists) {
-        const data: Buffer = Buffer.from(await file.text());
-        return data.buffer;
-      }
-      throw new Error("An unexpected file was found in place of the cache key");
-    } catch (e: any) {
-      if (e?.code === "ENOENT") {
-        return undefined;
-      }
-      throw e;
+
+    // Ein fehlender Eintrag ist der Normalfall (erster Start, nach dem Leeren)
+    // und kein Fehler — Innertube erwartet dann `undefined`.
+    if (!file.exists) {
+      return undefined;
     }
+
+    // Binär lesen: der Cache enthält serialisierte Player-Daten, kein Text.
+    // Ein Umweg über TextDecoder/Buffer würde die Bytes zerstören.
+    const bytes = await file.bytes();
+
+    return bytes.byteOffset === 0 &&
+      bytes.byteLength === bytes.buffer.byteLength
+      ? (bytes.buffer as ArrayBuffer)
+      : (bytes.slice().buffer as ArrayBuffer);
   }
 
   async set(key: string, value: ArrayBuffer) {
     await this.#createCache();
     const file = new File(this.cache_dir, key);
-    const dec = new TextDecoder();
-    file.write(dec.decode(value));
+
+    if (!file.exists) {
+      file.create({intermediates: true, overwrite: true});
+    }
+
+    file.write(new Uint8Array(value));
   }
 
   async remove(key: string) {
     await this.#createCache();
     const file = new File(this.cache_dir, key);
-    try {
+
+    if (file.exists) {
       file.delete();
-    } catch (e: any) {
-      if (e?.code === "ENOENT") {
-        return;
-      }
-      throw e;
     }
   }
 }
 
-console.log("Correct YTJS");
 Platform.load({
   runtime: "react-native",
-  info: {
-    version: "",
-    bugs_url: "",
-    repo_url: "",
-  },
   server: false,
   Cache: Cache,
   sha1Hash: async (data: string) => {
@@ -124,9 +135,10 @@ Platform.load({
   Headers: Headers as unknown as typeof globalThis.Headers,
   FormData: FormData as unknown as typeof globalThis.FormData,
   File: globalThis.File,
-  ReadableStream: ReadableStream,
-  // @ts-ignore
-  CustomEvent: CustomEvent,
+  // Der Polyfill weicht in Details von der DOM-Signatur ab, erfüllt aber den
+  // Vertrag, den youtubei.js braucht.
+  ReadableStream: ReadableStream as unknown as typeof globalThis.ReadableStream,
+  CustomEvent: CustomEventPolyfill as unknown as typeof globalThis.CustomEvent,
 });
 
 export * from "youtubei.js";
