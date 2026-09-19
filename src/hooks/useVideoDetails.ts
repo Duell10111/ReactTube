@@ -24,11 +24,46 @@ import {
 import {
   playbackModeFromSettings,
   resolveStreamingSource,
+  type PlaybackMode,
   type StreamingSource,
 } from "@/utils/PlaybackSource";
 import {YT, YTTV, YTNodes} from "@/utils/Youtube";
 
 const LOGGER = Logger.extend("VIDEO");
+
+/**
+ * Abstand zum Videoende, ab dem eine Fortsetzungsmarke nicht mehr gilt.
+ *
+ * Wer bis kurz vor Schluss geschaut hat, will beim nächsten Mal von vorn
+ * anfangen und nicht auf den Abspann springen. Vor allem aber: eine Marke
+ * **hinter** dem Ende lässt AVPlayer hängen — gemessen mit einem 218,778 s
+ * langen Video und einer Marke bei 219 s, der Player blieb stumm im
+ * Ladezustand, ohne Fehler zu melden.
+ */
+const RESUME_DEAD_ZONE_SECONDS = 5;
+
+/**
+ * Bringt eine Fortsetzungsmarke in den gültigen Bereich.
+ *
+ * @returns die Sekunde, an der eingestiegen wird, oder `undefined` für „von
+ *   vorn".
+ */
+function clampResumePosition(
+  seconds: number | undefined,
+  durationSeconds: number | undefined,
+): number | undefined {
+  if (!seconds || seconds <= 0) {
+    return undefined;
+  }
+
+  if (!durationSeconds) {
+    return seconds;
+  }
+
+  return seconds < durationSeconds - RESUME_DEAD_ZONE_SECONDS
+    ? seconds
+    : undefined;
+}
 
 /**
  * Baut das eigene Manifest, wenn die Quelle es hergibt (Plan-Phase 2c).
@@ -40,9 +75,13 @@ const LOGGER = Logger.extend("VIDEO");
  */
 async function generateIfPossible(
   streaming: StreamingSource,
+  mode: PlaybackMode,
   options: GeneratedHlsOptions,
 ) {
-  if (!streaming.canGenerateHls) {
+  // Nur bauen, wenn er auch gewählt ist. Sonst kostet er anderthalb Sekunden
+  // Startzeit und steht anschließend ungenutzt in der Ladder — bei
+  // „YouTube-HLS" ist das die falsche erste Stufe.
+  if (mode !== "generated" || !streaming.canGenerateHls) {
     return undefined;
   }
 
@@ -71,9 +110,9 @@ export default function useVideoDetails(
   const [watchNextSections, setWatchNextSections] =
     useState<HorizontalData[]>();
   const {appSettings} = useAppData();
+  /** Der gewählte Weg — bestimmt Client-Kette, Manifestbau und Ladder-Reihenfolge. */
+  const playbackMode = playbackModeFromSettings(appSettings);
   const [startTime, setStartTime] = useState<number>();
-
-  console.log("Starttime: ", startTime);
 
   // TODO: Maybe replace with fkt in the future?
   const [refresh, setRefresh] = useState<boolean>(false);
@@ -92,7 +131,7 @@ export default function useVideoDetails(
         tvYoutube?.tv?.getInfo(videoId),
         youtube
           ? resolveStreamingSource(youtube, videoId, {
-              mode: playbackModeFromSettings(appSettings),
+              mode: playbackMode,
             })
           : undefined,
       ])
@@ -118,6 +157,11 @@ export default function useVideoDetails(
               // Die TV-Antwort enthält keine Formate — das Abspielformat muss
               // aus der Antwort des Stream-Clients kommen.
               parsedDataTV.best_format = parsed.best_format;
+              // Die Dauer entscheidet, ob eine Fortsetzungsmarke noch gilt —
+              // liefert die TV-Antwort keine (sie ist UNPLAYABLE und trägt
+              // keine streaming_data), kommt sie vom Stream-Client.
+              parsedDataTV.durationSeconds =
+                parsedDataTV.durationSeconds ?? parsed.durationSeconds;
               parsedDataTV.playlist = parsedDataTV.playlist ?? parsed.playlist;
             }
             // Vor dem Veröffentlichen der Metadaten: sonst bekäme der Player
@@ -126,6 +170,7 @@ export default function useVideoDetails(
             if (streaming) {
               parsedDataTV.generated_hls_url = await generateIfPossible(
                 streaming,
+                playbackMode,
                 {allowAv1: appSettings.av1Enabled},
               );
             }
@@ -143,7 +188,7 @@ export default function useVideoDetails(
     } else {
       youtube &&
         resolveStreamingSource(youtube, videoId, {
-          mode: playbackModeFromSettings(appSettings),
+          mode: playbackMode,
         })
           .then(async streaming => {
             if (!streaming) {
@@ -154,9 +199,11 @@ export default function useVideoDetails(
             );
             videoRef.current = streaming.info;
             const parsedData = getElementDataFromVideoInfo(streaming.info);
-            parsedData.generated_hls_url = await generateIfPossible(streaming, {
-              allowAv1: appSettings.av1Enabled,
-            });
+            parsedData.generated_hls_url = await generateIfPossible(
+              streaming,
+              playbackMode,
+              {allowAv1: appSettings.av1Enabled},
+            );
             setVideoInfo(parsedData);
             parsedData.watchNextFeed &&
               setWatchNextFeed(parsedData.watchNextFeed);
@@ -172,8 +219,7 @@ export default function useVideoDetails(
       return startTimeSeconds;
     });
   }, [
-    appSettings.hlsEnabled,
-    appSettings.localHlsEnabled,
+    playbackMode,
     appSettings.av1Enabled,
     videoId,
     youtube,
@@ -222,12 +268,20 @@ export default function useVideoDetails(
    */
   const ladder = useMemo(
     () =>
-      buildPlaybackLadder({
-        generatedHlsUrl: videoInfo?.generated_hls_url,
-        youtubeHlsUrl: videoInfo?.hls_manifest_url,
-        progressiveUrl: httpVideoURL,
-      }),
-    [videoInfo?.generated_hls_url, videoInfo?.hls_manifest_url, httpVideoURL],
+      buildPlaybackLadder(
+        {
+          generatedHlsUrl: videoInfo?.generated_hls_url,
+          youtubeHlsUrl: videoInfo?.hls_manifest_url,
+          progressiveUrl: httpVideoURL,
+        },
+        playbackMode,
+      ),
+    [
+      videoInfo?.generated_hls_url,
+      videoInfo?.hls_manifest_url,
+      httpVideoURL,
+      playbackMode,
+    ],
   );
 
   const [ladderIndex, setLadderIndex] = useState(0);
@@ -247,6 +301,26 @@ export default function useVideoDetails(
   }, [ladder]);
 
   const currentStep = ladder[Math.min(ladderIndex, ladder.length - 1)];
+
+  /**
+   * Die Sekunde, an der eingestiegen wird — gegen die Videodauer geprüft.
+   *
+   * Erst hier, weil die Dauer aus den Metadaten kommt und beim Setzen der Marke
+   * noch nicht feststeht.
+   */
+  const resumeSeconds = useMemo(
+    () => clampResumePosition(startTime, videoInfo?.durationSeconds),
+    [startTime, videoInfo?.durationSeconds],
+  );
+
+  useEffect(() => {
+    if (startTime && resumeSeconds === undefined) {
+      LOGGER.info(
+        `Fortsetzungsmarke bei ${Math.floor(startTime)} s liegt am Ende des ` +
+          `${videoInfo?.durationSeconds ?? "?"} s langen Videos — Start von vorn.`,
+      );
+    }
+  }, [startTime, resumeSeconds, videoInfo?.durationSeconds]);
 
   /** Letzte bekannte Abspielposition — überlebt Stufenwechsel und Auffrischung. */
   const positionRef = useRef(0);
@@ -277,7 +351,11 @@ export default function useVideoDetails(
 
     LOGGER.warn(
       `Wiedergabe gescheitert (${reason}) auf Stufe ${index + 1}/${steps.length} — ` +
-        `weiter mit ${steps[next].label} ab ${Math.floor(positionRef.current)} s.`,
+        `weiter mit ${steps[next].label}${
+          positionRef.current > 0
+            ? ` ab ${Math.floor(positionRef.current)} s`
+            : ""
+        }.`,
     );
 
     ladderIndexRef.current = next;
@@ -438,7 +516,7 @@ export default function useVideoDetails(
       Math.min(ladderIndex, Math.max(ladder.length - 1, 0)) + 1,
     reportPlaybackFailure,
     reportProgress,
-    startTime,
+    startTime: resumeSeconds,
     watchNextFeed,
     fetchNextVideoContinue,
     watchNextSections,
@@ -448,8 +526,8 @@ export default function useVideoDetails(
     dislike,
     removeRating,
     addToWatchHistory,
-    refresh: (resumeSeconds?: number) => {
-      setStartTime(resumeSeconds ?? positionRef.current ?? undefined);
+    refresh: (continueAtSeconds?: number) => {
+      setStartTime(continueAtSeconds ?? positionRef.current ?? undefined);
       setRefresh(previous => !previous);
     },
   };

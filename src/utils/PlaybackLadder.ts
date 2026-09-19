@@ -15,6 +15,8 @@
  * in `VideoComponent` gehört zur Ladder dazu.
  */
 
+import type {PlaybackMode} from "@/utils/PlaybackSource";
+
 /** Woran eine Stufe erkannt wird — für Protokoll und Anzeige. */
 export type PlaybackSourceKind =
   | "generated-hls"
@@ -40,26 +42,44 @@ export function describeSourceKind(kind: PlaybackSourceKind): string {
 }
 
 /**
+ * In welcher Reihenfolge die Stufen je nach Einstellung probiert werden.
+ *
+ * **Die gewählte Einstellung steht immer vorn.** Sie ist die Entscheidung des
+ * Benutzers, nicht ein Vorschlag — wer YouTube-HLS wählt, will nicht erst
+ * zwanzig Sekunden auf einen Fehlschlag des eigenen Manifests warten. Die
+ * übrigen Stufen bleiben als Auffangnetz dahinter, absteigend nach dem, was sie
+ * an Qualität mitbringen.
+ */
+const ORDER_BY_MODE: Record<PlaybackMode, PlaybackSourceKind[]> = {
+  generated: ["generated-hls", "youtube-hls", "progressive"],
+  "youtube-hls": ["youtube-hls", "generated-hls", "progressive"],
+  progressive: ["progressive", "youtube-hls", "generated-hls"],
+};
+
+/**
  * Stellt die Stufen zusammen, die für dieses Video zur Verfügung stehen.
  *
- * Reihenfolge nach Qualität absteigend, weil jede Stufe auch ein Rückschritt
- * ist: das eigene Manifest bringt mehrsprachigen Ton und (mit AV1) 4K, YouTubes
- * Manifest ist dafür das verlässlichste, und der progressive Weg spielt bei
- * gekappten Clients nur ein paar Sekunden — besser als ein schwarzes Bild.
- *
- * Doppelte URLs fallen raus: steht die App auf YouTube-HLS, ist die erste Stufe
- * bereits dasselbe Manifest.
+ * Doppelte URLs fallen raus: steht die App auf YouTube-HLS und wurde kein
+ * eigenes Manifest gebaut, bleibt genau eine HLS-Stufe übrig.
  */
-export function buildPlaybackLadder(sources: {
-  generatedHlsUrl?: string;
-  youtubeHlsUrl?: string;
-  progressiveUrl?: string;
-}): PlaybackStep[] {
-  const candidates: PlaybackStep[] = [
-    {uri: sources.generatedHlsUrl, kind: "generated-hls" as const},
-    {uri: sources.youtubeHlsUrl, kind: "youtube-hls" as const},
-    {uri: sources.progressiveUrl, kind: "progressive" as const},
-  ]
+export function buildPlaybackLadder(
+  sources: {
+    generatedHlsUrl?: string;
+    youtubeHlsUrl?: string;
+    progressiveUrl?: string;
+  },
+  mode: PlaybackMode = "generated",
+): PlaybackStep[] {
+  const byKind: Record<PlaybackSourceKind, string | undefined> = {
+    "generated-hls": sources.generatedHlsUrl,
+    "youtube-hls": sources.youtubeHlsUrl,
+    progressive: sources.progressiveUrl,
+  };
+
+  const order = ORDER_BY_MODE[mode] ?? ORDER_BY_MODE.generated;
+
+  const candidates: PlaybackStep[] = order
+    .map(kind => ({uri: byKind[kind], kind}))
     .filter(
       (step): step is {uri: string; kind: PlaybackSourceKind} => !!step.uri,
     )

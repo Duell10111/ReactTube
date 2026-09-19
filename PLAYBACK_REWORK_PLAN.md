@@ -504,7 +504,29 @@ stopServer(): Promise<void>
 | 4.3 Anzeige | ✅ (teilweise) Das Overlay zeigt neben der Auflösung jetzt Quelle und Stufe, z. B. `1080p · eigenes HLS (1/2)`. **Manuelle Umschaltung fehlt** — die Ladder greift bisher nur automatisch. |
 | 4.4 Persistenz | ✅ `rememberSuccessfulClient` in `PlaybackSource.ts` legt je Modus den zuletzt erfolgreichen Client in MMKV ab und stellt ihn beim nächsten Mal an den Anfang der Kette. Nur Treffer der ersten Runde zählen — eine Notlösung als Favorit zu merken würde die Kette in die falsche Richtung ziehen. |
 
+**Gerätelauf 2026-09-19, dritter Durchgang:** Der Stillstands-Wächter greift —
+`Wiedergabe gescheitert (kein Ladeergebnis nach 20 s) auf Stufe 1/3 — weiter mit
+YouTube-HLS`. Zwei Fehler kamen dabei ans Licht:
+
+1. **Die Einstellung wurde übergangen.** Bei „YouTube-HLS" baute die App trotzdem
+   erst das eigene Manifest (1,4 s) und ließ den Benutzer zwanzig Sekunden auf
+   dessen Fehlschlag warten. Ursache: `generateIfPossible` prüfte nur, *ob* ein
+   eigenes Manifest möglich ist, nicht ob es gewählt war, und die Ladder hatte
+   eine feste Reihenfolge. Behoben: das Manifest entsteht nur noch im Modus
+   `generated`, und die Reihenfolge richtet sich nach der Einstellung
+   (`ORDER_BY_MODE` in `PlaybackLadder.ts`) — die gewählte Quelle steht immer
+   vorn, die übrigen bleiben als Auffangnetz dahinter.
+2. **Die Fortsetzungsmarke lag hinter dem Videoende.** `Start duration: 219` bei
+   einem Video mit `dur=218.778`. AVPlayer bleibt dann stumm im Ladezustand —
+   was in beiden bisherigen Hängern vorlag und im einzigen erfolgreichen Lauf
+   fehlte. Behoben: `clampResumePosition` verwirft eine Marke, die weniger als
+   5 s vor dem Ende liegt; fehlt der TV-Antwort die Dauer, kommt sie vom
+   Stream-Client.
+
 **Offen:**
+- Ob der AV1-Befund aus dem zweiten Durchgang damit hinfällig ist: dort lag
+  **beides** vor (Manifest nur mit av01 *und* Marke hinter dem Ende). Dass eine
+  Codec-Familie nie ganz verschwinden darf, bleibt unabhängig davon richtig.
 - Gerätetest: greift die Ladder wirklich, wenn eine Stufe ausfällt, und steigt sie
   an der richtigen Stelle wieder ein?
 - `VideoPlayerPhone` (Telefon/Tablet) reicht weder Fehler noch Fortschritt durch —
