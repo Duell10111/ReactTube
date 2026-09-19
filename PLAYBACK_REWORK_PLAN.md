@@ -411,6 +411,17 @@ Phase 2c **nicht** gebraucht und bleibt SABR vorbehalten. Die Risikozeile
 „AVPlayer akzeptiert `file://`-Playlist nicht" ist damit eingetreten **und**
 umschifft.
 
+**Ein Patch war dafür nötig.** Der erste Gerätelauf mit der `data:`-URI scheiterte
+sofort an `AVFoundationErrorDomain -11828 „Cannot Open"` — nicht an AVPlayer,
+sondern an `react-native-video`: es teilt Quellen anhand des Schemas in
+„Netzwerk", „Asset" und „alles andere" ein (`Video.tsx:222`), und `data:` fiel in
+die dritte Gruppe. Dort sucht die iOS-Seite die URI als **Bundle-Ressource**
+(`Bundle.main.path(forResource:)`) und landet bei einem leeren Pfad, woher auch
+das begleitende `FigFile signalled err=21` stammt. `patches/react-native-video+6.19.2.patch`
+ergänzt `data` in der Asset-Erkennung — zwei Zeilen, damit geht die URI
+unverändert an `AVURLAsset`. Das Projekt hatte `patch-package` ohnehin schon im
+`postinstall`.
+
 **Zu den beiden früheren Befunden:** Dass eine Codec-Familie nie ganz aus dem
 Manifest verschwinden darf und dass eine Fortsetzungsmarke hinter dem Videoende
 nichts verloren hat, bleibt beides richtig und behoben — sie waren nur nicht die

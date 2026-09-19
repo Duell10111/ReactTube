@@ -18,9 +18,17 @@
  * Es ist aber **nur das Master** betroffen. Als `data:`-URI übergeben wird es
  * angenommen — und darf von dort aus die Medien-Playlists per absolutem
  * `file://` referenzieren. Also: die großen Playlists bleiben Dateien im Cache,
- * das Master (knapp 3 KB) wandert als `data:`-URI direkt in die Quelle des
+ * das Master (knapp 4 KB) wandert als `data:`-URI direkt in die Quelle des
  * Players. Damit braucht die App **keinen lokalen Server**; Phase 3 bleibt SABR
  * vorbehalten.
+ *
+ * **Dafür ist ein Patch nötig** (`patches/react-native-video+6.19.2.patch`):
+ * `react-native-video` teilt Quellen anhand des Schemas in „Netzwerk", „Asset"
+ * und „alles andere" ein, und `data:` fiel in die dritte Gruppe. Dort sucht es
+ * die URI als Bundle-Ressource und landet bei einem leeren Pfad —
+ * `AVFoundationErrorDomain -11828 „Cannot Open"`. Der Patch ergänzt `data` in
+ * der Asset-Erkennung, womit die URI unverändert an `AVURLAsset` durchgereicht
+ * wird. Zwei Zeilen, `lib/Video.js` und `src/Video.tsx`.
  *
  * **Client-Bedingung:** Die Byte-Range-Auslieferung ist für die meisten
  * InnerTube-Clients nach rund 0,37 MB gekappt (HTTP 403). Gemessen wird
