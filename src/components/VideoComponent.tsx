@@ -202,7 +202,9 @@ export default function VideoComponent({
 /** Kurzname der Quelle fürs Protokoll — damit erkennbar ist, was wirklich lief. */
 function describeSource(uri?: string) {
   if (!uri) return "keine Quelle";
-  if (uri.startsWith("file://")) return "eigenes HLS";
+  // Das selbst gebaute Master kommt als `data:`-URI — AVPlayer nimmt es über
+  // `file://` nicht an (siehe GeneratedHls.ts).
+  if (uri.startsWith("data:")) return "eigenes HLS";
   if (uri.includes(".m3u8")) return "YouTube-HLS";
   return "progressiv";
 }

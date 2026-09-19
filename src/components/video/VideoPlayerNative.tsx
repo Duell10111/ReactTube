@@ -72,7 +72,7 @@ const VideoPlayerNative = forwardRef<
       const uri: string | undefined = props.props.url;
       // Die Quelle steht schon fest, wenn sie hier ankommt (useVideoDetails
       // entscheidet); der Name dient nur dem Protokoll.
-      const source = uri?.startsWith("file://")
+      const source = uri?.startsWith("data:")
         ? "eigenes HLS"
         : uri?.includes(".m3u8")
           ? "YT-HLS"

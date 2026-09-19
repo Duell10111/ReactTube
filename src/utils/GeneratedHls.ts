@@ -8,11 +8,19 @@
  * auf, anders als ExoPlayer bei DASH. Der Fork erzeugt die Liste
  * (`YouTube.js/src/utils/HlsManifest.ts`), hier wird sie abgelegt.
  *
- * **Warum als Datei und nicht als Datenstrom:** HLS besteht aus mehreren
- * Playlists, die sich gegenseitig über Dateinamen referenzieren. AVPlayer
- * bekommt deshalb ein `file://…/master.m3u8` aus dem Cache-Verzeichnis; die
- * Segmente selbst lädt er weiterhin direkt bei googlevideo. Damit braucht die
- * App keinen lokalen Server (Plan-Spike 2.0).
+ * **Wie es zum Player kommt (Spike 2.0, gemessen):** AVPlayer weigert sich, ein
+ * HLS-Master über `file://` zu laden — der Versuch endet in
+ * `AVFoundationErrorDomain -11800 / OSStatus -16913`
+ * (`assetProperty_MediaPlaybackValidation`), ohne dass ein Fehler beim Player
+ * ankommt. Dieselben Dateien über `http://` ausgeliefert laden anstandslos;
+ * nachgemessen mit AVFoundation auf dem Mac.
+ *
+ * Es ist aber **nur das Master** betroffen. Als `data:`-URI übergeben wird es
+ * angenommen — und darf von dort aus die Medien-Playlists per absolutem
+ * `file://` referenzieren. Also: die großen Playlists bleiben Dateien im Cache,
+ * das Master (knapp 3 KB) wandert als `data:`-URI direkt in die Quelle des
+ * Players. Damit braucht die App **keinen lokalen Server**; Phase 3 bleibt SABR
+ * vorbehalten.
  *
  * **Client-Bedingung:** Die Byte-Range-Auslieferung ist für die meisten
  * InnerTube-Clients nach rund 0,37 MB gekappt (HTTP 403). Gemessen wird
@@ -86,11 +94,38 @@ function pruneOldManifests(keep: string) {
 }
 
 /**
- * Baut das Manifest und legt es im Cache ab.
+ * Ersetzt die Dateinamen im Master durch absolute `file://`-URIs.
  *
- * @returns `file://`-URI der Master-Playlist, oder `undefined`, wenn sich aus
- *   den Formaten keins bauen lässt (SABR-only, kein mp4, kein Index). Der
- *   Aufrufer fällt dann auf YouTubes eigenes Manifest zurück.
+ * Nötig, weil das Master als `data:`-URI keine Basis hat, gegen die sich ein
+ * relativer Name auflösen ließe.
+ */
+function withAbsoluteReferences(
+  master: string,
+  uriByName: Map<string, string>,
+): string {
+  return master
+    .split("\n")
+    .map(line => {
+      if (line.startsWith("#EXT-X-MEDIA")) {
+        return line.replace(/URI="([^"]+)"/, (match, name) => {
+          const uri = uriByName.get(name);
+          return uri ? `URI="${uri}"` : match;
+        });
+      }
+
+      // Die Zeile hinter einem EXT-X-STREAM-INF ist der blanke Dateiname.
+      return uriByName.get(line) ?? line;
+    })
+    .join("\n");
+}
+
+/**
+ * Baut das Manifest, legt die Medien-Playlists im Cache ab und verpackt das
+ * Master als `data:`-URI.
+ *
+ * @returns Quelle für den Player, oder `undefined`, wenn sich aus den Formaten
+ *   keins bauen lässt (SABR-only, kein mp4, kein Index). Der Aufrufer fällt dann
+ *   auf YouTubes eigenes Manifest zurück.
  */
 export async function buildGeneratedHls(
   info: YT.VideoInfo,
@@ -117,19 +152,25 @@ export async function buildGeneratedHls(
 
     directory.create({intermediates: true, idempotent: true});
 
-    const master = new File(directory, "master.m3u8");
-    master.create({overwrite: true});
-    master.write(manifest.master);
+    const uriByName = new Map<string, string>();
 
     for (const playlist of manifest.playlists) {
       const file = new File(directory, playlist.name);
       file.create({overwrite: true});
       file.write(playlist.content);
+      uriByName.set(playlist.name, file.uri);
     }
+
+    const master = withAbsoluteReferences(manifest.master, uriByName);
+
+    // Bewusst prozentkodiert statt base64: `encodeURIComponent` ist UTF-8-sicher
+    // (Spurnamen können Umlaute tragen) und braucht keine zusätzliche
+    // Abhängigkeit. Von AVFoundation geprüft, wird angenommen.
+    const source = `data:application/vnd.apple.mpegurl,${encodeURIComponent(master)}`;
 
     pruneOldManifests(name);
 
-    const variants = manifest.master
+    const variants = master
       .split("\n")
       .filter(line => line.startsWith("#EXT-X-STREAM-INF"));
     const top = variants
@@ -143,12 +184,11 @@ export async function buildGeneratedHls(
 
     LOGGER.info(
       `Eigenes HLS gebaut: ${variants.length} Varianten bis ${top}p ` +
-        `(${codecs.join(", ")}) · ${manifest.playlists.length} Playlists in ${
-          Date.now() - started
-        } ms`,
+        `(${codecs.join(", ")}) · ${manifest.playlists.length} Playlists · ` +
+        `Master ${source.length} Zeichen · ${Date.now() - started} ms`,
     );
 
-    return master.uri;
+    return source;
   } catch (error: any) {
     LOGGER.warn(
       `Eigenes HLS nicht möglich (${String(

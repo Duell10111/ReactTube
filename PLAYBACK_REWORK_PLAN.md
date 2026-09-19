@@ -364,7 +364,7 @@ Nutzen gegenüber 2a: **2160p über av01** und **getrennte, mehrsprachige Tonspu
 | 2.1 sidx-Parser | ✅ bereits in 2a: `YouTube.js/src/utils/Mp4SidxParser.ts` |
 | 2.2 Generator | ✅ `YouTube.js/src/utils/HlsManifest.ts` + `src/types/HlsOptions.ts`, exportiert als `FormatUtils.toHLS` und `MediaInfo#toHLS`. Master mit `EXT-X-STREAM-INF` je Videorendition und `EXT-X-MEDIA:TYPE=AUDIO` je Tonspur (inkl. DRC-/Voice-Boost-Labels), Medien-Playlists mit `EXT-X-MAP` aus `init_range` und `EXT-X-BYTERANGE` je Segment. Durchgängig `#EXT-X-VERSION:7`, `#EXT-X-INDEPENDENT-SEGMENTS`, `#EXT-X-PLAYLIST-TYPE:VOD`. Zwei Ausgabemodi sind vorgesehen: `mode:'byterange'` (umgesetzt) und `mode:'segments'` für SABR (wirft noch). Live/Post-Live-DVR werden abgelehnt — dort gilt YouTubes `hls_manifest_url`. |
 | Client-Bedingung | ✅ `CLIENTS_FULL_BYTE_RANGE` in `src/utils/PlaybackSource.ts`; `resolveStreamingSource` kennt jetzt `mode: "generated" \| "youtube-hls" \| "progressive"` und fällt über das neue `clients_fallback` des Resolvers auf die HLS-Kette zurück, wenn kein ungekappter Client antwortet. |
-| 2.0 Serverlos-Ablage | ✅ `src/utils/GeneratedHls.ts` schreibt Master und Medien-Playlists nach `cacheDirectory/generated-hls/<videoId>-<ms>/` und gibt das `file://…/master.m3u8` zurück; alte Verzeichnisse werden aufgeräumt. **Kein Nativ-Modul nötig — Phase 3 bleibt damit SABR vorbehalten.** |
+| 2.0 Serverlos-Ablage | ✅ **entschieden, mit einer Wendung** (siehe unten): die Medien-Playlists liegen als Dateien in `cacheDirectory/generated-hls/<videoId>-<ms>/`, das Master geht als `data:`-URI direkt in die Quelle des Players und referenziert sie per absolutem `file://`. **Kein Nativ-Modul nötig — Phase 3 bleibt SABR vorbehalten.** |
 | 2.3 App-Anbindung | ✅ `useVideoDetails` baut das Manifest nach dem Abruf in einem eigenen Effekt und gibt es als `hlsManifestUrl` vor YouTubes Manifest aus. Schlägt der Bau fehl, bleibt es bei 2a. |
 | 2.5 Einstellung | ✅ `PlayerResolutionSelector`: „Eigenes HLS — 4K, mehrsprachig" / „YouTube-HLS" / „Progressiv"; der Alt-Schlüssel `localHlsEnabled` trägt jetzt den Generator. |
 
@@ -382,151 +382,41 @@ Protokoll nennt die tatsächlich geladene Stufe. Ebenfalls behoben: das Manifest
 wird **vor** `setVideoInfo` gebaut, sonst startete die Wiedergabe erst mit
 YouTubes Manifest und nach einer halben Sekunde sichtbar neu.
 
-**Zweiter Gerätelauf (Simulator):** `Video Start Loading... (eigenes HLS, Stufe
-1/2)` — AVPlayer **nimmt das `file://`-Playlist mit entfernten Segment-URLs an**,
-Spike 2.0 ist damit beantwortet. Die Wiedergabe blieb aber im Ladezustand hängen,
-und der Systemlog zeigte den Grund: `FigMediaServicesProcessDeathMonitoring
-signalled err=-12780` — der Media-Server-Prozess starb.
+**Spike 2.0 ist entschieden — und die erste Antwort war falsch.** Drei
+Gerätelaufe endeten im Ladezustand; die dabei gezogenen Schlüsse (nur-AV1-Manifest,
+Fortsetzungsmarke hinter dem Videoende) waren beide real, aber keiner war die
+Ursache. Gemessen wurde schließlich direkt gegen AVFoundation auf dem Mac
+(`tools/avplayer-probe.swift`), was die Geräte-Runden ersetzt:
 
-Ursache war der Generator selbst: `pickVideoRenditions` behielt **eine** Rendition
-je Höhe und ließ die Codec-Präferenz gewinnen. Weil YouTube av01 in jeder Höhe
-anbietet, bestand das Manifest damit ausschließlich aus AV1 (6 von 6 Varianten,
-`grep -c avc1` = 0) — genau das, wovor §0b Befund 4 warnt. Ein Player ohne
-AV1-Decoder hat dann nichts, was er auswählen könnte.
-
-Behoben: eine Codec-Familie wird nie mehr ganz verworfen. Die **erste** Familie
-mit Renditions bildet die Grundleiter, die übrigen steuern nur Höhen bei, die
-jene nicht erreicht — also genau die 1440p/2160p, die es nur in av01 gibt.
-Vorgabe im Fork ist jetzt `['avc1', 'av01']`. In der App ist AV1 eine **eigene
-Auswahl** („Eigenes HLS + AV1"), weil ein fehlender Decoder sich nicht als Fehler
-meldet, sondern als stiller Stillstand — die Ladder greift dort nicht.
-
-**Offen:**
-- **Gerätetest auf echter Hardware** — A/V-Sync, Seek, Variantenwechsel, und ob
-  AV1 auf Apple TV 4K (3. Gen) trägt.
-- **Ein hängender Player bricht die Ladder nicht.** AVPlayer meldete keinen
-  Fehler, also schaltete `VideoComponent` nicht auf die nächste Stufe. Ein
-  Stillstands-Wächter (kein `onLoad`/`onProgress` binnen n Sekunden ⇒ nächste
-  Stufe) gehört zu Phase 4.
-- `chooseBestSingleUrlFormat` (`src/extraction/YTElements.ts`) fällt ohne
-  gemuxtes Format auf **Audio-only** zurück — im Gerätelauf `Decipher ok:
-  itag=140 audio`. Als letzte Stufe der Ladder hieße das Ton ohne Bild; gehört
-  zur `best_format`-Aufräumaktion in Phase 7.
-- 2.4 Android/DASH (Phase 7), 2.2c Untertitel als `EXT-X-MEDIA:TYPE=SUBTITLES`,
-  2.6 Download- und Musik-Pfad auf die neue Formatauswahl.
-- Codec-Präferenz je Gerät setzen: `GeneratedHlsOptions.codecPreference` ist da,
-  die Gerätekennung fehlt noch. Ohne `avc1`-Fallback ruckelt AV1 auf allem außer
-  Apple TV 4K (3. Gen) — §0b Befund 4.
-
-#### Phase 2b — PoToken *(zurückgestellt, keine Vorbedingung mehr)*
-
-Gemessen ohne Wirkung auf die drei Dinge, für die er vorgesehen war: er hebt die
-Byte-Range-Kappung **nicht** auf, SABR braucht ihn **nicht** (§0b Befund 5), und
-`WEB` bleibt mit ihm SABR-only. Bleibt als Reserve, falls die Attestierung scharf
-geschaltet wird, und für altersbeschränkte Videos.
-
-**Was schon steht:** `YouTube.js/dev-scripts/lib/potoken.mjs` erzeugt session- und
-content-gebundene Token über `bgutils-js` — in Node, mit `jsdom` als Umgebung,
-BotGuard läuft in gut einer Sekunde durch. Das ist die Referenz, falls die Phase
-wieder aufgenommen wird.
-
-**Der offene Brocken für das Gerät:** tvOS hat **kein WKWebView**, der Weg aus
-SmartTubes `PoTokenWebView.kt` ist dort also verbaut. Bliebe BotGuard in Hermes
-mit selbst gestellten Browser-Objekten — SmartTube hat genau das mit V8 versucht
-und im Quelltext als gescheitert vermerkt (`PoTokenV8.kt`: *„It's impossible to
-build full fledged browser-like environment using the V8 engine"*). Vor jeder
-weiteren Zeile hier gehört dieser Spike gemacht.
-
-Die ursprünglich geplanten Punkte 2.0 bis 2.6 stehen unten; 2.0 bis 2.3 und 2.5
-sind erledigt, der Rest bleibt offen.
-
-2.0 **Serverlos-Spike zuerst (spart u. U. Phase 3 vorerst komplett).** Ein *handgeschriebenes* Master-Playlist für ein bekanntes Video in `expo-file-system` `cacheDirectory` schreiben und als `file://…/master.m3u8` an `react-native-video` geben. Zu prüfen:
-   (a) akzeptiert AVPlayer ein lokales Playlist mit **remote** Segment-URLs?
-   (b) stellt es die Byte-Range-Requests direkt gegen `googlevideo.com`?
-   (c) stimmt A/V-Sync, funktioniert Seek?
-   **Klappt es** → Phase 2 braucht kein Nativ-Modul, Phase 3 rutscht nach hinten und wird erst für SABR gebaut.
-   **Klappt es nicht** → Phase 3 wird vorgezogen, der Rest von Phase 2 bleibt unverändert (nur die Ablage der Playlist wechselt von `file://` auf `http://127.0.0.1`).
-   *Diesen Spike vor allem anderen machen — er kostet einen halben Tag und verschiebt ggf. eine Woche Arbeit.*
-
-2.1 **`src/utils/Mp4SidxParser.ts` im Fork (der einzige echte Neubau).** In Phase 0 bereits als Referenz validiert — `YouTube.js/dev-scripts/lib/sidx.mjs` parst die Boxen der echten Formate korrekt (itag 401: 195 Segmente, timescale 24000). Die TS-Fassung kann davon abgeleitet werden. Der Fork liefert für VOD heute nur `base_url + index_range + init_range` (`StreamingInfo.ts`, SegmentBase-Semantik) — ExoPlayer löst den `sidx` selbst auf, AVPlayer kann das nicht und braucht die Segmentliste explizit. Also: pro exponierter Rendition **ein** Range-Request auf `index_range` (wenige KB, parallel), `sidx`-Box parsen (Timescale, `reference_count`, je Eintrag `referenced_size` + `subsegment_duration`) ⇒ exakte Byte-Offsets und Dauern. Ergebnis cachen. ~150 Zeilen, gut dokumentiertes Boxformat, unit-testbar gegen ein Fixture.
-   **Nur mp4 (§0b Befund 3):** VP9-in-WebM (itag 315/337) hat keine sidx-Box und ist für AVPlayer ohnehin unbrauchbar — der Generator filtert auf `mime_type` mit `mp4`.
-   *Notnagel, falls ein Format kein `index_range` hat:* Ein-Segment-Playlist (ganze Datei als ein `EXTINF` + `EXT-X-BYTERANGE`). Spielt, aber Seek ist grob und ABR entfällt — nur als Fallback pro Format, nicht als Standard.
-
-2.2 **`src/utils/HlsManifest.ts` im Fork**, gespeist aus derselben `getStreamingInfo()`-Struktur wie `DashManifest.tsx`. In drei lauffähigen Stufen, damit früh etwas spielt:
-   - **2.2a — eine Video- + eine Audiorendition, kein ABR.** Master mit einem `EXT-X-STREAM-INF` + einem `EXT-X-MEDIA:TYPE=AUDIO`, Media-Playlists mit `EXT-X-MAP` (aus `init_range`) und den Segmenten aus 2.1. Beweist sidx, Muxing, A/V-Sync und Seek. **Ab hier spielt Apple TV in 1080p+.**
-   - **2.2b — Multi-Rendition.** Alle sinnvollen Video-Renditions (ABR durch AVPlayer) + alle Audiospuren/Sprachen inkl. DRC-/Voice-Boost-Labels (`src/types/StreamingInfoOptions.ts` sieht die Labels bereits vor).
-   - **2.2c — Untertitel** als `EXT-X-MEDIA:TYPE=SUBTITLES` (WebVTT, `captions_format:'vtt'`).
-   Durchgängig: `#EXT-X-VERSION:7`, `#EXT-X-INDEPENDENT-SEGMENTS`, `#EXT-X-PLAYLIST-TYPE:VOD`.
-   **Zwei Ausgabemodi von Anfang an** (damit Phase 6 den Generator nicht aufreißen muss):
-   `mode:'byterange'` → `#EXT-X-BYTERANGE` direkt auf die googlevideo-URL (Player lädt bei YouTube) · `mode:'segments'` → `/seg/:token/:fmt/:n.m4s` auf den lokalen Server (SABR).
-   Live/Post-Live: **nicht** generieren, YouTubes `hls_manifest_url` verwenden (`toDash()` macht das bereits so, `MediaInfo.ts:113`; OTF und Post-Live-DVR haben im Fork eigene Segment-Templates).
-
-2.3 **App-Anbindung.** `usePlaybackSource` baut das Manifest, legt es ab (2.0) und gibt `{uri, type:"m3u8"}` an `VideoPlayerNative.tsx`. `selectedAudioTrack` auf Sprach-Auswahl statt Index umstellen, `selectedVideoTrack` an das Qualitätslimit koppeln.
-2.4 **Android mitnehmen.** `toDash()` existiert — Manifest ablegen, `{uri, type:"mpd"}`. Feinschliff in Phase 7.
-2.5 **Settings umbauen.** `PlayerResolutionSelector`: statt "HTTP | HLS" künftig *Max. Qualität* (Auto/4K/1440p/1080p/720p), *Codec-Präferenz*, *Audiosprache*, *Stable Volume*.
-   **Pflicht, nicht Komfort (§0b Befund 4):** das beste Format ist durchweg itag 401 = **AV1**, hardwarebeschleunigt nur auf Apple TV 4K (3. Gen). Ohne avc1-Fallback ruckelt es auf älteren Geräten.
-   Alt-Keys `hlsEnabled`/`localHlsEnabled` migrieren.
-2.6 **Mitziehen:** `useDownloadProcessor.ts:64` und der Musik-Pfad (`useVideoDataGenerator.ts:24-64`) auf die neue Formatauswahl (Audio-only statt muxed) umstellen.
-
-**Was Phase 2 nicht löst:** Clients, die gar keine `adaptive_formats` mehr liefern, sondern nur `server_abr_streaming_url`. Genau dafür kommt Phase 6 — die Zwischenlösung kauft Zeit und liefert die halbe Infrastruktur (Generator, Player-Anbindung, Settings, Ladder) gleich mit.
-
----
-
-### Phase 3 — `modules/media-server` als lokales Expo-Modul *(~4–6 Tage; Auslöser: 2.0 scheitert **oder** Start von Phase 6)*
-
-Gerüst: `npx create-expo-module@latest --local media-server` ⇒ `modules/media-server/` mit `ios/`, `android/`, `expo-module.config.json`. JS-Bindings über Nitro (`react-native-nitro-modules` ist bereits Dependency); Expo-Autolinking übernimmt den Rest.
-
-3.1 **API (JS).**
-```ts
-startServer(): Promise<{ port: number; token: string }>   // Loopback, zufälliger Port
-registerText(path: string, body: string, contentType: string): void  // Manifeste
-registerSabrSource(path: string, handlerId: string): void            // Phase 6
-stopServer(): Promise<void>
-```
-3.2 **tvOS/iOS (Swift).** Minimaler HTTP/1.1-Server auf `NWListener` (Network.framework, ab tvOS 12) — ~300 Zeilen, keine Fremd-Dependency. Muss beherrschen: `GET`, `HEAD`, `Range` (`206 Partial Content`), `Content-Length`, Keep-Alive.
-   **Pflichtdetails, sonst spielt AVPlayer nicht:**
-   - Content-Type `application/vnd.apple.mpegurl` für `.m3u8`, `video/iso.segment` für `.m4s`
-   - `Info.plist`: `NSAppTransportSecurity → NSAllowsLocalNetworking = true` (via `expo-build-properties` oder Config-Plugin des Moduls)
-   - Loopback (`127.0.0.1`) löst **keine** Local-Network-Berechtigungsabfrage aus
-   - Lebensdauer an den Video-Screen koppeln; bei Hintergrund-Audio (`UIBackgroundModes: audio` ist gesetzt) muss der Listener weiterlaufen
-3.3 **Android (Kotlin).** NanoHTTPD (Apache-2.0, eine Datei) oder handgeschrieben auf `ServerSocket`; gleiche Range-Semantik.
-3.4 **Umschalten.** In `usePlaybackSource` nur die Ablage der Manifeste wechseln (`file://` → `http://127.0.0.1:<port>`); Generator und Player-Anbindung bleiben unberührt.
-
----
-
-### Phase 4 — Robustheit wie SmartTube *(✅ umgesetzt, Gerätetest offen)*
-
-| Punkt | Umsetzung |
+| Auslieferung derselben Dateien | Ergebnis |
 |---|---|
-| 4.1 Fehler-Ladder | ✅ `src/utils/PlaybackLadder.ts` stellt die Stufen zusammen (eigenes HLS → YouTube-HLS → progressiv, Doppelte fallen raus), `useVideoDetails` hält die aktuelle Stufe und gibt `videoUrl`, `playbackSource` und `reportPlaybackFailure` heraus. Die Player spielen nur noch und melden zurück. Jede Stufe steigt an der Stelle ein, an der die vorige stehenblieb (`positionRef` ⇒ `startTime`). |
-| **Stillstands-Wächter** | ✅ **Der Zusatz, den der Gerätelauf erzwungen hat:** `onError` allein genügt nicht — fehlt dem Gerät der Decoder, meldet AVPlayer gar nichts und bleibt stumm im Ladezustand. Kommt binnen 20 s kein `onLoad`/`onProgress`, gilt die Quelle als gescheitert. In beiden Playern (`VideoComponent`, `VideoPlayerNative`). |
-| 4.2 Expiry-Refresh | ✅ Timer auf `streaming_data.expires` − 60 s, frischt die Quelle auf und steigt an derselben Stelle wieder ein. Ersetzt den auskommentierten Block, der ohne Vorlauf und ohne Position arbeitete. Besonders nötig beim eigenen Manifest, das die URLs in die Playlists einbackt. |
-| 4.3 Anzeige | ✅ (teilweise) Das Overlay zeigt neben der Auflösung jetzt Quelle und Stufe, z. B. `1080p · eigenes HLS (1/2)`. **Manuelle Umschaltung fehlt** — die Ladder greift bisher nur automatisch. |
-| 4.4 Persistenz | ✅ `rememberSuccessfulClient` in `PlaybackSource.ts` legt je Modus den zuletzt erfolgreichen Client in MMKV ab und stellt ihn beim nächsten Mal an den Anfang der Kette. Nur Treffer der ersten Runde zählen — eine Notlösung als Favorit zu merken würde die Kette in die falsche Richtung ziehen. |
+| `file://…/master.m3u8` | **FEHLER** `AVFoundationErrorDomain -11800` / `OSStatus -16913` (`assetProperty_MediaPlaybackValidation`) |
+| `http://localhost/master.m3u8` | **GELADEN** · `playable=true` · Dauer 841,9 s |
+| `data:`-URI als Master, Medien-Playlists als `data:` | **GELADEN** |
+| **`data:`-URI als Master, Medien-Playlists als `file://`** | **GELADEN** · Master 2850 Bytes |
 
-**Gerätelauf 2026-09-19, dritter Durchgang:** Der Stillstands-Wächter greift —
-`Wiedergabe gescheitert (kein Ladeergebnis nach 20 s) auf Stufe 1/3 — weiter mit
-YouTube-HLS`. Zwei Fehler kamen dabei ans Licht:
+`-16913` ist exakt der Code, der im Gerätelog als `HLSPersistentStore signalled
+err=-16913` auftauchte. Das Manifest war die ganze Zeit in Ordnung —
+`mediastreamvalidator` meldet keine Verletzung der HLS-Spezifikation, und über
+HTTP spielt es. **Betroffen ist nur das Master.**
 
-1. **Die Einstellung wurde übergangen.** Bei „YouTube-HLS" baute die App trotzdem
-   erst das eigene Manifest (1,4 s) und ließ den Benutzer zwanzig Sekunden auf
-   dessen Fehlschlag warten. Ursache: `generateIfPossible` prüfte nur, *ob* ein
-   eigenes Manifest möglich ist, nicht ob es gewählt war, und die Ladder hatte
-   eine feste Reihenfolge. Behoben: das Manifest entsteht nur noch im Modus
-   `generated`, und die Reihenfolge richtet sich nach der Einstellung
-   (`ORDER_BY_MODE` in `PlaybackLadder.ts`) — die gewählte Quelle steht immer
-   vorn, die übrigen bleiben als Auffangnetz dahinter.
-2. **Die Fortsetzungsmarke lag hinter dem Videoende.** `Start duration: 219` bei
-   einem Video mit `dur=218.778`. AVPlayer bleibt dann stumm im Ladezustand —
-   was in beiden bisherigen Hängern vorlag und im einzigen erfolgreichen Lauf
-   fehlte. Behoben: `clampResumePosition` verwirft eine Marke, die weniger als
-   5 s vor dem Ende liegt; fehlt der TV-Antwort die Dauer, kommt sie vom
-   Stream-Client.
+Daraus die Umsetzung: die großen Medien-Playlists bleiben Dateien im Cache, das
+Master (knapp 3 KB) wandert prozentkodiert als
+`data:application/vnd.apple.mpegurl,…` direkt in die Quelle des Players und
+referenziert die Dateien absolut. Prozentkodiert statt base64, weil
+`encodeURIComponent` UTF-8-sicher ist und keine Abhängigkeit braucht.
+
+**Was das für den Plan heißt:** Der serverlose Weg trägt doch — Phase 3 wird für
+Phase 2c **nicht** gebraucht und bleibt SABR vorbehalten. Die Risikozeile
+„AVPlayer akzeptiert `file://`-Playlist nicht" ist damit eingetreten **und**
+umschifft.
+
+**Zu den beiden früheren Befunden:** Dass eine Codec-Familie nie ganz aus dem
+Manifest verschwinden darf und dass eine Fortsetzungsmarke hinter dem Videoende
+nichts verloren hat, bleibt beides richtig und behoben — sie waren nur nicht die
+Ursache des Hängens.
 
 **Offen:**
-- Ob der AV1-Befund aus dem zweiten Durchgang damit hinfällig ist: dort lag
-  **beides** vor (Manifest nur mit av01 *und* Marke hinter dem Ende). Dass eine
-  Codec-Familie nie ganz verschwinden darf, bleibt unabhängig davon richtig.
 - Gerätetest: greift die Ladder wirklich, wenn eine Stufe ausfällt, und steigt sie
   an der richtigen Stelle wieder ein?
 - `VideoPlayerPhone` (Telefon/Tablet) reicht weder Fehler noch Fortschritt durch —
@@ -618,7 +508,7 @@ Gerätetest, ob AVPlayer die erzeugten Playlists annimmt.
 | Risiko | Gegenmaßnahme |
 |---|---|
 | ~~Hermes kann den Player-Code nicht ausführen~~ | **Erledigt**: auf dem Gerät gemessen, `new Function`/`eval` funktionieren, Decipher läuft. Zusätzlich entschärft dadurch, dass alle Clients der Kette Klartext-URLs liefern |
-| AVPlayer akzeptiert `file://`-Playlist nicht | **Das ist der noch offene Gerätetest.** Generator und Ablage stehen; scheitert AVPlayer daran, wechselt nur die Ablage von `file://` auf `http://127.0.0.1` und Phase 3 rückt vor |
+| ~~AVPlayer akzeptiert `file://`-Playlist nicht~~ | **Eingetreten und umschifft**: AVPlayer verweigert ein Master über `file://` (`-16913`), nimmt es aber als `data:`-URI an — die Medien-Playlists dürfen von dort per `file://` referenziert werden. Gemessen mit `tools/avplayer-probe.swift`. Kein lokaler Server nötig |
 | `VISIONOS` verliert die ungekappte Byte-Range-Auslieferung | `phase2c-verify.mjs` als Frühwarnung; die App fällt über `clients_fallback` automatisch auf YouTubes Manifest zurück, SABR (Phase 6) ist der Ausweg |
 | AVPlayer akzeptiert generiertes HLS grundsätzlich nicht | 2.2a als kleinstmöglicher Beweis vor dem Vollausbau; scheitert auch das, bleibt nur YouTube-HLS + muxed — dann wird Phase 6 zur einzigen Lösung und rückt vor |
 | `sidx`-Requests bremsen den Start | Nur für exponierte Renditions, parallel, Ergebnis cachen; Renditions notfalls auf 4–5 begrenzen |
