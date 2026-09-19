@@ -12,6 +12,7 @@ import {
 } from "@/extraction/YTElements";
 import Logger from "@/utils/Logger";
 import {describeStreamingData} from "@/utils/PlaybackDiagnostics";
+import {resolveStreamingSource} from "@/utils/PlaybackSource";
 import {YT, YTTV, YTNodes} from "@/utils/Youtube";
 
 const LOGGER = Logger.extend("VIDEO");
@@ -47,34 +48,40 @@ export default function useVideoDetails(
         ? ((videoId.payload.startTimeSeconds as number) ?? passedStartSeconds)
         : passedStartSeconds;
     if (client === "TV") {
+      // Plan-Phase 1.8: Endpunkte getrennt beziehen. Die Metadaten kommen von der
+      // angemeldeten TV-Instanz (nur sie liefert Watch-Next und Transport-Controls),
+      // die Streams von der anonymen Instanz über die Client-Kette — der TV-Client
+      // antwortet auf /player unabhängig vom Login mit UNPLAYABLE.
       Promise.all([
         tvYoutube?.tv?.getInfo(videoId),
-        youtube && appSettings.hlsEnabled
-          ? youtube
-              .getInfo(videoId, {client: "IOS"})
-              .catch(error =>
-                LOGGER.warn(
-                  `Error fetching normal streaming data. Error ${error}`,
-                ),
-              )
+        youtube
+          ? resolveStreamingSource(youtube, videoId, {
+              preferHls: appSettings.hlsEnabled,
+            })
           : undefined,
       ])
-        .then(([tvInfo, normalInfo]) => {
+        .then(([tvInfo, streaming]) => {
           // Plan-Phase 0.4: festhalten, was die Clients tatsächlich geliefert haben.
-          LOGGER.info(describeStreamingData(tvInfo, "TV"));
-          if (normalInfo) {
+          LOGGER.info(describeStreamingData(tvInfo, "TV (Metadaten)"));
+          if (streaming) {
             LOGGER.info(
-              describeStreamingData(normalInfo, "IOS (HLS-Ergänzung)"),
+              describeStreamingData(
+                streaming.info,
+                `${streaming.client} (Streams)`,
+              ),
             );
           }
           if (tvInfo) {
             videoTVRef.current = tvInfo;
             const parsedDataTV = getElementDataFromTVVideoInfo(tvInfo);
-            if (normalInfo) {
-              const parsed = getElementDataFromVideoInfo(normalInfo);
+            if (streaming) {
+              const parsed = getElementDataFromVideoInfo(streaming.info);
               parsedDataTV.chapters = parsed.chapters;
               parsedDataTV.hls_manifest_url = parsed.hls_manifest_url;
               parsedDataTV.expires = parsed.expires;
+              // Die TV-Antwort enthält keine Formate — das Abspielformat muss
+              // aus der Antwort des Stream-Clients kommen.
+              parsedDataTV.best_format = parsed.best_format;
               parsedDataTV.playlist = parsedDataTV.playlist ?? parsed.playlist;
             }
             setVideoInfo(parsedDataTV);
@@ -89,22 +96,24 @@ export default function useVideoDetails(
         })
         .catch(LOGGER.warn);
     } else {
-      youtube
-        ?.getInfo(videoId, {client: appSettings.hlsEnabled ? "IOS" : undefined})
-        ?.then(info => {
-          LOGGER.info(
-            describeStreamingData(
-              info,
-              appSettings.hlsEnabled ? "IOS" : "Standard-Client",
-            ),
-          );
-          videoRef.current = info;
-          const parsedData = getElementDataFromVideoInfo(info);
-          setVideoInfo(parsedData);
-          parsedData.watchNextFeed &&
-            setWatchNextFeed(parsedData.watchNextFeed);
+      youtube &&
+        resolveStreamingSource(youtube, videoId, {
+          preferHls: appSettings.hlsEnabled,
         })
-        .catch(LOGGER.warn);
+          .then(streaming => {
+            if (!streaming) {
+              return;
+            }
+            LOGGER.info(
+              describeStreamingData(streaming.info, `${streaming.client}`),
+            );
+            videoRef.current = streaming.info;
+            const parsedData = getElementDataFromVideoInfo(streaming.info);
+            setVideoInfo(parsedData);
+            parsedData.watchNextFeed &&
+              setWatchNextFeed(parsedData.watchNextFeed);
+          })
+          .catch(LOGGER.warn);
     }
     // TODO: Fix duplicate reset to starttime on refresh
     // Only set if not set previously

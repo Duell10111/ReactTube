@@ -55,9 +55,30 @@ export interface ClientCheck {
   ms?: number;
 }
 
+export interface TvNamespaceCheck {
+  playability?: string;
+  reason?: string | null;
+  videoFormats?: number;
+  maxHeight?: number;
+  plainUrls?: number;
+  /** Felder aus der /next-Antwort, die die TV-Oberfläche der App benötigt. */
+  nextFields?: string[];
+  error?: string;
+}
+
 export interface DiagnosticsResult {
   startedAt: string;
   videoId: string;
+  /**
+   * Welche Innertube-Instanz geprüft wurde. Wichtig: der Login der App hängt an
+   * der TV-Instanz (useAccountData.ts nutzt useYoutubeTVContext), die
+   * Standard-Instanz bleibt anonym — ein TV-Ergebnis aus der falschen Instanz
+   * beantwortet die Auth-Frage nicht.
+   */
+  session: {
+    label: string;
+    loggedIn: boolean;
+  };
   engine: EngineCheck;
   player: {
     available: boolean;
@@ -65,6 +86,8 @@ export interface DiagnosticsResult {
     error?: string;
   };
   clients: ClientCheck[];
+  /** Der Pfad, den die App für die TV-Wiedergabe tatsächlich benutzt. */
+  tvNamespace?: TvNamespaceCheck;
 }
 
 export const DIAGNOSTICS_CLIENTS: InnerTubeClient[] = [
@@ -242,7 +265,12 @@ async function checkFormat(
 
 export async function runDiagnostics(
   youtube: Innertube,
-  options?: {videoId?: string; clients?: InnerTubeClient[]},
+  options?: {
+    videoId?: string;
+    clients?: InnerTubeClient[];
+    label?: string;
+    includeTvNamespace?: boolean;
+  },
 ): Promise<DiagnosticsResult> {
   const videoId = options?.videoId ?? DIAGNOSTICS_DEFAULT_VIDEO;
   const clients = options?.clients ?? DIAGNOSTICS_CLIENTS;
@@ -252,6 +280,10 @@ export async function runDiagnostics(
   const result: DiagnosticsResult = {
     startedAt: new Date().toISOString(),
     videoId,
+    session: {
+      label: options?.label ?? "Session",
+      loggedIn: !!youtube.session.logged_in,
+    },
     engine: checkEngine(),
     player: {
       available: !!player,
@@ -305,7 +337,48 @@ export async function runDiagnostics(
     result.clients.push(entry);
   }
 
+  if (options?.includeTvNamespace) {
+    result.tvNamespace = await checkTvNamespace(youtube, videoId);
+  }
+
   return result;
+}
+
+/**
+ * Prüft `tv.getInfo()` — den Pfad, über den die App ihre TV-Wiedergabe holt.
+ * `/player` und `/next` sind getrennte Anfragen: der TV-Client kann bei den
+ * Metadaten vollständig sein und beim Player trotzdem UNPLAYABLE liefern.
+ */
+async function checkTvNamespace(
+  youtube: Innertube,
+  videoId: string,
+): Promise<TvNamespaceCheck> {
+  try {
+    const info = await youtube.tv.getInfo(videoId);
+    const streaming = info.streaming_data;
+    const all = [
+      ...(streaming?.formats ?? []),
+      ...(streaming?.adaptive_formats ?? []),
+    ];
+
+    return {
+      playability: info.playability_status?.status,
+      reason: info.playability_status?.reason || null,
+      videoFormats: all.filter(f => f.has_video).length,
+      maxHeight: all.reduce((n, f) => Math.max(n, f.height ?? 0), 0),
+      plainUrls: all.filter(f => !!f.url).length,
+      nextFields: [
+        info.primary_info && "primary_info",
+        info.secondary_info && "secondary_info",
+        info.watch_next_feed && `watch_next(${info.watch_next_feed.length})`,
+        info.transport_controls && "transport_controls",
+        info.player_overlays && "player_overlays",
+        info.autoplay && "autoplay",
+      ].filter(Boolean) as string[],
+    };
+  } catch (error: any) {
+    return {error: String(error?.message ?? error)};
+  }
 }
 
 /** Kompakte Textfassung — für Logs und zum Kopieren in die Zwischenablage. */
@@ -314,6 +387,9 @@ export function formatDiagnostics(result: DiagnosticsResult): string {
 
   lines.push(`Wiedergabe-Diagnose ${result.startedAt}`);
   lines.push(`Video: ${result.videoId}`);
+  lines.push(
+    `Session: ${result.session.label} · ${result.session.loggedIn ? "ANGEMELDET" : "anonym"}`,
+  );
   lines.push("");
   lines.push(
     `Engine: ${result.engine.hermes ? `Hermes ${result.engine.hermesRelease ?? ""}`.trim() : "JSC/andere"}`,
@@ -352,6 +428,20 @@ export function formatDiagnostics(result: DiagnosticsResult): string {
             `sidx ${f.sidx === "ok" ? `${f.sidxSegments} Segmente` : (f.sidx ?? "–")}`,
         );
       }
+    }
+  }
+
+  if (result.tvNamespace) {
+    const tv = result.tvNamespace;
+    lines.push("");
+    if (tv.error) {
+      lines.push(`tv.getInfo (App-Pfad): FEHLER ${tv.error}`);
+    } else {
+      lines.push(
+        `tv.getInfo (App-Pfad): ${tv.playability}${tv.reason ? ` (${tv.reason})` : ""} · ` +
+          `${tv.videoFormats}V · max ${tv.maxHeight}p · URL ${tv.plainUrls}`,
+      );
+      lines.push(`    /next: ${tv.nextFields?.join(", ") || "nichts"}`);
     }
   }
 

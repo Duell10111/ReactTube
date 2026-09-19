@@ -1,4 +1,6 @@
 // Learn more https://docs.expo.io/guides/customizing-metro
+const path = require("path");
+
 const {getDefaultConfig} = require("expo/metro-config");
 
 const appJSONConfig = require("./app.json");
@@ -33,6 +35,12 @@ if (appJSONConfig.expo.plugins[0][1].isTV) {
 
 config.resolver.sourceExts.push("sql");
 config.resolver.unstable_enablePackageExports = true;
+
+// youtubei.js wird als file:-Dependency aus dem Schwester-Repo eingebunden
+// (Plan-Phase 1.1). Metro folgt dem Symlink nur, wenn das Ziel beobachtet wird —
+// sonst findet es weder die Quellen noch deren eigene node_modules.
+const youtubeJsPath = path.resolve(__dirname, "../../YouTube.js");
+config.watchFolders = [...(config.watchFolders ?? []), youtubeJsPath];
 
 // console.log(config.resolver.sourceExts);
 

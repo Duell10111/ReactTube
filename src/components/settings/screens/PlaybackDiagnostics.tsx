@@ -11,7 +11,7 @@ import {
 
 import SettingsSection from "../SettingsSection";
 
-import {useYoutubeContext} from "@/context/YoutubeContext";
+import {useYoutubeContext, useYoutubeTVContext} from "@/context/YoutubeContext";
 import Logger from "@/utils/Logger";
 import {
   DiagnosticsResult,
@@ -32,8 +32,9 @@ const LOGGER = Logger.extend("PLAYBACK");
  */
 export default function PlaybackDiagnosticsScreen() {
   const youtube = useYoutubeContext();
+  const tvYoutube = useYoutubeTVContext();
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<DiagnosticsResult>();
+  const [results, setResults] = useState<DiagnosticsResult[]>();
   const [error, setError] = useState<string>();
 
   const run = useCallback(() => {
@@ -45,20 +46,45 @@ export default function PlaybackDiagnosticsScreen() {
     setRunning(true);
     setError(undefined);
 
-    runDiagnostics(youtube)
-      .then(diagnostics => {
-        setResult(diagnostics);
-        LOGGER.info("Diagnose:\n" + formatDiagnostics(diagnostics));
+    // Beide Instanzen prüfen: der Login der App hängt an der TV-Instanz
+    // (useAccountData.ts nutzt useYoutubeTVContext), die Standard-Instanz bleibt
+    // anonym. Nur so ist die Frage beantwortbar, ob der TV-Client mit Auth
+    // wieder Streams liefert.
+    (async () => {
+      const collected: DiagnosticsResult[] = [];
+
+      collected.push(
+        await runDiagnostics(youtube, {label: "Standard-Instanz"}),
+      );
+
+      if (tvYoutube && tvYoutube !== youtube) {
+        collected.push(
+          await runDiagnostics(tvYoutube, {
+            label: "TV-Instanz",
+            includeTvNamespace: true,
+          }),
+        );
+      }
+
+      return collected;
+    })()
+      .then(collected => {
+        setResults(collected);
+        LOGGER.info(
+          "Diagnose:\n" + collected.map(formatDiagnostics).join("\n\n"),
+        );
       })
       .catch(e => setError(String(e?.message ?? e)))
       .finally(() => setRunning(false));
-  }, [youtube]);
+  }, [youtube, tvYoutube]);
 
   const copy = useCallback(() => {
-    if (result) {
-      Clipboard.setStringAsync(formatDiagnostics(result)).catch(LOGGER.warn);
+    if (results) {
+      Clipboard.setStringAsync(
+        results.map(formatDiagnostics).join("\n\n"),
+      ).catch(LOGGER.warn);
     }
-  }, [result]);
+  }, [results]);
 
   return (
     <ScrollView style={styles.container}>
@@ -72,7 +98,7 @@ export default function PlaybackDiagnosticsScreen() {
               {running ? "Läuft…" : "Diagnose starten"}
             </Text>
           </TouchableOpacity>
-          {result ? (
+          {results ? (
             <TouchableOpacity style={styles.button} onPress={copy}>
               <Text style={styles.buttonText}>{"Kopieren"}</Text>
             </TouchableOpacity>
@@ -83,10 +109,12 @@ export default function PlaybackDiagnosticsScreen() {
       {running ? <ActivityIndicator style={styles.spinner} /> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      {result ? (
-        <View style={styles.output}>
-          <Text style={styles.mono}>{formatDiagnostics(result)}</Text>
-        </View>
+      {results ? (
+        results.map(result => (
+          <View key={result.session.label} style={styles.output}>
+            <Text style={styles.mono}>{formatDiagnostics(result)}</Text>
+          </View>
+        ))
       ) : (
         <Text style={styles.hint}>
           {

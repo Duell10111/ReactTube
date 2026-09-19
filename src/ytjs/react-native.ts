@@ -103,25 +103,20 @@ Platform.load({
   uuidv4() {
     return crypto.randomUUID();
   },
+  /**
+   * Führt den vom Player-Skript abgeleiteten Code aus.
+   *
+   * `data.output` endet bereits mit dem `return` des Prozessors, den
+   * `Player#decipherMany` anhängt — der Evaluator muss den String also nur als
+   * Funktionsrumpf ausführen. Hermes kann das (auf Apple TV verifiziert,
+   * siehe Einstellungen ▸ Playback diagnostics).
+   */
   eval: async (
     data: Types.BuildScriptResult,
-    env: Record<string, Types.VMPrimative>,
+    _env: Record<string, Types.VMPrimative>,
   ) => {
-    const properties = [];
-
-    if (env.n) {
-      // @ts-ignore
-      properties.push(`n: exportedVars.nFunction("${env.n}")`);
-    }
-
-    if (env.sig) {
-      // @ts-ignore
-      properties.push(`sig: exportedVars.sigFunction("${env.sig}")`);
-    }
-
-    const code = `${data.output}\nreturn { ${properties.join(", ")} }`;
-
-    return new Function(code)();
+    // eslint-disable-next-line no-new-func
+    return new Function(data.output)();
   },
   fetch: fetch as unknown as FetchFunction,
   Request: Request as unknown as typeof globalThis.Request,

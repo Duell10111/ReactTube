@@ -57,16 +57,60 @@ Vollständiger Report: `YouTube.js/docs/playback-matrix.md` (+ `.json`), erzeugt
 6. **Die SmartTube-Protos stimmen.** Die Antwort enthält `SELECTABLE_FORMATS`, `STREAM_PROTECTION_STATUS` (1:2), `REQUEST_IDENTIFIER`, `REQUEST_CANCELLATION_POLICY`, `NEXT_REQUEST_POLICY` (15000/15000/60000 + Playback-Cookie), `PLAYBACK_START_POLICY` sowie `MEDIA_HEADER` → `MEDIA`×n → `MEDIA_END` je Format. Die `MEDIA_HEADER`-Felder (itag 401, `lmt`, `sequence_number`, `content_length`, `time_range`) decken sich exakt mit `media_header.proto`. Phase 6.1/6.2 sind damit vorab validiert.
 7. **WEB und ANDROID sind bereits SABR-only.** Ohne Phase 6 sind diese Clients für die App dauerhaft verloren — das bestätigt Entscheidung 4.
 
+### Messung auf dem Gerät (Apple TV, 2026-09-19)
+
+Über *Einstellungen ▸ Playback diagnostics*, Video `bUHZ2k9DYHY`:
+
+```
+Engine: Hermes 250829098.0.16 · new Function: ok · eval: ok
+Player: geladen (sts 20712)
+
+TV         UNPLAYABLE (The page needs to be reloaded.)   0V/0A
+TV_SIMPLY  OK  23V/8A   max 2160p  URL 31  → itag 401 + 140, sidx 195/106 Segmente
+IOS        OK  22V/4A   max 2160p  URL 26  → itag 401 + 140, sidx 195/106 Segmente
+VISIONOS   OK  22V/10A  max 2160p  URL 32  · YT-HLS → itag 401 + 140, sidx 195/106
+ANDROID_VR OK  23V/4A   max 2160p  URL 27  → itag 401 + 140, sidx 195/106 Segmente
+WEB        OK  22V/12A  max 2160p  SABR-only 34 → kein Decipher möglich
+MWEB       OK  24V/12A  max 2160p  URL 36  → HTTP 206 (anders als im Node-Lauf: dort 403)
+```
+
+**Was das ändert:**
+
+- **Hermes ist kein Problem.** `new Function` und `eval` funktionieren, Decipher läuft durch ⇒ **Phase 1.7 (eigene JS-Engine) entfällt**. Defekt 3 aus §1.2 war eine falsche Annahme.
+- **Das Gerät bestätigt die Node-Matrix** bei allen tauglichen Clients — inklusive sidx: 195 Video- und 106 Audiosegmente, Phase 2 trägt auch auf dem Zielgerät.
+- **MWEB liefert auf dem Gerät HTTP 206 statt 403.** Der 403 im Node-Lauf hing an IP/User-Agent, nicht am fehlenden PoToken ⇒ MWEB ist als späte Reserve in der Kette brauchbar.
+- **`VISIONOS` ist der einzige Client mit YT-HLS-Manifest** — nützlich als Sofort-Fallback (Stufe 4 der Ladder in Phase 4), bevor der eigene Generator steht.
+### Zweiter Gerätelauf: angemeldete Session (2026-09-19)
+
+```
+Session: TV-Instanz · ANGEMELDET · Player sts 20712
+
+TV                     UNPLAYABLE (The page needs to be reloaded.)   0V/0A
+TV_SIMPLY / IOS /      FEHLER: /youtubei/v1/player → HTTP 400
+VISIONOS / ANDROID_VR
+WEB / MWEB
+
+tv.getInfo (App-Pfad): UNPLAYABLE · 0 Formate
+    /next: primary_info, watch_next(10), transport_controls, player_overlays, autoplay
+```
+
+**Die zwei entscheidenden Befunde:**
+
+- **Auth behebt den TV-Client nicht.** Auf der nachweislich angemeldeten Instanz bleibt `TV` `UNPLAYABLE`. Damit ist die letzte offene Hypothese aus §0b Befund 1 widerlegt: TVHTML5 `/player` ist **unabhängig vom Login** tot. Die Endpunkt-Trennung (Phase 1.8) ist nicht eine von mehreren Optionen, sondern der einzige Weg.
+- **Neu und folgenreich: auf einer angemeldeten Session scheitern *alle* Nicht-TV-Clients mit HTTP 400.** Ursache: `HTTPClient.ts:115-129` hängt den OAuth-Bearer an **jede** InnerTube-Anfrage, sobald die Session angemeldet ist — ohne Prüfung, ob der angefragte Client Auth überhaupt unterstützt. Das TV-Token passt nicht zu einem IOS/WEB-Kontext ⇒ 400. SmartTube kennt genau diese Grenze und schaltet Auth pro Client ab: `client.isAuthSupported() && mUseAuth` (`VideoInfoService.java:213/227/273`, `isAuthSupported` = nur TV-Varianten).
+  ⇒ **Streams dürfen niemals über die angemeldete Session laufen.** Dass die App heute zwei Innertube-Instanzen hat (`YoutubeContext.tsx`: anonyme `classicInnertube` + angemeldete `tvInnertube`), ist damit kein Zufall mehr, sondern die tragende Architektur — sie wird in Phase 1.8 bewusst festgeschrieben.
+- **`/next` ist auch angemeldet vollständig**: watch_next (10), transport_controls, primary_info, player_overlays, autoplay. Die Endpunkt-Trennung ist damit auf dem Gerät belegt, mit und ohne Login.
+
 ### Stand der Phase-0-Aufgaben
 
 | Aufgabe | Stand |
 |---|---|
-| 0.1 Hermes-Check | Code steht (`src/utils/PlaybackDiagnostics.ts`, Screen unter *Einstellungen ▸ Playback diagnostics*) — **muss noch im Release-Build auf Apple TV ausgeführt werden** |
+| 0.1 Hermes-Check | ✅ erledigt — **Hermes kann `eval`/`new Function`**, Decipher funktioniert. Phase 1.7 entfällt. (Falls der Lauf im Debug-Build erfolgte: im Release-Build gegenprüfen, dort läuft Hermes aus vorkompiliertem Bytecode.) |
 | 0.2 Client-Matrix | ✅ erledigt, Report liegt vor |
 | 0.3 SABR-Aufklärung | ✅ erledigt, SABR liefert Medien ohne PoToken |
 | 0.4 In-App-Logging | ✅ erledigt (`useVideoDetails.ts`, `VideoPlayerNative.tsx`, Logger-Tag `PLAYBACK`) |
 | Testset vervollständigen | **offen**: Altersbeschränkt, Geo-beschränkt, Live, Post-Live-DVR, Multi-Audio, Shorts — IDs in `YouTube.js/dev-scripts/playback-testset.json` eintragen und `npm run matrix` erneut laufen lassen |
-| Angemeldete Session prüfen | **offen**: die Matrix lief **anonym**. Ob `TV` mit OAuth wieder Streams liefert (SmartTube nutzt ihn genau dafür), beantwortet der Diagnose-Screen mit eingeloggtem Konto. Falls ja, gehört `TV` für angemeldete Nutzer an den Anfang der Kette (Premium-Formate) mit Fallback auf `TV_SIMPLY` |
+| Angemeldete Session prüfen | ✅ erledigt — Auth behebt `TV` **nicht**, und angemeldete Sessions liefern für Nicht-TV-Clients HTTP 400. Konsequenz in Phase 1.8 eingearbeitet |
 
 ---
 
@@ -87,11 +131,12 @@ Vollständiger Report: `YouTube.js/docs/playback-matrix.md` (+ `.json`), erzeugt
 
 1. **Kein adaptives Streaming.** Es wird immer genau *eine* URL an den Player gegeben. Ohne YouTube-HLS bedeutet das muxed ⇒ 360p/720p, kein Audio-Sprachwechsel, kein Qualitätswechsel. (Das `PlayerResolutionSelector`-Setting "HTTP vs HLS" ist genau dieser Workaround.)
 2. **Kein Client-Fallback.** Liefert der TV-Client keine Formate (zunehmend häufig: nur noch `server_abr_streaming_url`), ist das Video tot. SmartTube rotiert über 9 Clients (`VideoInfoService.java:34-52`).
-3. **Decipher ist unter Hermes fragil.** Der RN-Shim nutzt `new Function(code)()` (`src/ytjs/react-native.ts:106-124`). Hermes unterstützt kein `eval`/`new Function` aus Strings ⇒ jeder Client, dessen Formate `signatureCipher`/`n`-Param brauchen (alle WEB-Varianten), fällt hart aus. **In Phase 0 zu verifizieren.**
+3. ~~**Decipher ist unter Hermes fragil.**~~ **Widerlegt durch Messung (§0b).** Die Annahme war, Hermes könne `new Function`/`eval` aus Strings nicht ausführen. Auf dem Gerät (Hermes 250829098.0.16) liefern **beide `ok`**, der Player wird geladen (sts 20712), und `decipher` funktioniert für alle Clients mit URL. Der RN-Shim (`src/ytjs/react-native.ts:106-124`) ist in Ordnung — **kein Handlungsbedarf**.
 4. **Kein PoToken / kein stabiles visitorData.** WEB/WEB_EMBEDDED (Altersfreigabe, Geo-Fixes) faktisch gesperrt, Streams werden schneller mit 403 gedrosselt.
 5. **Kein Expiry-Handling.** `streaming_data.expires` wird geparst, der Refresh-Code ist auskommentiert (`useVideoDetails.ts:134-158`).
 6. **Keine Fehler-Ladder.** `onError` führt zu keinem Client-/Format-Wechsel (SmartTube: `switchNextFormat()`).
-7. **SABR wird ignoriert.** `server_abr_streaming_url` + `video_playback_ustreamer_config` parst der Fork bereits (`src/parser/parser.ts:440`, `ParsedResponse.ts:158`), genutzt wird nichts davon.
+7. **OAuth wird an jeden Client gesendet.** `HTTPClient.ts:115-129` hängt den Bearer an jede InnerTube-Anfrage einer angemeldeten Session — auch an Clients, die das Token nicht akzeptieren. Gemessen: HTTP 400 für alle Nicht-TV-Clients (§0b). Heute fällt das nicht auf, weil die App Streams über die anonyme Instanz holt; sobald Phase 1 die Kette verdrahtet, wird es zur Falle.
+8. **SABR wird ignoriert.** `server_abr_streaming_url` + `video_playback_ustreamer_config` parst der Fork bereits (`src/parser/parser.ts:440`, `ParsedResponse.ts:158`), genutzt wird nichts davon.
 
 ### 1.3 Was SmartTube anders macht (Referenzkarte)
 
@@ -164,7 +209,30 @@ Vollständiger Report: `YouTube.js/docs/playback-matrix.md` (+ `.json`), erzeugt
 
 ---
 
-### Phase 1 — Fork-Anbindung, Session-Härtung, Client-Fallback *(~3–4 Tage)*
+### Phase 1 — Fork-Anbindung, Session-Härtung, Client-Fallback *(✅ umgesetzt 2026-09-19)*
+
+| Punkt | Stand | Ort |
+|---|---|---|
+| 1.1 `file:`-Anbindung | ✅ | `package.json`, `metro.config.js` (watchFolders) — Metro-Bundle verifiziert |
+| 1.2 `TV_DOWNGRADED` | ✅ | `Constants.ts`, `HTTPClient.ts#adjustContext` — gemessen 2/6, spät in der Kette |
+| 1.3 UA-Header für TV-Clients | ✅ | `HTTPClient.ts` (UA aus dem angepassten Kontext, da TV und TV_DOWNGRADED den clientName teilen) |
+| 1.4 `getPlayableInfo` | ✅ | `core/clients/PlaybackResolver.ts`, `Innertube#getPlayableInfo`, `TV#getPlayableInfo` |
+| 1.5 `decipherMany` | ✅ | `Player.ts` (+ `getNsigProcessorFnBatch` in `Utils.ts`) — 31 Formate in einem Engine-Aufruf |
+| 1.6 Session persistent | ✅ | `useYoutube.ts`, `utils/InnertubeSession.ts` (UniversalCache + stabiles visitorData) |
+| 1.7 eigene JS-Engine | entfällt | Hermes kann `eval` (§0b) |
+| 1.8 Endpunkt-Trennung + `skip_auth` | ✅ | `TV.ts#getInfo({player_client})`, `HTTPClient.ts`, `GetVideoInfoOptions.skip_auth` |
+| 1.9 App-Anbindung | ✅ | `utils/PlaybackSource.ts` + `useVideoDetails.ts` |
+
+**Verifikation:** `node dev-scripts/phase1-verify.mjs` im Fork prüft alle Punkte gegen die echte API (alle grün). Die Playback-Matrix dient als Regressionsnetz — sie hat während der Umsetzung einen echten Fehler gefangen: im Bulk-Decipher hieß das Signaturfeld `sig`, der Script-Generator las `s`, wodurch alle Cipher-Formate eine leere Signatur bekamen. TV_SIMPLY fiel dadurch von 6/6 auf 4/6. Die Verifikation deckt den Cipher-Pfad jetzt explizit ab (`decipher()` ruft intern `decipherMany()`, ein Vergleich beider Wege hätte den Fehler nicht gefunden).
+
+**Abweichungen von der Planung:**
+- 1.9 ist als Helfer-Modul `utils/PlaybackSource.ts` umgesetzt, nicht als Hook `usePlaybackSource`. Der Hook entsteht in Phase 2, wo er Manifest-Erzeugung, Ablauf-Timer und Fehler-Ladder zusammenhält — jetzt hätte er nur einen Aufruf gekapselt.
+- Die App nutzt **nicht** `TV#getPlayableInfo` (ein Aufruf), sondern holt Metadaten und Streams aus **zwei Instanzen** und führt sie zusammen. Grund: `skip_auth` ist auf einer angemeldeten Session noch nicht auf dem Gerät verifiziert, die Zwei-Instanzen-Variante funktioniert unabhängig davon. `TV#getPlayableInfo` liegt im Fork bereit und ist der nächste Schritt, sobald ein Gerätelauf bestätigt, dass `skip_auth` auf angemeldeten Sessions greift.
+- `hlsEnabled` steuert jetzt die **Reihenfolge** der Client-Kette (HLS-fähige Clients zuerst) statt einen festen Client. Die Einstellung verschwindet in Phase 2.5 ganz.
+
+**Erwartetes Ergebnis auf dem Gerät:** Die Wiedergabe funktioniert wieder, aber noch mit der alten Qualitätsgrenze — es wird weiterhin *eine* URL an den Player gegeben (muxed bzw. YouTube-HLS, wenn der gewählte Client eins liefert). 1080p–4K ohne HLS-Schalter kommt erst mit Phase 2.
+
+#### Umgesetzte Punkte im Detail
 
 1.1 **`file:`-Anbindung.** `package.json`: `"youtubei.js": "file:../../YouTube.js"`; `metro.config.js`: `watchFolders` auf den Fork; `npm run watch` im Fork für Live-Builds nach `dist/`. Stolperfalle: Metro löst `file:`-Symlinks nur mit `unstable_enableSymlinks` sauber auf — notfalls `dist/` per `resolver.extraNodeModules` mappen.
 1.2 **`TV_DOWNGRADED`** in `src/utils/Constants.ts` + `HTTPClient.ts#adjustContext` (ab Z. 206) ergänzen, in `SUPPORTED_CLIENTS` aufnehmen. Vorbild `AppClient.kt:44`.
@@ -179,18 +247,34 @@ const PLAYBACK_CLIENTS = ['TV_SIMPLY', 'IOS', 'VISIONOS', 'ANDROID_VR'];  // je 
 1.5 **`Player#decipherMany(urls)`** (`src/core/Player.ts`): alle `n`/`sig` in **einem** `Platform.shim.eval`-Call (Vorbild `VideoInfoServiceBase.decipherFormats`). Ohne das kostet ein Manifest mit ~40 Formaten 40 Engine-Aufrufe. `MediaInfo.ts` darauf umstellen.
 1.6 **Session persistieren (App).** `useYoutube.ts`: `Innertube.create({ lang, cache: new UniversalCache(true), visitor_data })`; `visitor_data` einmalig erzeugen und in MMKV ablegen (der auskommentierte Code dort ist der richtige Ansatz). Player-Cache läuft über den bestehenden MMKV-`Cache` (`src/ytjs/react-native.ts:17`).
 1.7 **Falls 0.1 negativ:** JS-Engine für den Player-Code — `react-native-webview` (für Phase 5 ohnehin nötig, daher erste Wahl), alternativ QuickJS via `react-native-nitro-modules` (bereits Dependency). Andockpunkt bleibt `eval` in `src/ytjs/react-native.ts:106`.
-1.8 **TV-Endpunkte trennen (aus §0b Befund 1) — die eigentliche Ursachenbehebung.** In `src/core/clients/TV.ts#getInfo` bekommt der `/player`-Aufruf einen konfigurierbaren Client, der `/next`-Aufruf bleibt auf `TV`:
+1.8 **TV-Endpunkte trennen + Auth-Falle umgehen (§0b) — die eigentliche Ursachenbehebung.** Zwei zusammenhängende Änderungen:
+
+   **(a) Getrennte Clients für `/player` und `/next`** in `src/core/clients/TV.ts#getInfo`:
 ```ts
 async getInfo(
   target: string | NavigationEndpoint,
-  options?: Omit<GetVideoInfoOptions, 'client'> & { player_client?: InnerTubeClient }
+  options?: Omit<GetVideoInfoOptions, 'client'> & {
+    player_client?: InnerTubeClient;
+    player_skip_auth?: boolean;
+  }
 ) {
-  const extra_payload = { playbackContext: { … }, client: options?.player_client ?? 'TV' };
+  const extra_payload = {
+    playbackContext: { … },
+    client: options?.player_client ?? 'TV',
+    skip_auth: options?.player_skip_auth ?? options?.player_client !== undefined
+  };
   const watch_response      = watch_endpoint.call(this.#actions, extra_payload);
-  const watch_next_response = watch_next_endpoint.call(this.#actions, { client: 'TV' }); // bleibt TV
+  const watch_next_response = watch_next_endpoint.call(this.#actions, { client: 'TV' }); // bleibt TV, bleibt authentifiziert
 }
 ```
-   Den `player_client` liefert `getPlayableInfo` (1.4) und rotiert ihn im Fehlerfall. Die App behält damit ihre TV-Oberfläche **und** bekommt spielbare Streams — ohne diese Änderung bleibt der TV-Pfad `UNPLAYABLE`.
+
+   **(b) Auth pro Anfrage abschaltbar machen** — `HTTPClient.ts:115` hängt den Bearer an *jede* InnerTube-Anfrage. Das Gegenstück zu SmartTubes `client.isAuthSupported() && mUseAuth`: ein `skip_auth`-Flag, das von `Actions` bis in die Header-Erzeugung durchgereicht wird und dort `Authorization`/`Cookie` auslässt. Ohne (b) läuft (a) in den gemessenen **HTTP 400**.
+
+   **Regel, die daraus folgt und die die App künftig einhält:**
+   - `/next`, Interaktionen (Like/Abo), History, Playlists ⇒ **angemeldete TV-Instanz**
+   - `/player`, also alle Streaming-Daten ⇒ **anonym**, mit Client-Kette aus 1.4
+
+   Solange (b) noch nicht im Fork ist, gibt es den Zwischenweg ohne Fork-Änderung: die Streams über die bestehende **anonyme `classicInnertube`-Instanz** holen (die App ruft heute schon beide Instanzen parallel auf, `useVideoDetails.ts:52-78`) — nur eben mit der Kette aus 1.4 statt fest `IOS`.
 1.9 **`src/hooks/video/usePlaybackSource.ts`** (neu): kapselt Client-Kette, Quelle, Fehler-Ladder. `useVideoDetails.ts` verliert `httpVideoURL`/`best_format`. Aufrufer: `VideoScreen.tsx:102`, `VideoScreenPhone.tsx:51`, `VideoScreenTablet.tsx:62`, `ReelVideoScreen.tsx:131`.
 
 ---
@@ -319,7 +403,7 @@ Nach **Phase 2** ist das Kernversprechen erfüllt ("spielt wie SmartTube" auf Ap
 | Phase | Aufwand | Risiko |
 |---|---|---|
 | 0 Diagnose | ✅ erledigt | – |
-| 1 Fork/Session/Fallback | 3–4 T | mittel (JS-Engine, falls Hermes blockt) |
+| 1 Fork/Session/Fallback | 3 T | niedrig (JS-Engine-Risiko ist weg) |
 | 2 adaptive → HLS | 5–7 T | **hoch** (AVPlayer ist wählerisch; 2.0 + 2.2a entschärfen früh) |
 | 3 media-server | 4–6 T | mittel (erstes eigenes Nativ-Modul im Projekt) |
 | 4 Robustheit | 2–3 T | niedrig |
@@ -333,7 +417,7 @@ Nach **Phase 2** ist das Kernversprechen erfüllt ("spielt wie SmartTube" auf Ap
 
 | Risiko | Gegenmaßnahme |
 |---|---|
-| Hermes kann den Player-Code nicht ausführen | Diagnose-Screen steht (*Einstellungen ▸ Playback diagnostics*), **Release-Build-Lauf steht noch aus**; WebView-Engine als Plan B. Entschärft dadurch, dass alle vier Clients der Kette Klartext-URLs liefern und gar kein Decipher nötig ist |
+| ~~Hermes kann den Player-Code nicht ausführen~~ | **Erledigt**: auf dem Gerät gemessen, `new Function`/`eval` funktionieren, Decipher läuft. Zusätzlich entschärft dadurch, dass alle Clients der Kette Klartext-URLs liefern |
 | AVPlayer akzeptiert `file://`-Playlist nicht | Spike 2.0 (halber Tag); Fallback = Phase 3 vorziehen, Rest von Phase 2 unverändert |
 | AVPlayer akzeptiert generiertes HLS grundsätzlich nicht | 2.2a als kleinstmöglicher Beweis vor dem Vollausbau; scheitert auch das, bleibt nur YouTube-HLS + muxed — dann wird Phase 6 zur einzigen Lösung und rückt vor |
 | `sidx`-Requests bremsen den Start | Nur für exponierte Renditions, parallel, Ergebnis cachen; Renditions notfalls auf 4–5 begrenzen |
