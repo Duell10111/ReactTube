@@ -1,6 +1,6 @@
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {ListItem} from "@rneui/base";
+import {Icon} from "@rneui/base";
 import {Image} from "expo-image";
 import _ from "lodash";
 import React, {useMemo, useState} from "react";
@@ -141,13 +141,11 @@ function VideoMenuItem({title, onPress}: ItemProps) {
   const [focus, setFocus] = useState(false);
   return (
     <Pressable
-      key={title}
       onFocus={() => setFocus(true)}
       onBlur={() => setFocus(false)}
       onPress={onPress}>
-      <ListItem
-        key={title}
-        containerStyle={[
+      <View
+        style={[
           styles.listItemContainer,
           {
             backgroundColor: focus
@@ -155,12 +153,17 @@ function VideoMenuItem({title, onPress}: ItemProps) {
               : styles.listItemContainer["backgroundColor"],
           },
         ]}>
-        <ListItem.Title
+        <Text
           style={[styles.listItemTitle, {color: focus ? "black" : "white"}]}>
           {title}
-        </ListItem.Title>
-        <ListItem.Chevron />
-      </ListItem>
+        </Text>
+        <Icon
+          type={"material"}
+          name={"keyboard-arrow-right"}
+          color={focus ? "black" : "#D1D1D6"}
+          size={16}
+        />
+      </View>
     </Pressable>
   );
 }
@@ -205,6 +208,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#999",
     borderRadius: 15,
     marginVertical: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 16,
   },
   listItemTitle: {
     flex: 1,
