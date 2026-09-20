@@ -1,4 +1,4 @@
-import TrackPlayer from "@rntp/player";
+import TrackPlayer, {PlayerCommand} from "@rntp/player";
 
 import LOGGER from "../Logger";
 
@@ -17,6 +17,12 @@ export function setupMusicPlayer(): boolean {
       android: {
         wakeMode: "network",
       },
+    });
+    TrackPlayer.setCommands({
+      // Next/Previous bleiben deaktiviert, solange die App nur den aktuellen
+      // Titel nativ hält und die restliche Playlist ausschließlich in React lebt.
+      capabilities: [PlayerCommand.PlayPause, PlayerCommand.Seek],
+      handling: "native",
     });
     isMusicPlayerInitialized = true;
     return true;

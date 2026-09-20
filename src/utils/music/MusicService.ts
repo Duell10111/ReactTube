@@ -4,27 +4,10 @@ import LOGGER from "../Logger";
 
 let isPlaybackSessionRegistered = false;
 
-function runPlayerCommand(name: string, command: () => void): void {
-  try {
-    command();
-  } catch (error) {
-    LOGGER.error(`Music player ${name} command failed: `, error);
-  }
-}
-
 export default function musicPlaybackSession(): void {
-  TrackPlayer.addEventListener(Event.RemotePlay, () => {
-    runPlayerCommand("play", TrackPlayer.play);
-  });
-
-  TrackPlayer.addEventListener(Event.RemotePause, () => {
-    runPlayerCommand("pause", TrackPlayer.pause);
-  });
-
-  TrackPlayer.addEventListener(Event.RemoteSeek, ({position}) => {
-    runPlayerCommand("seek", () => TrackPlayer.seekTo(position));
-  });
-
+  // Play/Pause und Seek werden über setCommands nativ ausgeführt. Die
+  // prozessweite Session bleibt für Diagnose verfügbar, wenn kein React-Baum
+  // gemountet ist (z. B. während reiner Hintergrundwiedergabe).
   TrackPlayer.addEventListener(Event.PlaybackError, ({code, message}) => {
     LOGGER.error(`Music playback failed (${code}): ${message}`);
   });
