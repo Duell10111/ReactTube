@@ -131,6 +131,9 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
         }
       : undefined,
     hls_manifest_url: videoInfo.streaming_data?.hls_manifest_url,
+    // Grundlage der Auffrischung vor Ablauf (Plan-Phase 4.2): ohne dieses Feld
+    // bleibt `expires` undefiniert und der Timer in `useVideoDetails` läuft nie an.
+    expires: videoInfo.streaming_data?.expires,
     best_format: best_format ? parseFormat(best_format) : undefined,
   } as YTVideoInfo;
 }
@@ -187,6 +190,7 @@ export function getElementDataFromTVVideoInfo(videoInfo: YTTV.VideoInfo) {
         }
       : undefined,
     hls_manifest_url: videoInfo.streaming_data?.hls_manifest_url,
+    expires: videoInfo.streaming_data?.expires,
     best_format: best_format ? parseFormat(best_format) : undefined,
   } as YTVideoInfo;
 }
