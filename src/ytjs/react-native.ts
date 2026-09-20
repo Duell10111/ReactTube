@@ -1,6 +1,7 @@
 // React-Native Platform Support
 /* eslint-disable object-shorthand */
 import {File, Directory, Paths} from "expo-file-system";
+import {Platform as RNPlatform} from "react-native";
 import crypto from "react-native-quick-crypto";
 import {ReadableStream} from "web-streams-polyfill";
 import {Platform, Types} from "youtubei.js";
@@ -30,6 +31,9 @@ class CustomEventPolyfill extends Event {
 }
 
 class Cache implements ICache {
+  /** Verhindert, dass dieselbe Warnung bei jedem Zugriff erneut erscheint. */
+  static #warned_directories = new Set<string>();
+
   #persistent_directory: string;
   #persistent: boolean;
 
@@ -43,28 +47,62 @@ class Cache implements ICache {
     return new Directory(Paths.cache, "youtubei.js").uri;
   }
 
+  /**
+   * Ablageort des dauerhaften Caches (Player-Skript, Session-Daten).
+   *
+   * Auf tvOS gibt es kein `Documents`-Verzeichnis: `FileManager.urls(for:
+   * .documentDirectory)` liefert zwar einen Pfad, aber auf echter Hardware
+   * existiert er nicht und lässt sich auch nicht anlegen — nur `Library/Caches`
+   * steht Apps zur Verfügung. Im tvOS-Simulator legt die Sandbox `Documents`
+   * dagegen an, weshalb der Fehler dort nicht auftritt.
+   *
+   * Der Preis ist, dass tvOS den Cache bei Speichermangel verwerfen darf. Das
+   * ist verkraftbar — es sind ausschließlich neu beschaffbare Daten — und die
+   * einzige Alternative wäre, gar nicht zu cachen.
+   */
   static get default_persistent_directory() {
-    return new Directory(Paths.document, "youtubei.js").uri;
+    const base =
+      RNPlatform.OS === "ios" && RNPlatform.isTV ? Paths.cache : Paths.document;
+    return new Directory(base, "youtubei.js").uri;
   }
 
   get cache_dir() {
     return this.#persistent ? this.#persistent_directory : Cache.temp_directory;
   }
 
+  /**
+   * Legt das Cache-Verzeichnis an und meldet, ob es benutzbar ist.
+   *
+   * Bewusst ohne `throw`: ein nicht beschreibbarer Cache ist ein Grund, ohne
+   * Cache weiterzuarbeiten, aber keiner, `Innertube.create` scheitern zu lassen.
+   * Genau daran hing die App auf dem Apple TV endlos im Ladebildschirm. Die
+   * Warnung geht über `console.warn`, damit sie den Release-Filter von
+   * `utils/Logger.ts` überlebt.
+   */
   async #createCache() {
     const dir = this.cache_dir;
     try {
-      new Directory(dir).create({idempotent: true});
+      // `intermediates`, weil das übergeordnete Verzeichnis nicht zwingend
+      // existiert — ohne das Flag scheitert das Anlegen daran statt am Ziel.
+      new Directory(dir).create({idempotent: true, intermediates: true});
+      return true;
     } catch (e: any) {
-      throw new Error(
-        "An unexpected file was found in place of the cache directory",
-        e,
-      );
+      if (!Cache.#warned_directories.has(dir)) {
+        Cache.#warned_directories.add(dir);
+        console.warn(
+          `[youtubei.js-Cache] ${dir} konnte nicht angelegt werden — es wird ohne Cache gearbeitet: ${String(
+            e?.message ?? e,
+          )}`,
+        );
+      }
+      return false;
     }
   }
 
   async get(key: string) {
-    await this.#createCache();
+    if (!(await this.#createCache())) {
+      return undefined;
+    }
     const file = new File(this.cache_dir, key);
 
     // Ein fehlender Eintrag ist der Normalfall (erster Start, nach dem Leeren)
@@ -84,7 +122,9 @@ class Cache implements ICache {
   }
 
   async set(key: string, value: ArrayBuffer) {
-    await this.#createCache();
+    if (!(await this.#createCache())) {
+      return;
+    }
     const file = new File(this.cache_dir, key);
 
     if (!file.exists) {
@@ -95,7 +135,9 @@ class Cache implements ICache {
   }
 
   async remove(key: string) {
-    await this.#createCache();
+    if (!(await this.#createCache())) {
+      return;
+    }
     const file = new File(this.cache_dir, key);
 
     if (file.exists) {
