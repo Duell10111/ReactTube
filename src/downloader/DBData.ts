@@ -190,6 +190,8 @@ function mapVideoToElementData(
   videoData: Video,
   playlistId?: string,
 ): VideoData {
+  const durationSeconds = getStoredDurationSeconds(videoData);
+
   return {
     originalNode: {type: "Local"} as any,
     type: "video",
@@ -197,10 +199,10 @@ function mapVideoToElementData(
     title: videoData.name ?? "Unknown title",
     // @ts-ignore ID currently not known
     author: {name: videoData.author},
-    duration: videoData.duration
-      ? Duration.fromObject({seconds: videoData.duration}).toFormat("mm:ss")
+    duration: durationSeconds
+      ? Duration.fromObject({seconds: durationSeconds}).toFormat("mm:ss")
       : undefined,
-    durationSeconds: videoData.duration ?? undefined,
+    durationSeconds,
     // @ts-ignore No height or width available
     thumbnailImage: videoData.coverUrl
       ? {
@@ -235,7 +237,7 @@ function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
       // @ts-ignore TODO: Fix to allow no author?!
       name: videoData.author,
     },
-    durationSeconds: videoData.duration ?? undefined,
+    durationSeconds: getStoredDurationSeconds(videoData),
     localFileUrl: videoData.fileUrl
       ? getAbsoluteVideoURL(videoData.fileUrl)
       : undefined,
@@ -246,6 +248,15 @@ function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
         }
       : defaultThumbnail,
   };
+}
+
+/** Downloaded files store milliseconds; remote-only records use seconds. */
+function getStoredDurationSeconds(videoData: Video): number | undefined {
+  if (!videoData.duration) {
+    return undefined;
+  }
+
+  return videoData.fileUrl ? videoData.duration / 1000 : videoData.duration;
 }
 
 function mapCoverURLToImageURL(

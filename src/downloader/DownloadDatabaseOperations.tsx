@@ -62,8 +62,8 @@ export function useVideos() {
   //     .then(data => console.log("DATA: ", data));
   // }, []);
 
-  updatedAt && console.log("Updated at: ", updatedAt);
-  error && console.error(error);
+  // updatedAt && console.log("Updated at: ", updatedAt);
+  // error && console.error(error);
 
   return data;
 }

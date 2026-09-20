@@ -93,6 +93,39 @@ interface MusicPlayerProviderProps {
   children?: React.ReactNode;
 }
 
+interface MusicPlayerProgressBridgeProps {
+  activeTrack: React.RefObject<YTTrackInfo | undefined>;
+  currentTime: SharedValue<number>;
+  duration: SharedValue<number>;
+}
+
+/**
+ * Keeps RNTP's React-state polling local to this otherwise invisible leaf.
+ * Only the Reanimated values escape, so progress updates do not re-render the
+ * provider and every consumer of MusicPlayerCtx.
+ */
+function MusicPlayerProgressBridge({
+  activeTrack,
+  currentTime,
+  duration,
+}: MusicPlayerProgressBridgeProps) {
+  const progress = useProgress(0.25);
+
+  useEffect(() => {
+    currentTime.value = progress.position;
+    duration.value =
+      progress.duration || activeTrack.current?.durationSeconds || 0;
+  }, [
+    activeTrack,
+    currentTime,
+    duration,
+    progress.duration,
+    progress.position,
+  ]);
+
+  return null;
+}
+
 export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const {appSettings} = useAppData();
   const {videoExtractor, videoExtractorNavigationEndpoint} =
@@ -100,7 +133,6 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const youtube = useYoutubeContext();
 
   const playing = useIsPlaying();
-  const progress = useProgress(0.25);
   const duration = useSharedValue(0);
   const currentTime = useSharedValue(0);
   const [playlist, setPlaylist] = useState<YTPlaylistPanel>();
@@ -121,12 +153,6 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     | undefined
   >(undefined);
   const [sourceExpiresAt, setSourceExpiresAt] = useState<number>();
-
-  useEffect(() => {
-    currentTime.value = progress.position;
-    duration.value =
-      progress.duration || activeTrack.current?.durationSeconds || 0;
-  }, [currentTime, duration, progress.duration, progress.position]);
 
   const selectResolvedTrack = useCallback(
     async (
@@ -893,6 +919,11 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         automixPlaylist,
         addAsNextItem,
       }}>
+      <MusicPlayerProgressBridge
+        activeTrack={activeTrack}
+        currentTime={currentTime}
+        duration={duration}
+      />
       {children}
     </MusicPlayerCtx.Provider>
   );

@@ -130,10 +130,16 @@ export default function useDownloadProcessor() {
           if (results[0]) {
             LOGGER.debug(`Video downloaded to: ${results[0].uri}`);
             LOGGER.debug(`Video cover downloaded to: ${results[1]?.uri}`);
+            const actualDurationMs =
+              info.durationSeconds &&
+              Number.isFinite(info.durationSeconds) &&
+              info.durationSeconds > 0
+                ? Math.round(info.durationSeconds * 1000)
+                : format.approx_duration_ms;
             await insertVideo(
               id,
               info.title,
-              format.approx_duration_ms,
+              actualDurationMs,
               value.fileURL[1],
               value.fileURL[0],
               undefined,
