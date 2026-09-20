@@ -101,15 +101,19 @@ export function MusicPlayerScreen({route, navigation}: Props) {
             title={"Download"}
             onPress={() => {
               if (currentItem) {
+                showMessage({type: "info", message: "Download started"});
                 download(currentItem.id)
                   .then(() =>
-                    showMessage({type: "success", message: "Started download"}),
+                    showMessage({
+                      type: "success",
+                      message: "Download complete",
+                    }),
                   )
                   .catch(error => {
                     showMessage({
                       type: "warning",
-                      message: "Error starting download",
-                      description: error.message,
+                      message: "Download failed",
+                      description: String(error?.message ?? error),
                     });
                   });
               }

@@ -29,6 +29,7 @@ import {
   deleteVideoFilesIfExists,
   getAbsolutePlaylistURL,
   getAbsoluteVideoURL,
+  isUsableDownloadedVideo,
 } from "@/hooks/downloader/useDownloadProcessor";
 
 const defaultImageUri = Asset.Asset.fromModule(
@@ -45,7 +46,24 @@ const defaultThumbnail: Thumbnail = {
 
 export async function getTrackInfoForVideo(id: string) {
   const video = await findVideo(id);
-  return video ? mapVideoToTrackInfo(video) : video;
+  if (!video) {
+    return video;
+  }
+
+  if (video.fileUrl && !isUsableDownloadedVideo(video.fileUrl)) {
+    const remoteCoverUrl = video.coverUrl?.startsWith("http")
+      ? video.coverUrl
+      : undefined;
+    deleteVideoFilesIfExists(id);
+    await deleteVideoLocalFileReferences(id, remoteCoverUrl);
+    return mapVideoToTrackInfo({
+      ...video,
+      fileUrl: null,
+      coverUrl: remoteCoverUrl ?? null,
+    });
+  }
+
+  return mapVideoToTrackInfo(video);
 }
 
 export function useVideos() {

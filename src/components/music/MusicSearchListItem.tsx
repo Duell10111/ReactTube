@@ -9,6 +9,7 @@ import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {usePlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import {ElementData} from "@/extraction/Types";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
+import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 interface MusicSearchListItemProps {
   data: ElementData;
@@ -87,7 +88,21 @@ export function MusicSearchListItem({data}: MusicSearchListItemProps) {
               <Menu.Item
                 onPress={() => {
                   setShowMenu(false);
-                  download(data.id);
+                  showMessage({type: "info", message: "Download started"});
+                  download(data.id)
+                    .then(() =>
+                      showMessage({
+                        type: "success",
+                        message: "Download complete",
+                      }),
+                    )
+                    .catch(error =>
+                      showMessage({
+                        type: "warning",
+                        message: "Download failed",
+                        description: String(error?.message ?? error),
+                      }),
+                    );
                 }}
                 title={"Download"}
                 leadingIcon={"download"}
