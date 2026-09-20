@@ -1,0 +1,149 @@
+diff --git a/node_modules/expo-watch-connectivity/build/index.d.ts b/node_modules/expo-watch-connectivity/build/index.d.ts
+index 9592d86..7b0d2a7 100644
+--- a/node_modules/expo-watch-connectivity/build/index.d.ts
++++ b/node_modules/expo-watch-connectivity/build/index.d.ts
+@@ -9,6 +9,9 @@ export declare function getCurrentFileTransfers(): Promise<FileTransferInfo[]>;
+ export declare function sendMessage(message: {
+     [key: string]: any;
+ }): Promise<boolean>;
++export declare function transferUserInfo(userInfo: {
++    [key: string]: any;
++}): Promise<boolean>;
+ export declare function sendFile(fileURL: string, metadata: {
+     [key: string]: any;
+ }): Promise<void>;
+diff --git a/node_modules/expo-watch-connectivity/build/index.js b/node_modules/expo-watch-connectivity/build/index.js
+index 729632c..36d38b5 100644
+--- a/node_modules/expo-watch-connectivity/build/index.js
++++ b/node_modules/expo-watch-connectivity/build/index.js
+@@ -23,6 +23,9 @@ export async function getCurrentFileTransfers() {
+ export async function sendMessage(message) {
+     return ExpoWatchConnectivityModule.sendMessage(message);
+ }
++export async function transferUserInfo(userInfo) {
++    return ExpoWatchConnectivityModule.transferUserInfo(userInfo);
++}
+ export async function sendFile(fileURL, metadata) {
+     return ExpoWatchConnectivityModule.sendFile(fileURL, metadata);
+ }
+diff --git a/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift b/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift
+index 76726f4..f2ea4c7 100644
+--- a/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift
++++ b/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift
+@@ -36,7 +36,15 @@ public class ExpoWatchConnectivityModule: Module {
+       }
+ 
+       AsyncFunction("sendMessage") { (message: [String: Any]) in
+-          SessionSyncStruct.shared.session.sendMessage(message, replyHandler: nil)
++          SessionSyncStruct.shared.session.sendMessage(message, replyHandler: nil) { error in
++              print("Failed to send interactive WatchConnectivity message: \(error.localizedDescription)")
++          }
++          return true
++      }
++
++      AsyncFunction("transferUserInfo") { (userInfo: [String: Any]) in
++          SessionSyncStruct.shared.session.transferUserInfo(userInfo)
++          return true
+       }
+ 
+       AsyncFunction("getCurrentFileTransfers") {
+@@ -71,7 +79,16 @@ public class ExpoWatchConnectivityModule: Module {
+         SessionSyncStruct.module = self
+     }
+ 
++    OnStartObserving("newMessage") {
++        SessionSyncStruct.shared.startObservingMessages()
++    }
++
++    OnStopObserving("newMessage") {
++        SessionSyncStruct.shared.stopObservingMessages()
++    }
++
+     OnDestroy {
++        SessionSyncStruct.shared.stopObservingMessages()
+         SessionSyncStruct.module = nil
+     }
+   }
+diff --git a/node_modules/expo-watch-connectivity/ios/WatchSession.swift b/node_modules/expo-watch-connectivity/ios/WatchSession.swift
+index a97acaa..2c8782b 100644
+--- a/node_modules/expo-watch-connectivity/ios/WatchSession.swift
++++ b/node_modules/expo-watch-connectivity/ios/WatchSession.swift
+@@ -18,6 +18,9 @@ class WatchSession: NSObject, WCSessionDelegate {
+     var session = WCSession.default
+ 
+     var applicationContext : [String: Any] = [:]
++    private let messageLock = NSLock()
++    private var isObservingMessages = false
++    private var pendingMessages: [[String: Any]] = []
+ 
+     override init() {
+         super.init()
+@@ -68,10 +71,50 @@ class WatchSession: NSObject, WCSessionDelegate {
+ 
+     // Data updates
+ 
+-    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
++    func startObservingMessages() {
++        while true {
++            messageLock.lock()
++            guard !pendingMessages.isEmpty else {
++                isObservingMessages = true
++                messageLock.unlock()
++                return
++            }
++            let messages = pendingMessages
++            pendingMessages.removeAll()
++            messageLock.unlock()
++
++            messages.forEach { message in
++                SessionSyncStruct.module?.sendEvent("newMessage", message)
++            }
++        }
++    }
++
++    func stopObservingMessages() {
++        messageLock.lock()
++        isObservingMessages = false
++        messageLock.unlock()
++    }
++
++    private func deliverMessage(_ message: [String: Any]) {
++        messageLock.lock()
++        guard isObservingMessages else {
++            pendingMessages.append(message)
++            messageLock.unlock()
++            return
++        }
++        messageLock.unlock()
++
+         SessionSyncStruct.module?.sendEvent("newMessage", message)
+     }
+ 
++    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
++        deliverMessage(message)
++    }
++
++    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any]) {
++        deliverMessage(userInfo)
++    }
++
+     func session(_ session: WCSession, didReceive file: WCSessionFile) {
+         SessionSyncStruct.module?.sendEvent("newFile", [
+             "uri": file.fileURL,
+diff --git a/node_modules/expo-watch-connectivity/src/index.ts b/node_modules/expo-watch-connectivity/src/index.ts
+index a9e8990..bf97b92 100644
+--- a/node_modules/expo-watch-connectivity/src/index.ts
++++ b/node_modules/expo-watch-connectivity/src/index.ts
+@@ -43,6 +43,12 @@ export async function sendMessage(message: {
+   return ExpoWatchConnectivityModule.sendMessage(message);
+ }
+ 
++export async function transferUserInfo(userInfo: {
++  [key: string]: any;
++}): Promise<boolean> {
++  return ExpoWatchConnectivityModule.transferUserInfo(userInfo);
++}
++
+ export async function sendFile(
+   fileURL: string,
+   metadata: {
