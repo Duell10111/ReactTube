@@ -30,7 +30,7 @@ diff --git a/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModul
 index 76726f4..f2ea4c7 100644
 --- a/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift
 +++ b/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift
-@@ -36,7 +36,15 @@ public class ExpoWatchConnectivityModule: Module {
+@@ -36,7 +36,14 @@ public class ExpoWatchConnectivityModule: Module {
        }
  
        AsyncFunction("sendMessage") { (message: [String: Any]) in
@@ -42,8 +42,7 @@ index 76726f4..f2ea4c7 100644
 +      }
 +
 +      AsyncFunction("transferUserInfo") { (userInfo: [String: Any]) in
-+          SessionSyncStruct.shared.session.transferUserInfo(userInfo)
-+          return true
++          return SessionSyncStruct.shared.sendUserInfo(userInfo)
        }
  
        AsyncFunction("getCurrentFileTransfers") {
@@ -78,7 +77,7 @@ index a97acaa..2c8782b 100644
  
      override init() {
          super.init()
-@@ -68,10 +71,50 @@ class WatchSession: NSObject, WCSessionDelegate {
+@@ -68,10 +71,84 @@ class WatchSession: NSObject, WCSessionDelegate {
  
      // Data updates
  
@@ -119,12 +118,46 @@ index a97acaa..2c8782b 100644
          SessionSyncStruct.module?.sendEvent("newMessage", message)
      }
  
++    func sendUserInfo(_ userInfo: [String: Any]) -> Bool {
++        guard PropertyListSerialization.propertyList(userInfo, isValidFor: .binary) else {
++            print("WCSession rejected non-property-list user info: \(userInfo)")
++            return false
++        }
++        guard session.activationState == .activated else {
++            print("WCSession cannot send user info before activation")
++            return false
++        }
++
++        // transferUserInfo is unsupported in the simulator. Live delivery also
++        // gives the requesting watch an immediate response on physical devices.
++        if session.isReachable {
++            session.sendMessage(userInfo, replyHandler: nil) { [weak self] error in
++                print("Immediate WCSession delivery failed, queueing user info: \(error.localizedDescription)")
++                guard let self, self.session.activationState == .activated else {
++                    return
++                }
++                self.session.transferUserInfo(userInfo)
++            }
++        } else {
++            session.transferUserInfo(userInfo)
++        }
++        return true
++    }
++
 +    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
 +        deliverMessage(message)
 +    }
 +
 +    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any]) {
 +        deliverMessage(userInfo)
++    }
++
++    func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
++        if let error {
++            print("WCSession user info transfer failed: \(error.localizedDescription), payload: \(userInfoTransfer.userInfo)")
++        } else {
++            print("WCSession user info transfer finished: \(userInfoTransfer.userInfo)")
++        }
 +    }
 +
      func session(_ session: WCSession, didReceive file: WCSessionFile) {

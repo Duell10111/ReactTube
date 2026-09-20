@@ -68,17 +68,12 @@ interface YoutubePlaylistResponse {
   type: "playlistResponse";
   id: string;
   title: string;
-  coverUrl: string;
+  coverUrl?: string;
   videos: PlaylistVideoItem[];
 }
 
 interface YoutubeLibraryPlaylistRequest {
   request: "library-playlists";
-}
-
-interface YoutubeLibraryPlaylistResponse {
-  type: "library-playlists";
-  playlists: YoutubePlaylistResponse[];
 }
 
 interface YoutubeHomeRequest {
@@ -258,19 +253,26 @@ export async function handleWatchMessage(
         }) as YoutubeHomeResponse,
     );
   } else if (request.request === "library-playlists") {
-    const playlistIds = musicLibrary.data
-      ?.filter(e => e.type === "playlist")
-      .map(playlist => playlist.id);
+    const playlistIds = [
+      ...new Set(
+        musicLibrary.data
+          ?.filter(e => e.type === "playlist")
+          .map(playlist => playlist.id) ?? [],
+      ),
+    ];
 
-    if (playlistIds) {
-      const libraryResponses = await Promise.all(
-        playlistIds.map(async id => {
+    const libraryResponses = await Promise.all(
+      playlistIds.map(async id => {
+        try {
           const p = await getMusicPlaylistDetails(id, youtube);
           return toPlaylistResponse(p, id);
-        }),
-      );
-      return libraryResponses;
-    }
+        } catch (error) {
+          LOGGER.warn(`Failed to sync playlist ${id} to the watch`, error);
+          return undefined;
+        }
+      }),
+    );
+    return libraryResponses.filter(response => response !== undefined);
   }
 }
 
@@ -306,7 +308,7 @@ function toVideoResponse(
     duration: duration_ms,
     coverUrl: videoInfo.thumbnailImage.url,
     streamURL,
-    downloadURL,
+    ...(downloadURL ? {downloadURL} : {}),
     validUntil,
   } as YoutubeVideoResponse;
 }
@@ -325,12 +327,13 @@ function toPlaylistResponse(playlistInfo: YTPlaylist, id: string) {
       }) as PlaylistVideoItem,
   );
 
+  const coverUrl = playlistInfo.thumbnailImage?.url;
   return {
     type: "playlistResponse",
     id,
     title: playlistInfo.title,
     videos,
-    coverUrl: playlistInfo.thumbnailImage?.url,
+    ...(coverUrl ? {coverUrl} : {}),
   } as YoutubePlaylistResponse;
 }
 

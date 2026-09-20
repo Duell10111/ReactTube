@@ -135,6 +135,15 @@ extension SessionSync: WCSessionDelegate {
     handleIncomingMessage(session, message: userInfo)
   }
 
+  func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
+    if let error {
+      print("WCSession user info transfer failed: \(error.localizedDescription), payload: \(userInfoTransfer.userInfo)")
+      status.reportError(error.localizedDescription)
+    } else {
+      print("WCSession user info transfer finished: \(userInfoTransfer.userInfo)")
+    }
+  }
+
   func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
     print("WCSession didReceiveMessage message:\(message)")
     handleIncomingMessage(session, message: message)
