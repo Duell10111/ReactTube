@@ -1,7 +1,7 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {ButtonGroup} from "@rneui/base";
 import {Duration} from "luxon";
-import React, {useMemo, useState} from "react";
+import React, {useState} from "react";
 import {Image, StyleSheet, Text, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
@@ -31,17 +31,6 @@ export function MusicPlayerScreen({route, navigation}: Props) {
   const [openTab, setOpenTab] = useState<Tab>();
 
   const {save} = usePlaylistManagerContext();
-
-  const hlsAudio = useMemo(
-    () => currentItem?.originalData?.streaming_data?.hls_manifest_url,
-    [currentItem],
-  );
-
-  // const {videoData, hlsAudio} = useMusicPlayer(
-  //   route.params.navEndpoint ?? route.params.videoId,
-  // );
-
-  // const [playing, setPlaying] = useState(false);
 
   // console.log("VideoData: ", currentItem);
   // console.log("VideoDataPlaylist", currentItem?.playlist?.current_index);
@@ -91,15 +80,6 @@ export function MusicPlayerScreen({route, navigation}: Props) {
           source={{uri: currentItem?.thumbnailImage.url}}
           resizeMode={"contain"}
         />
-        {/*<Video*/}
-        {/*  source={{uri: hlsAudio}}*/}
-        {/*  style={{width: "80%", aspectRatio: 1, backgroundColor: "orange"}}*/}
-        {/*  playInBackground*/}
-        {/*  controls*/}
-        {/*  paused={!playing}*/}
-        {/*  onEnd={callbacks.onEndReached}*/}
-        {/*  // muted*/}
-        {/*/>*/}
       </View>
       <View style={styles.bottomContainer}>
         <MusicPlayerTitle />

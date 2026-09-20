@@ -1,23 +1,44 @@
-// import {Platform} from "react-native";
-// import TrackPlayer, {Event} from "react-native-track-player";
-//
-// export default async function playbackService() {
-//   console.log("Setup Player");
-//   if (Platform.OS === "ios") {
-//     await TrackPlayer.setupPlayer({
-//       autoHandleInterruptions: true,
-//     });
-//   }
-//
-//   TrackPlayer.addEventListener(Event.RemotePlay, () => TrackPlayer.play());
-//
-//   TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
-//
-//   // TrackPlayer.addEventListener(Event.RemotePrevious, () =>
-//   //   TrackPlayer.skipToPrevious(),
-//   // );
-//
-//   TrackPlayer.addEventListener(Event.RemoteSeek, event =>
-//     TrackPlayer.seekTo(event.position),
-//   );
-// }
+import TrackPlayer, {Event} from "@rntp/player";
+
+import LOGGER from "../Logger";
+
+let isPlaybackSessionRegistered = false;
+
+function runPlayerCommand(name: string, command: () => void): void {
+  try {
+    command();
+  } catch (error) {
+    LOGGER.error(`Music player ${name} command failed: `, error);
+  }
+}
+
+export default function musicPlaybackSession(): void {
+  TrackPlayer.addEventListener(Event.RemotePlay, () => {
+    runPlayerCommand("play", TrackPlayer.play);
+  });
+
+  TrackPlayer.addEventListener(Event.RemotePause, () => {
+    runPlayerCommand("pause", TrackPlayer.pause);
+  });
+
+  TrackPlayer.addEventListener(Event.RemoteSeek, ({position}) => {
+    runPlayerCommand("seek", () => TrackPlayer.seekTo(position));
+  });
+
+  TrackPlayer.addEventListener(Event.PlaybackError, ({code, message}) => {
+    LOGGER.error(`Music playback failed (${code}): ${message}`);
+  });
+}
+
+export function registerMusicPlaybackSession(): void {
+  if (isPlaybackSessionRegistered) {
+    return;
+  }
+
+  try {
+    TrackPlayer.registerPlaybackSession(musicPlaybackSession);
+    isPlaybackSessionRegistered = true;
+  } catch (error) {
+    LOGGER.error("Music playback session registration failed: ", error);
+  }
+}

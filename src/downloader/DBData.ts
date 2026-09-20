@@ -226,16 +226,7 @@ function mapVideoToYTPlaylistPanelItem(
 
 function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
   return {
-    // @ts-ignore Ignore missing data
-    originalData: {
-      type: "Local",
-      // @ts-ignore Ignore missing data
-      streaming_data: {
-        hls_manifest_url: videoData.fileUrl
-          ? getAbsoluteVideoURL(videoData.fileUrl)
-          : undefined,
-      },
-    },
+    originalData: {type: "Local"} as any,
     id: videoData.id,
     title: videoData.name ?? "Unknown title",
     author: {
@@ -245,6 +236,9 @@ function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
       name: videoData.author,
     },
     durationSeconds: videoData.duration ?? undefined,
+    localFileUrl: videoData.fileUrl
+      ? getAbsoluteVideoURL(videoData.fileUrl)
+      : undefined,
     // @ts-ignore Ignore issue with no height and width for cover available
     thumbnailImage: videoData.coverUrl
       ? {

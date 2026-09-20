@@ -176,6 +176,17 @@ export interface YTVideoInfoCommentEntryPointHeader {
   };
 }
 
+export type AudioPlaybackSourceKind = "local" | "direct" | "youtube-hls";
+
+export interface AudioPlaybackSource {
+  kind: AudioPlaybackSourceKind;
+  url: string;
+  mimeType: string;
+  client?: string;
+  expires?: Date;
+  formatItag?: number;
+}
+
 // Make YTTrackInfo extend from VideoInfo or BasicVideoInfoType?
 export interface YTTrackInfo {
   originalData: YTMusic.TrackInfo;
@@ -209,6 +220,10 @@ export interface YTTrackInfo {
   // Music Properties
   durationSeconds?: number;
   localPlaylistId?: string;
+  /** Lokale Datei, falls der Titel heruntergeladen wurde. */
+  localFileUrl?: string;
+  /** Bereits aufgelöste, abspielbare Audioquelle für RNTP. */
+  audioSource?: AudioPlaybackSource;
 }
 
 export interface YTPlaylistPanel {
