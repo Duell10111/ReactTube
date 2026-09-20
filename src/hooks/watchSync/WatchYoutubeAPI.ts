@@ -248,10 +248,15 @@ export async function handleWatchMessage(
       }),
     );
 
-    return {
-      type: "homeResponse",
-      sections,
-    } as YoutubeHomeResponse;
+    // Keep every transfer well below WatchConnectivity's message-size limit
+    // and let the watch render the feed incrementally.
+    return sections.map(
+      section =>
+        ({
+          type: "homeResponse",
+          sections: [section],
+        }) as YoutubeHomeResponse,
+    );
   } else if (request.request === "library-playlists") {
     const playlistIds = musicLibrary.data
       ?.filter(e => e.type === "playlist")

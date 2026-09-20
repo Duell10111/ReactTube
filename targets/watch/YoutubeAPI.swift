@@ -8,8 +8,33 @@
 import Foundation
 import WatchConnectivity
 
+enum Delivery {
+  case interactive
+  case guaranteed
+}
+
+func send(_ payload: [String: Any], as delivery: Delivery) {
+  let sessionSync = SessionSyncStruct.shared
+  let session = sessionSync.session
+
+  switch delivery {
+  case .interactive:
+    guard session.isReachable else {
+      sessionSync.status.reportError("The iPhone is currently not reachable.")
+      return
+    }
+
+    sessionSync.status.clearError()
+    session.sendMessage(payload, replyHandler: nil) { error in
+      sessionSync.status.reportError(error.localizedDescription)
+    }
+  case .guaranteed:
+    session.transferUserInfo(payload)
+  }
+}
+
 private func sendVideoAPIMessage(message: [String: Any]) {
-  SessionSyncStruct.shared.session.sendMessage(["type": "youtubeAPI", "payload": message], replyHandler: nil)
+  send(["type": "youtubeAPI", "payload": message], as: .guaranteed)
 }
 
 func requestVideo(id: String) {
@@ -29,15 +54,15 @@ func requestLibraryPlaylists() {
 }
 
 func nextTitleOnPhone() {
-  SessionSyncStruct.shared.session.sendMessage(["type": "PhoneNext"], replyHandler: nil)
+  send(["type": "PhoneNext"], as: .interactive)
 }
 
 func previousTitleOnPhone() {
-  SessionSyncStruct.shared.session.sendMessage(["type": "PhonePrev"], replyHandler: nil)
+  send(["type": "PhonePrev"], as: .interactive)
 }
 
 func pausePlayOnPhone() {
-  SessionSyncStruct.shared.session.sendMessage(["type": "PhonePausePlay"], replyHandler: nil)
+  send(["type": "PhonePausePlay"], as: .interactive)
 }
 
 // Update from watch to phone

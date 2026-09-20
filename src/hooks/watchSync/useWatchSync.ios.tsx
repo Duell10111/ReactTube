@@ -1,9 +1,9 @@
 import {
   addMessageListener,
   addFileTransferFinishedListener,
-  sendMessage,
   sendFile,
   getCurrentFileTransfers,
+  transferUserInfo,
   updateApplicationContext,
   useInstalled,
   FileTransferInfo,
@@ -111,11 +111,7 @@ export default function useWatchSync() {
         )
           .then(async response => {
             if (Array.isArray(response)) {
-              await Promise.all(
-                response.map(res => {
-                  sendYTAPIMessage(res);
-                }),
-              );
+              await Promise.all(response.map(res => sendYTAPIMessage(res)));
             } else if (response) {
               await sendYTAPIMessage(response);
             }
@@ -171,10 +167,6 @@ export default function useWatchSync() {
   }, []);
 
   useEffect(() => {
-    sendMessage({test: "test"}).catch(LOGGER.warn);
-  }, []);
-
-  useEffect(() => {
     const sub = addFileTransferFinishedListener(info => {
       LOGGER.debug(`Finished file transfer with info: ${info}`);
       if (info.error) {
@@ -205,7 +197,7 @@ async function sendYTAPIMessage(response: any) {
     "Sending WATCH YT API response: ",
     JSON.stringify(ytResponse, null, 2),
   );
-  await sendMessage(ytResponse);
+  await transferUserInfo(ytResponse);
 }
 
 async function sendPlaylistToWatch(

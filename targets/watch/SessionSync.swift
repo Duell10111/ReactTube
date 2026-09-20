@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Observation
 import WatchConnectivity
 
 struct SessionSyncStruct {
@@ -20,9 +21,65 @@ struct SessionSyncStruct {
   }
 }
 
-class SessionSync : NSObject, ObservableObject {
+@Observable
+final class WatchStatus {
+  static let shared = WatchStatus()
+
+  private(set) var isReachable = false
+  private(set) var activationState: WCSessionActivationState = .notActivated
+  private(set) var isCompanionAppInstalled = false
+  private(set) var lastError: String?
+
+  private init() {}
+
+  func update(from session: WCSession, activationError: Error? = nil) {
+    updateOnMain {
+      self.isReachable = session.isReachable
+      self.activationState = session.activationState
+      self.isCompanionAppInstalled = session.isCompanionAppInstalled
+      if let activationError {
+        self.lastError = activationError.localizedDescription
+      }
+    }
+  }
+
+  func setReachable(_ isReachable: Bool) {
+    updateOnMain {
+      self.isReachable = isReachable
+    }
+  }
+
+  func setCompanionAppInstalled(_ isInstalled: Bool) {
+    updateOnMain {
+      self.isCompanionAppInstalled = isInstalled
+    }
+  }
+
+  func reportError(_ message: String) {
+    updateOnMain {
+      self.lastError = message
+    }
+  }
+
+  func clearError() {
+    updateOnMain {
+      self.lastError = nil
+    }
+  }
+
+  private func updateOnMain(_ update: @escaping () -> Void) {
+    if Thread.isMainThread {
+      update()
+    } else {
+      DispatchQueue.main.async(execute: update)
+    }
+  }
+}
+
+final class SessionSync: NSObject {
 
   var session = WCSession.default
+  let status = WatchStatus.shared
 
   var applicationContext : [String: Any] = [:]
 
@@ -40,6 +97,15 @@ class SessionSync : NSObject, ObservableObject {
 extension SessionSync: WCSessionDelegate {
   func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
     print("WCSession activationDidCompleteWith activationState:\(activationState) error:\(String(describing: error))")
+    status.update(from: session, activationError: error)
+  }
+
+  func sessionReachabilityDidChange(_ session: WCSession) {
+    status.setReachable(session.isReachable)
+  }
+
+  func sessionCompanionAppInstalledDidChange(_ session: WCSession) {
+    status.setCompanionAppInstalled(session.isCompanionAppInstalled)
   }
 
   func session(_ session: WCSession, didReceiveApplicationContext appContext: [String: Any]) {
@@ -66,11 +132,15 @@ extension SessionSync: WCSessionDelegate {
 
   func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any]) {
     print("WCSession didReceiveUserInfo userInfo:\(userInfo)")
+    handleIncomingMessage(session, message: userInfo)
   }
 
   func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
     print("WCSession didReceiveMessage message:\(message)")
-    // TODO: Use same with reply handler and no reply handler?
+    handleIncomingMessage(session, message: message)
+  }
+
+  private func handleIncomingMessage(_ session: WCSession, message: [String: Any]) {
     if(message["sendDatabase"] != nil) {
       Task {
         await self.sendDatabase(session)
@@ -100,23 +170,8 @@ extension SessionSync: WCSessionDelegate {
 
   func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
     print("WCSession didReceiveMessage with reply handler message:\(message)")
-    if(message["sendDatabase"] != nil) {
-      Task {
-        await self.sendDatabase(session)
-      }
-    } else if let type = message["type"] as? String, type == "overrideDB" {
-      Task {
-        await self.overrideDatabaseCommand(session, message: message)
-      }
-    } else if let type = message["type"] as? String {
-      if(type == "uploadFile") {
-        Task {
-          await self.receiveFileUploadData(session, message: message)
-        }
-      } else if type == "youtubeAPI", let payload = message["payload"] as? [String: Any] {
-        processYoutubeAPIMessage(session, message: payload)
-      }
-    }
+    handleIncomingMessage(session, message: message)
+    replyHandler(["received": true])
   }
 
   func session(_ session: WCSession, didReceive file: WCSessionFile) {
@@ -145,19 +200,7 @@ extension SessionSync: WCSessionDelegate {
 
   @MainActor
   func sendDatabase(_ session: WCSession) async {
-//    let data = exportDatabase(modelContext: DataController.shared.container.mainContext)
-//    let json = JSONEncoder()
-//    do {
-//      let jsonValue = try json.encode(data)
-//      let str = String(decoding: jsonValue, as: UTF8.self)
-//      let msg = [
-//        "type": "DBSyncFromWatch",
-//        "data": str
-//      ]
-//      session.sendMessage(msg, replyHandler: nil)
-//    } catch {
-//      print("Error sending database")
-//    }
+    // Database sync is currently disabled. Future payloads must use send(_:as:).
   }
 
   @MainActor
@@ -184,7 +227,7 @@ extension SessionSync: WCSessionDelegate {
       // Add Data before receiving file
       
       // TODO: Request download if not already downloaded?
-      session.sendMessage(["type": "requestDownload", "id": id], replyHandler: nil)
+      send(["type": "requestDownload", "id": id], as: .guaranteed)
     } else {
       print("File Upload data incomplete")
     }
