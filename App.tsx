@@ -4,8 +4,8 @@ import "event-target-polyfill";
 import "fast-text-encoding";
 import "react-native-quick-base64";
 
-import React from "react";
-import {StatusBar, useColorScheme} from "react-native";
+import React, {useMemo} from "react";
+import {StatusBar} from "react-native";
 import FlashMessage from "react-native-flash-message";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import {PaperProvider} from "react-native-paper";
@@ -22,42 +22,60 @@ import {VideoPlayerSettingsContext} from "@/components/video/videoPlayer/setting
 import {DownloaderContext} from "@/context/DownloaderContext";
 import {MusicPlayerContext} from "@/context/MusicPlayerContext";
 import {PlaylistManagerContext} from "@/context/PlaylistManagerContext";
+import {LocalizationProvider} from "@/localization";
+import {paperTheme, useAppTheme} from "@/ui/theme";
 
-const App = () => {
-  const isDarkMode = useColorScheme() === "dark";
+function ThemedApp() {
+  const {theme, reduceMotion} = useAppTheme();
+  const resolvedPaperTheme = useMemo(
+    () => ({
+      ...paperTheme,
+      animation: {
+        ...paperTheme.animation,
+        scale: reduceMotion ? 0 : 1,
+      },
+    }),
+    [reduceMotion],
+  );
 
   return (
+    <PaperProvider theme={resolvedPaperTheme}>
+      <BackgroundWrapper>
+        <AppDataContextProvider>
+          <LocalizationProvider>
+            <YoutubeContextProvider>
+              <AccountContextProvider>
+                <MusicPlayerContext>
+                  <DownloaderContext>
+                    <PlaylistManagerContext>
+                      <StatusBar
+                        barStyle={"light-content"}
+                        backgroundColor={theme.colors.background}
+                      />
+                      <VideoPlayerSettingsContext>
+                        <VideoProvider>
+                          <Navigation />
+                        </VideoProvider>
+                      </VideoPlayerSettingsContext>
+                      <FlashMessage position={"top"} />
+                    </PlaylistManagerContext>
+                  </DownloaderContext>
+                </MusicPlayerContext>
+              </AccountContextProvider>
+            </YoutubeContextProvider>
+          </LocalizationProvider>
+        </AppDataContextProvider>
+      </BackgroundWrapper>
+    </PaperProvider>
+  );
+}
+
+const App = () => {
+  return (
     <GestureHandlerRootView style={{flex: 1}}>
-      <PaperProvider>
-        <AppStyleProvider>
-          <BackgroundWrapper>
-            <AppDataContextProvider>
-              <YoutubeContextProvider>
-                <AccountContextProvider>
-                  <MusicPlayerContext>
-                    <DownloaderContext>
-                      <PlaylistManagerContext>
-                        <StatusBar
-                          // TODO: Currently only dark-mode exists
-                          barStyle={
-                            isDarkMode ? "light-content" : "light-content"
-                          }
-                        />
-                        <VideoPlayerSettingsContext>
-                          <VideoProvider>
-                            <Navigation />
-                          </VideoProvider>
-                        </VideoPlayerSettingsContext>
-                        <FlashMessage position={"top"} />
-                      </PlaylistManagerContext>
-                    </DownloaderContext>
-                  </MusicPlayerContext>
-                </AccountContextProvider>
-              </YoutubeContextProvider>
-            </AppDataContextProvider>
-          </BackgroundWrapper>
-        </AppStyleProvider>
-      </PaperProvider>
+      <AppStyleProvider>
+        <ThemedApp />
+      </AppStyleProvider>
     </GestureHandlerRootView>
   );
 };

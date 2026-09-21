@@ -15,6 +15,7 @@ import {VideoPlayerSettings} from "@/components/video/videoPlayer/settings/Video
 import {VideoPlayerSpeed} from "@/components/video/videoPlayer/settings/VideoPlayerSpeed";
 import {ElementData} from "@/extraction/Types";
 import useAppInit from "@/hooks/general/useAppInit";
+import {useTranslation} from "@/localization";
 import ChannelScreen from "@/screens/ChannelScreen";
 import HomeWrapperScreen from "@/screens/HomeWrapperScreen";
 import LoadingScreen from "@/screens/LoadingScreen";
@@ -31,6 +32,7 @@ import {MusicPlayerScreen} from "@/screens/phone/MusicPlayerScreen";
 import {MusicPlaylistScreen} from "@/screens/phone/MusicPlaylistScreen";
 import {MusicSearchScreen} from "@/screens/phone/MusicSearchScreen";
 import VideoScreenWrapper from "@/screens/phone/VideoScreenWrapper";
+import {useAppTheme} from "@/ui/theme";
 import {YTNodes} from "@/utils/Youtube";
 
 export type RootStackParamList = {
@@ -74,6 +76,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootStackNavigator() {
   const {init} = useAppInit();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   return (
     <Stack.Navigator screenOptions={Platform.isTV ? {headerShown: false} : {}}>
@@ -93,19 +97,23 @@ export default function RootStackNavigator() {
           <Stack.Screen
             name={"VideoScreen"}
             component={Platform.isTV ? VideoScreen : VideoScreenWrapper}
-            options={{title: "Video"}}
+            options={{title: t("navigation.video")}}
           />
           <Stack.Screen
             name={"ChannelScreen"}
             component={ChannelScreen}
-            options={{title: "Channel"}}
+            options={{title: t("navigation.channel")}}
           />
           <Stack.Screen
             name={"PlaylistScreen"}
             component={PlaylistScreen}
-            options={{title: "Playlist"}}
+            options={{title: t("navigation.playlist")}}
           />
-          <Stack.Screen name={"Search"} component={SearchScreen} />
+          <Stack.Screen
+            name={"Search"}
+            component={SearchScreen}
+            options={{title: t("navigation.search")}}
+          />
           {Platform.isTV ? (
             <>
               <Stack.Screen
@@ -135,59 +143,65 @@ export default function RootStackNavigator() {
               />
             </>
           ) : null}
-          <Stack.Screen name={"History"} component={HistoryScreen} />
+          <Stack.Screen
+            name={"History"}
+            component={HistoryScreen}
+            options={{title: t("navigation.history")}}
+          />
           <Stack.Screen
             name={"SettingsScreen"}
             component={SettingsNavigator}
-            // Hotfix for ugly title set title per Screen manually on Phones/Tablets?
-            options={{headerTitle: "Settings"}}
+            options={{headerTitle: t("navigation.settings")}}
           />
-          <Stack.Screen name={"LoginScreen"} component={LoginScreen} />
+          <Stack.Screen
+            name={"LoginScreen"}
+            component={LoginScreen}
+            options={{title: t("navigation.login")}}
+          />
           {/* Download Screens*/}
           <Stack.Screen
             name={"ActiveDownloadScreen"}
             component={ActiveDownloadScreen}
-            options={{headerTitle: "Active Downloads"}}
+            options={{headerTitle: t("navigation.activeDownloads")}}
           />
           <Stack.Screen
             name={"ActiveUploadScreen"}
             component={ActiveUploadScreen}
-            options={{headerTitle: "Active Uploads"}}
+            options={{headerTitle: t("navigation.activeUploads")}}
           />
           {/* Music Screens*/}
           <Stack.Screen
             name={"MusicLibraryScreen"}
             component={MusicLibraryScreen}
-            options={{title: "Music Library"}}
+            options={{title: t("navigation.musicLibrary")}}
           />
           <Stack.Screen
             name={"MusicSearchScreen"}
             component={MusicSearchScreen}
-            options={{title: "Music Search"}}
+            options={{title: t("navigation.musicSearch")}}
           />
           <Stack.Screen
             name={"MusicPlaylistScreen"}
             component={MusicPlaylistScreen}
-            options={{title: "Music Playlist"}}
+            options={{title: t("navigation.musicPlaylist")}}
           />
           <Stack.Screen
             name={"MusicChannelScreen"}
             component={MusicChannelScreen}
-            options={{title: "Music Channel"}}
+            options={{title: t("navigation.musicChannel")}}
           />
           <Stack.Screen
             name={"MusicAlbumScreen"}
             component={MusicAlbumScreen}
-            options={{title: "Music Channel"}}
+            options={{title: t("navigation.musicChannel")}}
           />
           <Stack.Screen
             name={"MusicPlayerScreen"}
             component={MusicPlayerScreen}
             options={{
-              title: "Music Player",
-              // Use #222222dd for transparent in the future
-              contentStyle: {backgroundColor: "#222222"},
-              headerStyle: {backgroundColor: "#222222"},
+              title: t("navigation.musicPlayer"),
+              contentStyle: {backgroundColor: theme.colors.surfaceRaised},
+              headerStyle: {backgroundColor: theme.colors.surfaceRaised},
             }}
           />
         </>

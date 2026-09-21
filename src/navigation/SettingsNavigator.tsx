@@ -7,10 +7,12 @@ import PlayerTypeSelectorScreen from "../components/settings/screens/PlayerSelec
 import SettingsScreen from "../screens/SettingsScreen";
 
 import TrackingSelector from "@/components/settings/screens/TrackingSelector";
+import UILanguageSelectorScreen from "@/components/settings/screens/UILanguageSelector";
 
 export type SettingsStackParamList = {
   Root: undefined;
   LanguageSelector: undefined;
+  UILanguageSelector: undefined;
   PlayerSelector: undefined;
   PlayerResolutionSelector: undefined;
   TrackingSelector: undefined;
@@ -26,6 +28,10 @@ export default function SettingsNavigator() {
       <Stack.Screen
         name={"LanguageSelector"}
         component={LanguageSelectorScreen}
+      />
+      <Stack.Screen
+        name={"UILanguageSelector"}
+        component={UILanguageSelectorScreen}
       />
       <Stack.Screen
         name={"PlayerSelector"}

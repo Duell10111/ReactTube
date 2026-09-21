@@ -1,6 +1,6 @@
 import {useNavigation} from "@react-navigation/native";
 import {Icon} from "@rneui/base";
-import React, {forwardRef, useCallback, useEffect, useState} from "react";
+import React, {forwardRef, useCallback, useEffect} from "react";
 import {StyleSheet, TouchableOpacity, TVFocusGuideView} from "react-native";
 import Animated, {
   FadeIn,
@@ -15,6 +15,8 @@ import {NativeStackProp} from "./types";
 
 import {useAccountContext} from "@/context/AccountContext";
 import {useAppStyle} from "@/context/AppStyleContext";
+import {useTranslation} from "@/localization";
+import {useAppTheme} from "@/ui/theme";
 
 interface Props {
   open: boolean;
@@ -25,6 +27,8 @@ interface Props {
 
 export default function Drawer({open, onOpen, onClose, hideDrawer}: Props) {
   const account = useAccountContext();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   useEffect(() => {
     openDrawer.value = open;
@@ -54,9 +58,14 @@ export default function Drawer({open, onOpen, onClose, hideDrawer}: Props) {
 
   return (
     <TVFocusGuideView autoFocus>
-      <Animated.View style={[styles.container, style]}>
+      <Animated.View
+        style={[
+          styles.container,
+          {backgroundColor: theme.colors.surfacePressed},
+          style,
+        ]}>
         <DrawerItem
-          title={"Home"}
+          title={t("navigation.home")}
           onFocus={() => onOpen()}
           start
           onPress={navigationWrapper(() =>
@@ -67,7 +76,7 @@ export default function Drawer({open, onOpen, onClose, hideDrawer}: Props) {
           iconTitle={"home"}
         />
         <DrawerItem
-          title={"Search"}
+          title={t("navigation.search")}
           onFocus={() => onOpen()}
           onPress={() => navigation.navigate("Search")}
           open={open}
@@ -76,7 +85,7 @@ export default function Drawer({open, onOpen, onClose, hideDrawer}: Props) {
         {account?.loginData?.accounts?.length > 0 ? (
           <>
             <DrawerItem
-              title={"Subscriptions"}
+              title={t("navigation.subscriptions")}
               onFocus={() => onOpen()}
               onPress={() =>
                 // @ts-ignore TODO: fix
@@ -86,7 +95,7 @@ export default function Drawer({open, onOpen, onClose, hideDrawer}: Props) {
               iconTitle={"subscriptions"}
             />
             <DrawerItem
-              title={"History"}
+              title={t("navigation.history")}
               onFocus={() => onOpen()}
               onPress={() =>
                 // @ts-ignore TODO: fix
@@ -96,7 +105,7 @@ export default function Drawer({open, onOpen, onClose, hideDrawer}: Props) {
               iconTitle={"history"}
             />
             <DrawerItem
-              title={"Library"}
+              title={t("navigation.library")}
               onFocus={() => onOpen()}
               onPress={() =>
                 // @ts-ignore TODO: fix
@@ -107,7 +116,7 @@ export default function Drawer({open, onOpen, onClose, hideDrawer}: Props) {
               iconType={"ionicon"}
             />
             <DrawerItem
-              title={"MyYoutube"}
+              title={t("navigation.myYoutube")}
               onFocus={() => onOpen()}
               onPress={() =>
                 // @ts-ignore TODO: fix
@@ -120,7 +129,7 @@ export default function Drawer({open, onOpen, onClose, hideDrawer}: Props) {
           </>
         ) : (
           <DrawerItem
-            title={"Login"}
+            title={t("navigation.login")}
             onFocus={() => onOpen()}
             onPress={() => navigation.navigate("LoginScreen")}
             open={open}
@@ -129,7 +138,7 @@ export default function Drawer({open, onOpen, onClose, hideDrawer}: Props) {
         )}
         <DrawerItem
           bottom
-          title={"Settings"}
+          title={t("navigation.settings")}
           onFocus={() => onOpen()}
           onPress={() => navigation.navigate("SettingsScreen")}
           open={open}
@@ -144,7 +153,6 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: "center",
     paddingStart: 40,
-    backgroundColor: "#333333",
   },
 });
 
@@ -169,8 +177,6 @@ const DrawerItem = forwardRef<
     ref,
   ) => {
     const {style} = useAppStyle();
-    const [focus, setFocus] = useState(false);
-
     const textStyle = useAnimatedStyle(() => {
       return {
         opacity: withTiming(open ? 1 : 0),
@@ -187,11 +193,9 @@ const DrawerItem = forwardRef<
         ]}
         onPress={onPress}
         onFocus={() => {
-          setFocus(true);
           onFocus?.();
         }}
         onBlur={() => {
-          setFocus(false);
           onBlur?.();
         }}>
         <Animated.View

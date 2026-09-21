@@ -16,6 +16,8 @@ import {SettingsStackParamList} from "../navigation/SettingsNavigator";
 import {parseLanguage} from "../utils/YTLanguages";
 
 import {useAccountContext} from "@/context/AccountContext";
+import {useTranslation} from "@/localization";
+import {useAppTheme} from "@/ui/theme";
 
 type Props = CompositeScreenProps<
   NativeStackScreenProps<SettingsStackParamList, "Root">,
@@ -25,6 +27,8 @@ type Props = CompositeScreenProps<
 export default function SettingsScreen({navigation}: Props) {
   const {appSettings} = useAppData();
   const {logout, clearAllData} = useAccountContext();
+  const {language, t} = useTranslation();
+  const {theme} = useAppTheme();
 
   useEffect(() => {
     if (!Platform.isTV) {
@@ -33,13 +37,14 @@ export default function SettingsScreen({navigation}: Props) {
           <Icon
             name={"login"}
             onPress={() => navigation.navigate("LoginScreen")}
-            color={"white"}
+            color={theme.colors.textPrimary}
+            accessibilityLabel={t("navigation.login")}
             style={{marginEnd: 10}}
           />
         ),
       });
     }
-  }, [navigation]);
+  }, [navigation, t, theme.colors.textPrimary]);
 
   const navigate = useCallback<(typeof navigation)["navigate"]>(
     (args: any) => {
@@ -55,44 +60,62 @@ export default function SettingsScreen({navigation}: Props) {
 
   return (
     <View style={styles.containerStyle}>
-      <SettingsSection sectionTitle={"General"}>
+      <SettingsSection sectionTitle={t("settings.general")}>
         <SettingsItem
           icon={"globe"}
-          iconBackground={"#fe9400"}
-          label={"Language"}
+          iconBackground={theme.colors.brand}
+          label={t("settings.uiLanguage")}
+          value={t(
+            language === "en"
+              ? "settings.language.english"
+              : "settings.language.german",
+          )}
+          onPress={() => navigate("UILanguageSelector")}
+        />
+        <SettingsItem
+          icon={"globe"}
+          iconBackground={theme.colors.warning}
+          label={t("settings.contentLanguage")}
           value={parseLanguage(appSettings).label}
           onPress={() => navigate("LanguageSelector")}
         />
         <SettingsItem
           icon={"globe"}
-          iconBackground={"blue"}
-          label={"Video player"}
+          iconBackground={theme.colors.brand}
+          label={t("settings.videoPlayer")}
           value={parsePlayerType(appSettings).label}
           onPress={() => navigate("PlayerSelector")}
         />
         <SettingsItem
           icon={"globe"}
-          iconBackground={"#f5d132"}
-          label={"Video resolution variant"}
+          iconBackground={theme.colors.warning}
+          label={t("settings.videoResolution")}
           value={parsePlayerResolution(appSettings).label}
           onPress={() => navigate("PlayerResolutionSelector")}
         />
         <SettingsItem
           icon={"globe"}
-          iconBackground={"#f5d132"}
-          label={"History enabled"}
-          value={appSettings.trackingEnabled ? "True" : "False"}
+          iconBackground={theme.colors.warning}
+          label={t("settings.historyEnabled")}
+          value={t(
+            appSettings.trackingEnabled
+              ? "settings.value.true"
+              : "settings.value.false",
+          )}
           onPress={() => navigate("TrackingSelector")}
         />
         <SettingsItem
           icon={"activity"}
-          iconBackground={"#34c759"}
-          label={"Playback diagnostics"}
+          iconBackground={theme.colors.success}
+          label={t("settings.playbackDiagnostics")}
           value={""}
           onPress={() => navigate("PlaybackDiagnostics")}
         />
-        <SettingsButton label={"Clear all"} onPress={() => clearAllData()} />
-        <SettingsButton label={"Logout"} onPress={() => logout()} />
+        <SettingsButton
+          label={t("settings.clearAll")}
+          onPress={() => clearAllData()}
+        />
+        <SettingsButton label={t("settings.logout")} onPress={() => logout()} />
       </SettingsSection>
     </View>
   );

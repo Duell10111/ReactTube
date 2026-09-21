@@ -14,6 +14,8 @@ import {DownloadScreen} from "../screens/phone/DownloadScreen";
 import {MusicHomeScreen} from "../screens/phone/MusicHomeScreen";
 
 import {useAccountContext} from "@/context/AccountContext";
+import {useTranslation} from "@/localization";
+import {useAppTheme} from "@/ui/theme";
 
 export type RootBottomTabParamList = {
   HomeFeed: undefined;
@@ -29,6 +31,8 @@ const Tab = createBottomTabNavigator<RootBottomTabParamList>();
 
 export default function BottomTabBarNavigator() {
   const {loginData} = useAccountContext();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
   // const [musicPlayer, setShowMusicPlayer] = useState(false)
   return (
     <>
@@ -67,34 +71,47 @@ export default function BottomTabBarNavigator() {
             // @ts-ignore
             return <Ionicons name={iconName} size={size} color={color} />;
           },
-          tabBarActiveTintColor: "tomato",
-          tabBarInactiveTintColor: "gray",
+          tabBarActiveTintColor: theme.colors.brand,
+          tabBarInactiveTintColor: theme.colors.textSecondary,
+          tabBarStyle: {
+            backgroundColor: theme.colors.surface,
+            borderTopColor: theme.colors.divider,
+          },
         })}>
         <Tab.Screen
           name={"HomeFeed"}
           component={HomeScreen}
-          options={{title: "Home"}}
+          options={{title: t("navigation.home")}}
         />
         {loginData.accounts.length > 0 ? (
           <>
-            <Tab.Screen name={"Subscriptions"} component={SubscriptionScreen} />
-            <Tab.Screen name={"Library"} component={LibraryScreen} />
+            <Tab.Screen
+              name={"Subscriptions"}
+              component={SubscriptionScreen}
+              options={{title: t("navigation.subscriptions")}}
+            />
+            <Tab.Screen
+              name={"Library"}
+              component={LibraryScreen}
+              options={{title: t("navigation.library")}}
+            />
           </>
         ) : null}
         <Tab.Screen
           name={"MusicHomeFeed"}
           component={MusicHomeScreen}
-          options={{title: "Music"}}
+          options={{title: t("navigation.music")}}
         />
         <Tab.Screen
           name={"Download"}
           component={DownloadScreen}
-          options={{title: "Downloads"}}
+          options={{title: t("navigation.downloads")}}
         />
         <Tab.Screen
           name={"Settings"}
           // @ts-ignore
           component={SettingsScreen}
+          options={{title: t("navigation.settings")}}
         />
       </Tab.Navigator>
     </>

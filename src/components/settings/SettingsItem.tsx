@@ -1,5 +1,8 @@
 import {Feather} from "@expo/vector-icons";
-import {StyleSheet, TouchableOpacity, View, Text} from "react-native";
+import React from "react";
+import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
+
+import {useAppTheme} from "@/ui/theme";
 
 interface Props {
   onPress?: () => void;
@@ -16,27 +19,37 @@ export default function SettingsSelectorOverview({
   label,
   value,
 }: Props) {
+  const {theme} = useAppTheme();
+
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
-      <TouchableOpacity onPress={onPress} style={styles.row}>
+    <RowWrapper>
+      <TouchableOpacity
+        accessibilityLabel={`${label}, ${value}`}
+        accessibilityRole={"button"}
+        onPress={onPress}
+        style={styles.row}>
         <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
           <Feather
-            color={"#fff"}
-            // @ts-ignore
+            color={theme.colors.textPrimary}
+            // @ts-ignore The icon name is supplied by the settings descriptor.
             name={icon}
             size={20}
           />
         </View>
-
-        <Text style={styles.rowLabel}>{label}</Text>
-
+        <Text style={[styles.rowLabel, {color: theme.colors.textPrimary}]}>
+          {label}
+        </Text>
         <View style={styles.rowSpacer} />
-
-        <Text style={styles.rowValue}>{value}</Text>
-
-        <Feather color={"#C6C6C6"} name={"chevron-right"} size={20} />
+        <Text style={[styles.rowValue, {color: theme.colors.textSecondary}]}>
+          {value}
+        </Text>
+        <Feather
+          color={theme.colors.textSecondary}
+          name={"chevron-right"}
+          size={20}
+        />
       </TouchableOpacity>
-    </View>
+    </RowWrapper>
   );
 }
 
@@ -51,18 +64,28 @@ export function SettingsSelectorItem({
   label,
   selected,
 }: PropsSelectorItem) {
+  const {theme} = useAppTheme();
+
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
-      <TouchableOpacity onPress={onPress} style={styles.row}>
-        <Text style={styles.rowLabel}>{label}</Text>
-
+    <RowWrapper>
+      <TouchableOpacity
+        accessibilityRole={"radio"}
+        accessibilityState={{selected}}
+        onPress={onPress}
+        style={styles.row}>
+        <Text style={[styles.rowLabel, {color: theme.colors.textPrimary}]}>
+          {label}
+        </Text>
         <View style={styles.rowSpacer} />
-
         {selected ? (
-          <Feather color={"#C6C6C6"} name={"check"} size={20} />
+          <Feather
+            color={theme.colors.textSecondary}
+            name={"check"}
+            size={20}
+          />
         ) : null}
       </TouchableOpacity>
-    </View>
+    </RowWrapper>
   );
 }
 
@@ -81,26 +104,36 @@ export function SettingsStandaloneSelector({
   label,
   selected,
 }: PropsStandaloneSelectorItem) {
+  const {theme} = useAppTheme();
+
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
-      <TouchableOpacity onPress={onPress} style={styles.row}>
+    <RowWrapper>
+      <TouchableOpacity
+        accessibilityRole={"radio"}
+        accessibilityState={{selected}}
+        onPress={onPress}
+        style={styles.row}>
         <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
           <Feather
-            color={"#fff"}
-            // @ts-ignore
+            color={theme.colors.textPrimary}
+            // @ts-ignore The icon name is supplied by the settings descriptor.
             name={icon}
             size={20}
           />
         </View>
-        <Text style={styles.rowLabel}>{label}</Text>
-
+        <Text style={[styles.rowLabel, {color: theme.colors.textPrimary}]}>
+          {label}
+        </Text>
         <View style={styles.rowSpacer} />
-
         {selected ? (
-          <Feather color={"#C6C6C6"} name={"check"} size={20} />
+          <Feather
+            color={theme.colors.textSecondary}
+            name={"check"}
+            size={20}
+          />
         ) : null}
       </TouchableOpacity>
-    </View>
+    </RowWrapper>
   );
 }
 
@@ -117,49 +150,42 @@ export function SettingsButton({
   iconBackground,
   label,
 }: PropsSettingsButton) {
+  const {theme} = useAppTheme();
+
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
-      <TouchableOpacity onPress={onPress} style={styles.row}>
+    <RowWrapper>
+      <TouchableOpacity
+        accessibilityRole={"button"}
+        onPress={onPress}
+        style={styles.row}>
         {icon && iconBackground ? (
           <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
             <Feather
-              color={"#fff"}
-              // @ts-ignore
+              color={theme.colors.textPrimary}
+              // @ts-ignore The icon name is supplied by the settings descriptor.
               name={icon}
               size={20}
             />
           </View>
         ) : null}
-
-        <Text style={styles.rowLabel}>{label}</Text>
-
+        <Text style={[styles.rowLabel, {color: theme.colors.textPrimary}]}>
+          {label}
+        </Text>
         <View style={styles.rowSpacer} />
       </TouchableOpacity>
-    </View>
+    </RowWrapper>
   );
 }
 
-// <View style={styles.rowWrapper}>
-//   <View style={styles.row}>
-//     <View
-//       style={[styles.rowIcon, { backgroundColor: '#007AFF' }]}>
-//       <FeatherIcon
-//         color="#fff"
-//         name="moon"
-//         size={20} />
-//     </View>
-//
-//     <Text style={styles.rowLabel}>Dark Mode</Text>
-//
-//     <View style={styles.rowSpacer} />
-//
-//     <Switch
-//       onValueChange={emailNotifications =>
-//         setForm({ ...form, emailNotifications })
-//       }
-//       value={form.emailNotifications} />
-//   </View>
-// </View>
+function RowWrapper({children}: {children: React.ReactNode}) {
+  const {theme} = useAppTheme();
+
+  return (
+    <View style={[styles.rowWrapper, {borderColor: theme.colors.divider}]}>
+      {children}
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   row: {
@@ -167,14 +193,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-start",
     paddingRight: 24,
-    height: 50,
+    minHeight: 50,
   },
   rowWrapper: {
-    borderTopWidth: 1,
-    borderColor: "#e3e3e3",
-  },
-  rowFirst: {
-    borderTopWidth: 0,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   rowIcon: {
     width: 30,
@@ -187,7 +209,6 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 17,
     fontWeight: "500",
-    color: "#000",
   },
   rowSpacer: {
     flexGrow: 1,
@@ -197,7 +218,6 @@ const styles = StyleSheet.create({
   rowValue: {
     fontSize: 17,
     fontWeight: "500",
-    color: "#8B8B8B",
     marginRight: 4,
   },
 });
