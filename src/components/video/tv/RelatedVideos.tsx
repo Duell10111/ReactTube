@@ -1,8 +1,11 @@
 import React, {useMemo} from "react";
-import {StyleSheet, Text, TVFocusGuideView, View} from "react-native";
+import {StyleSheet, TVFocusGuideView} from "react-native";
 
 import {HorizontalElementsList} from "@/components/elements/tv/HorizontalElementsList";
 import {ElementData, YTVideoInfo as YTVideoInfoType} from "@/extraction/Types";
+import {useTranslation} from "@/localization";
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 interface RelatedVideosProps {
   YTVideoInfo: YTVideoInfoType;
@@ -17,60 +20,47 @@ export function RelatedVideos({
   fetchMoreNextFeed,
   playlistShown,
 }: RelatedVideosProps) {
+  const {theme} = useAppTheme();
+  const {t} = useTranslation();
+
+  const elements = useMemo(
+    () =>
+      YTVideoInfo.watchNextSections
+        ? YTVideoInfo.watchNextSections
+            .slice(playlistShown ? 1 : 0)
+            .flatMap(section => section.parsedData)
+        : (watchNextFeed ?? []),
+    [YTVideoInfo.watchNextSections, playlistShown, watchNextFeed],
+  );
+
   return (
     <>
-      <Text style={styles.bottomText}>{"Related Videos"}</Text>
+      <AppText
+        style={[
+          styles.title,
+          {
+            paddingStart: theme.spacing.xl,
+            paddingBottom: theme.spacing.lg,
+          },
+        ]}
+        variant={"titleMedium"}>
+        {t("video.related")}
+      </AppText>
       {/* TODO: Replace HorizontalVideoList with HorizontalElementsList once scrolling issue fixed? */}
       <TVFocusGuideView autoFocus>
-        {useMemo(
-          () =>
-            YTVideoInfo.watchNextSections ? (
-              // TODO: Show sections vertical and remove workaround?
-              <HorizontalElementsList
-                elements={YTVideoInfo.watchNextSections
-                  .slice(playlistShown ? 1 : 0)
-                  .flatMap(section => section.parsedData)}
-                // textStyle={styles.text}
-                // videoSegmentStyle={{marginHorizontal: 20}}
-                // containerStyle={{marginBottom: 20}}
-              />
-            ) : (
-              <HorizontalElementsList
-                elements={watchNextFeed ?? []}
-                // textStyle={styles.text}
-                // videoSegmentStyle={{marginHorizontal: 20}}
-                onEndReached={fetchMoreNextFeed}
-                // containerStyle={{marginBottom: 20}}
-              />
-            ),
-          [YTVideoInfo.watchNextSections, playlistShown],
-        )}
+        <HorizontalElementsList
+          elements={elements}
+          onEndReached={
+            YTVideoInfo.watchNextSections ? undefined : fetchMoreNextFeed
+          }
+        />
       </TVFocusGuideView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  text: {
-    color: "white",
-  },
-  bottomText: {
-    fontSize: 25,
-    fontWeight: "bold",
-    color: "white",
-    paddingStart: 20,
-    paddingBottom: 15,
-  },
-  bottomPlaylistTextContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingStart: 20,
-    paddingBottom: 15,
-  },
-  bottomPlaylistText: {
-    fontSize: 25,
-    fontWeight: "bold",
-    color: "white",
-    paddingStart: 10,
+  title: {
+    width: "100%",
   },
 });

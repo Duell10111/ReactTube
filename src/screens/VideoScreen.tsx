@@ -2,7 +2,6 @@ import {useFocusEffect} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import {
-  ActivityIndicator,
   StyleSheet,
   View,
   useTVEventHandler,
@@ -10,7 +9,6 @@ import {
 } from "react-native";
 
 import VideoComponent from "../components/VideoComponent";
-import ErrorComponent from "../components/general/ErrorComponent";
 import EndCard from "../components/video/EndCard";
 import VideoEndCard from "../components/video/VideoEndCard";
 import VideoPlayerNative from "../components/video/VideoPlayerNative";
@@ -21,9 +19,17 @@ import useVideoDetails from "../hooks/useVideoDetails";
 import LOGGER from "../utils/Logger";
 
 import {BottomMetadata} from "@/components/video/tv/BottomMetadata";
+import {
+  VideoSidePanel,
+  type VideoSidePanelTab,
+} from "@/components/video/tv/VideoSidePanel";
 import {useAppData} from "@/context/AppDataContext";
+import useVideoComments from "@/hooks/comments/useVideoComments";
 import useChannelDetails from "@/hooks/useChannelDetails";
+import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
+import {ErrorState} from "@/ui/components";
+import {VideoDetailSkeleton, createVideoDetailViewModel} from "@/ui/patterns";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -41,6 +47,7 @@ export default function VideoScreen({route, navigation}: Props) {
   const {
     YTVideoInfo,
     videoUrl,
+    error,
     playbackSource,
     playbackLadderStep,
     playbackLadderSize,
@@ -55,14 +62,30 @@ export default function VideoScreen({route, navigation}: Props) {
     addToWatchHistory,
     refresh,
   } = useVideoDetails(navEndpoint ?? videoId, "TV", route.params.startSeconds);
-  // @ts-ignore TODO: fix
-  const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id);
+  const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id ?? "");
   const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components
   const [ended, setEnded] = useState(false);
 
   const {appSettings} = useAppData();
+  const {t} = useTranslation();
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelTab, setPanelTab] = useState<VideoSidePanelTab>("details");
+  const comments = useVideoComments(
+    YTVideoInfo?.id ?? videoId,
+    panelOpen && panelTab === "comments",
+  );
+  const detailModel = useMemo(
+    () =>
+      YTVideoInfo
+        ? createVideoDetailViewModel(YTVideoInfo, {
+            translate: t,
+            canOpenComments: true,
+          })
+        : undefined,
+    [YTVideoInfo, t],
+  );
   const videoPlayerRef = useRef<VideoPlayerRefs>(undefined);
   const currentTimeRef = useRef<number>(undefined);
 
@@ -103,27 +126,28 @@ export default function VideoScreen({route, navigation}: Props) {
   });
 
   if (!YTVideoInfo) {
-    return (
-      <View
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            alignItems: "center",
-            justifyContent: "center",
-          },
-        ]}>
-        <ActivityIndicator size={"large"} />
-      </View>
-    );
+    if (error) {
+      return (
+        <ErrorState
+          message={t("video.unavailable.message")}
+          onRetry={() => refresh()}
+          title={t("video.unavailable.title")}
+        />
+      );
+    }
+
+    return <VideoDetailSkeleton />;
   }
 
   if (!videoUrl) {
     return (
-      <ErrorComponent
-        text={
+      <ErrorState
+        message={
           YTVideoInfo.originalData.playability_status?.reason ??
-          "Video source is not available"
+          t("video.unavailable.message")
         }
+        onRetry={() => refresh()}
+        title={t("video.unavailable.title")}
       />
     );
   }
@@ -192,6 +216,7 @@ export default function VideoScreen({route, navigation}: Props) {
                 await videoPlayerRef.current?.getCurrentPositionSeconds?.(),
               );
             },
+            onShowDetails: () => setPanelOpen(true),
           }}
           videoID={YTVideoInfo.id}
           onProgress={data => {
@@ -269,6 +294,17 @@ export default function VideoScreen({route, navigation}: Props) {
           }}
         />
       )}
+      {detailModel ? (
+        <VideoSidePanel
+          comments={comments}
+          model={detailModel}
+          onClose={() => setPanelOpen(false)}
+          onTabChange={setPanelTab}
+          queueEntries={YTVideoInfo.playlist?.content ?? []}
+          tab={panelTab}
+          visible={panelOpen}
+        />
+      ) : null}
       <EndCard
         video={YTVideoInfo}
         visible={showEndCard}

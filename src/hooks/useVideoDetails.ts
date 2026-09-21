@@ -106,6 +106,13 @@ export default function useVideoDetails(
   const videoRef = useRef<YT.VideoInfo>(undefined);
   const videoTVRef = useRef<YTTV.VideoInfo>(undefined);
   const [videoInfo, setVideoInfo] = useState<YTVideoInfo>();
+  /**
+   * Zustände der Metadatenabfrage. Vorher endete ein Fehlschlag in
+   * `LOGGER.warn`, und die Oberfläche zeigte unbegrenzt einen Ladezustand —
+   * ohne Unterschied zwischen „lädt noch" und „kommt nicht mehr".
+   */
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
   const [watchNextFeed, setWatchNextFeed] = useState<ElementData[]>();
   const [watchNextSections, setWatchNextSections] =
     useState<HorizontalData[]>();
@@ -118,6 +125,8 @@ export default function useVideoDetails(
   const [refresh, setRefresh] = useState<boolean>(false);
 
   useEffect(() => {
+    setLoading(true);
+    setError(undefined);
     const startTimeSeconds =
       typeof videoId !== "string"
         ? ((videoId.payload.startTimeSeconds as number) ?? passedStartSeconds)
@@ -180,11 +189,18 @@ export default function useVideoDetails(
               parsedDataTV.watchNextSections?.[parsedDataTV.playlist ? 1 : 0]
                 ?.parsedData,
             );
+            setLoading(false);
           } else {
             LOGGER.warn("No TVInfo available! This should never happen.");
+            setError(new Error("No video info available"));
+            setLoading(false);
           }
         })
-        .catch(LOGGER.warn);
+        .catch(reason => {
+          LOGGER.warn(reason);
+          setError(reason);
+          setLoading(false);
+        });
     } else {
       youtube &&
         resolveStreamingSource(youtube, videoId, {
@@ -192,6 +208,8 @@ export default function useVideoDetails(
         })
           .then(async streaming => {
             if (!streaming) {
+              setError(new Error("No streaming source available"));
+              setLoading(false);
               return;
             }
             LOGGER.info(
@@ -207,8 +225,13 @@ export default function useVideoDetails(
             setVideoInfo(parsedData);
             parsedData.watchNextFeed &&
               setWatchNextFeed(parsedData.watchNextFeed);
+            setLoading(false);
           })
-          .catch(LOGGER.warn);
+          .catch(reason => {
+            LOGGER.warn(reason);
+            setError(reason);
+            setLoading(false);
+          });
     }
     // TODO: Fix duplicate reset to starttime on refresh
     // Only set if not set previously
@@ -504,6 +527,8 @@ export default function useVideoDetails(
 
   return {
     YTVideoInfo: videoInfo,
+    loading,
+    error,
     // Das eigene Manifest hat Vorrang — es trägt mehrsprachigen Ton und mit AV1
     // 4K. Fehlt es, bleibt YouTubes eigenes (Phase 2a) der Weg.
     hlsManifestUrl: videoInfo?.generated_hls_url ?? videoInfo?.hls_manifest_url,

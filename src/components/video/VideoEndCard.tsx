@@ -6,7 +6,6 @@ import {
   DeviceEventEmitter,
   DimensionValue,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -18,6 +17,8 @@ import {
 } from "@/components/video/videoPlayer/VideoPlayer";
 import {YTEndscreen, YTEndscreenElement} from "@/extraction/Types";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 import Logger from "@/utils/Logger";
 
 const LOGGER = Logger.extend("VIDEO_ENDCARD");
@@ -27,19 +28,11 @@ interface VideoEndCardProps {
 }
 
 export default function VideoEndCard({endcard}: VideoEndCardProps) {
+  const {theme} = useAppTheme();
+
   return (
     <View
-      style={[
-        {
-          backgroundColor: "rgba(119,119,119,0.6)",
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-        },
-        // containerStyle,
-      ]}>
+      style={[StyleSheet.absoluteFill, {backgroundColor: theme.colors.scrim}]}>
       {endcard.elements.map(e => (
         <VideoCard key={e.id} element={e} />
       ))}
@@ -55,6 +48,7 @@ function VideoCard({element}: VideoCardProps) {
   //TODO: Difference between channel and web?
 
   const navigation = useNavigation<RootNavProp>();
+  const {theme} = useAppTheme();
 
   return (
     <TouchableOpacity
@@ -109,11 +103,18 @@ function VideoCard({element}: VideoCardProps) {
         }
       />
       {element.style === "VIDEO" || element.style === "PLAYLIST" ? (
-        <Text style={styles.videoTitleStyle}>{element.title}</Text>
+        <AppText
+          align={"center"}
+          numberOfLines={2}
+          style={styles.videoTitleStyle}
+          variant={"titleLarge"}>
+          {element.title}
+        </AppText>
       ) : null}
       {element.style === "PLAYLIST" ? (
-        <View style={styles.playlistIcon}>
-          <Icon source={"book"} color={"white"} size={40} />
+        <View
+          style={[styles.playlistIcon, {backgroundColor: theme.colors.scrim}]}>
+          <Icon color={theme.colors.textPrimary} size={40} source={"book"} />
         </View>
       ) : null}
     </TouchableOpacity>
@@ -133,12 +134,10 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    color: "white",
-    fontSize: 35,
-    fontWeight: "bold",
-    textAlign: "center",
     marginVertical: 20,
-    textShadowColor: "black",
+    // The title sits on top of arbitrary video frames, so it carries its own
+    // contrast instead of relying on what is behind it.
+    textShadowColor: "#000000",
     textShadowOffset: {width: 5, height: 5},
     textShadowRadius: 10,
   },
@@ -149,7 +148,6 @@ const styles = StyleSheet.create({
     left: 0,
     alignItems: "flex-start",
     padding: 20,
-    backgroundColor: "#11111199",
     borderBottomStartRadius: 15,
     borderBottomEndRadius: 15,
   },

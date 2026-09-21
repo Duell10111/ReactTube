@@ -13,7 +13,6 @@ import {
   YTChipCloud,
   YTChipCloudChip,
   YTComments,
-  YTCommentThread,
   YTEndscreen,
   YTEndscreenElement,
   YTFormat,
@@ -809,13 +808,6 @@ function parseYTComments(comments: YT.Comments) {
     title: comments?.header?.title?.text,
     comments_count: comments?.header?.comments_count?.text,
   } as YTComments;
-}
-
-function parseCommentThread(commentThread: YTNodes.CommentThread) {
-  return {
-    originalData: commentThread,
-    has_replies: commentThread.has_replies,
-  } as YTCommentThread;
 }
 
 // YTTV.MyYoutubeFeed

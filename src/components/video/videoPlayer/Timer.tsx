@@ -1,7 +1,8 @@
 import React, {ReactNode} from "react";
-import {StyleSheet, Text, View} from "react-native";
+import {StyleSheet, View} from "react-native";
 
-import {Control} from "./Control";
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 interface TimerProps {
   toggleTimer: () => void;
@@ -10,26 +11,18 @@ interface TimerProps {
   showControls: boolean;
 }
 
-export const Timer = ({
-  children,
-  toggleTimer,
-  resetControlTimeout,
-  showControls,
-}: TimerProps) => {
+export const Timer = ({children}: TimerProps) => {
+  const {theme} = useAppTheme();
+
   return (
-    <View style={styles.timer}>
-      <Text style={styles.timerText}>{children}</Text>
+    <View style={[styles.timer, {paddingHorizontal: theme.spacing.xl}]}>
+      <AppText variant={"label"}>{children}</AppText>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   timer: {
-    maxWidth: 160,
-  },
-  timerText: {
-    backgroundColor: "transparent",
-    color: "#FFF",
-    fontSize: 20,
+    alignSelf: "flex-start",
   },
 });

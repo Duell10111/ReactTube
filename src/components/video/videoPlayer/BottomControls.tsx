@@ -74,11 +74,21 @@ export default function BottomControls({
     useAnimatedBottomControls();
 
   useEffect(() => {
-    if (!showControls) {
-      // Use timeout to first fade out before reset
-      setTimeout(() => (showBottomContainer.value = false), 200);
+    if (showControls) {
+      return;
     }
-  }, [showControls]);
+    console.log("Controls hidden, starting timer to hide bottom container");
+
+    // Let the controls fade out before the panel slides back down, and drop
+    // the timer if they come back in the meantime — an uncleared one used to
+    // collapse the panel right after it was reopened.
+    const timeout = setTimeout(() => {
+      console.warn("Controls timed out");
+      showBottomContainer.value = false;
+    }, 200);
+
+    return () => clearTimeout(timeout);
+  }, [showControls, showBottomContainer]);
 
   const timerControl = false ? (
     <NullControl />
@@ -132,6 +142,13 @@ export default function BottomControls({
             resolution={resolution}
             pause={() => setPaused(true)}
             onJumpToStart={onJumpToStart}
+            // Every control above the panel collapses it. Only the seek handle
+            // did before, so reaching the action buttons from the related
+            // videos left the panel covering the lower half of the screen for
+            // the rest of the video.
+            onControlFocus={() => {
+              showBottomContainer.value = false;
+            }}
           />
         </View>
         <ImageBackground
