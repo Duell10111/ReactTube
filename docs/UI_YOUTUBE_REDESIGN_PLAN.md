@@ -139,9 +139,39 @@ Fokusdarstellung:
 - Du/Mediathek
 - Einstellungen am unteren Rand
 
-Der Rail öffnet sich bei Fokus, zeigt im eingeklappten Zustand ausschließlich
-Icons und bewahrt beim Zurückkehren den vorherigen Fokus. Suche und Player müssen
-mit D-Pad vollständig bedienbar sein.
+Der Rail ist auf TV die einzige Hauptnavigation. Eine Bottom Navigation wird auf
+TV nicht verwendet; die Ziele bleiben dauerhaft am linken Rand erreichbar.
+
+- **Collapsed (Standardzustand):** schmale Leiste am linken Rand, ausschließlich
+  Icons plus Auswahlindikator für das aktive Ziel. Startwert der Breite `96`.
+- **Expanded:** sobald der Fokus in den Rail wechselt, verbreitert er sich und
+  zeigt Icon plus Label. Startwert der Breite `320`.
+- **Contentplane wandert mit:** beim Aufklappen wird die gesamte Contentplane um
+  exakt den Zuwachs des Rails nach rechts verschoben, bei den Startwerten also um
+  `224`. Der Rail überlagert den Inhalt nicht; er schiebt ihn vor sich her. Das
+  entspricht dem Verhalten der YouTube-App auf Apple TV.
+- **Verschieben, nicht neu layouten:** der Versatz wird als Transform auf die
+  Contentplane animiert, nicht über eine Breitenänderung im Layout. Die Plane
+  behält ihre ursprüngliche Breite, Spaltenzahl, Kartenbreiten, Zeilenumbrüche
+  und Scrollposition bleiben unverändert, und fokussierte Elemente behalten ihre
+  Größe. Was rechts über den Bildschirmrand hinauswandert, wird abgeschnitten und
+  nicht neu umbrochen. Heute animiert der TV-Drawer stattdessen seine Breite
+  innerhalb einer Flex-Zeile und erzwingt damit ein komplettes Neu-Layout des
+  Screens.
+- **Selected und focused sind getrennt:** das aktive Ziel bleibt auch im
+  eingeklappten Zustand erkennbar; der Fokus ist zusätzlich und deutlich davon
+  unterscheidbar.
+- **Öffnen und Schließen:** D-Pad links an der linken Inhaltskante öffnet den
+  Rail; D-Pad rechts, die Auswahl eines Ziels und Zurück schließen ihn.
+- **Fokusgedächtnis:** der Rail merkt sich sein zuletzt fokussiertes Ziel, und
+  beim Zurückwechseln in den Inhalt wird die vorherige Fokusposition
+  wiederhergestellt.
+- **Hidden:** in der Vollbildwiedergabe wird der Rail vollständig ausgeblendet
+  und kehrt erst nach Verlassen des Players zurück.
+
+Die Breitenwerte sind Startwerte für die Umsetzung in Phase 2 und werden am
+Gerät gegen Lesedistanz und Overscan geprüft. Suche und Player müssen mit D-Pad
+vollständig bedienbar sein.
 
 ### Watch
 
@@ -345,6 +375,7 @@ sichtbaren Hard-coded-Texte; ein Demo-Screen funktioniert auf Phone und TV.
 - Globalen App Header und Such-Einstieg vereinheitlichen.
 - Safe Areas, Status Bar, Navigation Header und Mini Player aus einem System speisen.
 - TV-Rail neu aufbauen: collapsed, expanded, selected, focused und hidden.
+- Rail-Erweiterung als Overlay umsetzen, ohne den Inhalt zu verschieben.
 - Fokuswiederherstellung und Zurück-Verhalten automatisiert beziehungsweise mit
   klarer manueller Matrix prüfen.
 - Tablet-adaptive Navigation ergänzen.
