@@ -6,6 +6,15 @@ import type {ElementData} from "@/extraction/Types";
 
 export type FeedItem = ElementData | HorizontalData;
 
+/**
+ * How a shelf is presented. TV keeps the horizontal row it was delivered as;
+ * touch layouts flatten it into the vertical feed under its own title, which
+ * is what the plan asks for on phones and tablets. Reel shelves stay
+ * horizontal everywhere, because a portrait card at full feed width would push
+ * everything else off the screen.
+ */
+export type ShelfPresentation = "horizontal" | "flattened";
+
 export interface FeedMetrics {
   columns: number;
   /** Gap between cards in a row and between rows. */
@@ -14,16 +23,29 @@ export interface FeedMetrics {
   padding: number;
   /** Cards rendered as skeletons while the first page is loading. */
   skeletonCount: number;
-  /** Width of a card inside a horizontal shelf. */
+  /**
+   * Width of a card inside a horizontal shelf. On touch layouts only shorts
+   * shelves stay horizontal, so the value there targets a portrait card.
+   */
   shelfCardWidth: number;
+  shelfPresentation: ShelfPresentation;
 }
 
 export type FeedRow =
   | {type: "shelf"; key: string; shelf: HorizontalData}
+  | {type: "header"; key: string; title: string}
   | {type: "cards"; key: string; items: ElementData[]};
 
 export function isShelfItem(item: FeedItem): item is HorizontalData {
   return "parsedData" in item;
+}
+
+/** A shelf of shorts. Its cards are portrait, so it is never flattened. */
+export function isReelShelf(shelf: HorizontalData): boolean {
+  return (
+    shelf.parsedData.length > 0 &&
+    shelf.parsedData.every(item => item.type === "reel")
+  );
 }
 
 /**
@@ -42,6 +64,7 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
         padding: spacing.xxl,
         skeletonCount: columns * 2,
         shelfCardWidth: 420,
+        shelfPresentation: "horizontal",
       };
     case "compact":
       return {
@@ -49,7 +72,8 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
         gap: spacing.lg,
         padding: spacing.none,
         skeletonCount: 4,
-        shelfCardWidth: 240,
+        shelfCardWidth: 180,
+        shelfPresentation: "flattened",
       };
     case "medium":
     case "expanded":
@@ -58,7 +82,8 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
         gap: spacing.lg,
         padding: spacing.lg,
         skeletonCount: columns * 3,
-        shelfCardWidth: 300,
+        shelfCardWidth: 220,
+        shelfPresentation: "flattened",
       };
   }
 }
@@ -81,12 +106,18 @@ export function getFeedCardWidth(
 }
 
 /**
- * Splits a feed into rows. Shelves always occupy a full-width row of their own,
- * cards are grouped into rows of `columns`. Doing this before the list renders
- * keeps shelf and card rows in one list without a grid that has to guess which
- * item spans the full width.
+ * Splits a feed into rows. Cards are grouped into rows of `columns`; a shelf
+ * either keeps its own full-width row or is flattened into those card rows
+ * under a title row, depending on the presentation the layout asks for.
+ *
+ * Doing this before the list renders keeps shelf and card rows in one list
+ * without a grid that has to guess which item spans the full width.
  */
-export function buildFeedRows(items: FeedItem[], columns: number): FeedRow[] {
+export function buildFeedRows(
+  items: FeedItem[],
+  columns: number,
+  shelfPresentation: ShelfPresentation = "horizontal",
+): FeedRow[] {
   const safeColumns = Math.max(1, Math.floor(columns));
   const rows: FeedRow[] = [];
   let pending: ElementData[] = [];
@@ -104,9 +135,23 @@ export function buildFeedRows(items: FeedItem[], columns: number): FeedRow[] {
     pending = [];
   };
 
-  for (const item of items) {
-    if (isShelfItem(item)) {
+  const push = (item: ElementData) => {
+    pending.push(item);
+
+    if (pending.length === safeColumns) {
       flush();
+    }
+  };
+
+  for (const item of items) {
+    if (!isShelfItem(item)) {
+      push(item);
+      continue;
+    }
+
+    flush();
+
+    if (shelfPresentation === "horizontal" || isReelShelf(item)) {
       rows.push({
         type: "shelf",
         key: `shelf-${rows.length}-${item.id}`,
@@ -115,11 +160,24 @@ export function buildFeedRows(items: FeedItem[], columns: number): FeedRow[] {
       continue;
     }
 
-    pending.push(item);
-
-    if (pending.length === safeColumns) {
-      flush();
+    // An empty shelf would leave a title with nothing under it.
+    if (item.parsedData.length === 0) {
+      continue;
     }
+
+    if (item.title) {
+      rows.push({
+        type: "header",
+        key: `header-${rows.length}-${item.id}`,
+        title: item.title,
+      });
+    }
+
+    for (const element of item.parsedData) {
+      push(element);
+    }
+
+    flush();
   }
 
   flush();

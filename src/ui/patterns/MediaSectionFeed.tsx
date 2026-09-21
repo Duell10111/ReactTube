@@ -66,9 +66,9 @@ export function MediaSectionFeed({
     SectionListRenderItem<FeedRow, {key: string; title?: string}>
   >(
     ({item}) =>
-      item.type === "shelf" ? null : (
+      item.type === "cards" ? (
         <FeedCardRow cardWidth={cardWidth} metrics={metrics} row={item} />
-      ),
+      ) : null,
     [cardWidth, metrics],
   );
 

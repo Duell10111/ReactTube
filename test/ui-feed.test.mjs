@@ -7,6 +7,7 @@ import {en} from "../src/localization/en.ts";
 import {
   buildFeedRows,
   buildFeedSections,
+  isReelShelf,
   getFeedCardWidth,
   getFeedMetrics,
   isShelfItem,
@@ -190,6 +191,67 @@ test("announces title, metadata, state, and progress but not the duration", () =
     "A video title, A channel, Downloaded, 50% watched",
   );
   assert.equal(model.accessibilityHint, "Opens the video");
+});
+
+test("keeps shelves horizontal on TV and flattens them on touch layouts", () => {
+  assert.equal(getFeedMetrics("tv").shelfPresentation, "horizontal");
+  assert.equal(getFeedMetrics("compact").shelfPresentation, "flattened");
+  assert.equal(getFeedMetrics("medium").shelfPresentation, "flattened");
+  assert.equal(getFeedMetrics("expanded").shelfPresentation, "flattened");
+});
+
+test("flattens a shelf into titled card rows", () => {
+  const rows = buildFeedRows(
+    [
+      shelf("recommended", [
+        video({id: "a"}),
+        video({id: "b"}),
+        video({id: "c"}),
+      ]),
+    ],
+    2,
+    "flattened",
+  );
+
+  assert.deepEqual(
+    rows.map(row =>
+      row.type === "header"
+        ? row.title
+        : row.items.map(item => item.id).join(""),
+    ),
+    ["Shelf recommended", "ab", "c"],
+  );
+});
+
+test("never starts a card row with the tail of the previous shelf", () => {
+  const rows = buildFeedRows(
+    [shelf("first", [video({id: "a"})]), shelf("second", [video({id: "b"})])],
+    2,
+    "flattened",
+  );
+
+  assert.deepEqual(
+    rows.map(row => row.type),
+    ["header", "cards", "header", "cards"],
+  );
+});
+
+test("drops an empty shelf instead of leaving a title behind", () => {
+  assert.deepEqual(buildFeedRows([shelf("empty")], 2, "flattened"), []);
+});
+
+test("keeps a shorts shelf horizontal even on touch layouts", () => {
+  const shorts = shelf("shorts", [
+    video({id: "s1", type: "reel"}),
+    video({id: "s2", type: "reel"}),
+  ]);
+
+  assert.equal(isReelShelf(shorts), true);
+  assert.equal(isReelShelf(shelf("mixed", [video({id: "a"})])), false);
+  assert.deepEqual(
+    buildFeedRows([shorts], 2, "flattened").map(row => row.type),
+    ["shelf"],
+  );
 });
 
 test("keeps one column on compact widths and more on wider layouts", () => {

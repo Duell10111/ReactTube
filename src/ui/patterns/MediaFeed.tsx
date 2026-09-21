@@ -7,7 +7,12 @@ import {
   type ListRenderItem,
 } from "react-native";
 
-import {FeedCardRow, FeedFooterLoader, FeedSkeleton} from "./FeedRows";
+import {
+  FeedCardRow,
+  FeedFooterLoader,
+  FeedSectionHeader,
+  FeedSkeleton,
+} from "./FeedRows";
 import {Shelf} from "./Shelf";
 import {buildFeedRows, type FeedItem, type FeedRow} from "./feedLayout";
 import {useFeedGeometry} from "./useFeedGeometry";
@@ -67,17 +72,23 @@ export function MediaFeed({
   );
 
   const rows = useMemo(
-    () => buildFeedRows(items, metrics.columns),
-    [items, metrics.columns],
+    () => buildFeedRows(items, metrics.columns, metrics.shelfPresentation),
+    [items, metrics.columns, metrics.shelfPresentation],
   );
 
   const renderItem = useCallback<ListRenderItem<FeedRow>>(
-    ({item}) =>
-      item.type === "shelf" ? (
-        <Shelf metrics={metrics} shelf={item.shelf} />
-      ) : (
-        <FeedCardRow cardWidth={cardWidth} metrics={metrics} row={item} />
-      ),
+    ({item}) => {
+      switch (item.type) {
+        case "shelf":
+          return <Shelf metrics={metrics} shelf={item.shelf} />;
+        case "header":
+          return <FeedSectionHeader title={item.title} />;
+        case "cards":
+          return (
+            <FeedCardRow cardWidth={cardWidth} metrics={metrics} row={item} />
+          );
+      }
+    },
     [cardWidth, metrics],
   );
 

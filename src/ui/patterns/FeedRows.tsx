@@ -6,6 +6,7 @@ import {MediaCardSkeleton} from "./MediaCardSkeleton";
 import type {FeedMetrics, FeedRow} from "./feedLayout";
 
 import {useTranslation} from "@/localization";
+import {AppText} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
 
 interface FeedCardRowProps {
@@ -34,6 +35,23 @@ export function FeedCardRow({row, metrics, cardWidth}: FeedCardRowProps) {
       {Array.from({length: Math.max(0, missing)}, (_value, index) => (
         <View key={`filler-${index}`} style={{width: cardWidth}} />
       ))}
+    </View>
+  );
+}
+
+interface FeedSectionHeaderProps {
+  title: string;
+}
+
+/** Title of a shelf that was flattened into the vertical feed. */
+export function FeedSectionHeader({title}: FeedSectionHeaderProps) {
+  const {theme} = useAppTheme();
+
+  return (
+    <View style={{paddingHorizontal: theme.spacing.sm}}>
+      <AppText accessibilityRole={"header"} variant={"titleMedium"}>
+        {title}
+      </AppText>
     </View>
   );
 }
