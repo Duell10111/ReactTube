@@ -4,8 +4,11 @@
 
 ReactTube is an ad-free YouTube client built with Expo, React Native, TypeScript,
 and `react-native-tvos`. It targets phones, tablets, Apple TV/Android TV, and an
-experimental native Apple Watch companion. It uses a local checkout of
-`youtubei.js` (`file:../../YouTube.js`) for YouTube API access.
+experimental native Apple Watch companion. It uses the published fork
+`@duell10111/youtubei.js` (aliased to `youtubei.js`) for YouTube API access. To
+work against a local checkout of that library instead, follow
+`docs/YOUTUBEI_JS_LOCAL_DEVELOPMENT.md` — and switch back to the published
+version before merging.
 
 The app currently supports video and music playback, account-backed YouTube
 features, local playlists/history, downloads, and watch synchronization. Treat
@@ -55,6 +58,9 @@ generated native code.
   behavior. A successful change on one surface is not proof that the others work.
 - Keep dependency patches in `patches/`; do not make an important fix only inside
   `node_modules/`.
+- Never commit a `file:` dependency. `youtubei.js` in particular must always be
+  the published `npm:@duell10111/youtubei.js@<version>` on `main`; see
+  `docs/YOUTUBEI_JS_LOCAL_DEVELOPMENT.md`.
 - Add or update tests for changed pure logic and regression-prone behavior.
 
 ## Code language and comments
