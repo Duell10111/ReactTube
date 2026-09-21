@@ -18,6 +18,7 @@ import useAppInit from "@/hooks/general/useAppInit";
 import {useTranslation} from "@/localization";
 import ChannelScreen from "@/screens/ChannelScreen";
 import HomeWrapperScreen from "@/screens/HomeWrapperScreen";
+import LibraryScreen from "@/screens/LibraryScreen";
 import LoadingScreen from "@/screens/LoadingScreen";
 import LoginScreen from "@/screens/LoginScreen";
 import PlaylistScreen from "@/screens/PlaylistScreen";
@@ -49,6 +50,7 @@ export type RootStackParamList = {
   Search: undefined;
   SubscriptionScreen: undefined;
   History: undefined;
+  LibraryScreen: undefined;
   SettingsScreen: undefined;
   LoginScreen: undefined;
   // TV
@@ -147,6 +149,11 @@ export default function RootStackNavigator() {
             name={"History"}
             component={HistoryScreen}
             options={{title: t("navigation.history")}}
+          />
+          <Stack.Screen
+            name={"LibraryScreen"}
+            component={LibraryScreen}
+            options={{title: t("navigation.library")}}
           />
           <Stack.Screen
             name={"SettingsScreen"}

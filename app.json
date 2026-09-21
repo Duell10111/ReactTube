@@ -16,9 +16,7 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "UIBackgroundModes": [
-          "audio"
-        ]
+        "UIBackgroundModes": ["audio"]
       }
     },
     "plugins": [
@@ -60,7 +58,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#000000",
+          "backgroundColor": "#0F0F0F",
           "image": "./assets/images/ios_icon.png",
           "imageWidth": 200
         }
@@ -84,7 +82,7 @@
     "slug": "reacttube",
     "version": "0.3.2",
     "userInterfaceStyle": "dark",
-    "primaryColor": "#556BFD",
-    "backgroundColor": "#000000"
+    "primaryColor": "#7C83FD",
+    "backgroundColor": "#0F0F0F"
   }
 }
