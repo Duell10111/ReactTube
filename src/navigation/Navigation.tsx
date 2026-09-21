@@ -1,20 +1,15 @@
-import {
-  NavigationContainer,
-  DefaultTheme,
-  DarkTheme,
-} from "@react-navigation/native";
+import {NavigationContainer} from "@react-navigation/native";
 import React from "react";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 
 import RootStackNavigator from "./RootStackNavigator";
-import {useAppStyle} from "../context/AppStyleContext";
+
+import {navigationTheme} from "@/ui/theme";
 
 export default function Navigation() {
-  const {type} = useAppStyle();
-
   return (
     <SafeAreaProvider>
-      <NavigationContainer theme={type === "dark" ? DarkTheme : DefaultTheme}>
+      <NavigationContainer theme={navigationTheme}>
         <RootStackNavigator />
       </NavigationContainer>
     </SafeAreaProvider>

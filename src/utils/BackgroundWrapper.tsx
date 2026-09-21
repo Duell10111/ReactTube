@@ -1,19 +1,20 @@
 import React from "react";
 import {StyleSheet, View} from "react-native";
-import {useAppStyle} from "../context/AppStyleContext";
+
+import {useAppTheme} from "@/ui/theme";
 
 interface Props {
   children: React.ReactNode;
 }
 
 export default function BackgroundWrapper({children}: Props) {
-  const {style} = useAppStyle();
+  const {theme} = useAppTheme();
 
   return (
     <View
       style={[
         StyleSheet.absoluteFill,
-        {backgroundColor: style.backgroundColor},
+        {backgroundColor: theme.colors.background},
       ]}>
       {children}
     </View>
