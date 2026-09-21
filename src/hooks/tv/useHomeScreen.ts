@@ -14,23 +14,29 @@ export default function useHomeScreen() {
   const homePage = useRef<YTTV.HomeFeed>(undefined);
   const [content, setContent] = useState<HorizontalData[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
 
   const fetchHomeContent = useCallback(() => {
     if (youtube) {
+      setError(undefined);
       youtube.tv
         .getHomeFeed()
         .then(value => {
           LOGGER.debug("Fetched HomeFeed");
           homePage.current = value;
-          console.log(value.sections);
           if (value.sections) {
             setContent(parseArrayHorizontalData(value.sections));
           }
         })
         .catch(reason => {
           LOGGER.warn("Error fetching HomeFeed: ", reason);
+          setError(reason);
         })
-        .finally(() => setRefreshing(false));
+        .finally(() => {
+          setRefreshing(false);
+          setLoading(false);
+        });
     } else {
       LOGGER.warn("Innertube undefined");
     }
@@ -81,10 +87,10 @@ export default function useHomeScreen() {
     return listener.remove();
   }, [fetchHomeContent]);
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     setRefreshing(true);
     fetchHomeContent();
-  };
+  }, [fetchHomeContent]);
 
   return {
     homePage,
@@ -92,5 +98,9 @@ export default function useHomeScreen() {
     fetchMore,
     refresh,
     refreshing,
+    // The first fetch only starts once the Innertube session exists, so the
+    // feed stays in its loading state until then instead of showing "empty".
+    loading: loading || !youtube,
+    error,
   };
 }

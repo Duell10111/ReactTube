@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    // Pure modules covered by the Node test runner import their neighbours with
+    // an explicit extension, because node cannot resolve an extensionless one.
+    "allowImportingTsExtensions": true,
     // baseUrl is deprecated as of TypeScript 6; paths resolve relative to this file.
     "paths": {
       "@/*": ["./src/*"]

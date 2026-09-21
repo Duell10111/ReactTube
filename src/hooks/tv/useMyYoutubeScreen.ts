@@ -17,9 +17,15 @@ export default function useMyYoutubeScreen() {
   const [tabs, setTabs] = useState<YTMyYoutubeTab[]>([]);
   const myYoutubeFeedSelection = useRef<YTTV.MyYoutubeFeed>(undefined);
   const [selectionData, setSelectionData] = useState<ElementData[]>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
 
   useEffect(() => {
-    youtube?.tv
+    if (!youtube) {
+      return;
+    }
+
+    youtube.tv
       ?.getMyYoutubeFeed()
       .then(value => {
         myYoutubeFeed.current = value;
@@ -29,8 +35,12 @@ export default function useMyYoutubeScreen() {
             _.chain(value.tabs).map(parseYTMyYoutubeTab).compact().value(),
           );
       })
-      .catch(console.warn);
-  }, []);
+      .catch(reason => {
+        LOGGER.warn("Error fetching My YouTube feed: ", reason);
+        setError(reason);
+      })
+      .finally(() => setLoading(false));
+  }, [youtube]);
 
   const fetchMore = useCallback(async () => {
     if (myYoutubeFeedSelection.current?.has_continuation) {
@@ -62,5 +72,12 @@ export default function useMyYoutubeScreen() {
       .catch(LOGGER.warn);
   };
 
-  return {data: selectionData ?? data, tabs, fetchMore, selectTab};
+  return {
+    data: selectionData ?? data,
+    tabs,
+    fetchMore,
+    selectTab,
+    loading: loading || !youtube,
+    error,
+  };
 }

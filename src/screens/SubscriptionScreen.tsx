@@ -2,19 +2,16 @@ import {useNavigation} from "@react-navigation/native";
 import React from "react";
 import {StyleSheet, View} from "react-native";
 
-import GridFeedView from "@/components/grid/GridFeedView";
 import {useAccountContext} from "@/context/AccountContext";
-import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
 import useSubscriptions from "@/hooks/tv/useSubscriptions";
 import {useTranslation} from "@/localization";
 import type {RootNavProp} from "@/navigation/RootStackNavigator";
 import {EmptyState} from "@/ui/components";
+import {MediaFeed} from "@/ui/patterns";
 
 export default function SubscriptionScreen() {
   const {loginData} = useAccountContext();
   const signedIn = loginData.accounts.length > 0;
-
-  // TODO: Adapt for Phones in future again?
 
   if (!signedIn) {
     return <SubscriptionSignInState />;
@@ -40,14 +37,20 @@ function SubscriptionSignInState() {
 }
 
 function SubscriptionFeed() {
-  const {data, fetchMore} = useSubscriptions();
+  const {data, fetchMore, refresh, refreshing, loading, error} =
+    useSubscriptions();
 
   return (
-    <View>
-      <ShelfVideoSelectorProvider>
-        <GridFeedView items={data} onEndReached={fetchMore} />
-      </ShelfVideoSelectorProvider>
-    </View>
+    <MediaFeed
+      error={error}
+      items={data}
+      loading={loading}
+      onEndReached={fetchMore}
+      onRefresh={refresh}
+      onRetry={refresh}
+      refreshing={refreshing}
+      testID={"subscriptions-feed"}
+    />
   );
 }
 

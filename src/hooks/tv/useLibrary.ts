@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 
 import {useYoutubeTVContext} from "@/context/YoutubeContext";
 import {
@@ -18,59 +18,103 @@ export default function useLibrary(initSection?: LibrarySections) {
   const youtube = useYoutubeTVContext();
   const library = useRef<YTTV.Library>(undefined);
   // Needed ElementData for subsections
-  const [data, setData] = useState<(HorizontalData | ElementData)[]>();
+  const [data, setData] = useState<(HorizontalData | ElementData)[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<unknown>();
 
-  console.log("DATA: ", data);
+  const selectSection = useCallback((section: LibrarySections) => {
+    if (
+      !library.current?.items[0]?.is(YTNodes.Shelf) ||
+      !library.current.items[0].content?.is(YTNodes.HorizontalList)
+    ) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
-  useEffect(() => {
-    youtube?.tv
-      ?.getLibrary()
-      .then(async lib => {
-        console.log("Fetching library");
-        // console.log("Lib: ", JSON.stringify(lib, null, 4));
+    const searchedItem =
+      section === "history" ? "FEhistory" : "FEplaylist_aggregation";
+
+    const tileBtn = library.current.items[0].content.items
+      .filterType(YTNodes.Tile)
+      .find(tile => tile.content_id === searchedItem);
+
+    if (!tileBtn) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
+    library.current
+      .selectButtonTile(tileBtn)
+      .then(lib => {
         library.current = lib;
-        if (initSection) {
-          selectSection(initSection);
-        } else {
-          setData(parseArrayHorizontalData(lib.items));
-        }
+        setData(parseArray(lib.items));
       })
-      .catch(LOGGER.warn);
+      .catch(reason => {
+        LOGGER.warn("Error selecting library section: ", reason);
+        setError(reason);
+      })
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
   }, []);
 
-  const selectSection = (section: LibrarySections) => {
-    if (
-      library.current?.items[0]?.is(YTNodes.Shelf) &&
-      library.current?.items[0].content?.is(YTNodes.HorizontalList)
-    ) {
-      const searchedItem =
-        section === "history" ? "FEhistory" : "FEplaylist_aggregation";
-
-      const tileBtn = library.current?.items[0].content.items
-        .filterType(YTNodes.Tile)
-        .find(tile => tile.content_id === searchedItem);
-      if (tileBtn) {
-        library.current
-          ?.selectButtonTile(tileBtn)
-          .then(lib => {
-            library.current = lib;
-            setData(parseArray(lib.items));
-          })
-          .catch(LOGGER.warn);
-      }
+  const fetchLibrary = useCallback(() => {
+    if (!youtube) {
+      return;
     }
-  };
 
-  const fetchMore = () => {
-    if (library.current?.has_continuation) {
-      library.current?.getContinuation().then(continuation => {
-        library.current = continuation;
-        setData(prevData => {
-          return [...(prevData ?? []), ...parseArray(continuation.items)];
-        });
+    setError(undefined);
+    youtube.tv
+      .getLibrary()
+      .then(lib => {
+        library.current = lib;
+
+        if (initSection) {
+          selectSection(initSection);
+          return;
+        }
+
+        setData(parseArrayHorizontalData(lib.items));
+        setLoading(false);
+        setRefreshing(false);
+      })
+      .catch(reason => {
+        LOGGER.warn("Error fetching library: ", reason);
+        setError(reason);
+        setLoading(false);
+        setRefreshing(false);
       });
-    }
-  };
+  }, [initSection, selectSection, youtube]);
 
-  return {data, fetchMore};
+  useEffect(() => {
+    fetchLibrary();
+  }, [fetchLibrary]);
+
+  const fetchMore = useCallback(async () => {
+    if (!library.current?.has_continuation) {
+      return;
+    }
+
+    const continuation = await library.current.getContinuation();
+    library.current = continuation;
+    setData(previous => [...previous, ...parseArray(continuation.items)]);
+  }, []);
+
+  const refresh = useCallback(() => {
+    setRefreshing(true);
+    fetchLibrary();
+  }, [fetchLibrary]);
+
+  return {
+    data,
+    fetchMore,
+    refresh,
+    refreshing,
+    loading: loading || !youtube,
+    error,
+  };
 }

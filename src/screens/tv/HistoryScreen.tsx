@@ -1,22 +1,25 @@
 import React from "react";
 
-import LoadingComponent from "@/components/general/LoadingComponent";
-import GridFeedView from "@/components/grid/GridFeedView";
 import {SectionTitle} from "@/components/library/SectionTitle";
-import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
 import useHistory from "@/hooks/tv/useHistory";
+import {useTranslation} from "@/localization";
+import {MediaFeed} from "@/ui/patterns";
 
 export default function HistoryScreen() {
-  const {data, fetchMore} = useHistory();
-
-  if (!data) {
-    return <LoadingComponent />;
-  }
+  const {data, fetchMore, refresh, refreshing, loading, error} = useHistory();
+  const {t} = useTranslation();
 
   return (
-    <ShelfVideoSelectorProvider>
-      <SectionTitle title={"History"} />
-      <GridFeedView items={data} onEndReached={fetchMore} />
-    </ShelfVideoSelectorProvider>
+    <MediaFeed
+      ListHeaderComponent={<SectionTitle title={t("navigation.history")} />}
+      error={error}
+      items={data}
+      loading={loading}
+      onEndReached={fetchMore}
+      onRefresh={refresh}
+      onRetry={refresh}
+      refreshing={refreshing}
+      testID={"history-feed"}
+    />
   );
 }

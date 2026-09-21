@@ -20,19 +20,34 @@ export function useFeedData(
   const youtube = useYoutubeContext();
   const [feed, setFeed] = useState<Mixins.Feed<IBrowseResponse>>();
   const [content, setContent] = useState<Helpers.YTNode[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<unknown>();
 
-  useEffect(() => {
+  const fetchFeed = useCallback(() => {
     if (!firstFeed || !youtube) {
       return;
     }
+    setError(undefined);
     firstFeed(youtube)
       .then(result => {
         LOGGER.debug("Result fetched ", result.page_contents.type);
         setContent(extractYTNodes(result.page_contents));
         setFeed(result);
       })
-      .catch(LOGGER.warn);
+      .catch(reason => {
+        LOGGER.warn("Error fetching feed: ", reason);
+        setError(reason);
+      })
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
   }, [youtube]);
+
+  useEffect(() => {
+    fetchFeed();
+  }, [fetchFeed]);
 
   const contentFetched = useCallback(
     (node: Helpers.YTNode, reset?: boolean) => {
@@ -78,6 +93,11 @@ export function useFeedData(
     return parseArrayHorizontalData(content);
   }, [content]);
 
+  const refresh = useCallback(() => {
+    setRefreshing(true);
+    fetchFeed();
+  }, [fetchFeed]);
+
   return {
     content,
     contentFetched,
@@ -85,6 +105,10 @@ export function useFeedData(
     feed,
     setFeed,
     fetchMore,
+    refresh,
+    refreshing,
+    loading: loading || !youtube,
+    error,
   };
 }
 

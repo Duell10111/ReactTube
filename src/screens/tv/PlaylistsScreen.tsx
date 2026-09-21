@@ -1,20 +1,25 @@
-import LoadingComponent from "@/components/general/LoadingComponent";
-import GridFeedView from "@/components/grid/GridFeedView";
+import React from "react";
+
 import {SectionTitle} from "@/components/library/SectionTitle";
-import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
 import usePlaylists from "@/hooks/tv/usePlaylists";
+import {useTranslation} from "@/localization";
+import {MediaFeed} from "@/ui/patterns";
 
 export function PlaylistsScreen() {
-  const {data, fetchMore} = usePlaylists();
-
-  if (!data) {
-    return <LoadingComponent />;
-  }
+  const {data, fetchMore, refresh, refreshing, loading, error} = usePlaylists();
+  const {t} = useTranslation();
 
   return (
-    <ShelfVideoSelectorProvider>
-      <SectionTitle title={"Playlists"} />
-      <GridFeedView items={data} onEndReached={fetchMore} />
-    </ShelfVideoSelectorProvider>
+    <MediaFeed
+      ListHeaderComponent={<SectionTitle title={t("navigation.playlists")} />}
+      error={error}
+      items={data}
+      loading={loading}
+      onEndReached={fetchMore}
+      onRefresh={refresh}
+      onRetry={refresh}
+      refreshing={refreshing}
+      testID={"playlists-feed"}
+    />
   );
 }
