@@ -77,13 +77,10 @@ export default function BottomControls({
     if (showControls) {
       return;
     }
-    console.log("Controls hidden, starting timer to hide bottom container");
-
     // Let the controls fade out before the panel slides back down, and drop
     // the timer if they come back in the meantime — an uncleared one used to
     // collapse the panel right after it was reopened.
     const timeout = setTimeout(() => {
-      console.warn("Controls timed out");
       showBottomContainer.value = false;
     }, 200);
 
