@@ -1,13 +1,13 @@
 import {StyleSheet, TVFocusGuideView, View} from "react-native";
 
-import GridFeedView from "@/components/grid/GridFeedView";
 import {TabNavigator} from "@/components/my-youtube/TabNavigator";
-import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
 import useMyYoutubeScreen from "@/hooks/tv/useMyYoutubeScreen";
 import {useDrawerContext} from "@/navigation/DrawerContext";
+import {MediaFeed} from "@/ui/patterns";
 
 export function MyYoutubeScreenTV() {
-  const {data, tabs, selectTab, fetchMore} = useMyYoutubeScreen();
+  const {data, tabs, selectTab, fetchMore, loading, error} =
+    useMyYoutubeScreen();
   const {setHideDrawer} = useDrawerContext();
 
   // TODO: Reset Hide when leaving screen?!
@@ -24,18 +24,23 @@ export function MyYoutubeScreenTV() {
   // );
 
   return (
-    <ShelfVideoSelectorProvider onElementFocused={() => setHideDrawer?.(true)}>
-      <View style={styles.container}>
-        <View style={styles.tabs}>
-          <TabNavigator tabs={tabs} onPress={tab => selectTab(tab)} />
-        </View>
-        <View style={styles.content}>
-          <TVFocusGuideView autoFocus>
-            <GridFeedView items={data} onEndReached={fetchMore} />
-          </TVFocusGuideView>
-        </View>
+    <View style={styles.container}>
+      <View style={styles.tabs}>
+        <TabNavigator tabs={tabs} onPress={tab => selectTab(tab)} />
       </View>
-    </ShelfVideoSelectorProvider>
+      <View style={styles.content}>
+        <TVFocusGuideView autoFocus>
+          <MediaFeed
+            error={error}
+            items={data}
+            loading={loading}
+            onElementFocused={() => setHideDrawer?.(true)}
+            onEndReached={fetchMore}
+            testID={"my-youtube-feed"}
+          />
+        </TVFocusGuideView>
+      </View>
+    </View>
   );
 }
 

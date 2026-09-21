@@ -1,32 +1,25 @@
-import LoadingComponent from "@/components/general/LoadingComponent";
-import GridFeedView from "@/components/grid/GridFeedView";
+import React from "react";
+
 import {LibraryHeaderTV} from "@/components/library/LibraryHeaderTV";
-import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
 import useLibrary from "@/hooks/tv/useLibrary";
+import {MediaFeed} from "@/ui/patterns";
 
 export function LibraryScreenTV() {
-  const {data} = useLibrary();
+  const {data, fetchMore, refresh, refreshing, loading, error} = useLibrary();
 
   // TODO: Integrate old YTLibrarySection Items again?!
 
-  // const renderItem = useCallback<ListRenderItem<YTLibrarySection>>(
-  //   ({item, index}) => {
-  //     return <LibrarySectionItem section={item} elementWidth={400} />;
-  //   },
-  //   [],
-  // );
-  //
-  // const keyExtractor = useCallback((item: YTLibrarySection, index: number) => {
-  //   return item.title + item.type;
-  // }, []);
-
-  if (!data) {
-    return <LoadingComponent />;
-  }
-
   return (
-    <ShelfVideoSelectorProvider>
-      <GridFeedView items={data} ListHeaderComponent={LibraryHeaderTV} />
-    </ShelfVideoSelectorProvider>
+    <MediaFeed
+      ListHeaderComponent={<LibraryHeaderTV />}
+      error={error}
+      items={data}
+      loading={loading}
+      onEndReached={fetchMore}
+      onRefresh={refresh}
+      onRetry={refresh}
+      refreshing={refreshing}
+      testID={"library-feed"}
+    />
   );
 }
