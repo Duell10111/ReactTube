@@ -375,7 +375,8 @@ sichtbaren Hard-coded-Texte; ein Demo-Screen funktioniert auf Phone und TV.
 - Globalen App Header und Such-Einstieg vereinheitlichen.
 - Safe Areas, Status Bar, Navigation Header und Mini Player aus einem System speisen.
 - TV-Rail neu aufbauen: collapsed, expanded, selected, focused und hidden.
-- Rail-Erweiterung als Overlay umsetzen, ohne den Inhalt zu verschieben.
+- Contentplane beim Aufklappen des Rails um exakt den Zuwachs des Rails
+  verschieben, ohne sie neu zu layouten.
 - Fokuswiederherstellung und Zurück-Verhalten automatisiert beziehungsweise mit
   klarer manueller Matrix prüfen.
 - Tablet-adaptive Navigation ergänzen.

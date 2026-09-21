@@ -1,119 +1,124 @@
-import {MaterialIcons, Ionicons} from "@expo/vector-icons";
+import {MaterialIcons} from "@expo/vector-icons";
 import {
   BottomTabBar,
   createBottomTabNavigator,
 } from "@react-navigation/bottom-tabs";
 import React from "react";
+import {StyleSheet, View} from "react-native";
 
 import {MusicBottomPlayerBar} from "../components/music/MusicBottomPlayerBar";
 import HomeScreen from "../screens/HomeScreen";
-import LibraryScreen from "../screens/LibraryScreen";
-import SettingsScreen from "../screens/SettingsScreen";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
 import {DownloadScreen} from "../screens/phone/DownloadScreen";
 import {MusicHomeScreen} from "../screens/phone/MusicHomeScreen";
+import YouScreen from "../screens/phone/YouScreen";
 
-import {useAccountContext} from "@/context/AccountContext";
 import {useTranslation} from "@/localization";
+import {useAppChrome} from "@/ui/layout";
+import {
+  getPrimaryDestinationByRoute,
+  getPrimaryDestinations,
+  type PrimaryRouteName,
+} from "@/ui/navigation";
+import {AppHeader} from "@/ui/patterns";
 import {useAppTheme} from "@/ui/theme";
 
-export type RootBottomTabParamList = {
-  HomeFeed: undefined;
-  SearchScreen: undefined;
-  Subscriptions: undefined;
-  Library: undefined;
-  MusicHomeFeed: undefined;
-  Download: undefined;
-  Settings: undefined;
-};
+export type RootBottomTabParamList = Record<PrimaryRouteName, undefined>;
 
 const Tab = createBottomTabNavigator<RootBottomTabParamList>();
 
+const screenComponents: Record<PrimaryRouteName, React.ComponentType<any>> = {
+  HomeFeed: HomeScreen,
+  Subscriptions: SubscriptionScreen,
+  MusicHomeFeed: MusicHomeScreen,
+  Download: DownloadScreen,
+  You: YouScreen,
+};
+
 export default function BottomTabBarNavigator() {
-  const {loginData} = useAccountContext();
   const {t} = useTranslation();
   const {theme} = useAppTheme();
-  // const [musicPlayer, setShowMusicPlayer] = useState(false)
+  const chrome = useAppChrome();
+  const railMode = chrome.navigationMode === "navigationRail";
+
   return (
-    <>
+    <View style={styles.container}>
       <Tab.Navigator
-        tabBar={props => (
-          <>
-            <MusicBottomPlayerBar />
+        tabBar={props =>
+          railMode ? (
             <BottomTabBar {...props} />
-          </>
-        )}
-        screenOptions={({route}) => ({
-          tabBarIcon: ({focused, color, size}) => {
-            let iconName: string;
+          ) : (
+            <>
+              <MusicBottomPlayerBar />
+              <BottomTabBar {...props} />
+            </>
+          )
+        }
+        screenOptions={({route}) => {
+          const destination = getPrimaryDestinationByRoute(route.name);
 
-            if (route.name === "HomeFeed") {
-              iconName = "home";
-            } else if (route.name === "Settings") {
-              iconName = focused ? "list" : "list-outline";
-            } else if (route.name === "Subscriptions") {
-              return (
-                <MaterialIcons
-                  name={"subscriptions"}
-                  size={size}
-                  color={color}
-                />
-              );
-            } else if (route.name === "Library") {
-              iconName = "library-outline";
-            } else if (route.name === "Download") {
-              iconName = "download";
-            } else if (route.name === "MusicHomeFeed") {
-              iconName = "musical-notes";
-            }
-
-            // You can return any component that you like here!
-            // @ts-ignore
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: theme.colors.brand,
-          tabBarInactiveTintColor: theme.colors.textSecondary,
-          tabBarStyle: {
-            backgroundColor: theme.colors.surface,
-            borderTopColor: theme.colors.divider,
-          },
-        })}>
-        <Tab.Screen
-          name={"HomeFeed"}
-          component={HomeScreen}
-          options={{title: t("navigation.home")}}
-        />
-        {loginData.accounts.length > 0 ? (
-          <>
-            <Tab.Screen
-              name={"Subscriptions"}
-              component={SubscriptionScreen}
-              options={{title: t("navigation.subscriptions")}}
-            />
-            <Tab.Screen
-              name={"Library"}
-              component={LibraryScreen}
-              options={{title: t("navigation.library")}}
-            />
-          </>
-        ) : null}
-        <Tab.Screen
-          name={"MusicHomeFeed"}
-          component={MusicHomeScreen}
-          options={{title: t("navigation.music")}}
-        />
-        <Tab.Screen
-          name={"Download"}
-          component={DownloadScreen}
-          options={{title: t("navigation.downloads")}}
-        />
-        <Tab.Screen
-          name={"Settings"}
-          // @ts-ignore
-          component={SettingsScreen}
-          options={{title: t("navigation.settings")}}
-        />
+          return {
+            header: ({options}) => (
+              <AppHeader
+                brand={route.name === "HomeFeed"}
+                showAccount={route.name !== "You"}
+                title={options.title ?? route.name}
+              />
+            ),
+            tabBarIcon: ({color, size}) => (
+              <MaterialIcons
+                color={color}
+                name={destination?.icon ?? "circle"}
+                size={size}
+              />
+            ),
+            tabBarActiveTintColor: theme.colors.brand,
+            tabBarInactiveTintColor: theme.colors.textSecondary,
+            tabBarPosition: railMode ? "left" : "bottom",
+            tabBarVariant: railMode ? "material" : "uikit",
+            tabBarStyle: railMode
+              ? {
+                  width: chrome.railWidth,
+                  backgroundColor: theme.colors.surface,
+                  borderRightColor: theme.colors.divider,
+                }
+              : {
+                  backgroundColor: theme.colors.surface,
+                  borderTopColor: theme.colors.divider,
+                },
+          };
+        }}>
+        {getPrimaryDestinations().map(destination => (
+          <Tab.Screen
+            key={destination.key}
+            component={screenComponents[destination.route]}
+            name={destination.route}
+            options={{title: t(destination.labelKey)}}
+          />
+        ))}
       </Tab.Navigator>
-    </>
+      {railMode && chrome.miniPlayerVisible ? (
+        <View
+          style={[
+            styles.miniPlayer,
+            {
+              bottom: chrome.miniPlayerOffset.bottom,
+              left: chrome.miniPlayerOffset.left,
+              right: chrome.miniPlayerOffset.right,
+            },
+          ]}>
+          <MusicBottomPlayerBar />
+        </View>
+      ) : null}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  miniPlayer: {
+    position: "absolute",
+  },
+});

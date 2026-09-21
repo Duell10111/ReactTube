@@ -1,7 +1,6 @@
 import {CompositeScreenProps} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {Icon} from "@rneui/base";
-import React, {useCallback, useEffect} from "react";
+import React, {useCallback} from "react";
 import {Platform, StyleSheet, View} from "react-native";
 
 import SettingsItem, {
@@ -29,22 +28,6 @@ export default function SettingsScreen({navigation}: Props) {
   const {logout, clearAllData} = useAccountContext();
   const {language, t} = useTranslation();
   const {theme} = useAppTheme();
-
-  useEffect(() => {
-    if (!Platform.isTV) {
-      navigation.setOptions({
-        headerRight: () => (
-          <Icon
-            name={"login"}
-            onPress={() => navigation.navigate("LoginScreen")}
-            color={theme.colors.textPrimary}
-            accessibilityLabel={t("navigation.login")}
-            style={{marginEnd: 10}}
-          />
-        ),
-      });
-    }
-  }, [navigation, t, theme.colors.textPrimary]);
 
   const navigate = useCallback<(typeof navigation)["navigate"]>(
     (args: any) => {

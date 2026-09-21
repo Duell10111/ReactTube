@@ -23,6 +23,7 @@ import {DownloaderContext} from "@/context/DownloaderContext";
 import {MusicPlayerContext} from "@/context/MusicPlayerContext";
 import {PlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import {LocalizationProvider} from "@/localization";
+import {appStatusBarStyle} from "@/ui/layout/appShell";
 import {paperTheme, useAppTheme} from "@/ui/theme";
 
 function ThemedApp() {
@@ -49,7 +50,7 @@ function ThemedApp() {
                   <DownloaderContext>
                     <PlaylistManagerContext>
                       <StatusBar
-                        barStyle={"light-content"}
+                        barStyle={appStatusBarStyle}
                         backgroundColor={theme.colors.background}
                       />
                       <VideoPlayerSettingsContext>

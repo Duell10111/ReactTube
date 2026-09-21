@@ -1,6 +1,5 @@
-import {useFocusEffect, useNavigation} from "@react-navigation/native";
-import {Icon} from "@rneui/base";
-import React, {useEffect, useState} from "react";
+import {useFocusEffect} from "@react-navigation/native";
+import React, {useState} from "react";
 import {Platform, TVEventControl} from "react-native";
 
 import Logger from "../utils/Logger";
@@ -13,7 +12,6 @@ import useGridColumnsPreferred from "@/hooks/home/useGridColumnsPreferred";
 import useHomeScreen from "@/hooks/tv/useHomeScreen";
 import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
 import {useDrawerContext} from "@/navigation/DrawerContext";
-import {RootNavProp} from "@/navigation/RootStackNavigator";
 
 const LOGGER = Logger.extend("HOME");
 
@@ -26,8 +24,6 @@ export default function HomeScreen() {
 
   const {onScreenFocused} = useDrawerContext();
 
-  const navigation = useNavigation<RootNavProp>();
-
   useFocusEffect(() => {
     if (Math.abs(Date.now() - fetchDate) > 43200000) {
       LOGGER.debug("Triggering refresh home content");
@@ -37,21 +33,6 @@ export default function HomeScreen() {
       LOGGER.debug("Last fetch has been recently. Skipping refresh");
     }
   });
-
-  useEffect(() => {
-    if (!Platform.isTV) {
-      navigation.setOptions({
-        headerRight: () => (
-          <Icon
-            name={"search"}
-            onPress={() => navigation.navigate("Search")}
-            color={"white"}
-            style={{marginEnd: 10}}
-          />
-        ),
-      });
-    }
-  }, [navigation]);
 
   useFocusEffect(() => {
     if (Platform.isTV) {

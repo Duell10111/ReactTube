@@ -1,11 +1,9 @@
-import React, {useState} from "react";
-import {Platform, View} from "react-native";
-import {useSharedValue} from "react-native-reanimated";
+import React from "react";
+import {Platform} from "react-native";
 
 import BottomTabBarNavigator from "@/navigation/BottomTabBarNavigator";
-import Drawer from "@/navigation/Drawer";
-import DrawerContextProvider from "@/navigation/DrawerContext";
 import DrawerStackNavigator from "@/navigation/DrawerStackNavigator";
+import {TVNavigationRailShell} from "@/navigation/tv/TVNavigationRailShell";
 
 export default function HomeWrapperScreen() {
   if (Platform.isTV) {
@@ -16,27 +14,10 @@ export default function HomeWrapperScreen() {
 }
 
 function TVVariant() {
-  const [open, setOpen] = useState(false);
-  const hideDrawer = useSharedValue(false);
-
   return (
-    <View style={{flexDirection: "row", flex: 1}}>
-      <DrawerContextProvider
-        onScreenFocused={() => setOpen(false)}
-        setHideDrawer={hide => (hideDrawer.value = hide)}>
-        <Drawer
-          open={open}
-          hideDrawer={hideDrawer}
-          onOpen={() => {
-            setOpen(true);
-            hideDrawer.value = false;
-            console.log("Open drawer");
-          }}
-          onClose={() => setOpen(false)}
-        />
-        <DrawerStackNavigator />
-      </DrawerContextProvider>
-    </View>
+    <TVNavigationRailShell>
+      <DrawerStackNavigator />
+    </TVNavigationRailShell>
   );
 }
 
