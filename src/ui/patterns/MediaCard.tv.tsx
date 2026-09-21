@@ -63,6 +63,14 @@ export function MediaCard({
     [element, t],
   );
 
+  // Two title lines plus one metadata line, reserved whether the entry fills
+  // them or not. Without the reservation a one-line title makes the card, and
+  // with it the focus outline, visibly shorter than its neighbors in the same
+  // row — which reads as the outline changing size while focus moves.
+  const textBlockHeight =
+    theme.typography.titleSmall.lineHeight * 2 +
+    theme.typography.bodySmall.lineHeight;
+
   const growth = theme.motion.tvFocusScale - 1;
   // The horizontal inset comes from the assigned width and the vertical one
   // from the measured card, because vertical padding cannot change how the
@@ -138,13 +146,16 @@ export function MediaCard({
           },
         ]}>
         <MediaCardThumbnail model={model} scale={"tv"} />
-        <View style={styles.metadata}>
-          <AppText variant={"titleSmall"}>{model.title}</AppText>
-          {model.metadataLine ? (
-            <AppText color={"textSecondary"} variant={"bodySmall"}>
-              {model.metadataLine}
-            </AppText>
-          ) : null}
+        <View style={[styles.metadata, {minHeight: textBlockHeight}]}>
+          <AppText numberOfLines={2} variant={"titleSmall"}>
+            {model.title}
+          </AppText>
+          <AppText
+            color={"textSecondary"}
+            numberOfLines={1}
+            variant={"bodySmall"}>
+            {model.metadataLine}
+          </AppText>
         </View>
       </Animated.View>
     </Pressable>
