@@ -65,12 +65,17 @@ export function MetadataButton({
           name={icon as MaterialIconName}
           size={28}
         />
-      ) : (
+      ) : imageUrl ? (
         <Image
           accessibilityIgnoresInvertColors
-          source={imageUrl ? {uri: imageUrl} : undefined}
+          contentFit={"cover"}
+          source={{uri: imageUrl}}
           style={styles.imageStyle}
         />
+      ) : (
+        // The channel avatar arrives with its own request, so the button spends
+        // the first moments without one. An empty circle reads as broken.
+        <MaterialIcons color={foreground} name={"person"} size={28} />
       )}
     </Pressable>
   );
