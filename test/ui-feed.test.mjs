@@ -9,6 +9,7 @@ import {
   buildFeedSections,
   isReelShelf,
   getFeedCardWidth,
+  getFeedLayoutClass,
   getFeedMetrics,
   isShelfItem,
 } from "../src/ui/patterns/feedLayout.ts";
@@ -325,4 +326,18 @@ test("groups a feed into titled sections and keeps loose entries in order", () =
     ["ab"],
   );
   assert.equal(new Set(sections.map(section => section.key)).size, 3);
+});
+
+test("lays a feed out by the width it occupies, not by the window", () => {
+  // Up next beside a player on a tablet: a third of an expanded screen is a
+  // compact feed, and three columns of cards would not fit into it.
+  assert.equal(getFeedLayoutClass(420, "expanded"), "compact");
+  assert.equal(getFeedMetrics(getFeedLayoutClass(420, "expanded")).columns, 1);
+  assert.equal(getFeedLayoutClass(1200, "expanded"), "expanded");
+});
+
+test("keeps the window layout class before the first measurement and on TV", () => {
+  assert.equal(getFeedLayoutClass(0, "expanded"), "expanded");
+  // The TV content plane is translated, never resized, so it keeps its class.
+  assert.equal(getFeedLayoutClass(500, "tv"), "tv");
 });

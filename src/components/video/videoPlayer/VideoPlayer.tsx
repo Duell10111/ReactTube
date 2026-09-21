@@ -42,6 +42,8 @@ export interface VideoMetadata {
   onDislike?: () => void;
   onSaveVideo?: () => void;
   onRefresh?: () => void;
+  /** Opens the side panel. Left out where a surface has none. */
+  onShowDetails?: () => void;
 }
 
 // TODO: Use own types

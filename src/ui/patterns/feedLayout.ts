@@ -1,4 +1,8 @@
-import {getFeedColumnCount, type LayoutClass} from "../theme/breakpoints.ts";
+import {
+  getFeedColumnCount,
+  getLayoutClass,
+  type LayoutClass,
+} from "../theme/breakpoints.ts";
 import {spacing} from "../theme/spacing.ts";
 
 import type {HorizontalData} from "@/extraction/ShelfExtraction";
@@ -46,6 +50,27 @@ export function isReelShelf(shelf: HorizontalData): boolean {
     shelf.parsedData.length > 0 &&
     shelf.parsedData.every(item => item.type === "reel")
   );
+}
+
+/**
+ * Layout class of a feed from the width it actually occupies, not from the
+ * window. A feed can sit in a column far narrower than the screen — up next
+ * beside a player on a tablet is the case this exists for. Judged by the
+ * window, that column would be "expanded" and render three columns of cards
+ * inside a third of the screen.
+ *
+ * TV keeps its own class: its feeds always own the content plane, and the
+ * plane is translated rather than resized when the rail expands.
+ */
+export function getFeedLayoutClass(
+  measuredWidth: number,
+  windowLayout: LayoutClass,
+): LayoutClass {
+  if (windowLayout === "tv" || measuredWidth <= 0) {
+    return windowLayout;
+  }
+
+  return getLayoutClass(measuredWidth, false);
 }
 
 /**

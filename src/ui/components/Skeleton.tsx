@@ -10,7 +10,8 @@ import {useAppTheme} from "@/ui/theme";
 
 interface SkeletonProps {
   width?: ViewStyle["width"];
-  height: number;
+  /** Accepts a percentage so a skeleton can fill a box it does not measure. */
+  height: ViewStyle["height"];
   radius?: number;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;

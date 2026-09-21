@@ -1,12 +1,7 @@
-import {Dispatch, SetStateAction} from "react";
-import {
-  GestureResponderHandlers,
-  PanResponderInstance,
-  StyleSheet,
-  TouchableHighlight,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import {Dispatch, SetStateAction, useState} from "react";
+import {PanResponderInstance, Pressable, StyleSheet, View} from "react-native";
+
+import {useAppTheme} from "@/ui/theme";
 
 interface SeekbarProps {
   seekerFillWidth: number;
@@ -18,6 +13,13 @@ interface SeekbarProps {
   onBlur?: () => void;
 }
 
+const handleSize = 32;
+
+/**
+ * Playback progress. The fill is the media progress colour every surface uses
+ * for watch progress, so the bar in the player and the bar on a card mean the
+ * same thing.
+ */
 export default function Seekbar({
   seekColor,
   seekerFillWidth,
@@ -27,32 +29,53 @@ export default function Seekbar({
   onFocus,
   onBlur,
 }: SeekbarProps) {
+  const {theme, reduceMotion} = useAppTheme();
+  const [focused, setFocused] = useState(false);
+  const fillColor = seekColor || theme.colors.mediaProgress;
+
   return (
-    <View style={styles.container} collapsable={false} {...seekerPanHandlers}>
+    <View
+      collapsable={false}
+      style={[styles.container, {marginHorizontal: theme.spacing.xl}]}
+      {...seekerPanHandlers}>
       <View
-        style={styles.track}
         onLayout={event => setSeekerWidth(event.nativeEvent.layout.width)}
-        pointerEvents={"none"}>
+        pointerEvents={"none"}
+        style={[styles.track, {backgroundColor: theme.colors.divider}]}>
         <View
+          pointerEvents={"none"}
           style={[
             styles.fill,
-            {
-              width: seekerFillWidth,
-              backgroundColor: seekColor || "#FFF",
-            },
+            {width: seekerFillWidth, backgroundColor: fillColor},
           ]}
-          pointerEvents={"none"}
         />
       </View>
       <View
-        style={[styles.handle, {left: seekerPosition}]}
-        pointerEvents={"none"}>
-        <TouchableOpacity onFocus={onFocus} onBlur={onBlur}>
+        pointerEvents={"none"}
+        style={[styles.handle, {left: seekerPosition}]}>
+        <Pressable
+          onBlur={() => {
+            setFocused(false);
+            onBlur?.();
+          }}
+          onFocus={() => {
+            setFocused(true);
+            onFocus?.();
+          }}>
           <View
-            style={[styles.circle, {backgroundColor: seekColor || "#FFF"}]}
             pointerEvents={"none"}
+            style={[
+              styles.circle,
+              {
+                backgroundColor: fillColor,
+                borderColor: focused
+                  ? theme.colors.focus
+                  : theme.colors.focusResting,
+              },
+              focused && !reduceMotion && styles.circleFocused,
+            ]}
           />
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </View>
   );
@@ -62,33 +85,33 @@ const styles = StyleSheet.create({
   container: {
     alignSelf: "stretch",
     height: 28,
-    marginLeft: 20,
-    marginRight: 20,
   },
   track: {
-    backgroundColor: "#333",
     height: 5,
     position: "relative",
     top: 14,
     width: "100%",
   },
   fill: {
-    backgroundColor: "#FFF",
     height: 5,
     width: "100%",
   },
   handle: {
     position: "absolute",
     marginLeft: -7,
-    height: 32,
-    width: 32,
+    height: handleSize,
+    width: handleSize,
   },
   circle: {
     borderRadius: 12,
+    borderWidth: 3,
     position: "relative",
     top: 6,
     left: -5,
     height: 20,
     width: 20,
+  },
+  circleFocused: {
+    transform: [{scale: 1.3}],
   },
 });

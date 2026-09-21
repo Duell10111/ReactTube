@@ -1,67 +1,88 @@
-import {Icon, IconType} from "@rneui/base";
+import {MaterialIcons} from "@expo/vector-icons";
 import {Image} from "expo-image";
 import {useState} from "react";
-import {StyleSheet, TouchableOpacity} from "react-native";
+import {Pressable, StyleSheet} from "react-native";
+
+import {useAppTheme} from "@/ui/theme";
+
+type MaterialIconName = React.ComponentProps<typeof MaterialIcons>["name"];
 
 interface MetadataButtonProps {
   imageUrl?: string;
-  iconType?: IconType;
-  iconName?: string;
+  /** Material icon name; the avatar variant is used when this is left out. */
+  icon?: string;
+  accessibilityLabel: string;
   onPress?: () => void;
+  onFocus?: () => void;
   active?: boolean;
 }
 
+/**
+ * One action of the TV player overlay. Focus is an outline plus a filled
+ * surface, the same pair the TV media card uses, so a remote never has to
+ * guess which control it is on.
+ */
 export function MetadataButton({
   imageUrl,
-  iconType,
-  iconName,
+  icon,
+  accessibilityLabel,
   onPress,
+  onFocus,
   active,
 }: MetadataButtonProps) {
-  const [focus, setFocus] = useState(false);
+  const {theme} = useAppTheme();
+  const [focused, setFocused] = useState(false);
+  const foreground = focused
+    ? theme.colors.background
+    : active
+      ? theme.colors.background
+      : theme.colors.textPrimary;
 
   return (
-    <TouchableOpacity
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole={"button"}
+      accessibilityState={{selected: Boolean(active)}}
+      onBlur={() => setFocused(false)}
+      onFocus={() => {
+        setFocused(true);
+        onFocus?.();
+      }}
+      onPress={onPress}
       style={[
         styles.container,
         {
-          backgroundColor: active
-            ? "blue"
-            : focus
-              ? "white"
-              : "rgba(119,119,119,0.33)",
+          marginHorizontal: theme.spacing.xs,
+          borderRadius: theme.radii.round,
+          borderColor: focused ? theme.colors.focus : theme.colors.focusResting,
+          backgroundColor:
+            focused || active ? theme.colors.textPrimary : theme.colors.scrim,
         },
-      ]}
-      onPress={onPress}
-      onFocus={() => setFocus(true)}
-      onBlur={() => setFocus(false)}>
-      {iconType && iconName ? (
-        <Icon
-          name={iconName}
-          type={iconType}
-          color={focus ? "black" : "white"}
+      ]}>
+      {icon ? (
+        <MaterialIcons
+          color={foreground}
+          name={icon as MaterialIconName}
+          size={28}
         />
       ) : (
         <Image
+          accessibilityIgnoresInvertColors
+          source={imageUrl ? {uri: imageUrl} : undefined}
           style={styles.imageStyle}
-          source={{
-            uri: imageUrl,
-          }}
         />
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "rgba(119,119,119,0.33)",
-    borderRadius: 30,
     width: 55,
     aspectRatio: 1,
+    borderWidth: 3,
     justifyContent: "center",
     alignItems: "center",
-    marginHorizontal: 3,
   },
   imageStyle: {
     width: "90%",

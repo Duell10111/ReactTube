@@ -1,12 +1,10 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {DeviceType, deviceType} from "expo-device";
 import React from "react";
 
 import ReelVideoScreen from "./ReelVideoScreen";
 
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
-import VideoScreenPhone from "@/screens/phone/VideoScreenPhone";
-import VideoScreenTablet from "@/screens/phone/VideoScreenTablet";
+import VideoDetailScreen from "@/screens/phone/VideoDetailScreen";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -16,9 +14,9 @@ export default function VideoScreenWrapper(props: Props) {
     return <ReelVideoScreen {...props} />;
   }
 
-  if (deviceType !== DeviceType.TABLET) {
-    return <VideoScreenPhone {...props} />;
-  }
-
-  return <VideoScreenTablet {...props} />;
+  // Phone and tablet share one detail screen. It arranges itself from the
+  // layout class and the orientation, so the device type no longer picks the
+  // screen — a tablet in portrait is laid out like a large phone, and a phone
+  // in landscape splits the same way a tablet does.
+  return <VideoDetailScreen {...props} />;
 }

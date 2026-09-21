@@ -414,15 +414,13 @@ export interface YTComments {
   comments_count?: string;
 }
 
-export interface YTCommentThread {
-  originalData: YTNodes.CommentThread;
-  has_replies: boolean;
-  comment: YTComment;
-}
-
 export interface YTComment {
-  originalData: YTNodes.CommentView;
   id: string;
-  content: string;
-  author: Author;
+  text: string;
+  author?: Author;
+  publishedTime?: string;
+  likeCount?: string;
+  replyCount?: string;
+  pinned: boolean;
+  channelOwner: boolean;
 }
