@@ -9,32 +9,13 @@ import {
 import Logger from "@/utils/Logger";
 import {Innertube, YT, YTNodes} from "@/utils/Youtube";
 
+export {
+  PLAYBACK_CLIENTS_DEFAULT,
+  PLAYBACK_CLIENTS_FULL_BYTE_RANGE,
+  PLAYBACK_CLIENTS_PREFER_HLS,
+} from "@/utils/PlaybackClientProfiles";
+
 const LOGGER = Logger.extend("PLAYBACK");
-
-/** Breite, gemessene Fallback-Kette ohne dauerhaft unbrauchbare Clients. */
-export const PLAYBACK_CLIENTS_DEFAULT = [
-  "TV_SIMPLY",
-  "IOS",
-  "VISIONOS",
-  "ANDROID_VR",
-  "TV_DOWNGRADED",
-  "MWEB",
-] as InnerTubeClient[];
-
-/** Clients mit YouTube-HLS-Manifest zuerst. */
-export const PLAYBACK_CLIENTS_PREFER_HLS = [
-  "VISIONOS",
-  "IOS",
-  "TV_SIMPLY",
-  "ANDROID_VR",
-  "TV_DOWNGRADED",
-  "MWEB",
-] as InnerTubeClient[];
-
-/** Gemessen ungekappt für Byte-Range-Abrufe direkter Mediendateien. */
-export const PLAYBACK_CLIENTS_FULL_BYTE_RANGE = [
-  "VISIONOS",
-] as InnerTubeClient[];
 
 const clientStorage = createMMKV({id: "playback-clients"});
 

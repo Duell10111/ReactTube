@@ -1,13 +1,10 @@
-import type {MediaItem} from "@rntp/player";
-
-import type {AudioPlaybackSource, YTTrackInfo} from "@/extraction/Types";
+import type {AudioPlaybackSource} from "@/extraction/Types";
 import Logger from "@/utils/Logger";
-import {
-  PLAYBACK_CLIENTS_FULL_BYTE_RANGE,
-  PLAYBACK_CLIENTS_PREFER_HLS,
-  resolvePlaybackInfo,
-} from "@/utils/PlaybackResolver";
+import {AUDIO_PLAYBACK_RESOLVER_PROFILE} from "@/utils/PlaybackClientProfiles";
+import {resolvePlaybackInfo} from "@/utils/PlaybackResolver";
 import {Innertube, Misc, YT, YTNodes} from "@/utils/Youtube";
+
+export {audioSourceToMediaItem} from "./MediaItemAdapter";
 
 const LOGGER = Logger.extend("MUSIC_SOURCE");
 
@@ -103,13 +100,10 @@ export async function resolveAudioStreamingSource(
   }
 
   const resolved = await resolvePlaybackInfo(youtube, target, {
-    profile: "audio",
-    skipAuth: true,
-    clients: PLAYBACK_CLIENTS_FULL_BYTE_RANGE,
+    ...AUDIO_PLAYBACK_RESOLVER_PROFILE,
     accept: info =>
       info.playability_status?.status === "OK" &&
       !!choosePreferredAudioFormat(info),
-    clientsFallback: PLAYBACK_CLIENTS_PREFER_HLS,
     acceptFallback: info =>
       info.playability_status?.status === "OK" &&
       (!!choosePreferredAudioFormat(info) ||
@@ -169,34 +163,4 @@ export async function resolveAudioStreamingSource(
 
   LOGGER.warn(`${resolved.client} lieferte keine nutzbare Audioquelle.`);
   return undefined;
-}
-
-export function audioSourceToMediaItem(
-  track: YTTrackInfo,
-  source: AudioPlaybackSource,
-): MediaItem {
-  const playbackEndPosition =
-    source.kind !== "youtube-hls" &&
-    track.durationSeconds &&
-    Number.isFinite(track.durationSeconds) &&
-    track.durationSeconds > 0
-      ? track.durationSeconds
-      : undefined;
-
-  return {
-    mediaId: track.id,
-    url: source.url,
-    title: track.title,
-    artist: track.author?.name ?? track.channel?.name,
-    artworkUrl: track.thumbnailImage?.url,
-    duration: track.durationSeconds,
-    endPosition: playbackEndPosition,
-    mimeType: source.mimeType,
-    extras: {
-      sourceKind: source.kind,
-      ...(source.client ? {client: source.client} : {}),
-      ...(source.expires ? {expiresAt: source.expires.getTime()} : {}),
-      ...(source.formatItag ? {formatItag: source.formatItag} : {}),
-    },
-  };
 }

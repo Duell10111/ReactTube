@@ -1,10 +1,10 @@
 import TrackPlayer, {
   Event,
   PlaybackState,
+  type PlaybackErrorCode,
   useIsPlaying,
   useProgress,
 } from "@rntp/player";
-import _ from "lodash";
 import React, {
   createContext,
   useCallback,
@@ -41,8 +41,31 @@ import {
   audioSourceToMediaItem,
   resolveAudioStreamingSource,
 } from "@/utils/music/AudioPlaybackSource";
+import {
+  getNextPlaylistItem,
+  getPreviousPlaylistItem,
+  RepeatOption,
+  shouldRepeatCurrent,
+  shufflePlaylistAfterCurrent,
+} from "@/utils/music/PlaylistPlayback";
 
-export type RepeatOption = "RepeatOne" | "RepeatAll";
+export type {RepeatOption} from "@/utils/music/PlaylistPlayback";
+
+export type MusicPlaybackStatus =
+  | "idle"
+  | "loading"
+  | "ready"
+  | "buffering"
+  | "playing"
+  | "paused"
+  | "ended"
+  | "error";
+
+export interface MusicPlaybackError {
+  code: PlaybackErrorCode;
+  message: string;
+  trackId?: string;
+}
 
 interface MusicPlayerContextType {
   setCurrentItem: (
@@ -70,15 +93,13 @@ interface MusicPlayerContextType {
   currentTime: SharedValue<number>;
   duration: SharedValue<number>;
   playing: boolean;
+  playbackStatus: MusicPlaybackStatus;
+  playbackError?: MusicPlaybackError;
   play: () => void;
   pause: () => void;
   previous: () => Promise<void>;
   next: () => Promise<void>;
   seek: (seconds: number) => void;
-  callbacks: {
-    onProgress: (durationSeconds: number) => void;
-    onEndReached: () => void;
-  };
   fetchMorePlaylistData: () => void;
   fetchMoreAutomixPlaylistData: () => void;
   addAsNextItem: (item: VideoData) => void;
@@ -133,6 +154,9 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const youtube = useYoutubeContext();
 
   const playing = useIsPlaying();
+  const [playbackStatus, setPlaybackStatus] =
+    useState<MusicPlaybackStatus>("idle");
+  const [playbackError, setPlaybackError] = useState<MusicPlaybackError>();
   const duration = useSharedValue(0);
   const currentTime = useSharedValue(0);
   const [playlist, setPlaylist] = useState<YTPlaylistPanel>();
@@ -221,17 +245,10 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       if (shuffle) {
         shuffleBackup.current = prevState.items;
       }
-      const currentIndex = prevState.items.findIndex(
-        item => item.id === currentVideoData?.id,
-      );
-
       return {
         ...prevState,
         items: shuffle
-          ? [
-              ...prevState.items.slice(0, currentIndex + 1),
-              ..._.shuffle(prevState.items.slice(currentIndex + 1)),
-            ]
+          ? shufflePlaylistAfterCurrent(prevState.items, currentVideoData?.id)
           : (shuffleBackup.current ?? []),
       };
     });
@@ -244,16 +261,9 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         // Save current playlist order
         shuffleBackup.current = p.items;
 
-        const currentIndex = p.items.findIndex(
-          item => item.id === curVideoData.id,
-        );
-
         return {
           ...p,
-          items: [
-            ...p.items.slice(0, currentIndex + 1),
-            ..._.shuffle(p.items.slice(currentIndex + 1)),
-          ],
+          items: shufflePlaylistAfterCurrent(p.items, curVideoData.id),
         };
       } else {
         // Do nothing if no shuffle enabled
@@ -509,6 +519,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         const savedPosition = TrackPlayer.getProgress().position;
         const shouldResume = playbackIntent.current || TrackPlayer.isPlaying();
         replacementInProgress.current = true;
+        setPlaybackStatus("loading");
+        setPlaybackError(undefined);
 
         const resolved = await resolveAudioStreamingSource(youtube, track.id, {
           localUrl:
@@ -567,6 +579,12 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
             message: "Could not reload song",
             description: String(error?.message ?? error),
           });
+          setPlaybackStatus("error");
+          setPlaybackError({
+            code: "unknown",
+            message: String(error?.message ?? error),
+            trackId: activeTrack.current?.id,
+          });
           return false;
         })
         .finally(() => {
@@ -589,13 +607,16 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     refreshInFlight.current = undefined;
     replacementInProgress.current = false;
     setSourceExpiresAt(undefined);
+    setPlaybackError(undefined);
 
     if (!currentVideoData) {
       activeTrack.current = undefined;
+      setPlaybackStatus("idle");
       return;
     }
 
     activeTrack.current = currentVideoData;
+    setPlaybackStatus("loading");
     currentTime.value = 0;
     duration.value = currentVideoData.durationSeconds ?? 0;
 
@@ -605,6 +626,12 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         type: "warning",
         message: "Song cannot be played",
         description: "No playable audio source is available.",
+      });
+      setPlaybackStatus("error");
+      setPlaybackError({
+        code: "source",
+        message: "No playable audio source is available.",
+        trackId: currentVideoData.id,
       });
       return;
     }
@@ -626,6 +653,12 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         type: "warning",
         message: "Error loading song",
         description: String(error?.message ?? error),
+      });
+      setPlaybackStatus("error");
+      setPlaybackError({
+        code: "unknown",
+        message: String(error?.message ?? error),
+        trackId: currentVideoData.id,
       });
     }
   }, [currentTime, currentVideoData, duration]);
@@ -652,7 +685,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   }, []);
 
   const onEndReached = useCallback(async () => {
-    if (repeat === "RepeatOne") {
+    if (shouldRepeatCurrent(repeat)) {
       LOGGER.debug("Repeating same song");
       TrackPlayer.seekTo(0);
       playbackIntent.current = true;
@@ -683,11 +716,25 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
             );
           }
           if (repeat === "RepeatAll") {
-            const nextElement = playlist.items[0];
+            const nextElement = getNextPlaylistItem(
+              playlist.items,
+              currentVideoData?.id,
+              repeat,
+            );
+            if (!nextElement) {
+              return;
+            }
             await selectResolvedTrack(videoExtractor(nextElement));
           }
         } else {
-          const nextElement = playlist.items[newIndex];
+          const nextElement = getNextPlaylistItem(
+            playlist.items,
+            currentVideoData?.id,
+            repeat,
+          );
+          if (!nextElement) {
+            return;
+          }
           await selectResolvedTrack(videoExtractor(nextElement));
         }
       } else if (repeat) {
@@ -708,6 +755,24 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     const stateSubscription = TrackPlayer.addEventListener(
       Event.PlaybackStateChanged,
       ({state}) => {
+        switch (state) {
+          case PlaybackState.Idle:
+            setPlaybackStatus("idle");
+            break;
+          case PlaybackState.Ready:
+            setPlaybackStatus(TrackPlayer.isPlaying() ? "playing" : "ready");
+            break;
+          case PlaybackState.Buffering:
+            setPlaybackStatus("buffering");
+            break;
+          case PlaybackState.Ended:
+            setPlaybackStatus("ended");
+            break;
+          case PlaybackState.Error:
+            setPlaybackStatus("error");
+            break;
+        }
+
         if (state !== PlaybackState.Ended) {
           if (state === PlaybackState.Ready) {
             endedGeneration.current = undefined;
@@ -731,6 +796,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         if (isPlaying) {
           playbackIntent.current = true;
           endedGeneration.current = undefined;
+          setPlaybackStatus("playing");
           return;
         }
 
@@ -741,6 +807,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
           state !== PlaybackState.Error
         ) {
           playbackIntent.current = false;
+          setPlaybackStatus(state === PlaybackState.Ready ? "paused" : "idle");
         }
       },
     );
@@ -768,6 +835,9 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
           );
           return;
         }
+
+        setPlaybackStatus("error");
+        setPlaybackError({code, message, trackId});
 
         if (retryGeneration.current === generation) {
           showMessage({
@@ -798,6 +868,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   const play = () => {
     playbackIntent.current = true;
+    setPlaybackError(undefined);
     TrackPlayer.play();
   };
 
@@ -812,32 +883,18 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
   const previous = async () => {
     if (playlist) {
-      const currentIndex = playlist.items.findIndex(
-        v => v.id === currentVideoData?.id,
+      const previousElement = getPreviousPlaylistItem(
+        playlist.items,
+        currentVideoData?.id,
       );
-      if (currentIndex > 0) {
-        const newIndex = currentIndex - 1;
-        LOGGER.debug(`Switching to newIndex: ${newIndex}`);
-        if (newIndex >= playlist.items.length) {
-          // Fetch next playlist items?
-          const contData = await fetchMorePlaylistData();
-          if (contData) {
-            await selectResolvedTrack(videoExtractor(contData.items[0]));
-          }
-        } else {
-          const nextElement = playlist.items[newIndex];
-          await selectResolvedTrack(videoExtractor(nextElement));
-        }
+      if (previousElement) {
+        LOGGER.debug(`Switching to previous item: ${previousElement.id}`);
+        await selectResolvedTrack(videoExtractor(previousElement));
       }
     } else if (
       currentVideoData?.playlist &&
       currentVideoData.playlist.current_index > 0
     ) {
-      // TODO: Remove as not needed anymore?
-      console.log(
-        "Playlist",
-        currentVideoData.playlist.content.map(v => v.title),
-      );
       const newIndex = currentVideoData.playlist.current_index - 1;
       LOGGER.debug(`Switching to newIndex: ${newIndex}`);
       const nextElement = currentVideoData.playlist.content[newIndex];
@@ -893,6 +950,8 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         currentTime,
         playlist,
         playing,
+        playbackStatus,
+        playbackError,
         // Actions
         play,
         pause,
@@ -904,12 +963,6 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         setShuffle,
         repeat,
         setRepeat,
-        callbacks: {
-          onProgress: durationSeconds => {
-            currentTime.value = durationSeconds;
-          },
-          onEndReached,
-        },
         // Playlist fetch more
         fetchMorePlaylistData: fetchPlaylistDataWrapper,
         fetchMoreAutomixPlaylistData: fetchMoreUpNextAutomixPlaylist,

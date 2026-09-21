@@ -1,7 +1,7 @@
 import {Duration} from "luxon";
 import {StyleSheet, View} from "react-native";
 import {Slider} from "react-native-awesome-slider";
-import Animated, {
+import {
   runOnJS,
   useDerivedValue,
   useSharedValue,

@@ -1,11 +1,10 @@
+/* eslint-env node */
 // Learn more https://docs.expo.io/guides/customizing-metro
-const path = require("path");
-
 const {getDefaultConfig} = require("expo/metro-config");
+const path = require("path");
 
 const appJSONConfig = require("./app.json");
 
-// eslint-disable-next-line no-undef
 const config = getDefaultConfig(__dirname);
 
 // When enabled, the optional code below will allow Metro to resolve

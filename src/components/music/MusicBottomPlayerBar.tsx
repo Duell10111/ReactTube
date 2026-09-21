@@ -1,7 +1,14 @@
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackNavigationProp} from "@react-navigation/native-stack";
 import {Icon} from "@rneui/base";
-import {Image, StyleSheet, Text, TouchableHighlight, View} from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableHighlight,
+  View,
+} from "react-native";
 
 import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
@@ -15,8 +22,11 @@ interface MusicBottomPlayerBarProps {
 export function MusicBottomPlayerBar({
   onPressOverride,
 }: MusicBottomPlayerBarProps) {
-  const {currentItem, playing, play, pause} = useMusikPlayerContext();
+  const {currentItem, playing, play, pause, playbackStatus} =
+    useMusikPlayerContext();
   const navigation = useNavigation<NProp>();
+  const isLoading =
+    playbackStatus === "loading" || playbackStatus === "buffering";
 
   if (!currentItem) {
     return null;
@@ -39,18 +49,25 @@ export function MusicBottomPlayerBar({
           <Text style={styles.subtitleStyle}>{currentItem.author?.name}</Text>
         </View>
         <View style={styles.buttonsContainer}>
-          <Icon
-            name={!playing ? "play" : "pause"}
-            type={"feather"}
-            color={"white"}
-            onPress={() => {
-              if (playing) {
-                pause();
-              } else {
-                play();
-              }
-            }}
-          />
+          {isLoading ? (
+            <ActivityIndicator
+              color={"white"}
+              accessibilityLabel={"Loading song"}
+            />
+          ) : (
+            <Icon
+              name={!playing ? "play" : "pause"}
+              type={"feather"}
+              color={"white"}
+              onPress={() => {
+                if (playing) {
+                  pause();
+                } else {
+                  play();
+                }
+              }}
+            />
+          )}
         </View>
         <View style={styles.bottomLine} />
       </View>

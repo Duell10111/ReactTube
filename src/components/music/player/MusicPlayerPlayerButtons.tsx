@@ -1,5 +1,10 @@
 import {Icon} from "@rneui/base";
-import {StyleSheet, TouchableOpacity, View} from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 
@@ -14,7 +19,10 @@ export function MusicPlayerPlayerButtons() {
     setShuffle,
     repeat,
     setRepeat,
+    playbackStatus,
   } = useMusikPlayerContext();
+  const isLoading =
+    playbackStatus === "loading" || playbackStatus === "buffering";
 
   const onPressRepeat = () => {
     switch (repeat) {
@@ -51,21 +59,27 @@ export function MusicPlayerPlayerButtons() {
         containerStyle={{marginRight: 20}}
         onPress={previous}
       />
-      <Icon
-        // @ts-ignore
-        Component={TouchableOpacity}
-        name={!playing ? "play" : "pause"}
-        type={"feather"}
-        raised
-        size={30}
-        onPress={() => {
-          if (playing) {
-            pause();
-          } else {
-            play();
-          }
-        }}
-      />
+      {isLoading ? (
+        <View style={styles.loadingButton} accessibilityLabel={"Loading song"}>
+          <ActivityIndicator color={"black"} size={"small"} />
+        </View>
+      ) : (
+        <Icon
+          // @ts-ignore
+          Component={TouchableOpacity}
+          name={!playing ? "play" : "pause"}
+          type={"feather"}
+          raised
+          size={30}
+          onPress={() => {
+            if (playing) {
+              pause();
+            } else {
+              play();
+            }
+          }}
+        />
+      )}
       <Icon
         // @ts-ignore
         Component={TouchableOpacity}
@@ -98,5 +112,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     maxHeight: 200,
+  },
+  loadingButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: "white",
   },
 });
