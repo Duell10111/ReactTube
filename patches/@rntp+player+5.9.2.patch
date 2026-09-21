@@ -1,5 +1,5 @@
 diff --git a/node_modules/@rntp/player/android/src/main/java/com/doublesymmetry/trackplayer/models/TrackPlayerCastMediaItemConverter.kt b/node_modules/@rntp/player/android/src/main/java/com/doublesymmetry/trackplayer/models/TrackPlayerCastMediaItemConverter.kt
-index b12b8ce..aea2446 100644
+index 2518f2c..02a86ad 100644
 --- a/node_modules/@rntp/player/android/src/main/java/com/doublesymmetry/trackplayer/models/TrackPlayerCastMediaItemConverter.kt
 +++ b/node_modules/@rntp/player/android/src/main/java/com/doublesymmetry/trackplayer/models/TrackPlayerCastMediaItemConverter.kt
 @@ -64,6 +64,9 @@ internal class TrackPlayerCastMediaItemConverter : MediaItemConverter {
@@ -22,10 +22,10 @@ index b12b8ce..aea2446 100644
      if (rntp.has(KEY_EXTRAS) && !metadataExtras.containsKey(MediaItemExtras.METADATA_KEY)) {
        MediaItemExtras.attachToMetadataExtras(
          metadataExtras,
-@@ -105,7 +111,15 @@ internal class TrackPlayerCastMediaItemConverter : MediaItemConverter {
-       )
+@@ -106,7 +112,15 @@ internal class TrackPlayerCastMediaItemConverter : MediaItemConverter {
      }
  
+     metaBuilder.setExtras(metadataExtras)
 -    return item.buildUpon().setMediaMetadata(metaBuilder.build()).build()
 +    val itemBuilder = item.buildUpon().setMediaMetadata(metaBuilder.build())
 +    if (rntp.has(KEY_END_POSITION)) {
@@ -39,7 +39,7 @@ index b12b8ce..aea2446 100644
    }
  
    private fun copyCustomData(customData: JSONObject?): JSONObject =
-@@ -118,6 +132,7 @@ internal class TrackPlayerCastMediaItemConverter : MediaItemConverter {
+@@ -119,6 +133,7 @@ internal class TrackPlayerCastMediaItemConverter : MediaItemConverter {
      const val KEY_ARTWORK_URL = "artworkUrl"
      const val KEY_DURATION = "duration"
      const val KEY_IS_LIVE = "isLive"
@@ -270,29 +270,37 @@ index c95d040..e2fb32e 100644
 +  var endPosition: Double? { nil }
  }
 diff --git a/node_modules/@rntp/player/ios/player/AudioPlayer.swift b/node_modules/@rntp/player/ios/player/AudioPlayer.swift
-index 67ed162..6045e6a 100644
+index 30e5ef9..6045e6a 100644
 --- a/node_modules/@rntp/player/ios/player/AudioPlayer.swift
 +++ b/node_modules/@rntp/player/ios/player/AudioPlayer.swift
-@@ -219,7 +219,8 @@ class AudioPlayer {
-     engine.load(
-       url: itemUrl,
-       headers: item.headers,
--      isLive: item.isLive
+@@ -216,7 +216,12 @@ class AudioPlayer {
+ 
+     guard let itemUrl = url else { return }
+ 
+-    engine.load(url: itemUrl, headers: item.headers, isLive: item.isLive)
++    engine.load(
++      url: itemUrl,
++      headers: item.headers,
 +      isLive: item.isLive,
 +      endPosition: item.endPosition
-     )
++    )
      state = .loading
    }
-@@ -463,7 +464,8 @@ class AudioPlayer {
-     engine.load(
-       url: itemUrl,
-       headers: item.headers,
--      isLive: item.isLive
+ 
+@@ -456,7 +461,12 @@ class AudioPlayer {
+       artworkUri: nil,
+       genre: nil
+     )
+-    engine.load(url: itemUrl, headers: item.headers, isLive: item.isLive)
++    engine.load(
++      url: itemUrl,
++      headers: item.headers,
 +      isLive: item.isLive,
 +      endPosition: item.endPosition
-     )
++    )
      state = .loading
      resetNowPlaying(for: item)
+     onCurrentItemChanged?(item, queue.currentIndex)
 diff --git a/node_modules/@rntp/player/ios/player/PlayerEngine.swift b/node_modules/@rntp/player/ios/player/PlayerEngine.swift
 index 3c9d172..698a187 100644
 --- a/node_modules/@rntp/player/ios/player/PlayerEngine.swift
@@ -307,7 +315,7 @@ index 3c9d172..698a187 100644
    func seekToLiveEdge(completion: @escaping (Bool) -> Void)
    func reset()
 diff --git a/node_modules/@rntp/player/lib/typescript/src/interfaces/MediaItem.d.ts b/node_modules/@rntp/player/lib/typescript/src/interfaces/MediaItem.d.ts
-index 44086cf..de9ad2b 100644
+index 3689842..ee4f64d 100644
 --- a/node_modules/@rntp/player/lib/typescript/src/interfaces/MediaItem.d.ts
 +++ b/node_modules/@rntp/player/lib/typescript/src/interfaces/MediaItem.d.ts
 @@ -45,6 +45,11 @@ export interface MediaItem {
