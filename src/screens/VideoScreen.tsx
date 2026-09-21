@@ -185,9 +185,10 @@ export default function VideoScreen({route, navigation}: Props) {
             title: YTVideoInfo.title,
             author: YTVideoInfo.author?.name ?? "Unknown",
             authorID: YTVideoInfo.channel_id ?? "",
-            // @ts-ignore TODO: Allow videos without author Thumbnail?!
-            authorThumbnailUrl:
-              YTVideoInfo.channel?.url ?? parsedChannel?.thumbnail?.url,
+            // `channel.url` is the channel page, not an image — it was the
+            // first choice here, so the avatar was never anything an Image
+            // could load. The channel request carries the only thumbnail.
+            authorThumbnailUrl: parsedChannel?.thumbnail?.url,
             onAuthorPress: () =>
               YTVideoInfo.channel_id &&
               navigation.navigate("ChannelScreen", {

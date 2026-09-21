@@ -32,7 +32,8 @@ export interface VideoMetadata {
   title: string;
   author: string;
   authorID: string;
-  authorThumbnailUrl: string;
+  /** Missing while the channel is still loading, or when it has no avatar. */
+  authorThumbnailUrl?: string;
   onAuthorPress: () => void;
   views: string;
   videoDate: string;
