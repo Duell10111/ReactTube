@@ -123,9 +123,15 @@ Suche bleibt eine globale Aktion im App Header und ist zusätzlich aus leeren
 Feeds erreichbar. Reels/Shorts werden zunächst als Inhaltsformat im Feed und
 Player verbessert; ein eigener Tab wird erst nach Nutzungsvalidierung erwogen.
 
-Auf Tablets wird dieselbe Hierarchie als adaptive Navigation Rail oder breite
-Split View dargestellt, statt lediglich mehr Spalten in die Phone-Oberfläche zu
-quetschen.
+Tablets behalten dieselbe Bottom Navigation wie Phones. Die Hauptziele liegen
+damit auf jedem Touch-Gerät an derselben Stelle und sind auch auf großen
+Displays im Daumenbereich erreichbar. Eine seitliche Navigation Rail wird
+bewusst nicht verwendet: sie kostet dauerhaft Breite, die dem Inhalt zusteht.
+
+Die zusätzliche Fläche eines Tablets wird stattdessen über Informationsdichte
+genutzt – mehr Spalten im Feed, ein höherer App Header und, wo es der Inhalt
+hergibt, Split-Layouts innerhalb eines Screens wie Player plus Up next. Es geht
+also nicht darum, die Phone-Oberfläche lediglich breiter zu ziehen.
 
 ### TV
 
@@ -379,7 +385,9 @@ sichtbaren Hard-coded-Texte; ein Demo-Screen funktioniert auf Phone und TV.
   verschieben, ohne sie neu zu layouten.
 - Fokuswiederherstellung und Zurück-Verhalten automatisiert beziehungsweise mit
   klarer manueller Matrix prüfen.
-- Tablet-adaptive Navigation ergänzen.
+- Tablet-Anpassung über Informationsdichte statt über ein zweites
+  Navigationsmuster: dieselbe Bottom Navigation, mehr Feed-Spalten, höherer
+  Header.
 
 **Abschluss:** Alle bestehenden Screens sind über die neue Navigation erreichbar;
 kein Ziel geht für an- oder abgemeldete Nutzer verloren.

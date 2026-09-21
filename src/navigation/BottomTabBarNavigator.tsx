@@ -4,7 +4,6 @@ import {
   createBottomTabNavigator,
 } from "@react-navigation/bottom-tabs";
 import React from "react";
-import {StyleSheet, View} from "react-native";
 
 import {MusicBottomPlayerBar} from "../components/music/MusicBottomPlayerBar";
 import HomeScreen from "../screens/HomeScreen";
@@ -14,7 +13,6 @@ import {MusicHomeScreen} from "../screens/phone/MusicHomeScreen";
 import YouScreen from "../screens/phone/YouScreen";
 
 import {useTranslation} from "@/localization";
-import {useAppChrome} from "@/ui/layout";
 import {
   getPrimaryDestinationByRoute,
   getPrimaryDestinations,
@@ -35,90 +33,57 @@ const screenComponents: Record<PrimaryRouteName, React.ComponentType<any>> = {
   You: YouScreen,
 };
 
+/**
+ * Bottom navigation for every touch layout. Tablets keep the same bar instead
+ * of a side rail, so the destinations stay in one place across devices; the
+ * extra width goes into feed columns rather than into navigation chrome.
+ */
 export default function BottomTabBarNavigator() {
   const {t} = useTranslation();
   const {theme} = useAppTheme();
-  const chrome = useAppChrome();
-  const railMode = chrome.navigationMode === "navigationRail";
 
   return (
-    <View style={styles.container}>
-      <Tab.Navigator
-        tabBar={props =>
-          railMode ? (
-            <BottomTabBar {...props} />
-          ) : (
-            <>
-              <MusicBottomPlayerBar />
-              <BottomTabBar {...props} />
-            </>
-          )
-        }
-        screenOptions={({route}) => {
-          const destination = getPrimaryDestinationByRoute(route.name);
-
-          return {
-            header: ({options}) => (
-              <AppHeader
-                brand={route.name === "HomeFeed"}
-                showAccount={route.name !== "You"}
-                title={options.title ?? route.name}
-              />
-            ),
-            tabBarIcon: ({color, size}) => (
-              <MaterialIcons
-                color={color}
-                name={destination?.icon ?? "circle"}
-                size={size}
-              />
-            ),
-            tabBarActiveTintColor: theme.colors.brand,
-            tabBarInactiveTintColor: theme.colors.textSecondary,
-            tabBarPosition: railMode ? "left" : "bottom",
-            tabBarVariant: railMode ? "material" : "uikit",
-            tabBarStyle: railMode
-              ? {
-                  width: chrome.railWidth,
-                  backgroundColor: theme.colors.surface,
-                  borderRightColor: theme.colors.divider,
-                }
-              : {
-                  backgroundColor: theme.colors.surface,
-                  borderTopColor: theme.colors.divider,
-                },
-          };
-        }}>
-        {getPrimaryDestinations().map(destination => (
-          <Tab.Screen
-            key={destination.key}
-            component={screenComponents[destination.route]}
-            name={destination.route}
-            options={{title: t(destination.labelKey)}}
-          />
-        ))}
-      </Tab.Navigator>
-      {railMode && chrome.miniPlayerVisible ? (
-        <View
-          style={[
-            styles.miniPlayer,
-            {
-              bottom: chrome.miniPlayerOffset.bottom,
-              left: chrome.miniPlayerOffset.left,
-              right: chrome.miniPlayerOffset.right,
-            },
-          ]}>
+    <Tab.Navigator
+      tabBar={props => (
+        <>
           <MusicBottomPlayerBar />
-        </View>
-      ) : null}
-    </View>
+          <BottomTabBar {...props} />
+        </>
+      )}
+      screenOptions={({route}) => {
+        const destination = getPrimaryDestinationByRoute(route.name);
+
+        return {
+          header: ({options}) => (
+            <AppHeader
+              brand={route.name === "HomeFeed"}
+              showAccount={route.name !== "You"}
+              title={options.title ?? route.name}
+            />
+          ),
+          tabBarIcon: ({color, size}) => (
+            <MaterialIcons
+              color={color}
+              name={destination?.icon ?? "circle"}
+              size={size}
+            />
+          ),
+          tabBarActiveTintColor: theme.colors.brand,
+          tabBarInactiveTintColor: theme.colors.textSecondary,
+          tabBarStyle: {
+            backgroundColor: theme.colors.surface,
+            borderTopColor: theme.colors.divider,
+          },
+        };
+      }}>
+      {getPrimaryDestinations().map(destination => (
+        <Tab.Screen
+          key={destination.key}
+          component={screenComponents[destination.route]}
+          name={destination.route}
+          options={{title: t(destination.labelKey)}}
+        />
+      ))}
+    </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  miniPlayer: {
-    position: "absolute",
-  },
-});

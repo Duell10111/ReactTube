@@ -55,10 +55,12 @@ test("keeps every TV destination reachable in both account states", () => {
   );
 });
 
-test("selects the navigation mode from the layout class", () => {
+test("keeps the bottom navigation on every touch layout", () => {
+  // A tablet adapts through content density, not through a second navigation
+  // pattern, so the destinations sit in the same place on every touch device.
   assert.equal(getNavigationMode("compact"), "bottomTabs");
-  assert.equal(getNavigationMode("medium"), "navigationRail");
-  assert.equal(getNavigationMode("expanded"), "navigationRail");
+  assert.equal(getNavigationMode("medium"), "bottomTabs");
+  assert.equal(getNavigationMode("expanded"), "bottomTabs");
   assert.equal(getNavigationMode("tv"), "tvRail");
 });
 
@@ -111,13 +113,10 @@ test("derives header, rail, and mini player geometry from one system", () => {
     miniPlayerVisible: true,
   });
 
-  assert.equal(tablet.navigationMode, "navigationRail");
-  assert.equal(tablet.railWidth, appChromeMetrics.tabletRailWidth);
-  assert.deepEqual(tablet.miniPlayerOffset, {
-    left: appChromeMetrics.tabletRailWidth + 16,
-    right: 12,
-    bottom: 20,
-  });
+  assert.equal(tablet.navigationMode, "bottomTabs");
+  assert.equal(tablet.headerHeight, appChromeMetrics.expandedHeaderHeight);
+  assert.equal(tablet.railWidth, 0);
+  assert.deepEqual(tablet.miniPlayerOffset, {left: 0, right: 0, bottom: 0});
 
   const tv = getChromeLayout({
     layout: "tv",

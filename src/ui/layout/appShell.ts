@@ -1,6 +1,6 @@
 import type {LayoutClass} from "@/ui/theme/breakpoints";
 
-export type NavigationMode = "bottomTabs" | "navigationRail" | "tvRail";
+export type NavigationMode = "bottomTabs" | "tvRail";
 
 export type TVRailState = "hidden" | "collapsed" | "expanded";
 
@@ -13,7 +13,6 @@ export const appChromeMetrics = {
   compactHeaderHeight: 56,
   expandedHeaderHeight: 64,
   miniPlayerHeight: 64,
-  tabletRailWidth: 80,
   minimumTouchTarget: 48,
 } as const;
 
@@ -26,18 +25,19 @@ export const tvRailMetrics = {
 } as const;
 
 /**
- * Compact widths keep the bottom navigation, wider touch layouts use an
- * adaptive navigation rail, and TV always uses the dedicated remote rail.
+ * Every touch layout keeps the bottom navigation; only TV uses the dedicated
+ * remote rail. Tablets adapt through content density — more feed columns and a
+ * taller header — not through a different navigation pattern, so the
+ * destinations sit in the same place on every touch device.
  */
 export function getNavigationMode(layout: LayoutClass): NavigationMode {
   switch (layout) {
     case "tv":
       return "tvRail";
     case "compact":
-      return "bottomTabs";
     case "medium":
     case "expanded":
-      return "navigationRail";
+      return "bottomTabs";
   }
 }
 
@@ -109,13 +109,13 @@ export interface ChromeLayout {
   headerHeight: number;
   /** Header height including the top safe area. */
   headerTotalHeight: number;
-  /** Width of the side navigation, `0` while the bottom navigation is used. */
+  /** Width of the TV rail, `0` on every touch layout. */
   railWidth: number;
   /** Height of the mini player, `0` while nothing is playing. */
   miniPlayerHeight: number;
   /**
-   * Where the mini player is anchored. In bottom navigation mode it is stacked
-   * directly on top of the tab bar, in rail mode it floats above the content.
+   * Where the mini player is anchored. It is stacked directly on top of the
+   * bottom navigation, which is the tab bar's own position.
    */
   miniPlayerOffset: {left: number; right: number; bottom: number};
   statusBarStyle: AppStatusBarStyle;
@@ -145,11 +145,7 @@ export function getChromeLayout({
   const navigationMode = getNavigationMode(layout);
   const headerHeight = getHeaderHeight(layout);
   const railWidth =
-    navigationMode === "navigationRail"
-      ? appChromeMetrics.tabletRailWidth
-      : navigationMode === "tvRail"
-        ? tvRailMetrics.collapsedWidth
-        : 0;
+    navigationMode === "tvRail" ? tvRailMetrics.collapsedWidth : 0;
   const miniPlayerHeight = miniPlayerVisible
     ? appChromeMetrics.miniPlayerHeight
     : 0;
@@ -160,14 +156,7 @@ export function getChromeLayout({
     headerTotalHeight: headerHeight + insets.top,
     railWidth,
     miniPlayerHeight,
-    miniPlayerOffset:
-      navigationMode === "navigationRail"
-        ? {
-            left: railWidth + insets.left,
-            right: insets.right,
-            bottom: insets.bottom,
-          }
-        : {left: 0, right: 0, bottom: 0},
+    miniPlayerOffset: {left: 0, right: 0, bottom: 0},
     statusBarStyle: appStatusBarStyle,
   };
 }
