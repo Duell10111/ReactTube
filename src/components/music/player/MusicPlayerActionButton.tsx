@@ -1,5 +1,8 @@
 import {Icon, IconType} from "@rneui/base";
-import {StyleSheet, Text, TouchableOpacity} from "react-native";
+import {Pressable, StyleSheet} from "react-native";
+
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 interface MusicPlayerActionButtonProps {
   iconName?: string;
@@ -15,13 +18,33 @@ export function MusicPlayerActionButton({
   title,
   onPress,
 }: MusicPlayerActionButtonProps) {
+  const {theme} = useAppTheme();
+
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <Pressable
+      accessibilityLabel={title}
+      accessibilityRole={"button"}
+      onPress={onPress}
+      style={({pressed}) => [
+        styles.container,
+        {
+          backgroundColor: pressed
+            ? theme.colors.surfacePressed
+            : theme.colors.surfaceRaised,
+          borderRadius: theme.radii.control,
+          gap: theme.spacing.xs,
+          paddingHorizontal: theme.spacing.md,
+        },
+      ]}>
       {iconName && iconType ? (
-        <Icon name={iconName} type={iconType} color={"white"} />
+        <Icon
+          name={iconName}
+          type={iconType}
+          color={theme.colors.textPrimary}
+        />
       ) : null}
-      <Text style={styles.title}>{title}</Text>
-    </TouchableOpacity>
+      <AppText variant={"label"}>{title}</AppText>
+    </Pressable>
   );
 }
 
@@ -29,15 +52,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 0,
     flexDirection: "row",
-    backgroundColor: "#444",
-    borderRadius: 25,
+    alignItems: "center",
+    minHeight: 48,
     paddingVertical: 5,
-    paddingHorizontal: 10,
-    marginHorizontal: 5,
-  },
-  title: {
-    marginStart: 5,
-    fontSize: 18,
-    color: "white",
   },
 });

@@ -1,39 +1,45 @@
-import {useCallback, useState} from "react";
+import {useCallback} from "react";
 import {FlatList, ListRenderItem} from "react-native";
 
-import LoadingComponent from "@/components/general/LoadingComponent";
 import {LibrarySectionItem} from "@/components/library/LibrarySectionItem";
 import {YTLibrarySection} from "@/extraction/Types";
 import useLibrary from "@/hooks/useLibrary";
+import {useTranslation} from "@/localization";
+import {EmptyState, ErrorState, Skeleton} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
-interface LibraryScreenProps {}
+export function LibraryScreen() {
+  const {data, loading, error, reload} = useLibrary();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
-export function LibraryScreen({}: LibraryScreenProps) {
-  const {data} = useLibrary();
-  const [details, setDetails] = useState<YTLibrarySection>();
+  const renderItem = useCallback<ListRenderItem<YTLibrarySection>>(({item}) => {
+    return <LibrarySectionItem section={item} />;
+  }, []);
 
-  const renderItem = useCallback<ListRenderItem<YTLibrarySection>>(
-    ({item, index}) => {
-      return <LibrarySectionItem section={item} />;
-    },
-    [],
-  );
-
-  const keyExtractor = useCallback((item: YTLibrarySection, index: number) => {
+  const keyExtractor = useCallback((item: YTLibrarySection) => {
     return item.title + item.type;
   }, []);
 
-  if (!data) {
-    return <LoadingComponent />;
-  }
-
   return (
     <FlatList
-      data={data.sections}
+      ListEmptyComponent={
+        loading ? (
+          <Skeleton
+            accessibilityLabel={t("common.loading")}
+            height={180}
+            style={{margin: theme.spacing.xl}}
+          />
+        ) : error ? (
+          <ErrorState onRetry={reload} />
+        ) : (
+          <EmptyState />
+        )
+      }
+      contentContainerStyle={{flexGrow: 1}}
+      data={data?.sections ?? []}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
-      // onEndReached={onFetchMore}
-      // ListHeaderComponent={ListHeaderComponent}
     />
   );
 }

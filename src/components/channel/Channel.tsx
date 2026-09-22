@@ -1,18 +1,19 @@
 import _ from "lodash";
 import React, {useMemo, useState} from "react";
-import {Text, View} from "react-native";
+import {View} from "react-native";
 
-import SectionList from "./SectionList";
 import useChannelData, {
   ChannelContentTypes,
 } from "../../hooks/channel/useChannelData";
-import useGridColumnsPreferred from "../../hooks/home/useGridColumnsPreferred";
 import Logger from "../../utils/Logger";
 import {YT, YTNodes} from "../../utils/Youtube";
-import GridView from "../GridView";
 
 import ChannelButtons from "@/components/channel/ChannelButtons";
 import {extractSectionList} from "@/extraction/CustomListExtractors";
+import {useTranslation} from "@/localization";
+import {EmptyState} from "@/ui/components";
+import {MediaFeed} from "@/ui/patterns";
+import {useAppTheme} from "@/ui/theme";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -22,33 +23,35 @@ interface Props {
 
 export default function Channel({channel}: Props) {
   const [selected, setSelected] = useState<ChannelContentTypes>("Home");
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
   const buttons = useMemo(
     () =>
       _.compact([
         {
-          label: "Home",
+          label: t("channel.tab.home"),
           value: "Home" as ChannelContentTypes,
         },
         channel.has_videos
           ? {
-              label: "Videos",
+              label: t("channel.tab.videos"),
               value: "Videos" as ChannelContentTypes,
             }
           : null,
         channel.has_shorts
           ? {
-              label: "Shorts",
+              label: t("channel.tab.shorts"),
               value: "Reels" as ChannelContentTypes,
             }
           : null,
         channel.has_playlists
           ? {
-              label: "Playlists",
+              label: t("channel.tab.playlists"),
               value: "Playlists" as ChannelContentTypes,
             }
           : null,
       ]),
-    [channel],
+    [channel, t],
   );
 
   return (
@@ -59,7 +62,7 @@ export default function Channel({channel}: Props) {
         // @ts-ignore
         onValueChange={setSelected}
       />
-      <View style={{flex: 1, marginTop: 15}}>
+      <View style={{flex: 1, marginTop: theme.spacing.md}}>
         {channel.has_home && selected === "Home" ? (
           <ChannelRow channel={channel} type={"Home"} />
         ) : null}
@@ -83,29 +86,22 @@ interface RowProps {
 }
 
 function ChannelRow({channel, type}: RowProps) {
-  const {data, nodes, fetchMore} = useChannelData(channel, type);
-  const columns = useGridColumnsPreferred(type === "Reels");
-
-  // LOGGER.debug(data ? recursiveTypeLogger([data.page_contents]) : "");
+  const {data, nodes, parsedData, fetchMore} = useChannelData(channel, type);
 
   if (data?.page_contents && data.page_contents.is(YTNodes.SectionList)) {
-    return <SectionList node={extractSectionList(data.page_contents)} />;
+    return (
+      <MediaFeed
+        items={extractSectionList(data.page_contents)}
+        onEndReached={fetchMore}
+      />
+    );
   } else if (Array.isArray(nodes)) {
     return (
-      <GridView
-        shelfItem={nodes}
-        onEndReached={() => fetchMore()}
-        // TODO: Optimize
-        columns={type === "Playlists" ? undefined : columns}
-      />
+      <MediaFeed items={parsedData} loading={!data} onEndReached={fetchMore} />
     );
   } else {
     LOGGER.warn("Unsupported Channel Type: ", data?.page_contents);
   }
 
-  return (
-    <View>
-      <Text>{"Unsupported Channel Type"}</Text>
-    </View>
-  );
+  return <EmptyState />;
 }

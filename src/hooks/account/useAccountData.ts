@@ -1,8 +1,9 @@
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 
 import Logger from "../../utils/Logger";
 
 import {useYoutubeTVContext} from "@/context/YoutubeContext";
+import {useTranslation} from "@/localization";
 import {useSettings} from "@/utils/SettingsWrapper";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
@@ -33,6 +34,9 @@ const LOGGER = Logger.extend("ACCOUNT");
 // TODO: Rewrite login mechanism and make faster!
 
 export default function useAccountData() {
+  const {t} = useTranslation();
+  const translationRef = useRef(t);
+  translationRef.current = t;
   const {settings, updateSettings, clearAll} = useSettings<AccountData>(
     accountKey,
     {
@@ -85,7 +89,7 @@ export default function useAccountData() {
       setQRCodeData(undefined);
       showMessage({
         type: "success",
-        message: "Login successful",
+        message: translationRef.current("login.success"),
       });
     });
 
@@ -104,7 +108,7 @@ export default function useAccountData() {
         accounts: [account],
       });
     });
-  }, [youtube]);
+  }, [updateSettings, youtube]);
 
   // Check for existing login
   useEffect(() => {

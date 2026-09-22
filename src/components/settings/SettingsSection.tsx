@@ -1,6 +1,7 @@
 import React from "react";
-import {StyleProp, StyleSheet, Text, View, ViewStyle} from "react-native";
+import {StyleProp, StyleSheet, View, ViewStyle} from "react-native";
 
+import {AppText} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
 
 interface Props {
@@ -18,16 +19,16 @@ export default function SettingsSection({
 
   return (
     <View style={[styles.section, style]}>
-      <Text style={[styles.sectionTitle, {color: theme.colors.textSecondary}]}>
+      <AppText
+        color={"textSecondary"}
+        style={styles.sectionTitle}
+        variant={"labelSmall"}>
         {sectionTitle}
-      </Text>
+      </AppText>
       <View
         style={[
           styles.sectionBody,
-          {
-            backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.divider,
-          },
+          {backgroundColor: theme.colors.surface, gap: theme.spacing.xs},
         ]}>
         {children}
       </View>
@@ -42,14 +43,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginVertical: 8,
     marginHorizontal: 24,
-    fontSize: 14,
-    fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 1.2,
   },
   sectionBody: {
-    paddingLeft: 24,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
 });

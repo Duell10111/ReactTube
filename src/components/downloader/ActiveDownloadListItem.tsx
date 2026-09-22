@@ -1,19 +1,23 @@
 import {useEffect, useState} from "react";
-import {DeviceEventEmitter, StyleSheet, Text, View} from "react-native";
+import {DeviceEventEmitter, StyleSheet, View} from "react-native";
 import {ProgressBar} from "react-native-paper";
 
-import {useAppStyle} from "@/context/AppStyleContext";
 import {
   DownloadObject,
   getVideoDownloadEventUpdate,
 } from "@/hooks/downloader/useDownloadProcessor";
+import {useTranslation} from "@/localization";
+import {AppText} from "@/ui/components";
+import {getTransferPercent} from "@/ui/patterns";
+import {useAppTheme} from "@/ui/theme";
 
 interface Props {
   download: DownloadObject;
 }
 
 export default function ActiveDownloadListItem({download}: Props) {
-  const {style} = useAppStyle();
+  const {theme} = useAppTheme();
+  const {t} = useTranslation();
 
   const [process, setProcess] = useState(download.process);
 
@@ -30,49 +34,27 @@ export default function ActiveDownloadListItem({download}: Props) {
   }, []);
 
   return (
-    <>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.divider,
+          borderRadius: theme.radii.control,
+          gap: theme.spacing.sm,
+          padding: theme.spacing.md,
+        },
+      ]}>
       <View style={styles.container}>
         <View style={styles.textContainer}>
-          <Text style={{color: style.textColor}}>{download.id}</Text>
-          {/*<Text*/}
-          {/*  style={{*/}
-          {/*    color: style.textColor,*/}
-          {/*  }}>{`${author} - ${data.originalNode.type}`}</Text>*/}
+          <AppText numberOfLines={1}>{download.id}</AppText>
+          <AppText color={"textSecondary"} variant={"bodySmall"}>
+            {t("transfer.progress", {percent: getTransferPercent(process)})}
+          </AppText>
         </View>
-        {/* TODO: Add option to cancel downloads?*/}
-        {/*{data.type === "video" && data.originalNode.type === "Local" ? (*/}
-        {/*  <Menu*/}
-        {/*    visible={showMenu}*/}
-        {/*    onDismiss={() => setShowMenu(false)}*/}
-        {/*    anchor={*/}
-        {/*      <IconButton*/}
-        {/*        icon={"dots-vertical"}*/}
-        {/*        iconColor={"white"}*/}
-        {/*        size={20}*/}
-        {/*        onPress={() => setShowMenu(true)}*/}
-        {/*      />*/}
-        {/*    }>*/}
-        {/*    <Menu.Item*/}
-        {/*      onPress={() => {*/}
-        {/*        setShowMenu(false);*/}
-        {/*        uploadToWatch(data.id);*/}
-        {/*      }}*/}
-        {/*      title={"Upload"}*/}
-        {/*      leadingIcon={"upload"}*/}
-        {/*    />*/}
-        {/*    <Menu.Item*/}
-        {/*      onPress={() => {*/}
-        {/*        setShowMenu(false);*/}
-        {/*        deleteVideo(data.id).catch(console.warn);*/}
-        {/*      }}*/}
-        {/*      title={"Remove"}*/}
-        {/*      leadingIcon={"delete"}*/}
-        {/*    />*/}
-        {/*  </Menu>*/}
-        {/*) : null}*/}
       </View>
-      <ProgressBar animatedValue={process} color={"blue"} />
-    </>
+      <ProgressBar animatedValue={process} color={theme.colors.mediaProgress} />
+    </View>
   );
 }
 
@@ -80,20 +62,13 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    height: 50,
+    minHeight: 48,
   },
-  imageStyle: {
-    borderRadius: 5,
-    width: 50,
-    height: 50,
+  card: {
+    borderWidth: StyleSheet.hairlineWidth,
   },
   textContainer: {
     justifyContent: "center",
     flex: 1,
-    marginLeft: 15,
-  },
-  titleStyle: {
-    fontSize: 20,
-    fontWeight: "bold",
   },
 });

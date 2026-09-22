@@ -1,8 +1,10 @@
-import {Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {Image, Pressable, StyleSheet, View} from "react-native";
 
 import {MusicPlayerActionButton} from "@/components/music/player/MusicPlayerActionButton";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 import Logger from "@/utils/Logger";
 
 const LOGGER = Logger.extend("SEARCH_SECTION_BUTTON");
@@ -15,6 +17,7 @@ export default function MusicSearchSectionButtonItem({
   data,
 }: MusicSearchSectionButtonItemProps) {
   const {setPlaylistViaEndpoint} = useMusikPlayerContext();
+  const {theme} = useAppTheme();
 
   const onPress = () => {
     if (data.on_tab) {
@@ -28,12 +31,18 @@ export default function MusicSearchSectionButtonItem({
     }
   };
 
-  console.log(data.on_tab);
-  console.log(data.on_tab?.command?.type);
-
   return (
-    <TouchableOpacity onPress={onPress}>
-      <View style={styles.container}>
+    <Pressable accessibilityRole={"button"} onPress={onPress}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: theme.colors.surfaceRaised,
+            borderRadius: theme.radii.panel,
+            margin: theme.spacing.sm,
+            padding: theme.spacing.md,
+          },
+        ]}>
         <View style={styles.headerContainer}>
           <Image
             style={styles.image}
@@ -41,8 +50,10 @@ export default function MusicSearchSectionButtonItem({
             resizeMode={"contain"}
           />
           <View style={styles.titleContainer}>
-            <Text style={styles.titleStyle}>{data.title}</Text>
-            <Text style={styles.subtitleStyle}>{data.subtitle}</Text>
+            <AppText variant={"titleSmall"}>{data.title}</AppText>
+            <AppText color={"textSecondary"} variant={"bodySmall"}>
+              {data.subtitle}
+            </AppText>
           </View>
         </View>
         <View style={styles.buttonContainer}>
@@ -52,7 +63,6 @@ export default function MusicSearchSectionButtonItem({
             let onPressActionBtn: () => void = () => {};
             if (button.type === "PLAY") {
               onPressActionBtn = () => {
-                console.log(button.endpoint);
                 button.endpoint && setPlaylistViaEndpoint(button.endpoint);
               };
             }
@@ -69,18 +79,12 @@ export default function MusicSearchSectionButtonItem({
           })}
         </View>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: 5,
-    padding: 5,
-    paddingHorizontal: 10,
-    backgroundColor: "#222",
-    borderRadius: 25,
-  },
+  container: {},
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -94,14 +98,6 @@ const styles = StyleSheet.create({
   titleContainer: {
     flex: 1,
     marginStart: 10,
-  },
-  titleStyle: {
-    flex: 1,
-    fontSize: 18,
-    color: "white",
-  },
-  subtitleStyle: {
-    color: "white",
   },
   buttonContainer: {
     flexDirection: "row",

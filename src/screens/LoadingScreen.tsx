@@ -1,17 +1,25 @@
 import {Image} from "expo-image";
 import React from "react";
-import {Platform, StyleSheet, Text, View} from "react-native";
+import {Platform, StyleSheet, View} from "react-native";
+
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 export default function LoadingScreen() {
+  const {theme} = useAppTheme();
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, {backgroundColor: theme.colors.background}]}>
       <Image
         style={[styles.logo, Platform.isTV ? styles.logoTV : undefined]}
         source={require("../../assets/icon-512-maskable.png")}
       />
-      <Text style={[styles.text, Platform.isTV ? styles.textTV : undefined]}>
+      <AppText
+        style={[styles.text, Platform.isTV ? styles.textTV : undefined]}
+        variant={Platform.isTV ? "display" : "titleLarge"}>
         {"ReactTube"}
-      </Text>
+      </AppText>
     </View>
   );
 }
@@ -33,11 +41,8 @@ const styles = StyleSheet.create({
   },
   text: {
     marginTop: 10,
-    fontSize: 20,
-    color: "white",
   },
   textTV: {
-    fontSize: 28,
     marginTop: 20,
   },
 });

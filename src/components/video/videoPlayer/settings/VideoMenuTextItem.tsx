@@ -1,13 +1,11 @@
-import {Icon, IconType} from "@rneui/base";
-import React, {useState} from "react";
-import {Text, View} from "react-native";
+import {MaterialIcons} from "@expo/vector-icons";
+import React from "react";
 
-import {VideoMenuItem} from "@/components/video/videoPlayer/settings/VideoMenuItem";
+import {AppListItem} from "@/ui/components";
 
 interface VideoMenuTextItemProps {
   selected?: boolean;
-  iconType?: IconType;
-  iconName?: string;
+  iconName?: React.ComponentProps<typeof MaterialIcons>["name"];
   item: string;
   onPress?: () => void;
 }
@@ -15,50 +13,15 @@ interface VideoMenuTextItemProps {
 export function VideoMenuTextItem({
   selected,
   item,
-  iconType,
   iconName,
   onPress,
 }: VideoMenuTextItemProps) {
-  const [focus, setFocus] = useState(false);
-
   return (
-    <VideoMenuItem onPress={onPress} setFocus={setFocus} focus={focus}>
-      <View
-        style={{
-          flex: 1,
-          flexDirection: "row",
-          alignItems: "center",
-          marginStart: 5,
-        }}>
-        {iconType && iconName ? (
-          <Icon
-            name={iconName}
-            type={iconType}
-            color={focus ? "black" : "white"}
-            size={35}
-            style={{marginEnd: 10}}
-          />
-        ) : null}
-        <Text
-          style={{
-            color: focus ? "black" : "white",
-            fontSize: 30,
-            fontWeight: "bold",
-            alignSelf: "center",
-            flex: 1,
-          }}>
-          {item}
-        </Text>
-        {selected ? (
-          <Icon
-            name={"check"}
-            type={"AntDesign"}
-            color={focus ? "black" : "white"}
-            size={35}
-            style={{marginEnd: 10}}
-          />
-        ) : null}
-      </View>
-    </VideoMenuItem>
+    <AppListItem
+      icon={iconName}
+      onPress={onPress}
+      selected={selected}
+      title={item}
+    />
   );
 }

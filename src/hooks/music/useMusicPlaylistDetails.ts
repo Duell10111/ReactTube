@@ -15,6 +15,8 @@ export default function usePlaylistDetails(playlistId: string) {
   const [playlist, setPlaylist] =
     useState<ReturnType<typeof getElementDataFromYTMusicPlaylist>>();
   const [liked, setLiked] = useState<boolean>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
 
   const {
     removeVideoFromPlaylist,
@@ -22,23 +24,34 @@ export default function usePlaylistDetails(playlistId: string) {
     removePlaylistFromLibrary,
   } = usePlaylistManager();
 
-  useEffect(() => {
-    if (isLocalPlaylist(playlistId)) {
-      getPlaylistAsYTPlaylist(playlistId).then(p => {
-        setPlaylist(p);
-        setLiked(p.saved.status);
-      });
-    } else {
-      youtube?.music
-        ?.getPlaylist(playlistId)
-        .then(p => {
-          const parsedPlaylist = getElementDataFromYTMusicPlaylist(p);
-          setPlaylist(parsedPlaylist);
-          setLiked(parsedPlaylist.saved?.status);
-        })
-        .catch(LOGGER.warn);
+  const reload = useCallback(() => {
+    setLoading(true);
+    setError(undefined);
+    const request = isLocalPlaylist(playlistId)
+      ? getPlaylistAsYTPlaylist(playlistId)
+      : youtube?.music
+          ?.getPlaylist(playlistId)
+          .then(getElementDataFromYTMusicPlaylist);
+
+    if (!request) {
+      return;
     }
-  }, [youtube, playlistId]);
+
+    request
+      .then(parsedPlaylist => {
+        setPlaylist(parsedPlaylist);
+        setLiked(parsedPlaylist.saved?.status);
+      })
+      .catch(loadError => {
+        setError(loadError);
+        LOGGER.warn(loadError);
+      })
+      .finally(() => setLoading(false));
+  }, [playlistId, youtube]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   const fetchMore = useCallback(async () => {
     if (playlist) {
@@ -69,6 +82,9 @@ export default function usePlaylistDetails(playlistId: string) {
     liked,
     togglePlaylistLike,
     deleteItemFromPlaylist,
+    loading,
+    error,
+    reload,
   };
 }
 

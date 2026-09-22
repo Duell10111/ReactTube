@@ -1,9 +1,10 @@
-import {Icon} from "@rneui/base";
 import React from "react";
-import {Image, StyleSheet, Text, View} from "react-native";
+import {Image, StyleSheet, View} from "react-native";
 
-import {useAppStyle} from "@/context/AppStyleContext";
 import {Thumbnail} from "@/extraction/Types";
+import {useTranslation} from "@/localization";
+import {AppButton, AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 interface MusicChannelHeaderProps {
   image?: Thumbnail;
@@ -20,27 +21,35 @@ export function MusicChannelHeader({
   showPlayEndpoint,
   onPlayPress,
 }: MusicChannelHeaderProps) {
-  const {style} = useAppStyle();
+  const {theme} = useAppTheme();
+  const {t} = useTranslation();
 
   return (
-    <View style={styles.metadataContainer}>
-      <Image style={styles.imageStyle} source={{uri: image?.url}} />
-      <Text style={[styles.titleText, {color: style.textColor}]}>{title}</Text>
+    <View
+      style={[
+        styles.metadataContainer,
+        {gap: theme.spacing.sm, padding: theme.spacing.xl},
+      ]}>
+      <Image
+        style={[
+          styles.imageStyle,
+          {
+            backgroundColor: theme.colors.surfaceRaised,
+            borderRadius: theme.radii.round,
+          },
+        ]}
+        source={{uri: image?.url}}
+      />
+      <AppText align={"center"} variant={"titleLarge"}>
+        {title}
+      </AppText>
       {subtitle ? (
-        <Text
-          style={[styles.subtitleText, {fontSize: 15, color: style.textColor}]}>
+        <AppText align={"center"} color={"textSecondary"}>
           {subtitle}
-        </Text>
+        </AppText>
       ) : null}
       {showPlayEndpoint ? (
-        <View>
-          <Icon
-            name={"play-sharp"}
-            type={"ionicon"}
-            raised
-            onPress={onPlayPress}
-          />
-        </View>
+        <AppButton label={t("music.playAll")} onPress={onPlayPress} />
       ) : null}
     </View>
   );
@@ -49,20 +58,9 @@ export function MusicChannelHeader({
 const styles = StyleSheet.create({
   metadataContainer: {
     alignItems: "center",
-    marginVertical: 20,
   },
   imageStyle: {
     width: 150,
     height: 150,
-    borderRadius: 5,
-    marginBottom: 5,
-  },
-  titleText: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  subtitleText: {
-    fontSize: 12,
-    fontWeight: "200",
   },
 });

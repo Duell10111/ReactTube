@@ -1,7 +1,6 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {ButtonGroup} from "@rneui/base";
 import React, {useState} from "react";
-import {Image, StyleSheet, Text, View} from "react-native";
+import {Image, StyleSheet, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
@@ -15,17 +14,22 @@ import {useDownloaderContext} from "@/context/DownloaderContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {usePlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
+import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
+import {AppText, Chip, ErrorState} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 type Tab = "Playlist" | "Lyrics" | "Related";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MusicPlayerScreen">;
 
-export function MusicPlayerScreen({route, navigation}: Props) {
+export function MusicPlayerScreen({navigation}: Props) {
   const {bottom} = useSafeAreaInsets();
   const {currentItem, playbackError} = useMusikPlayerContext();
   const {download} = useDownloaderContext();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   const [openTab, setOpenTab] = useState<Tab>();
 
@@ -35,7 +39,11 @@ export function MusicPlayerScreen({route, navigation}: Props) {
 
   if (openTab) {
     return (
-      <View style={[styles.container, {paddingBottom: bottom}]}>
+      <View
+        style={[
+          styles.container,
+          {backgroundColor: theme.colors.background, paddingBottom: bottom},
+        ]}>
         <MusicBottomPlayerBar onPressOverride={() => setOpenTab(undefined)} />
         {openTab === "Playlist" ? (
           <MusicPlayerPlaylistList />
@@ -47,24 +55,14 @@ export function MusicPlayerScreen({route, navigation}: Props) {
   }
 
   return (
-    <View style={[styles.container, {paddingBottom: bottom}]}>
-      <View style={{width: 150, alignSelf: "center"}}>
-        <ButtonGroup
-          buttons={["Song", "Video"]}
-          // buttonStyle={{width: 50}}
-          selectedIndex={0}
-          containerStyle={{
-            marginBottom: 10,
-            borderRadius: 25,
-            backgroundColor: "#55555555",
-            borderColor: "#55555555",
-            height: 30,
-          }}
-          buttonStyle={{borderRadius: 25}}
-          selectedButtonStyle={{backgroundColor: "#11111166"}}
-          innerBorderStyle={{color: "transparent"}}
-          textStyle={{color: "white"}}
-        />
+    <View
+      style={[
+        styles.container,
+        {backgroundColor: theme.colors.background, paddingBottom: bottom},
+      ]}>
+      <View style={[styles.modePicker, {gap: theme.spacing.sm}]}>
+        <Chip label={t("music.song")} selected />
+        <Chip disabled label={t("music.video")} />
       </View>
       <View style={styles.coverContainer}>
         <Image
@@ -73,19 +71,19 @@ export function MusicPlayerScreen({route, navigation}: Props) {
           resizeMode={"contain"}
         />
       </View>
-      <View style={styles.bottomContainer}>
+      <View
+        style={[
+          styles.bottomContainer,
+          {gap: theme.spacing.sm, paddingHorizontal: theme.spacing.sm},
+        ]}>
         <MusicPlayerTitle />
-        {playbackError ? (
-          <Text accessibilityRole={"alert"} style={styles.playbackError}>
-            {playbackError.message}
-          </Text>
-        ) : null}
+        {playbackError ? <ErrorState message={playbackError.message} /> : null}
         <MusicPlayerSlider />
         <View style={styles.buttonContainer}>
           <MusicPlayerActionButton
             iconName={"playlist-add"}
             iconType={"material"}
-            title={"Save"}
+            title={t("common.save")}
             onPress={() => {
               if (currentItem) {
                 save([currentItem.id]);
@@ -95,32 +93,34 @@ export function MusicPlayerScreen({route, navigation}: Props) {
           <MusicPlayerActionButton
             iconName={"download"}
             iconType={"antdesign"}
-            title={"Download"}
+            title={t("video.action.download")}
             onPress={() => {
               if (currentItem) {
-                showMessage({type: "info", message: "Download started"});
+                showMessage({
+                  type: "info",
+                  message: t("music.downloadStarted"),
+                });
                 download(currentItem.id)
                   .then(() =>
                     showMessage({
                       type: "success",
-                      message: "Download complete",
+                      message: t("music.downloadComplete"),
                     }),
                   )
                   .catch(error => {
                     showMessage({
                       type: "warning",
-                      message: "Download failed",
+                      message: t("music.downloadFailed"),
                       description: String(error?.message ?? error),
                     });
                   });
               }
             }}
           />
-          {/* TODO: Adapt UI for author press */}
           <MusicPlayerActionButton
             iconName={"user"}
             iconType={"antdesign"}
-            title={"Author"}
+            title={t("music.author")}
             onPress={() => {
               const id = currentItem?.channel_id ?? currentItem?.channel?.id;
               if (id) {
@@ -131,17 +131,21 @@ export function MusicPlayerScreen({route, navigation}: Props) {
         </View>
         <MusicPlayerPlayerButtons />
         <View style={styles.bottomActionsContainer}>
-          <Text
+          <AppText
+            accessibilityRole={"button"}
             style={styles.bottomActionTextStyle}
             onPress={() => setOpenTab("Playlist")}>
-            {"Next titles"}
-          </Text>
-          <Text style={styles.bottomActionTextStyle}>{"Lyrics?"}</Text>
-          <Text
+            {t("music.queue")}
+          </AppText>
+          <AppText color={"textDisabled"} style={styles.bottomActionTextStyle}>
+            {t("music.lyrics")}
+          </AppText>
+          <AppText
+            accessibilityRole={"button"}
             style={styles.bottomActionTextStyle}
             onPress={() => setOpenTab("Related")}>
-            {"Related"}
-          </Text>
+            {t("music.related")}
+          </AppText>
         </View>
       </View>
     </View>
@@ -151,18 +155,19 @@ export function MusicPlayerScreen({route, navigation}: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: "red",
+  },
+  modePicker: {
+    alignSelf: "center",
+    flexDirection: "row",
   },
   coverContainer: {
     width: "100%",
     flex: 0.7,
     justifyContent: "center",
     alignItems: "center",
-    // backgroundColor: "blue",
   },
   bottomContainer: {
     flex: 0.55,
-    // backgroundColor: "blue",
     marginHorizontal: 5,
   },
   buttonContainer: {
@@ -178,12 +183,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-evenly",
   },
   bottomActionTextStyle: {
-    color: "white",
-  },
-  playbackError: {
-    color: "#ffb4ab",
-    marginHorizontal: 8,
-    marginTop: 4,
     textAlign: "center",
   },
 });

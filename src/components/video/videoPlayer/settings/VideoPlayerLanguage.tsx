@@ -1,13 +1,16 @@
 import React from "react";
-import {FlatList, Text} from "react-native";
+import {FlatList} from "react-native";
 
 import {VideoMenuContainer} from "@/components/general/VideoMenuContainer";
 import {VideoMenuTextItem} from "@/components/video/videoPlayer/settings/VideoMenuTextItem";
 import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
+import {useTranslation} from "@/localization";
+import {AppText} from "@/ui/components";
 
 export function VideoPlayerLanguage() {
   const {languages, selectedLanguage, selectLanguage} =
     useVideoPlayerSettings();
+  const {t} = useTranslation();
 
   // Use self selected item or item information if not present
   const selectedItem = selectedLanguage ?? languages.find(l => l.selected);
@@ -28,15 +31,9 @@ export function VideoPlayerLanguage() {
         data={languages}
         renderItem={renderItem}
         ListHeaderComponent={
-          <Text
-            style={{
-              color: "white",
-              fontSize: 25,
-              fontWeight: "bold",
-              marginBottom: 10,
-            }}>
-            {"Languages"}
-          </Text>
+          <AppText variant={"titleMedium"}>
+            {t("video.player.language")}
+          </AppText>
         }
       />
     </VideoMenuContainer>

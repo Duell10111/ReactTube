@@ -1,14 +1,16 @@
 import {useNavigation} from "@react-navigation/native";
 import {useState} from "react";
-import {Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {StyleSheet, View} from "react-native";
 import {IconButton, Menu} from "react-native-paper";
 
-import {useAppStyle} from "@/context/AppStyleContext";
 import {useDownloaderContext} from "@/context/DownloaderContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {usePlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import {ElementData} from "@/extraction/Types";
+import {useTranslation} from "@/localization";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
+import {MediaRow} from "@/ui/patterns";
+import {useAppTheme} from "@/ui/theme";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 interface MusicSearchListItemProps {
@@ -16,7 +18,6 @@ interface MusicSearchListItemProps {
 }
 
 export function MusicSearchListItem({data}: MusicSearchListItemProps) {
-  const {style} = useAppStyle();
   const {navigate, push} = useNavigation<RootNavProp>();
 
   const {setCurrentItem, addAsNextItem} = useMusikPlayerContext();
@@ -24,6 +25,8 @@ export function MusicSearchListItem({data}: MusicSearchListItemProps) {
   const {download} = useDownloaderContext();
 
   const [showMenu, setShowMenu] = useState(false);
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   const onPress = () => {
     if (data.type === "video" || data.type === "mix") {
@@ -47,103 +50,93 @@ export function MusicSearchListItem({data}: MusicSearchListItemProps) {
   };
 
   return (
-    <TouchableOpacity onPress={onPress}>
-      <View style={styles.container}>
-        <Image
-          style={styles.image}
-          source={{uri: data.thumbnailImage.url}}
-          resizeMode={"cover"}
-        />
-        <View style={styles.textContainer}>
-          <Text style={{color: style.textColor}}>{data.title}</Text>
-          <Text
-            style={[
-              {
-                color: style.textColor,
-              },
-              styles.subtitleText,
-            ]}>{`${data.type === "video" ? `${data.artists?.map(a => a.name)?.join(", ") ?? data.author?.name ?? ""} - ${data.duration}` : ""} - ${data.originalNode.type} `}</Text>
-        </View>
-        <Menu
-          visible={showMenu}
-          onDismiss={() => setShowMenu(false)}
-          anchor={
-            <IconButton
-              icon={"dots-vertical"}
-              iconColor={"white"}
-              size={20}
-              onPress={() => setShowMenu(true)}
-            />
-          }>
-          {data.type === "video" ? (
-            <>
-              <Menu.Item
-                onPress={() => {
-                  setShowMenu(false);
-                  save([data.id]);
-                }}
-                title={"Add to Playlist"}
-                leadingIcon={"playlist-plus"}
-              />
-              <Menu.Item
-                onPress={() => {
-                  setShowMenu(false);
-                  showMessage({type: "info", message: "Download started"});
-                  download(data.id)
-                    .then(() =>
-                      showMessage({
-                        type: "success",
-                        message: "Download complete",
-                      }),
-                    )
-                    .catch(error =>
-                      showMessage({
-                        type: "warning",
-                        message: "Download failed",
-                        description: String(error?.message ?? error),
-                      }),
-                    );
-                }}
-                title={"Download"}
-                leadingIcon={"download"}
-              />
-              <Menu.Item
-                onPress={() => {
-                  setShowMenu(false);
-                  addAsNextItem(data);
-                }}
-                title={"Add as next item"}
-                leadingIcon={"playlist-play"}
-              />
-            </>
-          ) : null}
-          {data.author?.id ? (
-            <Menu.Item
-              onPress={() => {
-                setShowMenu(false);
-                push("MusicChannelScreen", {
-                  artistId: data.author!.id,
-                });
-              }}
-              title={"Go to author"}
-              leadingIcon={"account-music"}
-            />
-          ) : null}
-          {data.type === "video" && data.artists && data.artists.length > 0 ? (
-            <Menu.Item
-              onPress={() => {
-                setShowMenu(false);
-                push("MusicChannelScreen", {
-                  artistId: data.artists![0].id,
-                });
-              }}
-              title={"Go to author"}
-              leadingIcon={"account-music"}
-            />
-          ) : null}
-        </Menu>
+    <View style={styles.container}>
+      <View style={styles.row}>
+        <MediaRow element={data} onPress={onPress} />
       </View>
-    </TouchableOpacity>
+      <Menu
+        visible={showMenu}
+        onDismiss={() => setShowMenu(false)}
+        anchor={
+          <IconButton
+            accessibilityLabel={t("media.moreOptions")}
+            icon={"dots-vertical"}
+            iconColor={theme.colors.textPrimary}
+            size={24}
+            onPress={() => setShowMenu(true)}
+          />
+        }>
+        {data.type === "video" ? (
+          <>
+            <Menu.Item
+              onPress={() => {
+                setShowMenu(false);
+                save([data.id]);
+              }}
+              title={t("music.addToPlaylist")}
+              leadingIcon={"playlist-plus"}
+            />
+            <Menu.Item
+              onPress={() => {
+                setShowMenu(false);
+                showMessage({
+                  type: "info",
+                  message: t("music.downloadStarted"),
+                });
+                download(data.id)
+                  .then(() =>
+                    showMessage({
+                      type: "success",
+                      message: t("music.downloadComplete"),
+                    }),
+                  )
+                  .catch(error =>
+                    showMessage({
+                      type: "warning",
+                      message: t("music.downloadFailed"),
+                      description: String(error?.message ?? error),
+                    }),
+                  );
+              }}
+              title={t("video.action.download")}
+              leadingIcon={"download"}
+            />
+            <Menu.Item
+              onPress={() => {
+                setShowMenu(false);
+                addAsNextItem(data);
+              }}
+              title={t("music.playNext")}
+              leadingIcon={"playlist-play"}
+            />
+          </>
+        ) : null}
+        {data.author?.id ? (
+          <Menu.Item
+            onPress={() => {
+              setShowMenu(false);
+              push("MusicChannelScreen", {
+                artistId: data.author!.id,
+              });
+            }}
+            title={t("music.openArtist")}
+            leadingIcon={"account-music"}
+          />
+        ) : null}
+        {data.type === "video" && data.artists && data.artists.length > 0 ? (
+          <Menu.Item
+            onPress={() => {
+              setShowMenu(false);
+              push("MusicChannelScreen", {
+                artistId: data.artists![0].id,
+              });
+            }}
+            title={t("music.openArtist")}
+            leadingIcon={"account-music"}
+          />
+        ) : null}
+      </Menu>
+    </View>
   );
 }
 
@@ -152,18 +145,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  image: {
-    borderRadius: 5,
-    width: 55,
-    height: 55,
-  },
-  textContainer: {
-    justifyContent: "center",
+  row: {
     flex: 1,
-    marginLeft: 15,
-  },
-  subtitleText: {
-    fontSize: 12,
-    fontWeight: "200",
   },
 });

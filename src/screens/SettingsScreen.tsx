@@ -7,8 +7,8 @@ import SettingsItem, {
   SettingsButton,
 } from "../components/settings/SettingsItem";
 import SettingsSection from "../components/settings/SettingsSection";
-import {parsePlayerResolution} from "../components/settings/screens/PlayerResolutionSelector";
-import {parsePlayerType} from "../components/settings/screens/PlayerSelector";
+import {getPlayerResolutionLabel} from "../components/settings/screens/PlayerResolutionSelector";
+import {getPlayerTypeLabel} from "../components/settings/screens/PlayerSelector";
 import {useAppData} from "../context/AppDataContext";
 import {RootStackParamList} from "../navigation/RootStackNavigator";
 import {SettingsStackParamList} from "../navigation/SettingsNavigator";
@@ -66,14 +66,14 @@ export default function SettingsScreen({navigation}: Props) {
           icon={"globe"}
           iconBackground={theme.colors.brand}
           label={t("settings.videoPlayer")}
-          value={parsePlayerType(appSettings).label}
+          value={t(getPlayerTypeLabel(appSettings))}
           onPress={() => navigate("PlayerSelector")}
         />
         <SettingsItem
           icon={"globe"}
           iconBackground={theme.colors.warning}
           label={t("settings.videoResolution")}
-          value={parsePlayerResolution(appSettings).label}
+          value={t(getPlayerResolutionLabel(appSettings))}
           onPress={() => navigate("PlayerResolutionSelector")}
         />
         <SettingsItem

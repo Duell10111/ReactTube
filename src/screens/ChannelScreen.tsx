@@ -6,20 +6,22 @@ import {Platform, TVEventControl} from "react-native";
 import Channel from "../components/channel/Channel";
 import ChannelHeader from "../components/channel/ChannelHeader";
 import {Channel as ChannelPhone} from "../components/channel/phone/Channel";
-import LoadingComponent from "../components/general/LoadingComponent";
 import useChannelDetails from "../hooks/useChannelDetails";
-import Logger from "../utils/Logger";
 
 import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
+import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
-
-const LOGGER = Logger.extend("CHANNEL");
+import {ErrorState, Skeleton} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChannelScreen">;
 
 export default function ChannelScreen({route}: Props) {
   const {channelId} = route.params;
-  const {channel, parsedChannel} = useChannelDetails(channelId);
+  const {channel, parsedChannel, loading, error, reload} =
+    useChannelDetails(channelId);
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   // Workaround return issue
   useFocusEffect(() => {
@@ -29,8 +31,24 @@ export default function ChannelScreen({route}: Props) {
     }
   });
 
-  if (!channel || !parsedChannel) {
-    return <LoadingComponent />;
+  if (loading) {
+    return (
+      <Skeleton
+        accessibilityLabel={t("channel.loading")}
+        height={180}
+        style={{margin: theme.spacing.xl}}
+      />
+    );
+  }
+
+  if (error || !channel || !parsedChannel) {
+    return (
+      <ErrorState
+        message={t("channel.error.message")}
+        onRetry={reload}
+        title={t("channel.error.title")}
+      />
+    );
   }
 
   if (!Platform.isTV) {

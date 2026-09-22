@@ -1,6 +1,7 @@
 import {useNavigation, useRoute} from "@react-navigation/native";
 import {useCallback} from "react";
 
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import type {ElementData} from "@/extraction/Types";
 import useElementPressableHelper from "@/hooks/utils/useElementPressableHelper";
 import type {NativeStackProp, RootRouteProp} from "@/navigation/types";
@@ -14,19 +15,31 @@ export function useMediaCardPress(element: ElementData) {
   const navigation = useNavigation<NativeStackProp>();
   const route = useRoute<RootRouteProp>();
   const {onPress: openElement} = useElementPressableHelper();
+  const {setCurrentItem} = useMusikPlayerContext();
 
   return useCallback(() => {
     if (element.type === "playlist" || element.type === "album") {
-      const routeName = element.music
-        ? "MusicPlaylistScreen"
-        : "PlaylistScreen";
+      const routeName =
+        element.type === "album"
+          ? "MusicAlbumScreen"
+          : element.music
+            ? "MusicPlaylistScreen"
+            : "PlaylistScreen";
 
       // Replacing instead of stacking keeps the back stack free of a chain of
       // playlists when one playlist links to the next.
       if (route.name === routeName) {
-        navigation.replace(routeName, {playlistId: element.id});
+        if (routeName === "MusicAlbumScreen") {
+          navigation.replace(routeName, {albumId: element.id});
+        } else {
+          navigation.replace(routeName, {playlistId: element.id});
+        }
       } else {
-        navigation.navigate(routeName, {playlistId: element.id});
+        if (routeName === "MusicAlbumScreen") {
+          navigation.navigate(routeName, {albumId: element.id});
+        } else {
+          navigation.navigate(routeName, {playlistId: element.id});
+        }
       }
 
       return;
@@ -46,6 +59,12 @@ export function useMediaCardPress(element: ElementData) {
       return;
     }
 
+    if (element.music && (element.type === "video" || element.type === "mix")) {
+      setCurrentItem(element);
+      navigation.navigate("MusicPlayerScreen");
+      return;
+    }
+
     openElement(element);
-  }, [element, navigation, openElement, route.name]);
+  }, [element, navigation, openElement, route.name, setCurrentItem]);
 }
