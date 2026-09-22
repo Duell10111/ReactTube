@@ -1,20 +1,10 @@
 import {useNavigation} from "@react-navigation/native";
-import React, {useCallback} from "react";
-import {
-  FlatList,
-  ListRenderItem,
-  StyleSheet,
-  TVFocusGuideView,
-  View,
-} from "react-native";
+import React from "react";
 
-import LoadingComponent from "@/components/general/LoadingComponent";
-import {PlaylistHeader} from "@/components/playlists/tv/PlaylistHeader";
-import {PlaylistListItem} from "@/components/playlists/tv/PlaylistListItem";
-import {useAppStyle} from "@/context/AppStyleContext";
-import {VideoData} from "@/extraction/Types";
 import usePlaylistDetails from "@/hooks/tv/usePlaylistDetails";
+import {useTranslation} from "@/localization";
 import {NativeStackProp} from "@/navigation/types";
+import {MediaFeed, PlaylistHero} from "@/ui/patterns";
 import Logger from "@/utils/Logger";
 
 const LOGGER = Logger.extend("PLAYLIST");
@@ -24,64 +14,53 @@ interface PlaylistScreenProps {
 }
 
 export default function PlaylistScreen({playlistId}: PlaylistScreenProps) {
-  const {playlist, data, fetchMore, liked, togglePlaylistLike} =
-    usePlaylistDetails(playlistId);
+  const {
+    playlist,
+    data,
+    fetchMore,
+    liked,
+    togglePlaylistLike,
+    loading,
+    error,
+    reload,
+  } = usePlaylistDetails(playlistId);
   const navigation = useNavigation<NativeStackProp>();
-
-  const {style} = useAppStyle();
-  // LOGGER.debug("Playlist: ", JSON.stringify(playlist));
-
-  const renderItem = useCallback<ListRenderItem<VideoData>>(({item}) => {
-    return <PlaylistListItem element={item} />;
-  }, []);
-
-  if (playlist === undefined) {
-    return <LoadingComponent />;
-  }
+  const {t} = useTranslation();
 
   return (
-    <View style={styles.containerStyle}>
-      <TVFocusGuideView autoFocus style={styles.headerPartStyle}>
-        <PlaylistHeader
-          playlist={playlist}
-          saved={liked}
-          onPlayAllPress={() => {
-            if (data[0]?.type === "video") {
-              navigation.navigate("VideoScreen", {
-                navEndpoint: data?.[0]?.navEndpoint,
-                videoId: data?.[0]?.id,
-              });
-            }
-          }}
-          onSavePlaylist={() => togglePlaylistLike().catch(LOGGER.warn)}
-        />
-      </TVFocusGuideView>
-      <TVFocusGuideView autoFocus style={styles.itemsPartStyle}>
-        <FlatList
-          contentContainerStyle={{paddingVertical: 100}}
-          data={data}
-          renderItem={renderItem}
-          onEndReached={fetchMore}
-          onEndReachedThreshold={0.7}
-        />
-      </TVFocusGuideView>
-    </View>
+    <MediaFeed
+      emptyMessage={t("playlist.empty.message")}
+      emptyTitle={t("playlist.empty.title")}
+      error={error}
+      items={data}
+      ListHeaderComponent={
+        playlist ? (
+          <PlaylistHero
+            onPlay={() => {
+              const first = data[0];
+              if (
+                first &&
+                (first.type === "video" ||
+                  first.type === "reel" ||
+                  first.type === "mix")
+              ) {
+                navigation.navigate("VideoScreen", {
+                  navEndpoint: first.navEndpoint,
+                  reel: first.type === "reel",
+                  videoId: first.id,
+                });
+              }
+            }}
+            onSave={() => togglePlaylistLike().catch(LOGGER.warn)}
+            playlist={playlist}
+            saved={liked ?? false}
+          />
+        ) : null
+      }
+      loading={loading}
+      onEndReached={fetchMore}
+      onRetry={reload}
+      testID={"playlist-feed"}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  containerStyle: {
-    flex: 1,
-    flexDirection: "row",
-    // backgroundColor: "red",
-    alignItems: "center",
-  },
-  headerPartStyle: {
-    flex: 1,
-  },
-  itemsPartStyle: {
-    flex: 1,
-    height: "100%",
-    justifyContent: "center",
-  },
-});

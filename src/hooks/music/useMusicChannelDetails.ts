@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
 import {YTMusicArtist} from "@/extraction/Types";
@@ -10,17 +10,35 @@ const LOGGER = Logger.extend("MUSIC_CHANNEL");
 export default function useMusicChannelDetails(artistID: string) {
   const youtube = useYoutubeContext();
   const [artist, setArtist] = useState<YTMusicArtist>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
 
-  useEffect(() => {
-    youtube?.music
+  const reload = useCallback(() => {
+    if (!youtube?.music) {
+      return;
+    }
+    setLoading(true);
+    setError(undefined);
+    youtube.music
       .getArtist(artistID)
       .then(ytArtist => {
         setArtist(getElementDataFromYTMusicArtist(ytArtist, artistID));
       })
-      .catch(LOGGER.warn);
-  }, [artistID]);
+      .catch(loadError => {
+        setError(loadError);
+        LOGGER.warn(loadError);
+      })
+      .finally(() => setLoading(false));
+  }, [artistID, youtube]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   return {
     artist,
+    loading,
+    error,
+    reload,
   };
 }

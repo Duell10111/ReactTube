@@ -36,6 +36,7 @@ import {
   parseTrackInfoPlaylist,
   parseTrackInfoPlaylistContinuation,
 } from "@/extraction/YTElements";
+import {useTranslation} from "@/localization";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
 import {
   audioSourceToMediaItem,
@@ -149,6 +150,9 @@ function MusicPlayerProgressBridge({
 
 export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
   const {appSettings} = useAppData();
+  const {t} = useTranslation();
+  const translationRef = useRef(t);
+  translationRef.current = t;
   const {videoExtractor, videoExtractorNavigationEndpoint} =
     useVideoDataGenerator();
   const youtube = useYoutubeContext();
@@ -203,7 +207,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         LOGGER.warn(error);
         showMessage({
           type: "warning",
-          message: "Error loading song",
+          message: translationRef.current("music.error.loading"),
           description: String(error?.message ?? error),
         });
         return undefined;
@@ -576,7 +580,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
           );
           showMessage({
             type: "warning",
-            message: "Could not reload song",
+            message: translationRef.current("music.error.reload"),
             description: String(error?.message ?? error),
           });
           setPlaybackStatus("error");
@@ -624,13 +628,13 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       LOGGER.error(`Track ${currentVideoData.id} has no playable audio source`);
       showMessage({
         type: "warning",
-        message: "Song cannot be played",
-        description: "No playable audio source is available.",
+        message: translationRef.current("music.error.unavailable"),
+        description: translationRef.current("music.error.noSource"),
       });
       setPlaybackStatus("error");
       setPlaybackError({
         code: "source",
-        message: "No playable audio source is available.",
+        message: translationRef.current("music.error.noSource"),
         trackId: currentVideoData.id,
       });
       return;
@@ -651,7 +655,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
       LOGGER.error(`Loading track ${currentVideoData.id} failed: `, error);
       showMessage({
         type: "warning",
-        message: "Error loading song",
+        message: translationRef.current("music.error.loading"),
         description: String(error?.message ?? error),
       });
       setPlaybackStatus("error");
@@ -842,7 +846,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         if (retryGeneration.current === generation) {
           showMessage({
             type: "warning",
-            message: "Playback failed",
+            message: translationRef.current("music.error.playbackFailed"),
             description: message,
           });
           return;
@@ -851,8 +855,10 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         retryGeneration.current = generation;
         showMessage({
           type: "warning",
-          message: "Playback interrupted",
-          description: `${message} Retrying once…`,
+          message: translationRef.current("music.error.playbackInterrupted"),
+          description: translationRef.current("music.error.retrying", {
+            message,
+          }),
         });
         refreshActiveSource(generation, "error").catch(LOGGER.warn);
       },

@@ -18,6 +18,7 @@ import {useYoutubeContext} from "@/context/YoutubeContext";
 import {useVideos} from "@/downloader/DownloadDatabaseOperations";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
 import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
+import {useTranslation} from "@/localization";
 import Logger from "@/utils/Logger";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
@@ -30,6 +31,7 @@ interface WatchApplicationContext {
 const LOGGER = Logger.extend("WATCH_SYNC");
 
 export default function useWatchSync() {
+  const {t} = useTranslation();
   const videos = useVideos();
   const innertube = useYoutubeContext();
   const {currentItem, next, previous, pause, play, playing} =
@@ -133,13 +135,13 @@ export default function useWatchSync() {
       .then(() => {
         showMessage({
           type: "success",
-          message: "Successfully started watch upload",
+          message: t("watch.uploadStarted"),
         });
       })
       .catch(error => {
         showMessage({
           type: "warning",
-          message: "Failed to upload to watch",
+          message: t("watch.uploadFailed"),
           description: error,
         });
         LOGGER.warn(error);
@@ -151,13 +153,13 @@ export default function useWatchSync() {
       .then(() => {
         showMessage({
           type: "success",
-          message: "Successfully sent playlist to watch",
+          message: t("watch.playlistSent"),
         });
       })
       .catch(error => {
         showMessage({
           type: "warning",
-          message: "Failed to send playlist to watch",
+          message: t("watch.playlistFailed"),
           description: error,
         });
       });
@@ -177,18 +179,18 @@ export default function useWatchSync() {
       if (info.error) {
         showMessage({
           type: "danger",
-          message: "Error sending file to watch!",
+          message: t("watch.fileFailed"),
           description: info.error,
         });
       } else {
         showMessage({
           type: "success",
-          message: "Successfully uploaded to watch",
+          message: t("watch.uploadComplete"),
         });
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [t]);
 
   return {watchTransfers, upload, sendPlaylist};
 }

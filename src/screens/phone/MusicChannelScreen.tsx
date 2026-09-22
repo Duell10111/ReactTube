@@ -1,61 +1,48 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React, {useEffect} from "react";
 import {View} from "react-native";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-
-import LoadingComponent from "../../components/general/LoadingComponent";
-import Logger from "../../utils/Logger";
 
 import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
 import {MusicChannelHeader} from "@/components/music/MusicChannelHeader";
-import {MusicChannelList} from "@/components/music/MusicChannelList";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import useMusicChannelDetails from "@/hooks/music/useMusicChannelDetails";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
-
-const LOGGER = Logger.extend("PLAYLIST");
+import {MediaFeed} from "@/ui/patterns";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MusicChannelScreen">;
 
 export function MusicChannelScreen({navigation, route}: Props) {
   const {artistId} = route.params;
-  const {artist} = useMusicChannelDetails(artistId);
-  const {bottom, left, right} = useSafeAreaInsets();
+  const {artist, loading, error, reload} = useMusicChannelDetails(artistId);
   const {setPlaylistViaEndpoint} = useMusikPlayerContext();
 
   useEffect(() => {
     navigation.setOptions({headerTitle: artist?.title});
   }, [artist]);
 
-  if (!artist) {
-    return <LoadingComponent />;
-  }
-
-  // LOGGER.debug("Playlist: ", recursiveTypeLogger([playlist.page_contents]));
-
   return (
-    <View
-      style={{
-        flex: 1,
-        paddingBottom: bottom,
-        paddingLeft: left,
-        paddingRight: right,
-      }}>
-      <MusicChannelList
-        data={artist.data}
-        // onFetchMore={() => fetchMore()}
+    <View style={{flex: 1}}>
+      <MediaFeed
+        error={error}
+        items={artist?.data ?? []}
+        loading={loading}
+        onRetry={reload}
+        testID={"music-artist-feed"}
         ListHeaderComponent={
-          <MusicChannelHeader
-            image={artist.thumbnail}
-            title={artist.title}
-            // subtitle={artist.description}
-            onPlayPress={() => {
-              if (artist.playEndpoint) {
-                setPlaylistViaEndpoint(artist.playEndpoint);
-                navigation.navigate("MusicPlayerScreen");
-              }
-            }}
-          />
+          artist ? (
+            <MusicChannelHeader
+              image={artist.thumbnail}
+              title={artist.title}
+              subtitle={artist.description}
+              showPlayEndpoint={Boolean(artist.playEndpoint)}
+              onPlayPress={() => {
+                if (artist.playEndpoint) {
+                  setPlaylistViaEndpoint(artist.playEndpoint);
+                  navigation.navigate("MusicPlayerScreen");
+                }
+              }}
+            />
+          ) : null
         }
       />
       <MusicBottomPlayerBar />

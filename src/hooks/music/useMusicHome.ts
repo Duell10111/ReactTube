@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 
 import {YTMusic} from "../../utils/Youtube";
 
@@ -11,27 +11,31 @@ export default function useMusicHome() {
   const youtube = useYoutubeContext();
   const [data, setData] = useState<HorizontalData[]>();
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
 
-  console.log(
-    "Horizontal Data Types: ",
-    data?.map(h => h.originalNode.type),
-  );
+  const fetchData = useCallback(() => {
+    if (!youtube?.music) {
+      return;
+    }
 
-  const fetchData = () => {
-    youtube?.music
-      ?.getHomeFeed()
+    setError(undefined);
+    youtube.music
+      .getHomeFeed()
       .then(homeFeed => {
         homeData.current = homeFeed;
         setData(extractData(homeFeed));
       })
+      .catch(setError)
       .finally(() => {
+        setLoading(false);
         setRefreshing(false);
       });
-  };
+  }, [youtube]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const extractData = (homeFeed: YTMusic.HomeFeed) => {
     return homeFeed.sections
@@ -58,5 +62,7 @@ export default function useMusicHome() {
     fetchContinuation,
     refreshing,
     refresh,
+    loading,
+    error,
   };
 }

@@ -14,25 +14,39 @@ export default function usePlaylistDetails(playlistId: string) {
   const [playlist, setPlaylist] = useState<YTPlaylist>();
   const [data, setData] = useState<ElementData[]>([]);
   const [liked, setLiked] = useState<boolean>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
   const {addPlaylistToLibrary, removePlaylistFromLibrary} =
     usePlaylistManager();
 
-  useEffect(() => {
-    youtube?.tv
-      ?.getPlaylist(playlistId)
+  const reload = useCallback(() => {
+    if (!youtube?.tv) {
+      return;
+    }
+
+    setLoading(true);
+    setError(undefined);
+    youtube.tv
+      .getPlaylist(playlistId)
       .then(p => {
         const parsedPlaylist = getElementDataFromYTTVPlaylist(p);
-        console.log(parsedPlaylist);
         setPlaylist(parsedPlaylist);
         setData(parseObservedArray(p.items));
         // setLiked(parsedPlaylist.saved?.status);
       })
-      .catch(LOGGER.warn);
+      .catch(loadError => {
+        setError(loadError);
+        LOGGER.warn(loadError);
+      })
+      .finally(() => setLoading(false));
   }, [youtube, playlistId]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   const fetchMore = useCallback(async () => {
     if (playlist?.originalData.has_continuation) {
-      console.log("Get continuation...");
       const update = await playlist.originalData.getContinuation();
       // @ts-ignore
       setPlaylist(getElementDataFromYTTVPlaylist(update));
@@ -52,5 +66,14 @@ export default function usePlaylistDetails(playlistId: string) {
     setLiked(!liked);
   };
 
-  return {playlist, data, fetchMore, liked, togglePlaylistLike};
+  return {
+    playlist,
+    data,
+    fetchMore,
+    liked,
+    togglePlaylistLike,
+    loading,
+    error,
+    reload,
+  };
 }

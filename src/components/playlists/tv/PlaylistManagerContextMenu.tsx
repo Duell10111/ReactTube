@@ -8,7 +8,6 @@ import {
   ListRenderItem,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import {Checkbox} from "react-native-paper";
@@ -17,7 +16,10 @@ import {VideoMenuContainer} from "@/components/general/VideoMenuContainer";
 import {ElementData} from "@/extraction/Types";
 import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
 import usePlaylistDetails from "@/hooks/tv/usePlaylistDetails";
+import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 import Logger from "@/utils/Logger";
 
 const LOGGER = Logger.extend("PLAYLIST_MANAGER_CONTEXT");
@@ -28,6 +30,8 @@ export function PlaylistManagerContextMenu({
   const {playlists, fetchPlaylists, fetchMorePlaylists, saveVideoToPlaylist} =
     usePlaylistManager();
   const [playlistIds, setPlaylistIds] = useState<string[]>();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   useEffect(() => {
     fetchPlaylists().catch(LOGGER.warn);
@@ -50,8 +54,6 @@ export function PlaylistManagerContextMenu({
     }, [playlistIds]),
   );
 
-  console.log("PlaylistIds: ", playlistIds);
-
   const renderItem = useCallback<ListRenderItem<ElementData>>(
     ({item}) => {
       return (
@@ -60,7 +62,6 @@ export function PlaylistManagerContextMenu({
           videoIdToSave={route.params.videoId}
           checked={playlistIds?.includes(item.id)}
           onCheck={checked => {
-            console.log("Check");
             if (checked) {
               setPlaylistIds(previous => {
                 return _.uniq([...(previous ?? []), item.id]);
@@ -77,8 +78,6 @@ export function PlaylistManagerContextMenu({
     [playlistIds],
   );
 
-  // console.log("Playlists: ", playlists);
-
   return (
     <VideoMenuContainer>
       <FlatList
@@ -86,15 +85,11 @@ export function PlaylistManagerContextMenu({
         renderItem={renderItem}
         onEndReached={fetchMorePlaylists}
         ListHeaderComponent={
-          <Text
-            style={{
-              color: "white",
-              fontSize: 25,
-              fontWeight: "bold",
-              marginBottom: 10,
-            }}>
-            {"Save video"}
-          </Text>
+          <AppText
+            style={{marginBottom: theme.spacing.md}}
+            variant={"titleMedium"}>
+            {t("playlist.manager.saveVideo")}
+          </AppText>
         }
       />
     </VideoMenuContainer>
@@ -116,6 +111,7 @@ function PlaylistManagerItem({
 }: PlaylistManagerItemProps) {
   const {data: playlistData} = usePlaylistDetails(data.id);
   const [focus, setFocus] = useState(false);
+  const {theme} = useAppTheme();
 
   useEffect(() => {
     if (playlistData.find(p => p.id === videoIdToSave)) {
@@ -129,8 +125,9 @@ function PlaylistManagerItem({
         styles.listItemContainer,
         {
           backgroundColor: focus
-            ? "white"
-            : styles.listItemContainer["backgroundColor"],
+            ? theme.colors.surfacePressed
+            : theme.colors.surfaceRaised,
+          borderColor: focus ? theme.colors.focus : theme.colors.focusResting,
         },
       ]}>
       <Pressable
@@ -151,7 +148,7 @@ function PlaylistManagerItem({
           <View style={{flex: 1}}>
             <Checkbox.Item
               mode={"android"}
-              labelStyle={{color: focus ? "black" : "white", fontSize: 20}}
+              labelStyle={{color: theme.colors.textPrimary}}
               label={data.title}
               status={checked ? "checked" : "unchecked"}
             />
@@ -164,14 +161,13 @@ function PlaylistManagerItem({
 
 const styles = StyleSheet.create({
   listItemContainer: {
-    backgroundColor: "#999",
-    borderRadius: 15,
+    borderWidth: 3,
+    borderRadius: 12,
     marginVertical: 5,
   },
   imageStyle: {
     height: 50,
     aspectRatio: 1,
-    borderRadius: 15,
-    backgroundColor: "#555",
+    borderRadius: 12,
   },
 });

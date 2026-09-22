@@ -1,7 +1,8 @@
 import React from "react";
-import {Image, StyleSheet, Text, View} from "react-native";
+import {Image, Platform, StyleSheet, View} from "react-native";
 
-import {useAppStyle} from "@/context/AppStyleContext";
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 interface Props {
   channelName: string;
@@ -9,13 +10,24 @@ interface Props {
 }
 
 export default function ChannelHeader({imgURL, channelName}: Props) {
-  const {style} = useAppStyle();
+  const {theme} = useAppTheme();
   return (
-    <View style={styles.touchContainer}>
-      <Image source={{uri: imgURL}} style={styles.img} />
-      <Text style={[styles.channelTitle, {color: style.textColor}]}>
+    <View
+      style={[
+        styles.touchContainer,
+        {gap: theme.spacing.lg, padding: theme.spacing.xl},
+      ]}>
+      <Image
+        source={{uri: imgURL}}
+        style={[
+          styles.img,
+          {backgroundColor: theme.colors.surfaceRaised},
+          Platform.isTV && styles.imgTV,
+        ]}
+      />
+      <AppText style={styles.channelTitle} variant={"titleLarge"}>
         {channelName}
-      </Text>
+      </AppText>
     </View>
   );
 }
@@ -24,15 +36,17 @@ const styles = StyleSheet.create({
   touchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    margin: 20,
   },
   img: {
-    borderRadius: 50,
-    width: 75,
-    height: 75,
+    borderRadius: 999,
+    width: 88,
+    height: 88,
+  },
+  imgTV: {
+    width: 128,
+    height: 128,
   },
   channelTitle: {
-    fontSize: 25,
-    marginStart: 10,
+    flex: 1,
   },
 });

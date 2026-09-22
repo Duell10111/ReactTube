@@ -1,18 +1,13 @@
-import Entypo from "@expo/vector-icons/Entypo";
-import {Text, View} from "react-native";
+import {useTranslation} from "@/localization";
+import {EmptyState} from "@/ui/components";
 
 export function SearchNoResultsScreen() {
+  const {t} = useTranslation();
+
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}>
-      <Entypo name={"warning"} size={50} color={"white"} />
-      <Text style={{color: "white", fontSize: 20, paddingTop: 5}}>
-        {"No results available"}
-      </Text>
-    </View>
+    <EmptyState
+      message={t("search.noResults.message")}
+      title={t("search.noResults.title")}
+    />
   );
 }

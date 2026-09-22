@@ -12,18 +12,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableHighlight,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Animated from "react-native-reanimated";
+import {Pressable, StyleSheet} from "react-native";
 
 import {PlaylistManagerCreatePanel} from "@/components/playlists/PlaylistManagerCreatePanel";
 import {PlaylistManagerList} from "@/components/playlists/PlaylistManagerList";
 import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
+import {useTranslation} from "@/localization";
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 import Logger from "@/utils/Logger";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
@@ -53,6 +49,8 @@ export function PlaylistManagerContext({
     usePlaylistManager();
   const [videoIDs, setVideoIDs] = useState<string[]>([]);
   const [createPanel, setCreatePanel] = useState(false);
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   const contextValue: PlaylistManagerContextType = {
     save: vIDs => {
@@ -67,14 +65,22 @@ export function PlaylistManagerContext({
   const renderFooter = useCallback(
     props => (
       <BottomSheetFooter {...props} bottomInset={24}>
-        <TouchableOpacity
-          style={styles.footerContainer}
+        <Pressable
+          style={[
+            styles.footerContainer,
+            {
+              backgroundColor: theme.colors.brand,
+              borderRadius: theme.radii.card,
+            },
+          ]}
           onPress={() => setCreatePanel(!createPanel)}>
-          <Text>{createPanel ? "Back" : "Add Playlist"}</Text>
-        </TouchableOpacity>
+          <AppText style={{color: theme.colors.onBrand}} variant={"label"}>
+            {t(createPanel ? "common.back" : "playlist.manager.add")}
+          </AppText>
+        </Pressable>
       </BottomSheetFooter>
     ),
-    [createPanel],
+    [createPanel, t, theme],
   );
 
   return (
@@ -88,8 +94,12 @@ export function PlaylistManagerContext({
             index={0}
             snapPoints={snapPoints}
             footerComponent={renderFooter}
-            backgroundStyle={styles.backgroundBottomSheet}>
-            <BottomSheetView style={styles.contentContainer}>
+            backgroundStyle={{backgroundColor: theme.colors.surfaceRaised}}>
+            <BottomSheetView
+              style={[
+                styles.contentContainer,
+                {backgroundColor: theme.colors.surfaceRaised},
+              ]}>
               {createPanel ? (
                 <PlaylistManagerCreatePanel
                   onPlaylistCreate={name => {
@@ -98,7 +108,7 @@ export function PlaylistManagerContext({
                       LOGGER.warn(error);
                       showMessage({
                         type: "warning",
-                        message: "Error creating playlist",
+                        message: t("playlist.manager.createError"),
                         description: error,
                       });
                     });
@@ -113,14 +123,14 @@ export function PlaylistManagerContext({
                       .then(() => {
                         showMessage({
                           type: "success",
-                          message: "Added to playlist",
+                          message: t("playlist.manager.added"),
                         });
                       })
                       .catch(error => {
                         LOGGER.warn(error);
                         showMessage({
                           type: "warning",
-                          message: "Error saving video to playlist",
+                          message: t("playlist.manager.saveError"),
                           description: error,
                         });
                       })
@@ -136,26 +146,15 @@ export function PlaylistManagerContext({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
   contentContainer: {
     flex: 1,
     alignItems: "center",
-    backgroundColor: "#444444",
-  },
-  backgroundBottomSheet: {
-    backgroundColor: "#444444",
   },
   footerContainer: {
     padding: 12,
     margin: 12,
     borderRadius: 12,
-    backgroundColor: "#80f",
+    alignItems: "center",
   },
 });
 

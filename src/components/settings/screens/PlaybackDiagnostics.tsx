@@ -1,17 +1,12 @@
 import React, {useCallback, useState} from "react";
-import {
-  ActivityIndicator,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import {Platform, ScrollView, StyleSheet, View} from "react-native";
 
 import SettingsSection from "../SettingsSection";
 
 import {useYoutubeContext, useYoutubeTVContext} from "@/context/YoutubeContext";
+import {useTranslation} from "@/localization";
+import {AppButton, AppText, ErrorState, Skeleton} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 import Logger from "@/utils/Logger";
 import {
   DiagnosticsResult,
@@ -23,33 +18,28 @@ const Clipboard = !Platform.isTV ? require("expo-clipboard") : {};
 
 const LOGGER = Logger.extend("PLAYBACK");
 
-/**
- * Diagnose-Screen — Plan-Phase 0.1.
- *
- * Muss im **Release**-Build gelaufen sein, bevor Phase 1 beginnt: nur dort zeigt
- * sich, ob die JS-Engine den Player-Code ausführen kann. Im Debug-Build kann eine
- * andere Engine aktiv sein und das Ergebnis verfälschen.
- */
+/** Player diagnostics should be collected in a release build because a debug
+ * build can use a different JavaScript engine and distort the result. */
 export default function PlaybackDiagnosticsScreen() {
   const youtube = useYoutubeContext();
   const tvYoutube = useYoutubeTVContext();
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<DiagnosticsResult[]>();
   const [error, setError] = useState<string>();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   const run = useCallback(() => {
     if (!youtube) {
-      setError("Innertube-Session noch nicht bereit");
+      setError(t("settings.diagnostics.sessionUnavailable"));
       return;
     }
 
     setRunning(true);
     setError(undefined);
 
-    // Beide Instanzen prüfen: der Login der App hängt an der TV-Instanz
-    // (useAccountData.ts nutzt useYoutubeTVContext), die Standard-Instanz bleibt
-    // anonym. Nur so ist die Frage beantwortbar, ob der TV-Client mit Auth
-    // wieder Streams liefert.
+    // Check both sessions: account access uses the TV session while the default
+    // session remains anonymous, so either client can be the failing path.
     (async () => {
       const collected: DiagnosticsResult[] = [];
 
@@ -76,7 +66,7 @@ export default function PlaybackDiagnosticsScreen() {
       })
       .catch(e => setError(String(e?.message ?? e)))
       .finally(() => setRunning(false));
-  }, [youtube, tvYoutube]);
+  }, [t, youtube, tvYoutube]);
 
   const copy = useCallback(() => {
     if (results) {
@@ -87,42 +77,59 @@ export default function PlaybackDiagnosticsScreen() {
   }, [results]);
 
   return (
-    <ScrollView style={styles.container}>
-      <SettingsSection sectionTitle={"Wiedergabe-Diagnose"}>
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.button}
+    <ScrollView
+      contentContainerStyle={{paddingBottom: theme.spacing.xxl}}
+      style={[styles.container, {backgroundColor: theme.colors.background}]}>
+      <SettingsSection sectionTitle={t("settings.playbackDiagnostics")}>
+        <View style={[styles.buttonRow, {gap: theme.spacing.md}]}>
+          <AppButton
+            label={
+              running
+                ? t("settings.diagnostics.running")
+                : t("settings.diagnostics.run")
+            }
+            loading={running}
             onPress={run}
-            disabled={running}>
-            <Text style={styles.buttonText}>
-              {running ? "Läuft…" : "Diagnose starten"}
-            </Text>
-          </TouchableOpacity>
+          />
           {results ? (
-            <TouchableOpacity style={styles.button} onPress={copy}>
-              <Text style={styles.buttonText}>{"Kopieren"}</Text>
-            </TouchableOpacity>
+            <AppButton
+              label={t("common.copy")}
+              onPress={copy}
+              variant={"secondary"}
+            />
           ) : null}
         </View>
       </SettingsSection>
 
-      {running ? <ActivityIndicator style={styles.spinner} /> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {running ? (
+        <Skeleton
+          accessibilityLabel={t("settings.diagnostics.running")}
+          height={120}
+          style={{margin: theme.spacing.xl}}
+        />
+      ) : null}
+      {error ? <ErrorState message={error} onRetry={run} /> : null}
 
       {results ? (
         results.map(result => (
-          <View key={result.session.label} style={styles.output}>
-            <Text style={styles.mono}>{formatDiagnostics(result)}</Text>
+          <View
+            key={result.session.label}
+            style={[
+              styles.output,
+              {
+                backgroundColor: theme.colors.surfaceRaised,
+                borderRadius: theme.radii.control,
+              },
+            ]}>
+            <AppText style={styles.mono} variant={"bodySmall"}>
+              {formatDiagnostics(result)}
+            </AppText>
           </View>
         ))
       ) : (
-        <Text style={styles.hint}>
-          {
-            "Prüft JS-Engine, Player und alle Clients gegen ein Testvideo. Ergebnis"
-          }
-          {"im Release-Build erheben — im Debug-Build kann eine andere Engine"}
-          {"aktiv sein."}
-        </Text>
+        <AppText color={"textSecondary"} style={{margin: theme.spacing.xl}}>
+          {t("settings.diagnostics.hint")}
+        </AppText>
       )}
     </ScrollView>
   );
@@ -138,37 +145,11 @@ const styles = StyleSheet.create({
     paddingRight: 24,
     gap: 12,
   },
-  button: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: "#556BFD",
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  spinner: {
-    marginTop: 24,
-  },
-  error: {
-    margin: 24,
-    color: "#ff6b6b",
-  },
-  hint: {
-    margin: 24,
-    color: "#a7a7a7",
-  },
   output: {
     margin: 16,
     padding: 12,
-    borderRadius: 8,
-    backgroundColor: "#1c1c1e",
   },
   mono: {
-    color: "#e5e5e7",
     fontFamily: "Courier",
-    fontSize: 12,
-    lineHeight: 18,
   },
 });

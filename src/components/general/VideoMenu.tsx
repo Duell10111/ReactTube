@@ -1,10 +1,9 @@
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import {Icon} from "@rneui/base";
 import {Image} from "expo-image";
 import _ from "lodash";
-import React, {useMemo, useState} from "react";
-import {Pressable, StyleSheet, Text, View} from "react-native";
+import React, {useMemo} from "react";
+import {StyleSheet, View} from "react-native";
 
 import Logger from "../../utils/Logger";
 
@@ -12,14 +11,14 @@ import {VideoMenuContainer} from "@/components/general/VideoMenuContainer";
 import {ElementData} from "@/extraction/Types";
 import useElementData from "@/hooks/general/useElementData";
 import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
+import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {NativeStackProp} from "@/navigation/types";
+import {AppListItem, AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 const LOGGER = Logger.extend("VIDEOMENU");
 
-// TODO: Add focus feedback
-
-// TODO: Outsource in other file
 export function VideoMenuScreen({
   route,
 }: NativeStackScreenProps<RootStackParamList, "VideoMenuContext">) {
@@ -34,6 +33,8 @@ function VideoMenuContent({data: orgData}: {data: ElementData}) {
   const navigation = useNavigation<NativeStackProp>();
   const data = useElementData(orgData);
   const {executeNavEndpoint} = usePlaylistManager();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   const contextMenu = useMemo(() => {
     return "contextMenu" in data && data.contextMenu
@@ -68,7 +69,7 @@ function VideoMenuContent({data: orgData}: {data: ElementData}) {
 
   return (
     <>
-      <View style={styles.infoContainer}>
+      <View style={[styles.infoContainer, {gap: theme.spacing.sm}]}>
         <Image
           style={styles.infoImage}
           source={{
@@ -76,12 +77,12 @@ function VideoMenuContent({data: orgData}: {data: ElementData}) {
           }}
           contentFit={"contain"}
         />
-        <Text style={styles.infoText}>{data?.title}</Text>
-        <Text style={styles.infoSubtitle}>{data?.author?.name}</Text>
+        <AppText variant={"titleMedium"}>{data?.title}</AppText>
+        <AppText color={"textSecondary"}>{data?.author?.name}</AppText>
       </View>
       {channelID ? (
         <VideoMenuItem
-          title={"To Channel"}
+          title={t("menu.channel")}
           onPress={() => {
             navigation.replace("ChannelScreen", {
               channelId: channelID,
@@ -111,23 +112,6 @@ function VideoMenuContent({data: orgData}: {data: ElementData}) {
           }}
         />
       ))}
-      {/* TODO: Add actions as add to watch later etc.*/}
-      {/*<VideoMenuItem*/}
-      {/*  title={"To Channel"}*/}
-      {/*  onPress={() => {*/}
-      {/*    // Sometimes the information is propagated in a different location*/}
-      {/*    const channelID =*/}
-      {/*      videoElement?.channel?.id ?? videoElement?.channel_id;*/}
-      {/*    if (channelID) {*/}
-      {/*      navigation.replace("ChannelScreen", {*/}
-      {/*        channelId: channelID,*/}
-      {/*      });*/}
-      {/*      onCloseModal();*/}
-      {/*    } else {*/}
-      {/*      Logger.warn("No channel data available!");*/}
-      {/*    }*/}
-      {/*  }}*/}
-      {/*/>*/}
     </>
   );
 }
@@ -138,50 +122,10 @@ interface ItemProps {
 }
 
 function VideoMenuItem({title, onPress}: ItemProps) {
-  const [focus, setFocus] = useState(false);
-  return (
-    <Pressable
-      onFocus={() => setFocus(true)}
-      onBlur={() => setFocus(false)}
-      onPress={onPress}>
-      <View
-        style={[
-          styles.listItemContainer,
-          {
-            backgroundColor: focus
-              ? "white"
-              : styles.listItemContainer["backgroundColor"],
-          },
-        ]}>
-        <Text
-          style={[styles.listItemTitle, {color: focus ? "black" : "white"}]}>
-          {title}
-        </Text>
-        <Icon
-          type={"material"}
-          name={"keyboard-arrow-right"}
-          color={focus ? "black" : "#D1D1D6"}
-          size={16}
-        />
-      </View>
-    </Pressable>
-  );
+  return <AppListItem onPress={onPress} title={title} />;
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  touchContainer: {
-    backgroundColor: "#222222",
-    borderRadius: 25,
-    width: "25%",
-    height: "95%",
-    alignSelf: "flex-end",
-    marginEnd: 20,
-    padding: 20,
-  },
   infoContainer: {
     alignSelf: "center",
     alignItems: "flex-start",
@@ -192,30 +136,5 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 1.5,
     alignSelf: "center",
-  },
-  infoText: {
-    color: "white",
-    fontSize: 25,
-    fontWeight: "bold",
-    flexShrink: 1,
-  },
-  infoSubtitle: {
-    color: "white",
-    fontSize: 20,
-    flexShrink: 1,
-  },
-  listItemContainer: {
-    backgroundColor: "#999",
-    borderRadius: 15,
-    marginVertical: 3,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    gap: 16,
-  },
-  listItemTitle: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: "bold",
   },
 });

@@ -1,13 +1,18 @@
 import {useCallback, useEffect, useState} from "react";
-import {FlatList, ListRenderItem, StyleSheet, Text, View} from "react-native";
+import {FlatList, ListRenderItem} from "react-native";
 
 import ActiveDownloadListItem from "@/components/downloader/ActiveDownloadListItem";
 import {useDownloaderContext} from "@/context/DownloaderContext";
 import {DownloadObject} from "@/hooks/downloader/useDownloadProcessor";
+import {useTranslation} from "@/localization";
+import {EmptyState} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 export function ActiveDownloadScreen() {
   const {currentDownloads} = useDownloaderContext();
   const [activeDownloads, setActiveDownloads] = useState<DownloadObject[]>([]);
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   useEffect(() => {
     setActiveDownloads(Object.values(currentDownloads.current));
@@ -21,28 +26,21 @@ export function ActiveDownloadScreen() {
     return <ActiveDownloadListItem download={item} />;
   }, []);
 
-  console.log(currentDownloads);
-  console.log(activeDownloads);
-
-  if (activeDownloads.length === 0) {
-    return (
-      <View style={styles.noDownloadsContainer}>
-        <Text style={styles.noDownloadsText}>{"No active downloads"}</Text>
-      </View>
-    );
-  }
-
-  return <FlatList data={activeDownloads} renderItem={renderItem} />;
+  return (
+    <FlatList
+      ListEmptyComponent={
+        <EmptyState
+          message={t("downloads.active.empty.message")}
+          title={t("downloads.active.empty.title")}
+        />
+      }
+      contentContainerStyle={{
+        flexGrow: 1,
+        gap: theme.spacing.sm,
+        padding: theme.spacing.md,
+      }}
+      data={activeDownloads}
+      renderItem={renderItem}
+    />
+  );
 }
-
-const styles = StyleSheet.create({
-  noDownloadsContainer: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  noDownloadsText: {
-    color: "white",
-    textAlign: "center",
-    fontSize: 20,
-  },
-});

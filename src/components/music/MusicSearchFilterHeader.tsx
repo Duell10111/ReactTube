@@ -1,13 +1,9 @@
-import {Icon} from "@rneui/base";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableHighlight,
-  View,
-} from "react-native";
+import {ScrollView, StyleSheet, View} from "react-native";
 
 import {YTChipCloud, YTChipCloudChip} from "@/extraction/Types";
+import {useTranslation} from "@/localization";
+import {AppIconButton, Chip} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 interface MusicSearchFilterHeaderProps {
   closeable?: boolean;
@@ -22,22 +18,23 @@ export function MusicSearchFilterHeader({
   onClose,
   onClick,
 }: MusicSearchFilterHeaderProps) {
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {gap: theme.spacing.sm}]}>
       {closeable ? (
-        <Icon
-          name={"close"}
-          type={"antdesign"}
-          color={"black"}
-          containerStyle={styles.exitButtonStyle}
+        <AppIconButton
+          accessibilityLabel={t("common.close")}
+          icon={"close"}
           onPress={onClose}
         />
       ) : null}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {data.chip_clouds.map(chip => (
-          <FilterCloud
+          <Chip
             key={chip.text}
-            text={chip.text}
+            label={chip.text}
             selected={chip.isSelected}
             onPress={() => onClick?.(chip)}
           />
@@ -47,47 +44,11 @@ export function MusicSearchFilterHeader({
   );
 }
 
-interface FilterCloudProps {
-  text: string;
-  selected?: boolean;
-  onPress?: () => void;
-}
-
-function FilterCloud({text, onPress, selected}: FilterCloudProps) {
-  return (
-    <TouchableHighlight
-      style={[
-        styles.filterContainer,
-        selected ? {backgroundColor: "white"} : {},
-      ]}
-      onPress={onPress}>
-      <Text style={[styles.filterText, selected ? {color: "black"} : {}]}>
-        {text}
-      </Text>
-    </TouchableHighlight>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    height: 50,
+    minHeight: 56,
     alignItems: "center",
     marginHorizontal: 5,
-  },
-  exitButtonStyle: {
-    backgroundColor: "white",
-    borderRadius: 5,
-    padding: 2,
-  },
-  filterContainer: {
-    borderRadius: 5,
-    padding: 5,
-    borderWidth: 1,
-    borderColor: "#333333",
-    marginHorizontal: 5,
-  },
-  filterText: {
-    color: "white",
   },
 });

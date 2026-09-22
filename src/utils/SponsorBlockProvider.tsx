@@ -2,6 +2,8 @@ import {useEffect, useRef, useState} from "react";
 
 import {showMessage} from "./ShowFlashMessageHelper";
 
+import {useTranslation} from "@/localization";
+
 interface SkipSegment {
   startSegment: number;
   endSegment: number;
@@ -62,6 +64,7 @@ export function useSponsorBlock(
   currentTime: number,
   seek: (seconds: number) => void,
 ) {
+  const {t} = useTranslation();
   const [segments, setSegments] = useState<SkipSegment[]>([]);
   const currentSegment = useRef(0);
 
@@ -83,10 +86,7 @@ export function useSponsorBlock(
     ) {
       console.log("Skipping to end of segment: ", segment.endSegment);
       showMessage({
-        message: `Skipping ${segment.category}`,
-        titleStyle: {
-          fontSize: 20,
-        },
+        message: t("sponsorBlock.skipping", {category: segment.category}),
       });
       currentSegment.current += 1;
       seek?.(segment.endSegment);
@@ -94,5 +94,5 @@ export function useSponsorBlock(
       // Check if skipped manually
       currentSegment.current += 1;
     }
-  }, [currentTime]);
+  }, [currentTime, seek, segments, t]);
 }

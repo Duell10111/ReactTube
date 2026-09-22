@@ -1,14 +1,15 @@
 import {useNavigation} from "@react-navigation/native";
 import _ from "lodash";
 import {useMemo} from "react";
-import {Platform, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {FlatList, Platform, Pressable, StyleSheet, View} from "react-native";
 
-import {HorizontalElementsList} from "@/components/library/HorizontalElementsList";
-import {LibrarySectionMoreButtonTV} from "@/components/library/LibrarySectionMoreButtonTV";
-import {useAppStyle} from "@/context/AppStyleContext";
 import {YTLibrarySection} from "@/extraction/Types";
 import useLibrarySection from "@/hooks/useLibrarySection";
+import {useTranslation} from "@/localization";
 import {NativeStackProp} from "@/navigation/types";
+import {AppText} from "@/ui/components";
+import {MediaCard} from "@/ui/patterns";
+import {useAppTheme} from "@/ui/theme";
 
 interface LibrarySectionItemProps {
   section: YTLibrarySection;
@@ -19,9 +20,10 @@ export function LibrarySectionItem({
   section,
   elementWidth,
 }: LibrarySectionItemProps) {
-  const {style} = useAppStyle();
   const {data, fetchMore} = useLibrarySection(section);
   const navigation = useNavigation<NativeStackProp>();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   const filteredData = useMemo(() => {
     return _.chain(data)
@@ -33,9 +35,6 @@ export function LibrarySectionItem({
       })
       .value();
   }, [data]);
-
-  console.log(section.title + " " + data);
-  console.log("PlaylistID: ", section.playlistId);
 
   const onPress = useMemo(() => {
     if (section.playlistId) {
@@ -56,32 +55,50 @@ export function LibrarySectionItem({
     return null;
   }
 
-  // Mock Touchable for TV as it does not support disabled atm
-  const Touchable = Platform.isTV && !onPress ? View : TouchableOpacity;
-
   return (
-    <View style={styles.container}>
-      <Touchable disabled={!onPress} onPress={onPress}>
-        <Text style={[styles.textStyle, {color: style.textColor}]}>
+    <View style={{gap: theme.spacing.md, paddingVertical: theme.spacing.md}}>
+      <Pressable
+        accessibilityRole={onPress ? "button" : "header"}
+        disabled={!onPress}
+        onPress={onPress}
+        style={[styles.header, {paddingHorizontal: theme.spacing.lg}]}>
+        <AppText style={styles.title} variant={"titleMedium"}>
           {section.title}
-        </Text>
-      </Touchable>
-      <HorizontalElementsList
-        elements={filteredData}
+        </AppText>
+        {onPress ? (
+          <AppText color={"textSecondary"} variant={"label"}>
+            {t("feed.seeAll")}
+          </AppText>
+        ) : null}
+      </Pressable>
+      <FlatList
+        contentContainerStyle={{
+          gap: theme.spacing.md,
+          paddingHorizontal: theme.spacing.lg,
+        }}
+        data={filteredData}
+        horizontal
+        keyExtractor={item => item.id}
         onEndReached={fetchMore}
-        width={elementWidth}
-        endElement={
-          onPress ? <LibrarySectionMoreButtonTV onPress={onPress} /> : undefined
-        }
+        onEndReachedThreshold={0.7}
+        renderItem={({item}) => (
+          <MediaCard
+            element={item}
+            width={elementWidth ?? (Platform.isTV ? 360 : 220)}
+          />
+        )}
+        showsHorizontalScrollIndicator={false}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {},
-  textStyle: {
-    fontSize: 25,
-    paddingBottom: 10,
+  header: {
+    alignItems: "center",
+    flexDirection: "row",
+  },
+  title: {
+    flex: 1,
   },
 });

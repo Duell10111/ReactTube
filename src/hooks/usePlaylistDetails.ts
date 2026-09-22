@@ -15,20 +15,36 @@ export default function usePlaylistDetails(playlistId: string) {
   const [playlist, setPlaylist] = useState<YTPlaylist>();
   const [data, setData] = useState<ElementData[]>([]);
   const [liked, setLiked] = useState<boolean>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
   const {addPlaylistToLibrary, removePlaylistFromLibrary} =
     usePlaylistManager();
 
-  useEffect(() => {
+  const reload = useCallback(() => {
+    if (!youtube) {
+      return;
+    }
+
+    setLoading(true);
+    setError(undefined);
     youtube
-      ?.getPlaylist(playlistId)
+      .getPlaylist(playlistId)
       .then(p => {
         const parsedPlaylist = getElementDataFromYTPlaylist(p);
         setPlaylist(parsedPlaylist);
         setData(parseObservedArray(p.items));
         setLiked(parsedPlaylist.saved?.status);
       })
-      .catch(LOGGER.warn);
+      .catch(loadError => {
+        setError(loadError);
+        LOGGER.warn(loadError);
+      })
+      .finally(() => setLoading(false));
   }, [youtube, playlistId]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   // const parsedData = useMemo(() => {
   //   return data.map(getVideoData);
@@ -59,5 +75,14 @@ export default function usePlaylistDetails(playlistId: string) {
 
   console.log("Playlist Like: ", liked);
 
-  return {playlist, data, fetchMore, liked, togglePlaylistLike};
+  return {
+    playlist,
+    data,
+    fetchMore,
+    liked,
+    togglePlaylistLike,
+    loading,
+    error,
+    reload,
+  };
 }

@@ -4,7 +4,7 @@ import "event-target-polyfill";
 import "fast-text-encoding";
 import "react-native-quick-base64";
 
-import React, {useMemo} from "react";
+import React, {useEffect, useMemo} from "react";
 import {StatusBar} from "react-native";
 import FlashMessage from "react-native-flash-message";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
@@ -39,6 +39,15 @@ function ThemedApp() {
     [reduceMotion],
   );
 
+  useEffect(() => {
+    FlashMessage.setColorTheme({
+      danger: theme.colors.error,
+      info: theme.colors.brand,
+      success: theme.colors.success,
+      warning: theme.colors.warning,
+    });
+  }, [theme]);
+
   return (
     <PaperProvider theme={resolvedPaperTheme}>
       <BackgroundWrapper>
@@ -58,7 +67,14 @@ function ThemedApp() {
                           <Navigation />
                         </VideoProvider>
                       </VideoPlayerSettingsContext>
-                      <FlashMessage position={"top"} />
+                      <FlashMessage
+                        backgroundColor={theme.colors.surfaceRaised}
+                        color={theme.colors.textPrimary}
+                        position={"top"}
+                        style={{borderRadius: theme.radii.control}}
+                        textStyle={theme.typography.bodySmall}
+                        titleStyle={theme.typography.label}
+                      />
                     </PlaylistManagerContext>
                   </DownloaderContext>
                 </MusicPlayerContext>

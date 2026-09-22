@@ -1,9 +1,12 @@
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {Pressable, StyleSheet, View} from "react-native";
 
 import {MusicSearchListItem} from "@/components/music/MusicSearchListItem";
 import MusicSearchSectionButtonItem from "@/components/music/MusicSearchSectionButtonItem";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 import {VideoData} from "@/extraction/Types";
+import {useTranslation} from "@/localization";
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 interface MusicSearchSectionItemProps {
   data: HorizontalData;
@@ -14,17 +17,29 @@ export default function MusicSearchSectionItem({
   data,
   onPress,
 }: MusicSearchSectionItemProps) {
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
+
   if (data.thumbnail && data.buttons?.length && data.buttons.length > 0) {
     return <MusicSearchSectionButtonItem data={data} />;
   }
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.headerContainer} onPress={onPress}>
-        <Text style={styles.titleStyle}>{data.title}</Text>
-        {/* TODO: Adapt Button style to match YT Music*/}
-        <Text style={styles.moreText}>{"More"}</Text>
-      </TouchableOpacity>
+    <View style={[styles.container, {marginHorizontal: theme.spacing.sm}]}>
+      <Pressable
+        accessibilityRole={"button"}
+        style={styles.headerContainer}
+        onPress={onPress}>
+        <AppText style={styles.titleStyle} variant={"titleMedium"}>
+          {data.title}
+        </AppText>
+        <AppText
+          color={"textSecondary"}
+          style={styles.moreText}
+          variant={"label"}>
+          {t("common.more")}
+        </AppText>
+      </Pressable>
       <View style={styles.itemContainer}>
         {data.parsedData.map(element => (
           <MusicSearchListItem key={element.id} data={element as VideoData} />
@@ -35,9 +50,7 @@ export default function MusicSearchSectionItem({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: 5,
-  },
+  container: {},
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -45,14 +58,9 @@ const styles = StyleSheet.create({
   },
   titleStyle: {
     flex: 1,
-    fontSize: 25,
-    color: "white",
   },
   moreText: {
     marginHorizontal: 10,
-    color: "white",
   },
-  itemContainer: {
-    // marginHorizontal: 5,
-  },
+  itemContainer: {},
 });

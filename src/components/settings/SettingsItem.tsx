@@ -1,7 +1,8 @@
 import {Feather} from "@expo/vector-icons";
 import React from "react";
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {StyleSheet, View} from "react-native";
 
+import {AppListItem} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
 
 interface Props {
@@ -23,32 +24,21 @@ export default function SettingsSelectorOverview({
 
   return (
     <RowWrapper>
-      <TouchableOpacity
-        accessibilityLabel={`${label}, ${value}`}
-        accessibilityRole={"button"}
+      <AppListItem
+        leading={
+          <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
+            <Feather
+              color={theme.colors.textPrimary}
+              // @ts-ignore The icon name is supplied by the settings descriptor.
+              name={icon}
+              size={20}
+            />
+          </View>
+        }
         onPress={onPress}
-        style={styles.row}>
-        <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
-          <Feather
-            color={theme.colors.textPrimary}
-            // @ts-ignore The icon name is supplied by the settings descriptor.
-            name={icon}
-            size={20}
-          />
-        </View>
-        <Text style={[styles.rowLabel, {color: theme.colors.textPrimary}]}>
-          {label}
-        </Text>
-        <View style={styles.rowSpacer} />
-        <Text style={[styles.rowValue, {color: theme.colors.textSecondary}]}>
-          {value}
-        </Text>
-        <Feather
-          color={theme.colors.textSecondary}
-          name={"chevron-right"}
-          size={20}
-        />
-      </TouchableOpacity>
+        title={label}
+        trailingText={value}
+      />
     </RowWrapper>
   );
 }
@@ -68,23 +58,20 @@ export function SettingsSelectorItem({
 
   return (
     <RowWrapper>
-      <TouchableOpacity
-        accessibilityRole={"radio"}
-        accessibilityState={{selected}}
+      <AppListItem
         onPress={onPress}
-        style={styles.row}>
-        <Text style={[styles.rowLabel, {color: theme.colors.textPrimary}]}>
-          {label}
-        </Text>
-        <View style={styles.rowSpacer} />
-        {selected ? (
-          <Feather
-            color={theme.colors.textSecondary}
-            name={"check"}
-            size={20}
-          />
-        ) : null}
-      </TouchableOpacity>
+        selected={selected}
+        title={label}
+        trailing={
+          selected ? (
+            <Feather
+              color={theme.colors.textSecondary}
+              name={"check"}
+              size={20}
+            />
+          ) : null
+        }
+      />
     </RowWrapper>
   );
 }
@@ -108,31 +95,30 @@ export function SettingsStandaloneSelector({
 
   return (
     <RowWrapper>
-      <TouchableOpacity
-        accessibilityRole={"radio"}
-        accessibilityState={{selected}}
+      <AppListItem
+        leading={
+          <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
+            <Feather
+              color={theme.colors.textPrimary}
+              // @ts-ignore The icon name is supplied by the settings descriptor.
+              name={icon}
+              size={20}
+            />
+          </View>
+        }
         onPress={onPress}
-        style={styles.row}>
-        <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
-          <Feather
-            color={theme.colors.textPrimary}
-            // @ts-ignore The icon name is supplied by the settings descriptor.
-            name={icon}
-            size={20}
-          />
-        </View>
-        <Text style={[styles.rowLabel, {color: theme.colors.textPrimary}]}>
-          {label}
-        </Text>
-        <View style={styles.rowSpacer} />
-        {selected ? (
-          <Feather
-            color={theme.colors.textSecondary}
-            name={"check"}
-            size={20}
-          />
-        ) : null}
-      </TouchableOpacity>
+        selected={selected}
+        title={label}
+        trailing={
+          selected ? (
+            <Feather
+              color={theme.colors.textSecondary}
+              name={"check"}
+              size={20}
+            />
+          ) : null
+        }
+      />
     </RowWrapper>
   );
 }
@@ -154,25 +140,23 @@ export function SettingsButton({
 
   return (
     <RowWrapper>
-      <TouchableOpacity
-        accessibilityRole={"button"}
+      <AppListItem
+        destructive={!icon}
+        leading={
+          icon && iconBackground ? (
+            <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
+              <Feather
+                color={theme.colors.textPrimary}
+                // @ts-ignore The icon name is supplied by the settings descriptor.
+                name={icon}
+                size={20}
+              />
+            </View>
+          ) : undefined
+        }
         onPress={onPress}
-        style={styles.row}>
-        {icon && iconBackground ? (
-          <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
-            <Feather
-              color={theme.colors.textPrimary}
-              // @ts-ignore The icon name is supplied by the settings descriptor.
-              name={icon}
-              size={20}
-            />
-          </View>
-        ) : null}
-        <Text style={[styles.rowLabel, {color: theme.colors.textPrimary}]}>
-          {label}
-        </Text>
-        <View style={styles.rowSpacer} />
-      </TouchableOpacity>
+        title={label}
+      />
     </RowWrapper>
   );
 }
@@ -188,15 +172,8 @@ function RowWrapper({children}: {children: React.ReactNode}) {
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    paddingRight: 24,
-    minHeight: 50,
-  },
   rowWrapper: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    marginBottom: 4,
   },
   rowIcon: {
     width: 30,
@@ -205,19 +182,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
-  },
-  rowLabel: {
-    fontSize: 17,
-    fontWeight: "500",
-  },
-  rowSpacer: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-  },
-  rowValue: {
-    fontSize: 17,
-    fontWeight: "500",
-    marginRight: 4,
   },
 });

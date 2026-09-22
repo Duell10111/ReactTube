@@ -20,7 +20,9 @@ import {SearchBarSuggestions} from "@/components/search/SearchBarSuggestions";
 import {SearchNoResultsScreen} from "@/components/search/SearchNoResultsScreen";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 import useMusicSearch from "@/hooks/music/useMusicSearch";
+import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
+import {useAppTheme} from "@/ui/theme";
 
 export function MusicSearchScreen() {
   const navigation =
@@ -41,21 +43,18 @@ export function MusicSearchScreen() {
   const [suggestions, setSearchSuggestions] = useState<string[]>([]);
   const [searchBarOpen, setSearchBarOpen] = useState(false);
   const searchBarRef = useRef<SearchBarCommands>(null);
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   const debouncedOnChange = useCallback(
     _.debounce(text => {
-      console.log("Finished typing:", text);
       search(text);
-      // Perform your action here, e.g., API call, validation
     }, 1000),
     [],
-  ); // 1000ms delay
+  );
 
   const performSearch = (text?: string) => {
     const query = text ?? searchText;
-    console.log("Search: ", query);
-    // TODO: Clear results on empty string?!
-
     debouncedOnChange.cancel();
     debouncedOnChange(query);
     if (text) {
@@ -74,7 +73,7 @@ export function MusicSearchScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerSearchBarOptions: {
-        placeholder: "Search",
+        placeholder: t("search.placeholder"),
         onChangeText: event => setSearchText(event.nativeEvent.text),
         onSearchButtonPress: event => {
           performSearch(event.nativeEvent.text);
@@ -85,14 +84,14 @@ export function MusicSearchScreen() {
         onBlur: () => setSearchBarOpen(false),
         // @ts-ignore Ignore null init value
         ref: searchBarRef,
-        textColor: "white",
-        headerIconColor: "white",
-        hintTextColor: "white",
+        textColor: theme.colors.textPrimary,
+        headerIconColor: theme.colors.textPrimary,
+        hintTextColor: theme.colors.textSecondary,
         hideWhenScrolling: false,
         autoFocus: true,
       },
     });
-  }, [navigation]);
+  }, [navigation, t, theme]);
 
   const renderItem = useCallback<ListRenderItem<HorizontalData>>(
     ({item}) => {
@@ -106,11 +105,6 @@ export function MusicSearchScreen() {
     [extendMusicShelf],
   );
 
-  console.log(parsedData);
-
-  console.log("Bar open: ", searchBarOpen);
-
-  // TODO: Adapt to use music specific suggestions
   if (searchBarOpen) {
     return (
       <SearchBarSuggestions

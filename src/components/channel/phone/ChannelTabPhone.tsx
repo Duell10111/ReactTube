@@ -20,6 +20,8 @@ export function ChannelTabPhone({navigation, route}: Props) {
         return "Shorts";
       case "Playlists":
         return "Playlists";
+      case "About":
+        return "About";
     }
   }, [route]);
   const {channel} = useChannelContext();

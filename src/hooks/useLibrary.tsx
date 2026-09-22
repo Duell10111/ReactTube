@@ -1,6 +1,5 @@
-import {useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 
-import {useFeedData} from "./general/useFeedData";
 import Logger from "../utils/Logger";
 
 import {useYoutubeContext} from "@/context/YoutubeContext";
@@ -14,28 +13,31 @@ export default function useLibrary() {
   const youtube = useYoutubeContext();
   const library = useRef<YT.Library>(undefined);
   const [data, setData] = useState<YTLibrary>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
 
-  console.log("DATA: ", data);
-
-  useEffect(() => {
+  const reload = useCallback(() => {
+    if (!youtube) {
+      return;
+    }
+    setLoading(true);
+    setError(undefined);
     youtube
-      ?.getLibrary()
+      .getLibrary()
       .then(async lib => {
-        console.log("Fetching library");
-        // console.log("Lib: ", JSON.stringify(lib, null, 4));
         library.current = lib;
         setData(await getElementDataFromYTLibrary(lib));
       })
-      .catch(LOGGER.warn);
-  }, []);
+      .catch(loadError => {
+        setError(loadError);
+        LOGGER.warn(loadError);
+      })
+      .finally(() => setLoading(false));
+  }, [youtube]);
 
-  // TODO: Remove below once migrated
-  const {content, fetchMore, parsedContent} = useFeedData(async yt => {
-    const lib = await yt.getLibrary();
-    // const rtn = library?.history() ?? library;
-    return lib;
-  });
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
-  // return {content: [], fetchMore: () => {}, parsedContent: [], data};
-  return {content, fetchMore, parsedContent, data};
+  return {data, loading, error, reload};
 }

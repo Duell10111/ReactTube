@@ -17,12 +17,6 @@ export function showMessage(options: MessageOptions) {
           justifyContent: "center",
         }
       : undefined,
-    titleStyle: Platform.isTV
-      ? {
-          fontSize: 30,
-          lineHeight: 30,
-        }
-      : undefined,
     ...options,
   });
 }

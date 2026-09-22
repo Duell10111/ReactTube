@@ -1,31 +1,49 @@
-import {StyleSheet, Text, View} from "react-native";
+import {StyleSheet, View} from "react-native";
 import {ProgressBar} from "react-native-paper";
 
-import {useAppStyle} from "@/context/AppStyleContext";
 import {WatchFileTransferInfo} from "@/context/DownloaderContext";
+import {useTranslation} from "@/localization";
+import {AppText} from "@/ui/components";
+import {getTransferPercent} from "@/ui/patterns";
+import {useAppTheme} from "@/ui/theme";
 
 interface Props {
   upload: WatchFileTransferInfo;
 }
 
 export default function ActiveUploadListItem({upload}: Props) {
-  const {style} = useAppStyle();
+  const {theme} = useAppTheme();
+  const {t} = useTranslation();
 
   return (
-    <>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.divider,
+          borderRadius: theme.radii.control,
+          gap: theme.spacing.sm,
+          padding: theme.spacing.md,
+        },
+      ]}>
       <View style={styles.container}>
         <View style={styles.textContainer}>
-          <Text style={{color: style.textColor}}>
+          <AppText numberOfLines={1}>
             {upload?.uri.split("/").reverse()?.[1]}
-          </Text>
-          {/*<Text*/}
-          {/*  style={{*/}
-          {/*    color: style.textColor,*/}
-          {/*  }}>{`${author} - ${data.originalNode.type}`}</Text>*/}
+          </AppText>
+          <AppText color={"textSecondary"} variant={"bodySmall"}>
+            {t("transfer.progress", {
+              percent: getTransferPercent(upload.process),
+            })}
+          </AppText>
         </View>
       </View>
-      <ProgressBar animatedValue={upload.process} color={"blue"} />
-    </>
+      <ProgressBar
+        animatedValue={upload.process}
+        color={theme.colors.mediaProgress}
+      />
+    </View>
   );
 }
 
@@ -33,20 +51,13 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    height: 50,
+    minHeight: 48,
   },
-  imageStyle: {
-    borderRadius: 5,
-    width: 50,
-    height: 50,
+  card: {
+    borderWidth: StyleSheet.hairlineWidth,
   },
   textContainer: {
     justifyContent: "center",
     flex: 1,
-    marginLeft: 15,
-  },
-  titleStyle: {
-    fontSize: 20,
-    fontWeight: "bold",
   },
 });
