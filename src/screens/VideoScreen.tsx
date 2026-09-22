@@ -19,12 +19,8 @@ import useVideoDetails from "../hooks/useVideoDetails";
 import LOGGER from "../utils/Logger";
 
 import {BottomMetadata} from "@/components/video/tv/BottomMetadata";
-import {
-  VideoSidePanel,
-  type VideoSidePanelTab,
-} from "@/components/video/tv/VideoSidePanel";
 import {useAppData} from "@/context/AppDataContext";
-import useVideoComments from "@/hooks/comments/useVideoComments";
+import {useVideoSidePanel} from "@/context/VideoSidePanelContext";
 import useChannelDetails from "@/hooks/useChannelDetails";
 import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
@@ -69,13 +65,8 @@ export default function VideoScreen({route, navigation}: Props) {
   const [ended, setEnded] = useState(false);
 
   const {appSettings} = useAppData();
+  const {prepare: prepareSidePanel} = useVideoSidePanel();
   const {t} = useTranslation();
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [panelTab, setPanelTab] = useState<VideoSidePanelTab>("details");
-  const comments = useVideoComments(
-    YTVideoInfo?.id ?? videoId,
-    panelOpen && panelTab === "comments",
-  );
   const detailModel = useMemo(
     () =>
       YTVideoInfo
@@ -168,8 +159,8 @@ export default function VideoScreen({route, navigation}: Props) {
             onPlaybackFailure: reportPlaybackFailure,
             onPlaybackInfoUpdate: infos => {
               setPlaybackInfos({
-                // Plan-Phase 4.3: was gerade wirklich läuft — Quelle, Stufe und
-                // Auflösung, damit ein Fehlverhalten ohne Xcode erkennbar ist.
+                // Phase 4.3: expose the active source, fallback step, and
+                // resolution so playback issues are visible without Xcode.
                 resolution:
                   `${infos.height}p` +
                   (playbackSource
@@ -217,7 +208,18 @@ export default function VideoScreen({route, navigation}: Props) {
                 await videoPlayerRef.current?.getCurrentPositionSeconds?.(),
               );
             },
-            onShowDetails: () => setPanelOpen(true),
+            onShowDetails: () => {
+              if (!detailModel) {
+                return;
+              }
+
+              prepareSidePanel({
+                videoId,
+                model: detailModel,
+                queueEntries: YTVideoInfo.playlist?.content ?? [],
+              });
+              navigation.navigate("VideoPlayerInfo");
+            },
           }}
           videoID={YTVideoInfo.id}
           onProgress={data => {
@@ -295,17 +297,6 @@ export default function VideoScreen({route, navigation}: Props) {
           }}
         />
       )}
-      {detailModel ? (
-        <VideoSidePanel
-          comments={comments}
-          model={detailModel}
-          onClose={() => setPanelOpen(false)}
-          onTabChange={setPanelTab}
-          queueEntries={YTVideoInfo.playlist?.content ?? []}
-          tab={panelTab}
-          visible={panelOpen}
-        />
-      ) : null}
       <EndCard
         video={YTVideoInfo}
         visible={showEndCard}

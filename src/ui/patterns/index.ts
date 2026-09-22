@@ -16,6 +16,7 @@ export * from "./VideoDetailHeader";
 export * from "./VideoDetailSkeleton";
 export * from "./VideoQueuePanel";
 export * from "./commentModel";
+export * from "./descriptionBlocks";
 export * from "./feedLayout";
 export * from "./mediaCardModel";
 export * from "./secondarySurfaceModel";

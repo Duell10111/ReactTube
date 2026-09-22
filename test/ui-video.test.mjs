@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import {resolveVideoDetailFallback} from "../src/extraction/videoInfoFallback.ts";
+import {mergeCommentPages} from "../src/hooks/comments/commentPages.ts";
+import {requestCommentsWithFallback} from "../src/hooks/comments/commentRequest.ts";
 import {resolveTranslation} from "../src/localization/core.ts";
 import {de} from "../src/localization/de.ts";
 import {en} from "../src/localization/en.ts";
 import {createCommentViewModel} from "../src/ui/patterns/commentModel.ts";
+import {splitDescriptionBlocks} from "../src/ui/patterns/descriptionBlocks.ts";
 import {
   getPlayerHeight,
   getVideoDetailLayout,
@@ -184,6 +188,51 @@ test("treats a blank description as no description", () => {
   assert.equal(present.hasDescription, true);
 });
 
+test("fills TV detail fields from the standard video response", () => {
+  const commentsEntryPointHeader = {
+    comments_count: "12",
+    header_text: "Comments",
+  };
+  const resolved = resolveVideoDetailFallback(
+    {description: "   ", commentsEntryPointHeader: undefined},
+    {description: "Full description", commentsEntryPointHeader},
+  );
+
+  assert.equal(resolved.description, "Full description");
+  assert.equal(resolved.commentsEntryPointHeader, commentsEntryPointHeader);
+
+  const primary = resolveVideoDetailFallback(
+    {description: "TV description", commentsEntryPointHeader},
+    {description: "Fallback description", commentsEntryPointHeader: undefined},
+  );
+
+  assert.equal(primary.description, "TV description");
+  assert.equal(primary.commentsEntryPointHeader, commentsEntryPointHeader);
+});
+
+test("falls back when the first comment session returns an empty page", async () => {
+  const emptyPage = {contents: []};
+  const populatedPage = {contents: [{id: "comment-1"}]};
+  const calls = [];
+  const result = await requestCommentsWithFallback("video-1", [
+    {
+      getComments: async videoId => {
+        calls.push(`account:${videoId}`);
+        return emptyPage;
+      },
+    },
+    {
+      getComments: async videoId => {
+        calls.push(`anonymous:${videoId}`);
+        return populatedPage;
+      },
+    },
+  ]);
+
+  assert.equal(result, populatedPage);
+  assert.deepEqual(calls, ["account:video-1", "anonymous:video-1"]);
+});
+
 test("builds the comment metadata line from the counts YouTube formats", () => {
   const comment = {
     id: "comment-1",
@@ -224,4 +273,91 @@ test("drops the counts a comment does not carry", () => {
 
   assert.equal(model.metadataLine, "");
   assert.equal(model.authorName, undefined);
+});
+
+test("keeps looking for comments while a page carries nothing readable", async () => {
+  // A page of comment nodes without their entity batch: ids, no text, no
+  // author. It answered the request, but nothing can be rendered from it.
+  const shellPage = {contents: [{id: "comment-1"}, {id: "comment-2"}]};
+  const readablePage = {contents: [{id: "comment-3", text: "A comment"}]};
+  const calls = [];
+  const isUsable = page => page.contents.some(entry => entry.text);
+
+  const result = await requestCommentsWithFallback(
+    "video-1",
+    [
+      {
+        getComments: async () => {
+          calls.push("account");
+          return shellPage;
+        },
+      },
+      {
+        getComments: async () => {
+          calls.push("anonymous");
+          return readablePage;
+        },
+      },
+    ],
+    {isUsable},
+  );
+
+  assert.equal(result, readablePage);
+  assert.deepEqual(calls, ["account", "anonymous"]);
+});
+
+test("keeps the unreadable page when no session does better", async () => {
+  const shellPage = {contents: [{id: "comment-1"}]};
+  const result = await requestCommentsWithFallback(
+    "video-1",
+    [{getComments: async () => shellPage}],
+    {isUsable: page => page.contents.some(entry => entry.text)},
+  );
+
+  assert.equal(result, shellPage);
+});
+
+test("splits a description into blocks a remote can step through", () => {
+  const paragraph = "word ".repeat(200).trim();
+  const blocks = splitDescriptionBlocks(paragraph, 100);
+
+  assert.ok(blocks.length > 1);
+  for (const block of blocks) {
+    assert.ok(block.length <= 100, `block too long: ${block.length}`);
+    assert.equal(block, block.trim());
+  }
+  assert.equal(blocks.join(" "), paragraph);
+});
+
+test("keeps short lines together and drops empty description blocks", () => {
+  assert.deepEqual(splitDescriptionBlocks("", 100), []);
+  assert.deepEqual(splitDescriptionBlocks("   \n\n  ", 100), []);
+  assert.deepEqual(splitDescriptionBlocks("One line", 100), ["One line"]);
+  assert.deepEqual(splitDescriptionBlocks("First\n\nSecond", 100), [
+    "First\n\nSecond",
+  ]);
+
+  const blocks = splitDescriptionBlocks("First line\nSecond line", 12);
+
+  assert.deepEqual(blocks, ["First line", "Second line"]);
+});
+
+test("appends a continuation page without repeating what is loaded", () => {
+  const loaded = [{id: "a"}, {id: "b"}];
+  const continuation = [{id: "b"}, {id: "c"}];
+
+  assert.deepEqual(
+    mergeCommentPages(loaded, continuation).map(comment => comment.id),
+    ["a", "b", "c"],
+  );
+  // The same page twice — which is what a double continuation request does.
+  assert.deepEqual(
+    mergeCommentPages(loaded, loaded).map(comment => comment.id),
+    ["a", "b"],
+  );
+  // A page that repeats a comment within itself.
+  assert.deepEqual(
+    mergeCommentPages([], [{id: "a"}, {id: "a"}]).map(comment => comment.id),
+    ["a"],
+  );
 });

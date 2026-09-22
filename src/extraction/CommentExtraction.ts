@@ -39,8 +39,23 @@ export function parseCommentThread(
   };
 }
 
+/**
+ * Whether anything of the comment survived parsing.
+ *
+ * YouTube does not put text and author into the comment node any more: both
+ * arrive in `frameworkUpdates.entityBatchUpdate`, and youtubei.js merges them
+ * afterwards. A response that carries the nodes without that batch parses
+ * into comments that hold an id and nothing else. Rendered, that is a panel
+ * of empty boxes — which is how the bug showed itself: the comments
+ * "loaded", and the panel stayed black.
+ */
+export function isReadableComment(comment: YTComment): boolean {
+  return comment.text.trim().length > 0 || Boolean(comment.author?.name);
+}
+
 export function parseComments(comments: YT.Comments): YTComment[] {
   return comments.contents
     .map(parseCommentThread)
-    .filter((comment): comment is YTComment => comment !== undefined);
+    .filter((comment): comment is YTComment => comment !== undefined)
+    .filter(isReadableComment);
 }

@@ -115,6 +115,9 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     endscreen: videoInfo.endscreen
       ? parseEndScreen(videoInfo.endscreen)
       : undefined,
+    commentsEntryPointHeader: videoInfo.comments_entry_point_header
+      ? parseCommentsEntryPointHeader(videoInfo.comments_entry_point_header)
+      : undefined,
     // TODO: Adapt author to only contain name
     author: {
       name: videoInfo.basic_info.author,
