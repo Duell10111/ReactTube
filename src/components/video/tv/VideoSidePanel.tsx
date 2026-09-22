@@ -83,6 +83,8 @@ export function VideoSidePanel({
         </AppText>
         <AppIconButton
           accessibilityLabel={t("video.panel.close")}
+          focusable
+          hasTVPreferredFocus
           icon={"close"}
           onPress={onClose}
         />
@@ -138,5 +140,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    minHeight: 0,
+    overflow: "hidden",
   },
 });

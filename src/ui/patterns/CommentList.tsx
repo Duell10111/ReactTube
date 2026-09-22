@@ -1,10 +1,12 @@
 import {MaterialIcons} from "@expo/vector-icons";
 import {BottomSheetFlatList} from "@gorhom/bottom-sheet";
 import {Image} from "expo-image";
-import React, {useCallback, useMemo} from "react";
+import React, {useCallback, useMemo, useState} from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
+  ScrollView,
   StyleSheet,
   View,
   type ListRenderItem,
@@ -58,7 +60,14 @@ export function CommentList({
       <View
         accessibilityLabel={t("video.comments.loading")}
         accessibilityRole={"progressbar"}
-        style={{padding: theme.spacing.lg, gap: theme.spacing.lg}}>
+        style={[
+          styles.loading,
+          {padding: theme.spacing.lg, gap: theme.spacing.lg},
+        ]}>
+        <ActivityIndicator color={theme.colors.textPrimary} size={"large"} />
+        <AppText align={"center"} color={"textSecondary"}>
+          {t("video.comments.loading")}
+        </AppText>
         {Array.from({length: skeletonCount}).map((_, index) => (
           <View key={index} style={{gap: theme.spacing.sm}}>
             <Skeleton height={16} width={"40%"} />
@@ -80,16 +89,62 @@ export function CommentList({
     );
   }
 
-  const List = inSheet ? BottomSheetFlatList : FlatList;
-
-  return (
-    <List
-      ListEmptyComponent={
+  if (comments.length === 0) {
+    return (
+      <View style={styles.empty} testID={"comment-list-empty"}>
         <EmptyState
           message={t("video.comments.empty.message")}
           title={t("video.comments.empty.title")}
         />
-      }
+      </View>
+    );
+  }
+
+  if (Platform.isTV) {
+    // A `FlatList` here rendered no cells at all inside the TV side panel —
+    // the panel stayed empty while the same box showed the description fine.
+    // Focus-driven scrolling mounts every row anyway, so the virtualized list
+    // bought nothing and the plain scroll view is both the fix and less.
+    return (
+      <ScrollView
+        contentContainerStyle={{
+          padding: theme.spacing.lg,
+          gap: theme.spacing.lg,
+        }}
+        onScroll={event => {
+          const {contentOffset, contentSize, layoutMeasurement} =
+            event.nativeEvent;
+          const remaining =
+            contentSize.height - contentOffset.y - layoutMeasurement.height;
+
+          if (remaining < layoutMeasurement.height) {
+            onEndReached();
+          }
+        }}
+        scrollEventThrottle={64}
+        style={styles.list}
+        testID={"comment-list"}>
+        {comments.map((comment, index) => (
+          <CommentRow
+            comment={comment}
+            key={comment.id || `comment-${index}`}
+          />
+        ))}
+        {loadingMore ? (
+          <ActivityIndicator
+            accessibilityLabel={t("video.comments.loading")}
+            color={theme.colors.textSecondary}
+            style={{padding: theme.spacing.lg}}
+          />
+        ) : null}
+      </ScrollView>
+    );
+  }
+
+  const List = inSheet ? BottomSheetFlatList : FlatList;
+
+  return (
+    <List
       ListFooterComponent={
         loadingMore ? (
           <ActivityIndicator
@@ -105,10 +160,15 @@ export function CommentList({
         flexGrow: 1,
       }}
       data={comments}
-      keyExtractor={(item: YTComment) => item.id}
+      keyExtractor={(item: YTComment, index: number) =>
+        // An id is expected, but a page that arrives without one must not
+        // collapse every row onto the same key.
+        item.id || `comment-${index}`
+      }
       onEndReached={onEndReached}
       onEndReachedThreshold={0.6}
       renderItem={renderItem}
+      style={styles.list}
       testID={"comment-list"}
     />
   );
@@ -121,6 +181,7 @@ interface CommentRowProps {
 function CommentRow({comment}: CommentRowProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
+  const [focused, setFocused] = useState(false);
   const model = useMemo(
     () => createCommentViewModel(comment, {translate: t}),
     [comment, t],
@@ -130,7 +191,22 @@ function CommentRow({comment}: CommentRowProps) {
     <View
       accessibilityLabel={model.accessibilityLabel}
       accessibilityRole={"text"}
-      style={[styles.row, {gap: theme.spacing.md}]}>
+      collapsable={false}
+      focusable={Platform.isTV}
+      onBlur={() => setFocused(false)}
+      onFocus={() => setFocused(true)}
+      style={[
+        styles.row,
+        {
+          backgroundColor: focused
+            ? theme.colors.surfacePressed
+            : theme.colors.focusResting,
+          borderColor: focused ? theme.colors.focus : theme.colors.focusResting,
+          borderRadius: theme.radii.card,
+          gap: theme.spacing.md,
+          padding: Platform.isTV ? theme.spacing.sm : 0,
+        },
+      ]}>
       <Image
         accessibilityIgnoresInvertColors
         contentFit={"cover"}
@@ -167,9 +243,20 @@ function CommentRow({comment}: CommentRowProps) {
 }
 
 const styles = StyleSheet.create({
+  empty: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  loading: {
+    flex: 1,
+  },
+  list: {
+    flex: 1,
+  },
   row: {
     flexDirection: "row",
     alignItems: "flex-start",
+    borderWidth: Platform.isTV ? 3 : 0,
   },
   content: {
     flex: 1,

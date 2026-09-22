@@ -10,6 +10,7 @@ import SettingsNavigator from "./SettingsNavigator";
 import {VideoMenuScreen} from "@/components/general/VideoMenu";
 import {PlaylistManagerContextMenu} from "@/components/playlists/tv/PlaylistManagerContextMenu";
 import {HistoryScreen} from "@/components/screens/phone/HistoryScreen";
+import {VideoSidePanelScreen} from "@/components/video/tv/VideoSidePanelScreen";
 import {VideoPlayerLanguage} from "@/components/video/videoPlayer/settings/VideoPlayerLanguage";
 import {VideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettings";
 import {VideoPlayerSpeed} from "@/components/video/videoPlayer/settings/VideoPlayerSpeed";
@@ -57,6 +58,7 @@ export type RootStackParamList = {
   VideoMenuContext: {element: ElementData};
   PlaylistManagerContextMenu: {videoId: string};
   VideoPlayerSettings: undefined;
+  VideoPlayerInfo: undefined;
   VideoPlayerPlaySpeed: undefined;
   VideoPlayerLanguage: undefined;
   // Downloads
@@ -131,6 +133,11 @@ export default function RootStackNavigator() {
               <Stack.Screen
                 name={"VideoPlayerSettings"}
                 component={VideoPlayerSettings}
+                options={{presentation: "transparentModal"}}
+              />
+              <Stack.Screen
+                name={"VideoPlayerInfo"}
+                component={VideoSidePanelScreen}
                 options={{presentation: "transparentModal"}}
               />
               <Stack.Screen

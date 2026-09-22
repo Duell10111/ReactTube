@@ -22,6 +22,7 @@ import {VideoPlayerSettingsContext} from "@/components/video/videoPlayer/setting
 import {DownloaderContext} from "@/context/DownloaderContext";
 import {MusicPlayerContext} from "@/context/MusicPlayerContext";
 import {PlaylistManagerContext} from "@/context/PlaylistManagerContext";
+import {VideoSidePanelProvider} from "@/context/VideoSidePanelContext";
 import {LocalizationProvider} from "@/localization";
 import {appStatusBarStyle} from "@/ui/layout/appShell";
 import {paperTheme, useAppTheme} from "@/ui/theme";
@@ -63,9 +64,11 @@ function ThemedApp() {
                         backgroundColor={theme.colors.background}
                       />
                       <VideoPlayerSettingsContext>
-                        <VideoProvider>
-                          <Navigation />
-                        </VideoProvider>
+                        <VideoSidePanelProvider>
+                          <VideoProvider>
+                            <Navigation />
+                          </VideoProvider>
+                        </VideoSidePanelProvider>
                       </VideoPlayerSettingsContext>
                       <FlashMessage
                         backgroundColor={theme.colors.surfaceRaised}

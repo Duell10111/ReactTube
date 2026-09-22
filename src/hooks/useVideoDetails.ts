@@ -10,6 +10,7 @@ import {
   getElementDataFromTVVideoInfo,
   getElementDataFromVideoInfo,
 } from "@/extraction/YTElements";
+import {resolveVideoDetailFallback} from "@/extraction/videoInfoFallback";
 import {
   buildGeneratedHls,
   type GeneratedHlsOptions,
@@ -172,6 +173,13 @@ export default function useVideoDetails(
               parsedDataTV.durationSeconds =
                 parsedDataTV.durationSeconds ?? parsed.durationSeconds;
               parsedDataTV.playlist = parsedDataTV.playlist ?? parsed.playlist;
+              const detailFallback = resolveVideoDetailFallback(
+                parsedDataTV,
+                parsed,
+              );
+              parsedDataTV.description = detailFallback.description;
+              parsedDataTV.commentsEntryPointHeader =
+                detailFallback.commentsEntryPointHeader;
             }
             // Vor dem Veröffentlichen der Metadaten: sonst bekäme der Player
             // erst YouTubes Manifest und eine halbe Sekunde später unseres —
