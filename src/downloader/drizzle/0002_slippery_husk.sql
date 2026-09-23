@@ -18,7 +18,7 @@ CREATE TABLE `__new_video` (
 	`fileUrl` text
 );
 --> statement-breakpoint
-INSERT INTO `__new_video`("id", "duration", "name", "author", "album", "coverUrl", "fileUrl") SELECT "id", "duration", "name", "author", "album", "coverUrl", "fileUrl" FROM `video`;--> statement-breakpoint
+INSERT INTO `__new_video`("id", "duration", "name", "fileUrl") SELECT "id", "duration", "name", "fileUrl" FROM `video`;--> statement-breakpoint
 DROP TABLE `video`;--> statement-breakpoint
 ALTER TABLE `__new_video` RENAME TO `video`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;--> statement-breakpoint

@@ -1,8 +1,17 @@
 // Empty file
 
 // TV Mock for migrations
-export function useMigration() {
-  return {success: true, error: undefined};
+export function useDatabaseMigration() {
+  return {
+    phase: "ready" as const,
+    success: true,
+    error: undefined,
+    diagnostics: undefined,
+    recovered: false,
+    retry: () => {},
+    repair: () => {},
+    reset: () => {},
+  };
 }
 
 export async function insertVideo(
