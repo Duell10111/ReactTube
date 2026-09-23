@@ -95,12 +95,12 @@ export function PlaylistManagerContext({
             snapPoints={snapPoints}
             footerComponent={renderFooter}
             backgroundStyle={{backgroundColor: theme.colors.surfaceRaised}}>
-            <BottomSheetView
-              style={[
-                styles.contentContainer,
-                {backgroundColor: theme.colors.surfaceRaised},
-              ]}>
-              {createPanel ? (
+            {createPanel ? (
+              <BottomSheetView
+                style={[
+                  styles.contentContainer,
+                  {backgroundColor: theme.colors.surfaceRaised},
+                ]}>
                 <PlaylistManagerCreatePanel
                   onPlaylistCreate={name => {
                     setCreatePanel(false);
@@ -114,30 +114,33 @@ export function PlaylistManagerContext({
                     });
                   }}
                 />
-              ) : (
-                <PlaylistManagerList
-                  data={playlists ?? []}
-                  onPress={data =>
-                    saveVideoToPlaylist(videoIDs, data.id)
-                      .then(() => bottomSheetModalRef.current?.close())
-                      .then(() => {
-                        showMessage({
-                          type: "success",
-                          message: t("playlist.manager.added"),
-                        });
-                      })
-                      .catch(error => {
-                        LOGGER.warn(error);
-                        showMessage({
-                          type: "warning",
-                          message: t("playlist.manager.saveError"),
-                          description: error,
-                        });
-                      })
-                  }
-                />
-              )}
-            </BottomSheetView>
+              </BottomSheetView>
+            ) : (
+              /* Direct child of the sheet on purpose: its own scrollable has to
+               * own the gesture, so wrapping it in a view would break scrolling
+               * again. */
+              <PlaylistManagerList
+                data={playlists ?? []}
+                onPress={data =>
+                  saveVideoToPlaylist(videoIDs, data.id)
+                    .then(() => bottomSheetModalRef.current?.close())
+                    .then(() => {
+                      showMessage({
+                        type: "success",
+                        message: t("playlist.manager.added"),
+                      });
+                    })
+                    .catch(error => {
+                      LOGGER.warn(error);
+                      showMessage({
+                        type: "warning",
+                        message: t("playlist.manager.saveError"),
+                        description: error,
+                      });
+                    })
+                }
+              />
+            )}
           </BottomSheetModal>
         </>
       </BottomSheetModalProvider>
@@ -148,7 +151,10 @@ export function PlaylistManagerContext({
 const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
-    alignItems: "center",
+    // Stretched, not centered: a centered column sized itself to the widest
+    // child and cut the playlist names off the rows.
+    alignItems: "stretch",
+    padding: 12,
   },
   footerContainer: {
     padding: 12,

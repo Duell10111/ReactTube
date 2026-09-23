@@ -14,6 +14,14 @@ const LOGGER = Logger.extend("LIBRARY");
 
 type LibrarySections = "history" | "playlist";
 
+/**
+ * Library of the signed in account.
+ *
+ * This reads the **TV client**, not the TV surface: the OAuth2 device flow only
+ * works against that client, so its session is the only signed in one. The
+ * classic session answers account endpoints with "You must be signed in to
+ * perform this operation.", which is why phone and TV both come through here.
+ */
 export default function useLibrary(initSection?: LibrarySections) {
   const youtube = useYoutubeTVContext();
   const library = useRef<YTTV.Library>(undefined);

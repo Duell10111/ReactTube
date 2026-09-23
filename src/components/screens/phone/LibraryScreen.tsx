@@ -1,45 +1,32 @@
-import {useCallback} from "react";
-import {FlatList, ListRenderItem} from "react-native";
+import {useMemo} from "react";
 
-import {LibrarySectionItem} from "@/components/library/LibrarySectionItem";
-import {YTLibrarySection} from "@/extraction/Types";
-import useLibrary from "@/hooks/useLibrary";
-import {useTranslation} from "@/localization";
-import {EmptyState, ErrorState, Skeleton} from "@/ui/components";
-import {useAppTheme} from "@/ui/theme";
+import useLibrary from "@/hooks/tv/useLibrary";
+import {MediaSectionFeed} from "@/ui/patterns";
 
 export function LibraryScreen() {
-  const {data, loading, error, reload} = useLibrary();
-  const {t} = useTranslation();
-  const {theme} = useAppTheme();
+  const {data, fetchMore, refresh, refreshing, loading, error} = useLibrary();
 
-  const renderItem = useCallback<ListRenderItem<YTLibrarySection>>(({item}) => {
-    return <LibrarySectionItem section={item} />;
-  }, []);
-
-  const keyExtractor = useCallback((item: YTLibrarySection) => {
-    return item.title + item.type;
-  }, []);
+  const sections = useMemo(
+    () =>
+      // The library opens with a shelf of navigation tiles (history,
+      // playlists). Those carry no thumbnail and are dropped while parsing, so
+      // without this filter the feed would render their title above nothing.
+      data.filter(
+        item => !("parsedData" in item) || item.parsedData.length > 0,
+      ),
+    [data],
+  );
 
   return (
-    <FlatList
-      ListEmptyComponent={
-        loading ? (
-          <Skeleton
-            accessibilityLabel={t("common.loading")}
-            height={180}
-            style={{margin: theme.spacing.xl}}
-          />
-        ) : error ? (
-          <ErrorState onRetry={reload} />
-        ) : (
-          <EmptyState />
-        )
-      }
-      contentContainerStyle={{flexGrow: 1}}
-      data={data?.sections ?? []}
-      renderItem={renderItem}
-      keyExtractor={keyExtractor}
+    <MediaSectionFeed
+      error={error}
+      items={sections}
+      loading={loading}
+      onEndReached={fetchMore}
+      onRefresh={refresh}
+      onRetry={refresh}
+      refreshing={refreshing}
+      testID={"library-section-feed"}
     />
   );
 }

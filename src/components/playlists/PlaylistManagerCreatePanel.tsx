@@ -36,7 +36,7 @@ export function PlaylistManagerCreatePanel({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: "80%",
+    width: "100%",
   },
   createButton: {
     marginTop: 20,

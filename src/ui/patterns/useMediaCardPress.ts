@@ -1,10 +1,10 @@
-import {useNavigation, useRoute} from "@react-navigation/native";
-import {useCallback} from "react";
+import {NavigationRouteContext, useNavigation} from "@react-navigation/native";
+import {useCallback, useContext} from "react";
 
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import type {ElementData} from "@/extraction/Types";
 import useElementPressableHelper from "@/hooks/utils/useElementPressableHelper";
-import type {NativeStackProp, RootRouteProp} from "@/navigation/types";
+import type {NativeStackProp} from "@/navigation/types";
 
 /**
  * Default press behavior of a media card. Videos, playlists, and channels used
@@ -13,7 +13,9 @@ import type {NativeStackProp, RootRouteProp} from "@/navigation/types";
  */
 export function useMediaCardPress(element: ElementData) {
   const navigation = useNavigation<NativeStackProp>();
-  const route = useRoute<RootRouteProp>();
+  // Read instead of `useRoute`, which throws outside a screen: cards also live
+  // in the playlist-manager sheet, which is mounted next to the navigator.
+  const currentRouteName = useContext(NavigationRouteContext)?.name;
   const {onPress: openElement} = useElementPressableHelper();
   const {setCurrentItem} = useMusikPlayerContext();
 
@@ -28,7 +30,7 @@ export function useMediaCardPress(element: ElementData) {
 
       // Replacing instead of stacking keeps the back stack free of a chain of
       // playlists when one playlist links to the next.
-      if (route.name === routeName) {
+      if (currentRouteName === routeName) {
         if (routeName === "MusicAlbumScreen") {
           navigation.replace(routeName, {albumId: element.id});
         } else {
@@ -66,5 +68,5 @@ export function useMediaCardPress(element: ElementData) {
     }
 
     openElement(element);
-  }, [element, navigation, openElement, route.name, setCurrentItem]);
+  }, [currentRouteName, element, navigation, openElement, setCurrentItem]);
 }

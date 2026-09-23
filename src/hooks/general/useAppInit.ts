@@ -15,7 +15,15 @@ export default function useAppInit() {
 
     // Wait for Innertube to initiate as this causes lags on JS thread
     return youtube && accountLoginReady;
-  }, [youtube, account?.loginSuccess, account?.loginData]);
+    // `autoLoginFinished` has to stay in here: it is the flag the branch above
+    // reads, and it flips only after the stored credentials have been applied
+    // to both Innertube sessions.
+  }, [
+    youtube,
+    account?.autoLoginFinished,
+    account?.loginSuccess,
+    account?.loginData,
+  ]);
 
   return {init};
 }
