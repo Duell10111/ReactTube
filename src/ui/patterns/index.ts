@@ -20,6 +20,7 @@ export * from "./descriptionBlocks";
 export * from "./feedLayout";
 export * from "./feedPerformance";
 export * from "./mediaCardModel";
+export * from "./mediaCardRouting";
 export * from "./secondarySurfaceModel";
 export * from "./thumbnailSource";
 export * from "./useFeedGeometry";

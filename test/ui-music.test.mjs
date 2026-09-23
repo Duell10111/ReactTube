@@ -10,6 +10,7 @@ import {
   getTrackColumnWidth,
   getTrackShelfRows,
 } from "../src/components/music/sections/musicSectionModel.ts";
+import {resolveMediaCardRoute} from "../src/ui/patterns/mediaCardRouting.ts";
 
 function song(id, overrides = {}) {
   return {
@@ -133,4 +134,82 @@ test("prefers the subtitle YouTube Music composed itself", () => {
     "ORFEO · 1M views",
   );
   assert.equal(getMusicSubtitle(song("1"), "  "), undefined);
+});
+
+// Routing of a media card press
+
+function localTrack(overrides = {}) {
+  // A track of a locally stored playlist: no `music` marker, no nav endpoint.
+  return {
+    originalNode: {type: "Local"},
+    type: "video",
+    id: "local-1",
+    title: "A stored song",
+    localPlaylistId: "LC-1",
+    thumbnailImage: {url: "https://example.test/local.jpg"},
+    ...overrides,
+  };
+}
+
+test("plays a music surface track in the music player, marker or not", () => {
+  assert.equal(
+    resolveMediaCardRoute(localTrack(), {music: true}).target.kind,
+    "musicPlayer",
+  );
+  assert.equal(
+    resolveMediaCardRoute(song("1")).target.kind,
+    "musicPlayer",
+    "a track YouTube Music itself marked needs no surface hint",
+  );
+});
+
+test("leaves a track outside the music surfaces in the video player", () => {
+  assert.equal(resolveMediaCardRoute(localTrack()).target.kind, "videoPlayer");
+  assert.equal(
+    resolveMediaCardRoute(localTrack({type: "reel"})).target.kind,
+    "videoPlayer",
+  );
+  assert.equal(
+    resolveMediaCardRoute(localTrack({type: "mix"}), {music: true}).target.kind,
+    "musicPlayer",
+  );
+});
+
+test("opens a playlist of a music surface as a music playlist", () => {
+  const local = localTrack({type: "playlist", id: "LC-1"});
+  assert.equal(
+    resolveMediaCardRoute(local, {music: true}).target.routeName,
+    "MusicPlaylistScreen",
+  );
+  assert.equal(resolveMediaCardRoute(local).target.routeName, "PlaylistScreen");
+  assert.equal(
+    resolveMediaCardRoute(localTrack({type: "album", id: "MPRE"})).target
+      .routeName,
+    "MusicAlbumScreen",
+    "an album only exists on the music surfaces",
+  );
+});
+
+test("replaces only a screen that links onward to itself", () => {
+  assert.equal(
+    resolveMediaCardRoute(localTrack({type: "playlist"}), {
+      music: true,
+      currentRouteName: "MusicPlaylistScreen",
+    }).replace,
+    true,
+  );
+  assert.equal(
+    resolveMediaCardRoute(localTrack({type: "playlist"}), {
+      music: true,
+      currentRouteName: "MusicHomeScreen",
+    }).replace,
+    false,
+  );
+  assert.equal(
+    resolveMediaCardRoute(song("1", {type: "channel"}), {
+      currentRouteName: "MusicChannelScreen",
+    }).replace,
+    false,
+    "an artist screen never stacks onto itself",
+  );
 });
