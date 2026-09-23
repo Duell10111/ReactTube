@@ -1,3 +1,11 @@
+import {
+  getTVContentInsets,
+  getTVOverscanInsets,
+  zeroOverscanInsets,
+  type TVOverscanInsets,
+  type TVSurfaceSize,
+} from "./tvOverscan.ts";
+
 import type {LayoutClass} from "@/ui/theme/breakpoints";
 
 export type NavigationMode = "bottomTabs" | "tvRail";
@@ -20,8 +28,18 @@ export const tvRailMetrics = {
   collapsedWidth: 96,
   expandedWidth: 320,
   itemHeight: 72,
-  focusBorderWidth: 3,
   selectionIndicatorWidth: 4,
+  /**
+   * Where a destination starts inside the rail.
+   *
+   * The rail is chrome at the screen edge and deliberately does *not* carry the
+   * full title-safe margin: doing so made it 156 points wide and left an empty
+   * strip beside every icon for a crop most panels no longer apply. It keeps
+   * half the margin instead, so a mild overscan clips nothing and a severe one
+   * reaches the outer edge of an icon — never a card, a title, or a label. The
+   * content beside it still keeps the full margin.
+   */
+  leadingInset: 24,
 } as const;
 
 /**
@@ -101,6 +119,11 @@ export interface ChromeLayoutInput {
   layout: LayoutClass;
   insets: ChromeEdgeInsets;
   miniPlayerVisible: boolean;
+  /**
+   * Logical size of the surface. Only TV needs it, and only to derive its
+   * overscan margin; every touch layout gets its insets from the system.
+   */
+  size?: TVSurfaceSize;
 }
 
 export interface ChromeLayout {
@@ -111,6 +134,13 @@ export interface ChromeLayout {
   headerTotalHeight: number;
   /** Width of the TV rail, `0` on every touch layout. */
   railWidth: number;
+  /**
+   * The margin a screen inside the content plane has to keep free. On touch it
+   * is the system safe area, on TV the overscan-safe margin.
+   */
+  contentInsets: ChromeEdgeInsets;
+  /** The TV overscan margin itself, `0` on every touch layout. */
+  overscanInsets: TVOverscanInsets;
   /** Height of the mini player, `0` while nothing is playing. */
   miniPlayerHeight: number;
   /**
@@ -141,11 +171,16 @@ export function getChromeLayout({
   layout,
   insets,
   miniPlayerVisible,
+  size,
 }: ChromeLayoutInput): ChromeLayout {
   const navigationMode = getNavigationMode(layout);
   const headerHeight = getHeaderHeight(layout);
-  const railWidth =
-    navigationMode === "tvRail" ? tvRailMetrics.collapsedWidth : 0;
+  const tv = navigationMode === "tvRail";
+  const overscanInsets =
+    tv && size ? getTVOverscanInsets(size) : zeroOverscanInsets;
+  const railWidth = tv ? getTVRailWidth("collapsed") : 0;
+  const contentInsets =
+    tv && size ? getTVContentInsets(size, railWidth) : insets;
   const miniPlayerHeight = miniPlayerVisible
     ? appChromeMetrics.miniPlayerHeight
     : 0;
@@ -155,6 +190,8 @@ export function getChromeLayout({
     headerHeight,
     headerTotalHeight: headerHeight + insets.top,
     railWidth,
+    contentInsets,
+    overscanInsets,
     miniPlayerHeight,
     miniPlayerOffset: {left: 0, right: 0, bottom: 0},
     statusBarStyle: appStatusBarStyle,

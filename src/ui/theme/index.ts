@@ -1,6 +1,7 @@
 export * from "./breakpoints";
 export * from "./appTheme";
 export * from "./colors";
+export * from "./controls";
 export * from "./motion";
 export * from "./radii";
 export * from "./spacing";

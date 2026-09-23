@@ -19,7 +19,7 @@ export interface AppChrome extends ChromeLayout {
  * measuring or hard-coding it per surface.
  */
 export function useAppChrome(): AppChrome {
-  const {width} = useWindowDimensions();
+  const {width, height} = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const {currentItem} = useMusikPlayerContext();
   const layout = getLayoutClass(width, Platform.isTV);
@@ -27,11 +27,16 @@ export function useAppChrome(): AppChrome {
 
   return useMemo(
     () => ({
-      ...getChromeLayout({layout, insets, miniPlayerVisible}),
+      ...getChromeLayout({
+        layout,
+        insets,
+        miniPlayerVisible,
+        size: {width, height},
+      }),
       layout,
       insets,
       miniPlayerVisible,
     }),
-    [insets, layout, miniPlayerVisible],
+    [height, insets, layout, miniPlayerVisible, width],
   );
 }

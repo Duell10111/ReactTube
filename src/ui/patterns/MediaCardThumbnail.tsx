@@ -1,9 +1,10 @@
 import {MaterialCommunityIcons, MaterialIcons} from "@expo/vector-icons";
 import {Image} from "expo-image";
 import React, {useEffect, useState} from "react";
-import {StyleSheet, View} from "react-native";
+import {PixelRatio, StyleSheet, View} from "react-native";
 
 import type {MediaCardBadge, MediaCardViewModel} from "./mediaCardModel";
+import {resolveThumbnailUrl} from "./thumbnailSource";
 
 import {useTranslation} from "@/localization";
 import {AppText} from "@/ui/components";
@@ -11,17 +12,35 @@ import {useAppTheme} from "@/ui/theme";
 
 const leadingBadges: MediaCardBadge["id"][] = ["live", "mix", "downloaded"];
 
+/**
+ * More pixels than this per point are not visible in a thumbnail, and every
+ * one of them is decoded memory held for as long as the card is on screen.
+ */
+const maxThumbnailPixelRatio = 2;
+
+/** Mirrors the width `styles.circle` gives a channel avatar. */
+const avatarWidthRatio = 0.6;
+
 interface MediaCardThumbnailProps {
   model: MediaCardViewModel;
   /** Icon and badge sizes differ between touch and TV reading distances. */
   scale: "touch" | "tv";
+  /**
+   * Width the thumbnail is rendered at, in points. It decides which variant is
+   * requested; without it the card asks for whatever size the feed delivered.
+   */
+  targetWidth?: number;
 }
 
 /**
  * Thumbnail, badges, watch progress, and the image error state. Shared by the
  * touch and TV cards so a badge never appears on only one surface.
  */
-export function MediaCardThumbnail({model, scale}: MediaCardThumbnailProps) {
+export function MediaCardThumbnail({
+  model,
+  scale,
+  targetWidth,
+}: MediaCardThumbnailProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
   const [failed, setFailed] = useState(false);
@@ -33,6 +52,7 @@ export function MediaCardThumbnail({model, scale}: MediaCardThumbnailProps) {
 
   const circle = model.shape === "circle";
   const radius = circle ? theme.radii.round : theme.radii.card;
+  const avatarMaxWidth = tv ? 220 : 120;
   const leading = model.badges.filter(badge =>
     leadingBadges.includes(badge.id),
   );
@@ -40,6 +60,19 @@ export function MediaCardThumbnail({model, scale}: MediaCardThumbnailProps) {
     badge => !leadingBadges.includes(badge.id),
   );
   const inset = tv ? theme.spacing.md : theme.spacing.sm;
+  // An avatar is capped at a share of the card, so the card width is not the
+  // width it is rendered at and would ask for an image several times too large.
+  const renderedWidth =
+    targetWidth && circle
+      ? Math.min(targetWidth * avatarWidthRatio, avatarMaxWidth)
+      : targetWidth;
+  const source = renderedWidth
+    ? resolveThumbnailUrl(
+        model.thumbnailUrl,
+        renderedWidth,
+        Math.min(PixelRatio.get(), maxThumbnailPixelRatio),
+      )
+    : model.thumbnailUrl;
 
   return (
     <View
@@ -52,14 +85,18 @@ export function MediaCardThumbnail({model, scale}: MediaCardThumbnailProps) {
         },
         // A channel avatar is an identity mark, not feed imagery, so it never
         // grows to the full card width.
-        circle && [styles.circle, {maxWidth: tv ? 220 : 120}],
+        circle && [styles.circle, {maxWidth: avatarMaxWidth}],
       ]}>
-      {model.thumbnailUrl && !failed ? (
+      {source && !failed ? (
         <Image
           accessibilityIgnoresInvertColors
           contentFit={"cover"}
           onError={() => setFailed(true)}
-          source={{uri: model.thumbnailUrl}}
+          /* A recycled cell reuses the view, so the previous bitmap is released
+           * instead of being kept alive behind the new one, and the old image
+           * is never shown for a frame under the new card's title. */
+          recyclingKey={model.id}
+          source={{uri: source}}
           style={styles.image}
         />
       ) : (

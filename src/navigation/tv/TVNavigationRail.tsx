@@ -60,6 +60,7 @@ export const TVRailItem = forwardRef<View, TVRailItemProps>(
           styles.item,
           {
             height: tvRailMetrics.itemHeight,
+            borderWidth: theme.controls.focusBorderWidth,
             borderColor: focused
               ? theme.colors.focus
               : theme.colors.focusResting,
@@ -89,7 +90,7 @@ export const TVRailItem = forwardRef<View, TVRailItemProps>(
               : theme.colors.textSecondary
           }
           name={destination.icon}
-          size={32}
+          size={theme.controls.iconSize}
         />
         <Animated.View style={[styles.labelContainer, labelStyle]}>
           <AppText
@@ -113,8 +114,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     overflow: "hidden",
-    borderWidth: tvRailMetrics.focusBorderWidth,
-    paddingStart: spacing.sm,
   },
   indicator: {
     width: tvRailMetrics.selectionIndicatorWidth,

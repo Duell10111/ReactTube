@@ -12,6 +12,7 @@ import {
   type VideoDetailViewModel,
 } from "@/ui/patterns";
 import {useAppTheme} from "@/ui/theme";
+import {useTVOverscanInsets} from "@/ui/tv";
 
 export type VideoSidePanelTab = "details" | "comments" | "queue";
 
@@ -47,6 +48,7 @@ export function VideoSidePanel({
 }: VideoSidePanelProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
+  const overscan = useTVOverscanInsets();
 
   const tabs = useMemo(() => {
     const entries: {id: VideoSidePanelTab; label: string}[] = [
@@ -72,6 +74,11 @@ export function VideoSidePanel({
         {
           backgroundColor: theme.colors.surface,
           padding: theme.spacing.lg,
+          // The panel sits at the trailing screen edge, so its own padding is
+          // not enough: the close button would land inside the crop.
+          paddingTop: theme.spacing.lg + overscan.top,
+          paddingBottom: theme.spacing.lg + overscan.bottom,
+          paddingEnd: theme.spacing.lg + overscan.right,
           gap: theme.spacing.md,
         },
       ]}>

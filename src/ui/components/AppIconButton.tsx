@@ -46,6 +46,9 @@ export function AppIconButton({
               : theme.colors.surface,
           borderColor: focused ? theme.colors.focus : theme.colors.focusResting,
           borderRadius: theme.radii.round,
+          borderWidth: theme.controls.focusBorderWidth,
+          width: theme.controls.minTarget,
+          height: theme.controls.minTarget,
         },
         disabled && styles.disabled,
       ]}
@@ -53,7 +56,7 @@ export function AppIconButton({
       <MaterialIcons
         color={disabled ? theme.colors.textDisabled : theme.colors.textPrimary}
         name={icon}
-        size={24}
+        size={theme.controls.iconSize}
       />
     </Pressable>
   );
@@ -61,9 +64,6 @@ export function AppIconButton({
 
 const styles = StyleSheet.create({
   button: {
-    width: 48,
-    height: 48,
-    borderWidth: 3,
     alignItems: "center",
     justifyContent: "center",
   },

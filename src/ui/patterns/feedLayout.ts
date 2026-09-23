@@ -35,6 +35,76 @@ export interface FeedMetrics {
   shelfPresentation: ShelfPresentation;
 }
 
+export interface FeedEdgeInsets {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+export interface FeedContentPadding {
+  paddingTop: number;
+  paddingBottom: number;
+  paddingStart: number;
+  paddingEnd: number;
+}
+
+/**
+ * Padding around the scrollable content of a feed.
+ *
+ * On touch the surrounding screen already keeps the system safe area, so the
+ * feed only adds its own density padding. On TV nothing else does: the padding
+ * *is* the overscan-safe margin, and it is asymmetric on purpose — the rail
+ * already covers the leading crop, so repeating the full margin there would
+ * push every feed a rail width to the right.
+ */
+export function getFeedContentPadding(
+  layout: LayoutClass,
+  metrics: FeedMetrics,
+  insets: FeedEdgeInsets,
+): FeedContentPadding {
+  if (layout !== "tv") {
+    return {
+      paddingTop: metrics.padding,
+      paddingBottom: metrics.padding,
+      paddingStart: metrics.padding,
+      paddingEnd: metrics.padding,
+    };
+  }
+
+  return {
+    paddingTop: insets.top,
+    paddingBottom: insets.bottom,
+    paddingStart: insets.left,
+    paddingEnd: insets.right,
+  };
+}
+
+export interface FeedRowPadding {
+  paddingStart: number;
+  paddingEnd: number;
+}
+
+/**
+ * The horizontal part of the feed padding, for the rows that carry it.
+ *
+ * It deliberately does not live on the scroll container. A horizontal shelf
+ * inside a padded container ends where the padding starts, so the row is cut
+ * off well before the screen edge and the margin reads as a black band beside
+ * it — on TV that also hides the fact that the row continues. Grid rows take
+ * the padding themselves and shelves apply it to their own content instead, so
+ * a shelf runs to the edge while its first card still starts on the grid.
+ */
+export function getFeedRowPadding(
+  padding: FeedContentPadding,
+  minimum = 0,
+): FeedRowPadding {
+  return {
+    paddingStart: Math.max(padding.paddingStart, minimum),
+    paddingEnd: Math.max(padding.paddingEnd, minimum),
+  };
+}
+
 export type FeedRow =
   | {type: "shelf"; key: string; shelf: HorizontalData}
   | {type: "header"; key: string; title: string}
@@ -121,10 +191,11 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
 export function getFeedCardWidth(
   availableWidth: number,
   metrics: FeedMetrics,
+  horizontalPadding = metrics.padding * 2,
 ): number {
   const content =
     availableWidth -
-    metrics.padding * 2 -
+    horizontalPadding -
     metrics.gap * Math.max(0, metrics.columns - 1);
 
   return Math.max(0, content / metrics.columns);

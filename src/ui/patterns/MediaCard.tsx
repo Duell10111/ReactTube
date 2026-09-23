@@ -11,6 +11,7 @@ import {
 
 import {MediaCardThumbnail} from "./MediaCardThumbnail";
 import {createMediaCardViewModel} from "./mediaCardModel";
+import {resolveThumbnailUrl} from "./thumbnailSource";
 import {useMediaCardPress} from "./useMediaCardPress";
 
 import type {ElementData} from "@/extraction/Types";
@@ -35,7 +36,7 @@ const avatarSize = 36;
  * Touch media card for phone and tablet. Borderless by design: the thumbnail
  * is the card, the metadata sits directly below it.
  */
-export function MediaCard({
+function MediaCardTouch({
   element,
   width,
   onPress,
@@ -67,7 +68,11 @@ export function MediaCard({
         style,
       ]}
       testID={testID ?? "media-card"}>
-      <MediaCardThumbnail model={model} scale={"touch"} />
+      <MediaCardThumbnail
+        model={model}
+        scale={"touch"}
+        targetWidth={typeof width === "number" ? width : undefined}
+      />
       <View
         style={[
           styles.metadata,
@@ -81,7 +86,9 @@ export function MediaCard({
           <Image
             accessibilityIgnoresInvertColors
             contentFit={"cover"}
-            source={{uri: model.author.thumbnailUrl}}
+            source={{
+              uri: resolveThumbnailUrl(model.author.thumbnailUrl, avatarSize),
+            }}
             style={[
               styles.avatar,
               {backgroundColor: theme.colors.surfaceRaised},
@@ -114,6 +121,11 @@ export function MediaCard({
     </Pressable>
   );
 }
+
+/** Keeps a feed row from re-rendering every card when one of them changes. */
+export const MediaCard = React.memo(MediaCardTouch);
+
+MediaCard.displayName = "MediaCard";
 
 const styles = StyleSheet.create({
   container: {
