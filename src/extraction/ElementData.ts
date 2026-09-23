@@ -15,6 +15,7 @@ import {
   PlaylistData,
   VideoData,
 } from "./Types";
+import {parseTileMetadataLines} from "./tileMetadata";
 import Logger from "../utils/Logger";
 import {Helpers, YTNodes, Parser} from "../utils/Youtube";
 
@@ -141,16 +142,13 @@ export function getVideoData(
       return undefined;
     }
 
-    let author: string | undefined,
-      views: string | undefined,
-      published: string | undefined;
-    const lines = ytNode.metadata?.lines?.filterType(YTNodes.Line);
-    // Extract metadata in lines
-    if (lines) {
-      author = lines[0]?.items?.[0]?.as(YTNodes.LineItem)?.text?.text;
-      views = lines[1]?.items?.[0]?.as(YTNodes.LineItem)?.text?.text;
-      published = lines[1]?.items?.[2]?.as(YTNodes.LineItem)?.text?.text;
-    }
+    const {
+      author,
+      count: views,
+      published,
+    } = parseTileMetadataLines(
+      ytNode.metadata?.lines?.filterType(YTNodes.Line),
+    );
 
     const title =
       ytNode.metadata?.title?.text ??
@@ -238,16 +236,17 @@ export function getVideoData(
         id: ytNode.content_id,
         navEndpoint: ytNode.on_select_endpoint,
         title,
-        // TODO: Fix issue with N/A Text (empty text)
+        // Badges are line items without text, so the text itself has to be
+        // checked - the item is always there.
         subtitle: ytNode.metadata?.lines
-          ?.map(
-            line =>
-              line.items
-                ?.filter(text => text.text !== undefined)
-                ?.map(item => item.text.text)
-                ?.join(" ")
-                ?.trim() ?? "",
+          ?.map(line =>
+            line.items
+              .map(item => item.text?.text)
+              .filter(text => Boolean(text))
+              .join(" ")
+              .trim(),
           )
+          .filter(line => line.length > 0)
           .join("\n"),
         thumbnailImage: thumbnail,
         duration:
