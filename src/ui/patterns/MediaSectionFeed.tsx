@@ -9,7 +9,12 @@ import {
 } from "react-native";
 
 import {FeedCardRow, FeedFooterLoader, FeedSkeleton} from "./FeedRows";
-import {buildFeedSections, type FeedItem, type FeedRow} from "./feedLayout";
+import {
+  buildFeedSections,
+  getFeedRowPadding,
+  type FeedItem,
+  type FeedRow,
+} from "./feedLayout";
 import {useFeedGeometry} from "./useFeedGeometry";
 import {useFeedPagination} from "./useFeedPagination";
 
@@ -17,6 +22,7 @@ import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
 import {useTranslation} from "@/localization";
 import {AppText, EmptyState, ErrorState} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
+import {TVFocusRegion} from "@/ui/tv";
 
 export interface MediaSectionFeedProps {
   /** Shelves become titled sections, for example one day of history. */
@@ -51,7 +57,8 @@ export function MediaSectionFeed({
 }: MediaSectionFeedProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
-  const {metrics, cardWidth, onLayout} = useFeedGeometry();
+  const {metrics, cardWidth, contentPadding, performance, onLayout} =
+    useFeedGeometry();
   const {loadingMore, handleEndReached} = useFeedPagination(
     onEndReached,
     items.length > 0,
@@ -62,18 +69,34 @@ export function MediaSectionFeed({
     [items, metrics.columns],
   );
 
+  // Horizontal padding lives on the rows, not on the scroll container; see
+  // `getFeedRowPadding`.
+  const rowPadding = useMemo(
+    () => getFeedRowPadding(contentPadding, theme.spacing.sm),
+    [contentPadding, theme.spacing.sm],
+  );
+
   const renderItem = useCallback<
     SectionListRenderItem<FeedRow, {key: string; title?: string}>
   >(
     ({item}) =>
       item.type === "cards" ? (
-        <FeedCardRow cardWidth={cardWidth} metrics={metrics} row={item} />
+        <FeedCardRow
+          cardWidth={cardWidth}
+          metrics={metrics}
+          padding={rowPadding}
+          row={item}
+        />
       ) : null,
-    [cardWidth, metrics],
+    [cardWidth, metrics, rowPadding],
   );
 
   const empty = loading ? (
-    <FeedSkeleton cardWidth={cardWidth} metrics={metrics} />
+    <FeedSkeleton
+      cardWidth={cardWidth}
+      metrics={metrics}
+      padding={rowPadding}
+    />
   ) : error ? (
     <ErrorState onRetry={onRetry} />
   ) : (
@@ -85,52 +108,63 @@ export function MediaSectionFeed({
 
   return (
     <ShelfVideoSelectorProvider>
-      <SectionList
-        ListEmptyComponent={empty}
-        ListFooterComponent={loadingMore ? <FeedFooterLoader /> : null}
-        contentContainerStyle={{
-          padding: metrics.padding,
-          gap: metrics.gap,
-          flexGrow: 1,
-        }}
-        keyExtractor={row => row.key}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.6}
-        onLayout={onLayout}
-        refreshControl={
-          onRefresh && !Platform.isTV ? (
-            <RefreshControl
-              onRefresh={onRefresh}
-              refreshing={refreshing}
-              tintColor={theme.colors.textSecondary}
-            />
-          ) : undefined
-        }
-        renderItem={renderItem}
-        renderSectionHeader={({section}) =>
-          section.title ? (
-            <View
-              style={[
-                styles.header,
-                {
-                  backgroundColor: theme.colors.background,
-                  paddingHorizontal: theme.spacing.sm,
-                  paddingVertical: theme.spacing.sm,
-                },
-              ]}>
-              <AppText variant={"titleSmall"}>{section.title}</AppText>
-            </View>
-          ) : null
-        }
-        sections={sections}
-        stickySectionHeadersEnabled={!Platform.isTV}
-        testID={testID ?? "media-section-feed"}
-      />
+      <TVFocusRegion style={styles.region}>
+        <SectionList
+          ListEmptyComponent={empty}
+          ListFooterComponent={loadingMore ? <FeedFooterLoader /> : null}
+          contentContainerStyle={{
+            paddingTop: contentPadding.paddingTop,
+            paddingBottom: contentPadding.paddingBottom,
+            gap: metrics.gap,
+            flexGrow: 1,
+          }}
+          initialNumToRender={performance.initialNumToRender}
+          keyExtractor={row => row.key}
+          maxToRenderPerBatch={performance.maxToRenderPerBatch}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.6}
+          onLayout={onLayout}
+          removeClippedSubviews={performance.removeClippedSubviews}
+          refreshControl={
+            onRefresh && !Platform.isTV ? (
+              <RefreshControl
+                onRefresh={onRefresh}
+                refreshing={refreshing}
+                tintColor={theme.colors.textSecondary}
+              />
+            ) : undefined
+          }
+          renderItem={renderItem}
+          renderSectionHeader={({section}) =>
+            section.title ? (
+              <View
+                style={[
+                  styles.header,
+                  rowPadding,
+                  {
+                    backgroundColor: theme.colors.background,
+                    paddingVertical: theme.spacing.sm,
+                  },
+                ]}>
+                <AppText variant={"titleSmall"}>{section.title}</AppText>
+              </View>
+            ) : null
+          }
+          sections={sections}
+          stickySectionHeadersEnabled={!Platform.isTV}
+          testID={testID ?? "media-section-feed"}
+          updateCellsBatchingPeriod={performance.updateCellsBatchingPeriod}
+          windowSize={performance.windowSize}
+        />
+      </TVFocusRegion>
     </ShelfVideoSelectorProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  region: {
+    flex: 1,
+  },
   header: {
     width: "100%",
   },

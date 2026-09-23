@@ -45,6 +45,8 @@ export function Chip({
               : theme.colors.surfaceRaised,
           borderColor: focused ? theme.colors.focus : theme.colors.focusResting,
           borderRadius: theme.radii.control,
+          borderWidth: theme.controls.focusBorderWidth,
+          minHeight: theme.controls.minTarget,
           paddingHorizontal: theme.spacing.lg,
         },
         disabled && styles.disabled,
@@ -64,9 +66,7 @@ export function Chip({
 
 const styles = StyleSheet.create({
   chip: {
-    minHeight: 48,
     justifyContent: "center",
-    borderWidth: 3,
   },
   disabled: {
     opacity: 0.45,

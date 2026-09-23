@@ -1,12 +1,7 @@
 import {useFocusEffect} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React, {useEffect, useMemo, useRef, useState} from "react";
-import {
-  StyleSheet,
-  View,
-  useTVEventHandler,
-  TVEventControl,
-} from "react-native";
+import {StyleSheet, View, TVEventControl} from "react-native";
 
 import VideoComponent from "../components/VideoComponent";
 import EndCard from "../components/video/EndCard";
@@ -26,6 +21,7 @@ import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {ErrorState} from "@/ui/components";
 import {VideoDetailSkeleton, createVideoDetailViewModel} from "@/ui/patterns";
+import {useTVRemoteEvent} from "@/ui/tv";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -90,7 +86,7 @@ export default function VideoScreen({route, navigation}: Props) {
   // TODO: Add Endcard as additional Modal on top of VideoPlayer?
 
   const longClickCount = useRef(0);
-  useTVEventHandler(event => {
+  useTVRemoteEvent(event => {
     // LOGGER.debug("TV Event: ", event.eventType);
     // Skip on own overlay enabled!
     if (appSettings.ownOverlayEnabled) {

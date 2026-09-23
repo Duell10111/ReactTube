@@ -3,7 +3,7 @@ import {ActivityIndicator, StyleSheet, View} from "react-native";
 
 import {MediaCard} from "./MediaCard";
 import {MediaCardSkeleton} from "./MediaCardSkeleton";
-import type {FeedMetrics, FeedRow} from "./feedLayout";
+import type {FeedMetrics, FeedRow, FeedRowPadding} from "./feedLayout";
 
 import {useTranslation} from "@/localization";
 import {AppText} from "@/ui/components";
@@ -13,17 +13,24 @@ interface FeedCardRowProps {
   row: Extract<FeedRow, {type: "cards"}>;
   metrics: FeedMetrics;
   cardWidth: number;
+  /** The feed's horizontal padding. Rows carry it, the scroll view does not. */
+  padding: FeedRowPadding;
 }
 
 /**
  * One grid row. The row is built before rendering, so a shelf and a card row
  * can share a single list without a grid guessing which item spans the width.
  */
-export function FeedCardRow({row, metrics, cardWidth}: FeedCardRowProps) {
+export function FeedCardRow({
+  row,
+  metrics,
+  cardWidth,
+  padding,
+}: FeedCardRowProps) {
   const missing = metrics.columns - row.items.length;
 
   return (
-    <View style={[styles.row, {gap: metrics.gap}]}>
+    <View style={[styles.row, {gap: metrics.gap}, padding]}>
       {row.items.map((item, index) => (
         <MediaCard
           element={item}
@@ -41,14 +48,13 @@ export function FeedCardRow({row, metrics, cardWidth}: FeedCardRowProps) {
 
 interface FeedSectionHeaderProps {
   title: string;
+  padding: FeedRowPadding;
 }
 
 /** Title of a shelf that was flattened into the vertical feed. */
-export function FeedSectionHeader({title}: FeedSectionHeaderProps) {
-  const {theme} = useAppTheme();
-
+export function FeedSectionHeader({title, padding}: FeedSectionHeaderProps) {
   return (
-    <View style={{paddingHorizontal: theme.spacing.sm}}>
+    <View style={padding}>
       <AppText accessibilityRole={"header"} variant={"titleMedium"}>
         {title}
       </AppText>
@@ -59,10 +65,11 @@ export function FeedSectionHeader({title}: FeedSectionHeaderProps) {
 interface FeedSkeletonProps {
   metrics: FeedMetrics;
   cardWidth: number;
+  padding: FeedRowPadding;
 }
 
 /** Initial loading state. It reserves the card geometry of the first page. */
-export function FeedSkeleton({metrics, cardWidth}: FeedSkeletonProps) {
+export function FeedSkeleton({metrics, cardWidth, padding}: FeedSkeletonProps) {
   const {t} = useTranslation();
   const rows = Math.ceil(metrics.skeletonCount / metrics.columns);
 
@@ -74,7 +81,7 @@ export function FeedSkeleton({metrics, cardWidth}: FeedSkeletonProps) {
       {Array.from({length: rows}, (_row, rowIndex) => (
         <View
           key={`skeleton-row-${rowIndex}`}
-          style={[styles.row, {gap: metrics.gap}]}>
+          style={[styles.row, {gap: metrics.gap}, padding]}>
           {Array.from({length: metrics.columns}, (_card, cardIndex) => (
             <MediaCardSkeleton
               key={`skeleton-${rowIndex}-${cardIndex}`}

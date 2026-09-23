@@ -1,9 +1,10 @@
-import {StyleSheet, TVFocusGuideView, View} from "react-native";
+import {StyleSheet, View} from "react-native";
 
 import {TabNavigator} from "@/components/my-youtube/TabNavigator";
 import useMyYoutubeScreen from "@/hooks/tv/useMyYoutubeScreen";
 import {useDrawerContext} from "@/navigation/DrawerContext";
 import {MediaFeed} from "@/ui/patterns";
+import {TVFocusRegion} from "@/ui/tv";
 
 export function MyYoutubeScreenTV() {
   const {data, tabs, selectTab, fetchMore, loading, error} =
@@ -23,22 +24,24 @@ export function MyYoutubeScreenTV() {
   //   }, []),
   // );
 
+  // The screen has two focus regions side by side. The feed brings its own,
+  // so wrapping it in a second one here only put two guides in competition
+  // over the same moves; the tab column is the one that still needs one, so
+  // returning from the grid lands on the tab that is open.
   return (
     <View style={styles.container}>
-      <View style={styles.tabs}>
+      <TVFocusRegion style={styles.tabs}>
         <TabNavigator tabs={tabs} onPress={tab => selectTab(tab)} />
-      </View>
+      </TVFocusRegion>
       <View style={styles.content}>
-        <TVFocusGuideView autoFocus>
-          <MediaFeed
-            error={error}
-            items={data}
-            loading={loading}
-            onElementFocused={() => setHideDrawer?.(true)}
-            onEndReached={fetchMore}
-            testID={"my-youtube-feed"}
-          />
-        </TVFocusGuideView>
+        <MediaFeed
+          error={error}
+          items={data}
+          loading={loading}
+          onElementFocused={() => setHideDrawer?.(true)}
+          onEndReached={fetchMore}
+          testID={"my-youtube-feed"}
+        />
       </View>
     </View>
   );

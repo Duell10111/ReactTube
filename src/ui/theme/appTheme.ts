@@ -1,4 +1,5 @@
 import {darkColors, type AppColors} from "./colors";
+import {getControlMetrics, type ControlMetrics} from "./controls";
 import {motion} from "./motion";
 import {radii} from "./radii";
 import {spacing} from "./spacing";
@@ -19,6 +20,7 @@ export interface AppTheme {
   radii: typeof radii;
   motion: typeof motion;
   typography: TypographyScale;
+  controls: ControlMetrics;
 }
 
 export function createAppTheme(isTV = false): AppTheme {
@@ -32,5 +34,6 @@ export function createAppTheme(isTV = false): AppTheme {
     radii,
     motion,
     typography: typographyTarget === "tv" ? tvTypography : phoneTypography,
+    controls: getControlMetrics(isTV),
   };
 }

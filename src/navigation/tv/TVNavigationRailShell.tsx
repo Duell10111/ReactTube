@@ -3,7 +3,6 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
   StyleSheet,
   TVFocusGuideView,
-  useTVEventHandler,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -21,6 +20,7 @@ import type {NativeStackProp} from "@/navigation/types";
 import {
   getContentPlaneOffset,
   getContentPlaneWidth,
+  getTVOverscanInsets,
   getTVRailWidth,
   resolveTVRailState,
   tvRailMetrics,
@@ -30,7 +30,8 @@ import {
   getTVRailDestinations,
   type TVRailDestinationKey,
 } from "@/ui/navigation";
-import {spacing, useAppTheme} from "@/ui/theme";
+import {useAppTheme} from "@/ui/theme";
+import {useTVRemoteEvent} from "@/ui/tv";
 
 /**
  * Focus can leave a rail item shortly before the next one reports focus. The
@@ -60,7 +61,7 @@ interface TVNavigationRailShellProps {
  * unchanged.
  */
 export function TVNavigationRailShell({children}: TVNavigationRailShellProps) {
-  const {width} = useWindowDimensions();
+  const {width, height} = useWindowDimensions();
   const {theme, reduceMotion} = useAppTheme();
   const navigation = useNavigation<NativeStackProp>();
   const {loginData} = useAccountContext();
@@ -84,6 +85,14 @@ export function TVNavigationRailShell({children}: TVNavigationRailShellProps) {
   );
   const railState = resolveTVRailState(hidden, expanded);
   const duration = reduceMotion ? 0 : theme.motion.duration.standard;
+  // The rail is chrome at the screen edge: it keeps the vertical margin, where
+  // a crop would take a whole destination, and only half the horizontal one —
+  // see `tvRailMetrics.leadingInset`. The content beside it keeps the full
+  // margin, which the rail's own width already covers.
+  const overscan = useMemo(
+    () => getTVOverscanInsets({width, height}),
+    [height, width],
+  );
 
   const activeRouteName = useNavigationState(findActiveRouteName);
   const selectedKey = useMemo(() => {
@@ -137,7 +146,7 @@ export function TVNavigationRailShell({children}: TVNavigationRailShellProps) {
     setHidden(false);
   }, [activeRouteName]);
 
-  useTVEventHandler(event => {
+  useTVRemoteEvent(event => {
     if (hidden && event.eventType === "left") {
       // Bring a hidden rail back so focus can never get stuck in the content.
       setHidden(false);
@@ -239,7 +248,13 @@ export function TVNavigationRailShell({children}: TVNavigationRailShellProps) {
           ]}>
           <TVFocusGuideView
             destinations={railDestinationRefs}
-            style={styles.railContent}>
+            style={[
+              styles.railContent,
+              {
+                paddingStart: tvRailMetrics.leadingInset,
+                paddingVertical: overscan.top,
+              },
+            ]}>
             <View style={styles.railGroup}>
               {topDestinations.map(destination => renderItem(destination.key))}
             </View>
@@ -274,12 +289,11 @@ const styles = StyleSheet.create({
   },
   railContent: {
     // No fixed width: the rail content follows the animated rail width, so no
-    // focusable item ever reaches into the content plane or gets clipped.
+    // focusable item ever reaches into the content plane or gets clipped. The
+    // padding is the overscan margin and comes from the screen size.
     flex: 1,
     alignSelf: "stretch",
     justifyContent: "space-between",
-    // Keeps the destinations inside the overscan-safe area on TV.
-    paddingVertical: spacing.xxl,
   },
   railGroup: {
     alignSelf: "stretch",

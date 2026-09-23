@@ -9,6 +9,7 @@ import {useTranslation} from "@/localization";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
 import {AppText} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
+import {useTVOverscanInsets} from "@/ui/tv";
 
 interface MetadataContainerProps {
   metadata: VideoMetadata;
@@ -31,6 +32,7 @@ export default function MetadataContainer({
   const navigation = useNavigation<RootNavProp>();
   const {theme} = useAppTheme();
   const {t} = useTranslation();
+  const overscan = useTVOverscanInsets();
 
   const subtitle = [
     metadata.author,
@@ -43,7 +45,19 @@ export default function MetadataContainer({
 
   return (
     <TVFocusGuideView autoFocus>
-      <View style={[styles.container, {gap: theme.spacing.lg}]}>
+      {/* The overlay is drawn edge to edge, so the row keeps the title-safe
+       * margin itself. A percentage width only happened to approximate it at
+       * one resolution. */}
+      <View
+        style={[
+          styles.container,
+          {
+            gap: theme.spacing.lg,
+            paddingTop: overscan.top,
+            paddingStart: overscan.left,
+            paddingEnd: overscan.right,
+          },
+        ]}>
         <View
           style={[
             styles.titleMetadata,
@@ -127,7 +141,7 @@ export default function MetadataContainer({
 
 const styles = StyleSheet.create({
   container: {
-    width: "95%",
+    width: "100%",
     alignSelf: "center",
     flexDirection: "row",
   },

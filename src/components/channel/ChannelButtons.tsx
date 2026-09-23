@@ -1,7 +1,8 @@
-import {StyleSheet, View} from "react-native";
+import {StyleSheet} from "react-native";
 
 import {Chip} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
+import {TVFocusRegion} from "@/ui/tv";
 
 interface ButtonValue {
   value: string;
@@ -21,8 +22,10 @@ export default function ChannelButtons({
 }: ChannelButtonsProps) {
   const {theme} = useAppTheme();
 
+  // The tab row is a focus region of its own, so coming back up out of the
+  // feed lands on the tab that is open instead of on the first one.
   return (
-    <View
+    <TVFocusRegion
       style={[
         styles.row,
         {gap: theme.spacing.sm, paddingHorizontal: theme.spacing.xl},
@@ -35,7 +38,7 @@ export default function ChannelButtons({
           selected={value === button.value}
         />
       ))}
-    </View>
+    </TVFocusRegion>
   );
 }
 

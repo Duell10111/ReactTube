@@ -1,5 +1,7 @@
 import React, {useState} from "react";
-import {Pressable, StyleProp, ViewStyle, useTVEventHandler} from "react-native";
+import {Pressable, StyleProp, ViewStyle} from "react-native";
+
+import {useTVRemoteEvent} from "@/ui/tv";
 
 // TODO: Long Press not working always maybe use TVEvent instead?
 
@@ -22,11 +24,13 @@ export default function VideoTouchable({
 }: Props) {
   const [focus, setFocus] = useState(false);
 
-  useTVEventHandler(event => {
-    if (onLongPress && focus && event.eventType === "longSelect") {
+  // Only the focused instance subscribes, so a list of these does not put one
+  // remote listener per row behind every key press.
+  useTVRemoteEvent(event => {
+    if (onLongPress && event.eventType === "longSelect") {
       onLongPress();
     }
-  });
+  }, focus);
 
   return (
     <Pressable

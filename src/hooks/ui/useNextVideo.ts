@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from "react";
-import {useTVEventHandler} from "react-native";
+
+import {useTVRemoteEvent} from "@/ui/tv";
 
 // TODO: Save Handler as ref variable?
 
@@ -14,7 +15,7 @@ export default function useNextVideo(goToNextVideo: () => void) {
     setCountdown(countdownStart);
   }, []);
 
-  useTVEventHandler(event => {
+  useTVRemoteEvent(event => {
     // Currently brocken since update to 0.73
     switch (event.eventType) {
       case "up":

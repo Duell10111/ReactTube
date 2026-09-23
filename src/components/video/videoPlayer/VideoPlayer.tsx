@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {DeviceEventEmitter, useTVEventHandler, View} from "react-native";
+import {DeviceEventEmitter, View} from "react-native";
 import {
   OnAudioTracksData,
   OnLoadData,
@@ -23,6 +23,7 @@ import useTVSeekControl from "./hooks/useTVSeekControl";
 import {usePanResponders} from "./usePanResponders";
 
 import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
+import {useTVRemoteEvent} from "@/ui/tv";
 import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
 
 export const PausePlayerEvent = "PlayerPauseVideo";
@@ -270,7 +271,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
 
     const longButtonPressed = useRef<string>(undefined);
 
-    useTVEventHandler(event => {
+    useTVRemoteEvent(event => {
       switch (event.eventType) {
         case "select":
         case "up":

@@ -64,6 +64,9 @@ export function AppButton({
           backgroundColor,
           borderColor: focused ? theme.colors.focus : theme.colors.focusResting,
           borderRadius: theme.radii.control,
+          borderWidth: theme.controls.focusBorderWidth,
+          minHeight: theme.controls.minTarget,
+          minWidth: theme.controls.minTarget,
           paddingHorizontal: theme.spacing.lg,
         },
         variant === "secondary" &&
@@ -96,11 +99,8 @@ export function AppButton({
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 48,
-    minWidth: 48,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
   },
   content: {
     flexDirection: "row",

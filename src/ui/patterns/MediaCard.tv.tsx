@@ -4,7 +4,6 @@ import {
   Pressable,
   StyleSheet,
   View,
-  useTVEventHandler,
   type DimensionValue,
   type StyleProp,
   type ViewStyle,
@@ -19,6 +18,7 @@ import type {ElementData} from "@/extraction/Types";
 import {useTranslation} from "@/localization";
 import {AppText} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
+import {useTVRemoteEvent} from "@/ui/tv";
 
 export interface MediaCardProps {
   element: ElementData;
@@ -30,9 +30,6 @@ export interface MediaCardProps {
   testID?: string;
 }
 
-/** Reserved in every state so focus never changes the card geometry. */
-const focusBorderWidth = 3;
-
 /**
  * TV media card. Selection and focus are rendered as an outline plus a scale
  * transform, so a focused card never moves its neighbors.
@@ -43,7 +40,7 @@ const focusBorderWidth = 3;
  * row but clipped in a shelf, whose horizontal list cuts everything outside
  * its own bounds — the top and bottom of the focus outline went missing.
  */
-export function MediaCard({
+function MediaCardTV({
   element,
   width,
   onPress,
@@ -71,6 +68,8 @@ export function MediaCard({
     theme.typography.titleSmall.lineHeight * 2 +
     theme.typography.bodySmall.lineHeight;
 
+  /** Reserved in every state so focus never changes the card geometry. */
+  const focusBorderWidth = theme.controls.focusBorderWidth;
   const growth = theme.motion.tvFocusScale - 1;
   // The horizontal inset comes from the assigned width and the vertical one
   // from the measured card, because vertical padding cannot change how the
@@ -82,11 +81,13 @@ export function MediaCard({
   const openMenu = onLongPress ?? (() => setSelectedVideo(element));
 
   // The remote reports a long select as a TV event, not as a press gesture.
-  useTVEventHandler(event => {
-    if (focused && event.eventType === "longSelect") {
+  // Only the focused card listens: a feed keeps dozens of cards mounted, and
+  // every one of them subscribing meant every key press walked all of them.
+  useTVRemoteEvent(event => {
+    if (event.eventType === "longSelect") {
       openMenu();
     }
-  });
+  }, focused);
 
   const animateTo = (value: number) => {
     if (reduceMotion) {
@@ -145,7 +146,11 @@ export function MediaCard({
             transform: [{scale}],
           },
         ]}>
-        <MediaCardThumbnail model={model} scale={"tv"} />
+        <MediaCardThumbnail
+          model={model}
+          scale={"tv"}
+          targetWidth={typeof width === "number" ? width : undefined}
+        />
         <View style={[styles.metadata, {minHeight: textBlockHeight}]}>
           <AppText numberOfLines={2} variant={"titleSmall"}>
             {model.title}
@@ -161,6 +166,15 @@ export function MediaCard({
     </Pressable>
   );
 }
+
+/**
+ * A feed row re-renders whenever the feed does, and a TV feed re-renders on
+ * every focus move. Memoizing the card keeps that to the two cards whose focus
+ * actually changed instead of the whole visible grid.
+ */
+export const MediaCard = React.memo(MediaCardTV);
+
+MediaCard.displayName = "MediaCard";
 
 const styles = StyleSheet.create({
   container: {
