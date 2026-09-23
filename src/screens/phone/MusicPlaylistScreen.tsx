@@ -8,12 +8,11 @@ import usePlaylistDetails from "../../hooks/music/useMusicPlaylistDetails";
 
 import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
 import {MusicPlaylistHeader} from "@/components/music/MusicPlaylistHeader";
-import {MusicPlaylistList} from "@/components/music/MusicPlaylistList";
+import {MusicTrackList} from "@/components/music/sections/MusicTrackList";
 import {useDownloaderContext} from "@/context/DownloaderContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
-import {ErrorState, Skeleton} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MusicPlaylistScreen">;
@@ -32,8 +31,6 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
   } = usePlaylistDetails(playlistId);
   const {bottom, left, right} = useSafeAreaInsets();
   const {setPlaylistViaEndpoint} = useMusikPlayerContext();
-  const {t} = useTranslation();
-  const {theme} = useAppTheme();
 
   // Top Menu
   useEffect(() => {
@@ -41,20 +38,6 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
       headerRight: () => <PlaylistMenu id={playlistId} />,
     });
   }, [navigation, playlistId]);
-
-  if (loading) {
-    return (
-      <Skeleton
-        accessibilityLabel={t("playlist.loading")}
-        height={180}
-        style={{margin: theme.spacing.xl}}
-      />
-    );
-  }
-
-  if (error || !playlist) {
-    return <ErrorState onRetry={reload} />;
-  }
 
   return (
     <View
@@ -64,26 +47,34 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
         paddingLeft: left,
         paddingRight: right,
       }}>
-      {/* ADD PLAYLIST LIST */}
-      <MusicPlaylistList
-        data={playlist.items}
-        onFetchMore={() => fetchMore()}
-        editable={playlist.editable}
-        onDeleteItem={item => deleteItemFromPlaylist(item)}
+      <MusicTrackList
+        editable={playlist?.editable}
+        error={error}
+        items={playlist?.items ?? []}
+        loading={loading}
+        onEndReached={fetchMore}
+        onRemoveItem={item => deleteItemFromPlaylist(item)}
+        onRetry={reload}
+        testID={"music-playlist-list"}
         ListHeaderComponent={
-          <MusicPlaylistHeader
-            image={playlist.thumbnailImage}
-            title={playlist.title}
-            subtitle={playlist.description ?? ""}
-            saved={liked}
-            onSavePress={togglePlaylistLike}
-            onPlayPress={() => {
-              if (playlist.playEndpoint) {
-                setPlaylistViaEndpoint(playlist.playEndpoint);
-                navigation.navigate("MusicPlayerScreen");
+          playlist ? (
+            <MusicPlaylistHeader
+              description={playlist.description}
+              image={playlist.thumbnailImage}
+              saved={liked}
+              subtitle={playlist.subtitle}
+              title={playlist.title}
+              onSavePress={togglePlaylistLike}
+              onPlayPress={
+                playlist.playEndpoint
+                  ? () => {
+                      setPlaylistViaEndpoint(playlist.playEndpoint!);
+                      navigation.navigate("MusicPlayerScreen");
+                    }
+                  : undefined
               }
-            }}
-          />
+            />
+          ) : null
         }
       />
       <MusicBottomPlayerBar />

@@ -482,12 +482,31 @@ export function getElementDataFromYTMusicArtist(
   let title: string | undefined,
     description: string | undefined = undefined;
   let thumbnail: Thumbnail | undefined = undefined;
+  let playEndpoint: YTNodes.NavigationEndpoint | undefined;
+  let radioEndpoint: YTNodes.NavigationEndpoint | undefined;
+  let subscription: YTMusicArtist["subscription"];
   const header = artist.header;
   if (header?.is(YTNodes.MusicImmersiveHeader)) {
     title = header.title.text;
     description = header.description.text;
     thumbnail = header.thumbnail?.contents?.[0]
       ? getThumbnail(header.thumbnail?.contents?.[0])
+      : undefined;
+    playEndpoint = header.play_button?.endpoint;
+    radioEndpoint = header.start_radio_button?.endpoint;
+
+    const subscribeButton = header.subscription_button;
+    subscription = subscribeButton
+      ? {
+          channelId: subscribeButton.channel_id,
+          subscribed: subscribeButton.subscribed,
+          // YouTube ships both labels translated, so the button keeps them
+          // instead of the app naming the action a second time.
+          subscribeLabel:
+            subscribeButton.unsubscribed_text?.text ??
+            subscribeButton.button_text?.text,
+          subscribedLabel: subscribeButton.subscribed_text?.text,
+        }
       : undefined;
   } else if (header?.is(YTNodes.MusicVisualHeader)) {
     title = header.title.text;
@@ -506,6 +525,9 @@ export function getElementDataFromYTMusicArtist(
     title: title ?? "Untitled",
     description,
     thumbnail,
+    playEndpoint,
+    radioEndpoint,
+    subscription,
     data: _.chain(artist.sections)
       .map(section => parseHorizontalNode(section))
       .compact()
@@ -516,8 +538,8 @@ export function getElementDataFromYTMusicArtist(
 // YTMusic.Album
 
 export function getElementDataFromYTAlbum(album: YTMusic.Album, id: string) {
-  console.log("YTAlbum", album);
   let title: string | undefined, subtitle: string | undefined;
+  let secondSubtitle: string | undefined, description: string | undefined;
   let thumbnail: Thumbnail | undefined;
   let endpoint: YTNodes.NavigationEndpoint | undefined;
 
@@ -525,6 +547,9 @@ export function getElementDataFromYTAlbum(album: YTMusic.Album, id: string) {
   if (header?.is(YTNodes.MusicResponsiveHeader)) {
     title = header.title.text;
     subtitle = header.subtitle.text;
+    // Track count and running time, the line Music puts under the artists.
+    secondSubtitle = header.second_subtitle?.text;
+    description = header.description?.description?.text;
     thumbnail = header.thumbnail?.contents?.[0]
       ? getThumbnail(header.thumbnail.contents[0])
       : undefined;
@@ -538,6 +563,8 @@ export function getElementDataFromYTAlbum(album: YTMusic.Album, id: string) {
     id,
     title,
     subtitle,
+    secondSubtitle,
+    description,
     thumbnail,
     playEndpoint: endpoint,
     data: parseObservedArray(album.contents),

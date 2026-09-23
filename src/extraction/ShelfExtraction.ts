@@ -184,6 +184,9 @@ export function parseHorizontalNode(
       loadMore: () => {},
       id: node.header?.title?.text ?? Crypto.randomUUID(),
       title: node.header?.title?.text,
+      // The kicker above a shelf title ("SENDER"), which Music sets on the
+      // shelves it wants to introduce rather than just name.
+      subtitle: node.header?.strapline?.text,
       items_per_columns: node.num_items_per_column,
       music: true,
       shelf: true,

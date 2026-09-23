@@ -4,17 +4,28 @@ import React, {useEffect} from "react";
 
 import useMusicHome from "../../hooks/music/useMusicHome";
 
+import {MusicFilterChips} from "@/components/music/sections/MusicFilterChips";
+import {MusicSectionFeed} from "@/components/music/sections/MusicSectionFeed";
+import {musicSurfacePadding} from "@/components/music/sections/musicSectionModel";
 import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
 import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {AppIconButton} from "@/ui/components";
-import {MediaFeed} from "@/ui/patterns";
 
 export function MusicHomeScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const {data, fetchContinuation, refreshing, refresh, loading, error} =
-    useMusicHome();
+  const {
+    data,
+    fetchContinuation,
+    refreshing,
+    refresh,
+    loading,
+    error,
+    filters,
+    activeFilter,
+    applyFilter,
+  } = useMusicHome();
   const {t} = useTranslation();
 
   useEffect(() => {
@@ -40,15 +51,23 @@ export function MusicHomeScreen() {
   usePhoneOrientationLocker();
 
   return (
-    <MediaFeed
+    <MusicSectionFeed
       error={error}
-      items={data ?? []}
       loading={loading}
       onEndReached={fetchContinuation}
       onRefresh={refresh}
       onRetry={refresh}
       refreshing={refreshing}
+      sections={data ?? []}
       testID={"music-home-feed"}
+      ListHeaderComponent={
+        <MusicFilterChips
+          filters={filters}
+          onSelect={applyFilter}
+          padding={musicSurfacePadding}
+          selected={activeFilter}
+        />
+      }
     />
   );
 }

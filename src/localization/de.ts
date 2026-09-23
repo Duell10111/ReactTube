@@ -93,6 +93,7 @@ export const de = {
   "music.library.empty.message":
     "Gespeicherte Alben, Playlists und Downloads erscheinen hier.",
   "music.playAll": "Alle abspielen",
+  "music.startRadio": "Radio starten",
   "music.save": "Speichern",
   "music.unsave": "Aus Mediathek entfernen",
   "music.sendToWatch": "An Watch senden",

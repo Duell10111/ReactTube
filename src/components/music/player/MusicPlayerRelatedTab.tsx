@@ -1,7 +1,7 @@
 import {useMusikPlayerContext} from "../../../context/MusicPlayerContext";
 import useMusicRelatedInfo from "../../../hooks/music/useMusicRelatedInfo";
 
-import {MediaFeed} from "@/ui/patterns";
+import {MusicSectionFeed} from "@/components/music/sections/MusicSectionFeed";
 
 export function MusicPlayerRelatedTab() {
   const {currentItem} = useMusikPlayerContext();
@@ -10,11 +10,11 @@ export function MusicPlayerRelatedTab() {
   );
 
   return (
-    <MediaFeed
+    <MusicSectionFeed
       emptyMessage={message}
       error={error}
-      items={relatedSections ?? []}
       loading={loading}
+      sections={relatedSections ?? []}
       testID={"music-related-feed"}
     />
   );
