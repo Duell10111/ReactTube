@@ -90,6 +90,7 @@ export const en = {
   "music.library.empty.message":
     "Saved albums, playlists, and downloaded music appear here.",
   "music.playAll": "Play all",
+  "music.startRadio": "Start radio",
   "music.save": "Save",
   "music.unsave": "Remove from library",
   "music.sendToWatch": "Send to Watch",

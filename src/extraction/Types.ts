@@ -299,8 +299,16 @@ export interface YTMusicArtist {
   description?: string;
   thumbnail?: Thumbnail;
   profileImage?: Thumbnail;
+  subscription?: {
+    channelId: string;
+    subscribed: boolean;
+    /** YouTube's own label, already translated. */
+    subscribeLabel?: string;
+    subscribedLabel?: string;
+  };
   // Endpoints
   playEndpoint?: YTNodes.NavigationEndpoint;
+  radioEndpoint?: YTNodes.NavigationEndpoint;
   data: HorizontalData[];
 }
 
@@ -309,6 +317,9 @@ export interface YTMusicAlbum {
   id: string;
   title: string;
   subtitle?: string;
+  /** Track count and running time. */
+  secondSubtitle?: string;
+  description?: string;
   thumbnail?: Thumbnail;
   // Endpoints
   playEndpoint?: YTNodes.NavigationEndpoint;
