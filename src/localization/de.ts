@@ -127,6 +127,23 @@ export const de = {
   "state.empty.message": "Verfügbare Inhalte werden hier angezeigt.",
   "state.error.title": "Etwas ist schiefgelaufen",
   "state.error.message": "Der Inhalt konnte nicht geladen werden.",
+  "database.error.title": "Lokale Datenbank konnte nicht vorbereitet werden",
+  "database.error.message":
+    "Die Download-Datenbank konnte nicht migriert werden. Du kannst es erneut versuchen, die Datenbank reparieren oder zurücksetzen.",
+  "database.error.repairing": "Datenbank wird repariert…",
+  "database.action.retry": "Erneut versuchen",
+  "database.action.repair": "Datenbank reparieren",
+  "database.action.reset": "Datenbank zurücksetzen",
+  "database.action.details": "Details anzeigen",
+  "database.action.hideDetails": "Details verbergen",
+  "database.action.copyDetails": "Details kopieren",
+  "database.repair.hint":
+    "Beim Reparieren wird die Datenbank neu aufgebaut und so viele Informationen wie möglich übernommen. Beim Zurücksetzen werden alle Playlist- und Download-Informationen gelöscht; heruntergeladene Dateien bleiben auf dem Gerät.",
+  "database.reset.confirmTitle": "Datenbank zurücksetzen?",
+  "database.reset.confirmMessage":
+    "Alle lokalen Playlist- und Download-Informationen werden gelöscht. Das kann nicht rückgängig gemacht werden.",
+  "database.recovered":
+    "Die lokale Datenbank musste beim Start repariert werden.",
   "media.videoCount": "{count} Videos",
   "media.badge.live": "Live",
   "media.badge.mix": "Mix",

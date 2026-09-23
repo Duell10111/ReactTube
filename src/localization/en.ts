@@ -123,6 +123,22 @@ export const en = {
   "state.empty.message": "Content will appear here when it is available.",
   "state.error.title": "Something went wrong",
   "state.error.message": "The content could not be loaded.",
+  "database.error.title": "Local database could not be prepared",
+  "database.error.message":
+    "The download database could not be migrated. You can try again, repair the database or reset it.",
+  "database.error.repairing": "Database is being repaired…",
+  "database.action.retry": "Try again",
+  "database.action.repair": "Repair database",
+  "database.action.reset": "Reset database",
+  "database.action.details": "Show details",
+  "database.action.hideDetails": "Hide details",
+  "database.action.copyDetails": "Copy details",
+  "database.repair.hint":
+    "Repairing rebuilds the database and keeps as much information as possible. Resetting deletes all playlist and download information; downloaded files stay on the device.",
+  "database.reset.confirmTitle": "Reset database?",
+  "database.reset.confirmMessage":
+    "All local playlist and download information will be deleted. This cannot be undone.",
+  "database.recovered": "The local database had to be repaired on startup.",
   "media.videoCount": "{count} videos",
   "media.badge.live": "Live",
   "media.badge.mix": "Mix",
