@@ -30,8 +30,11 @@ interface VideoSidePanelProps {
  * leaves the video playing beside it, which is the whole point of a panel here:
  * on a TV, reading the description must not mean leaving the video.
  *
- * Focus is trapped inside the panel while it is open, so the D-pad cannot land
- * on a player control that is hidden behind it.
+ * Focus inside it is a matter of guides, not of traps: `trapFocus*` on the
+ * panel kept the D-pad from ever reaching the close button, and `autoFocus`
+ * on the panel spans a guide across the whole surface that competes with
+ * every move made within it. Both are therefore left off here, and each row
+ * of the panel head carries its own guide instead.
  */
 export function VideoSidePanel({
   visible,
@@ -64,7 +67,6 @@ export function VideoSidePanel({
 
   return (
     <TVFocusGuideView
-      autoFocus
       style={[
         styles.panel,
         {
@@ -72,12 +74,17 @@ export function VideoSidePanel({
           padding: theme.spacing.lg,
           gap: theme.spacing.md,
         },
-      ]}
-      trapFocusDown
-      trapFocusLeft
-      trapFocusRight
-      trapFocusUp>
-      <View style={[styles.header, {gap: theme.spacing.md}]}>
+      ]}>
+      {/*
+       * The close button sits at the right edge, the tabs at the left, and
+       * tvOS moves focus geometrically: Up from a tab looks at the empty
+       * space beside the title and finds nothing there. Each row is a focus
+       * guide of its own, so a move that lands anywhere in the row is handed
+       * to the button it holds — and the row remembers which one that was.
+       */}
+      <TVFocusGuideView
+        autoFocus
+        style={[styles.header, {gap: theme.spacing.md}]}>
         <AppText numberOfLines={2} style={styles.title} variant={"titleSmall"}>
           {model.title}
         </AppText>
@@ -88,8 +95,10 @@ export function VideoSidePanel({
           icon={"close"}
           onPress={onClose}
         />
-      </View>
-      <View style={[styles.tabs, {gap: theme.spacing.sm}]}>
+      </TVFocusGuideView>
+      <TVFocusGuideView
+        autoFocus
+        style={[styles.tabs, {gap: theme.spacing.sm}]}>
         {tabs.map(entry => (
           <Chip
             key={entry.id}
@@ -98,7 +107,7 @@ export function VideoSidePanel({
             selected={tab === entry.id}
           />
         ))}
-      </View>
+      </TVFocusGuideView>
       <View style={styles.content}>
         {tab === "details" ? (
           <VideoDescriptionPanel description={model.description} />
