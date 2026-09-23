@@ -64,10 +64,6 @@ export function CommentList({
           styles.loading,
           {padding: theme.spacing.lg, gap: theme.spacing.lg},
         ]}>
-        <ActivityIndicator color={theme.colors.textPrimary} size={"large"} />
-        <AppText align={"center"} color={"textSecondary"}>
-          {t("video.comments.loading")}
-        </AppText>
         {Array.from({length: skeletonCount}).map((_, index) => (
           <View key={index} style={{gap: theme.spacing.sm}}>
             <Skeleton height={16} width={"40%"} />
