@@ -43,7 +43,9 @@ export function MusicTrackRow({
 }: MusicTrackRowProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
-  const onPress = useMediaCardPress(element);
+  // The row only ever renders on a music surface, so a locally stored track
+  // without a music marker still belongs in the music player.
+  const onPress = useMediaCardPress(element, {music: true});
   const model = useMemo(
     () => createMediaCardViewModel(element, {translate: t}),
     [element, t],

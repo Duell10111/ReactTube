@@ -32,7 +32,9 @@ interface MusicCardProps {
 export function MusicCard({element, width}: MusicCardProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
-  const onPress = useMediaCardPress(element);
+  // Music carousels are a music surface, including local playlists whose
+  // elements carry no music marker.
+  const onPress = useMediaCardPress(element, {music: true});
   const model = useMemo(
     () => createMediaCardViewModel(element, {translate: t}),
     [element, t],

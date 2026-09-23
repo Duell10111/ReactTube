@@ -1,5 +1,5 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {View} from "react-native";
 import {IconButton, Menu} from "react-native-paper";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
@@ -11,6 +11,7 @@ import {MusicPlaylistHeader} from "@/components/music/MusicPlaylistHeader";
 import {MusicTrackList} from "@/components/music/sections/MusicTrackList";
 import {useDownloaderContext} from "@/context/DownloaderContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {VideoData} from "@/extraction/Types";
 import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {useAppTheme} from "@/ui/theme";
@@ -30,7 +31,32 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
     reload,
   } = usePlaylistDetails(playlistId);
   const {bottom, left, right} = useSafeAreaInsets();
-  const {setPlaylistViaEndpoint} = useMusikPlayerContext();
+  const {setPlaylistViaEndpoint, setCurrentItem} = useMusikPlayerContext();
+
+  // A locally stored playlist carries no play endpoint. Starting its first
+  // track is equivalent: the player fills the queue from `localPlaylistId`.
+  const firstTrack = useMemo(
+    () =>
+      playlist?.items.find((item): item is VideoData => item.type === "video"),
+    [playlist],
+  );
+
+  const playAll = useCallback(() => {
+    if (playlist?.playEndpoint) {
+      setPlaylistViaEndpoint(playlist.playEndpoint);
+    } else if (firstTrack) {
+      setCurrentItem(firstTrack);
+    } else {
+      return;
+    }
+    navigation.navigate("MusicPlayerScreen");
+  }, [
+    firstTrack,
+    navigation,
+    playlist,
+    setCurrentItem,
+    setPlaylistViaEndpoint,
+  ]);
 
   // Top Menu
   useEffect(() => {
@@ -66,12 +92,7 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
               title={playlist.title}
               onSavePress={togglePlaylistLike}
               onPlayPress={
-                playlist.playEndpoint
-                  ? () => {
-                      setPlaylistViaEndpoint(playlist.playEndpoint!);
-                      navigation.navigate("MusicPlayerScreen");
-                    }
-                  : undefined
+                playlist.playEndpoint || firstTrack ? playAll : undefined
               }
             />
           ) : null
