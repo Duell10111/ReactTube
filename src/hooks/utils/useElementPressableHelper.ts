@@ -1,14 +1,21 @@
-import {CommonActions, useNavigation, useRoute} from "@react-navigation/native";
+import {
+  CommonActions,
+  NavigationRouteContext,
+  useNavigation,
+} from "@react-navigation/native";
+import {useContext} from "react";
 
 import {ElementData, VideoData} from "@/extraction/Types";
-import {NativeStackProp, RootRouteProp} from "@/navigation/types";
+import {NativeStackProp} from "@/navigation/types";
 import Logger from "@/utils/Logger";
 
 const LOGGER = Logger.extend("ELEMENT_PRESSABLE_HELPER");
 
 export default function useElementPressableHelper() {
   const navigation = useNavigation<NativeStackProp>();
-  const route = useRoute<RootRouteProp>();
+  // Not `useRoute`: that throws where there is no screen around the component,
+  // such as the playlist-manager sheet mounted beside the navigator.
+  const currentRouteName = useContext(NavigationRouteContext)?.name;
 
   const onPress = (element: ElementData) => {
     if (
@@ -17,12 +24,12 @@ export default function useElementPressableHelper() {
       element.type === "mix"
     ) {
       LOGGER.debug("State: ", navigation.getState());
-      LOGGER.debug("Route name: ", route.name);
+      LOGGER.debug("Route name: ", currentRouteName);
       LOGGER.debug("Nav Endpoint: ", element.navEndpoint);
       const startDuration = getStartTimeIfNeeded(element);
       LOGGER.debug(`Start duration: ${startDuration}`);
 
-      if (route.name === "VideoScreen") {
+      if (currentRouteName === "VideoScreen") {
         LOGGER.debug("Replacing Video Screen");
         navigation.replace("VideoScreen", {
           videoId: element.id,

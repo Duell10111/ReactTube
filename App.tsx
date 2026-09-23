@@ -21,7 +21,6 @@ import {VideoProvider} from "@/components/corner-video/VideoProvider";
 import {VideoPlayerSettingsContext} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
 import {DownloaderContext} from "@/context/DownloaderContext";
 import {MusicPlayerContext} from "@/context/MusicPlayerContext";
-import {PlaylistManagerContext} from "@/context/PlaylistManagerContext";
 import {VideoSidePanelProvider} from "@/context/VideoSidePanelContext";
 import {LocalizationProvider} from "@/localization";
 import {appStatusBarStyle} from "@/ui/layout/appShell";
@@ -58,27 +57,25 @@ function ThemedApp() {
               <AccountContextProvider>
                 <MusicPlayerContext>
                   <DownloaderContext>
-                    <PlaylistManagerContext>
-                      <StatusBar
-                        barStyle={appStatusBarStyle}
-                        backgroundColor={theme.colors.background}
-                      />
-                      <VideoPlayerSettingsContext>
-                        <VideoSidePanelProvider>
-                          <VideoProvider>
-                            <Navigation />
-                          </VideoProvider>
-                        </VideoSidePanelProvider>
-                      </VideoPlayerSettingsContext>
-                      <FlashMessage
-                        backgroundColor={theme.colors.surfaceRaised}
-                        color={theme.colors.textPrimary}
-                        position={"top"}
-                        style={{borderRadius: theme.radii.control}}
-                        textStyle={theme.typography.bodySmall}
-                        titleStyle={theme.typography.label}
-                      />
-                    </PlaylistManagerContext>
+                    <StatusBar
+                      barStyle={appStatusBarStyle}
+                      backgroundColor={theme.colors.background}
+                    />
+                    <VideoPlayerSettingsContext>
+                      <VideoSidePanelProvider>
+                        <VideoProvider>
+                          <Navigation />
+                        </VideoProvider>
+                      </VideoSidePanelProvider>
+                    </VideoPlayerSettingsContext>
+                    <FlashMessage
+                      backgroundColor={theme.colors.surfaceRaised}
+                      color={theme.colors.textPrimary}
+                      position={"top"}
+                      style={{borderRadius: theme.radii.control}}
+                      textStyle={theme.typography.bodySmall}
+                      titleStyle={theme.typography.label}
+                    />
                   </DownloaderContext>
                 </MusicPlayerContext>
               </AccountContextProvider>

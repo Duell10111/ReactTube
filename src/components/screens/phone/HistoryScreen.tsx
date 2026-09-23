@@ -2,13 +2,12 @@ import React from "react";
 import {StyleSheet, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import useHistory from "@/hooks/useHistory";
+import useHistory from "@/hooks/tv/useHistory";
 import {useTranslation} from "@/localization";
 import {MediaSectionFeed} from "@/ui/patterns";
 
 export function HistoryScreen() {
-  const {parsedContent, fetchMore, refresh, refreshing, loading, error} =
-    useHistory();
+  const {data, fetchMore, refresh, refreshing, loading, error} = useHistory();
   const {bottom, left, right} = useSafeAreaInsets();
   const {t} = useTranslation();
 
@@ -22,7 +21,7 @@ export function HistoryScreen() {
         emptyMessage={t("history.empty.message")}
         emptyTitle={t("history.empty.title")}
         error={error}
-        items={parsedContent}
+        items={data}
         loading={loading}
         onEndReached={fetchMore}
         onRefresh={refresh}
