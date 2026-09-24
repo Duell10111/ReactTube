@@ -469,8 +469,11 @@ dem Phone, ohne Entwickleroptionen im normalen Nutzerpfad.
 - Accessibility Audit für Kontrast, Labels, Schriftvergrößerung und Fokus.
 - Render- und Scroll-Performance auf langen Feeds messen.
 - Leere, Offline-, Fehler-, anonyme und angemeldete Zustände prüfen.
-- Optionaler interner Feature-Schalter für schrittweisen Rollout.
-- Alte Komponenten und ungenutzte Styles erst nach abgeschlossener Migration entfernen.
+- Kein Feature-Schalter und kein schrittweiser Rollout: die neue UI geht in
+  einem Schritt live, ein Rückweg läuft über das Zurücknehmen der Commits.
+- Altlasten in einem Aufräum-Commit entfernen, sobald eine Oberfläche migriert
+  ist. Alte Komponenten und ungenutzte Styles bleiben nicht als Parallelpfad
+  liegen.
 
 **Abschluss:** Akzeptanzmatrix ist grün, alte und neue UI werden nicht mehr im
 selben Nutzerfluss gemischt, und das Rollback ist dokumentiert.
