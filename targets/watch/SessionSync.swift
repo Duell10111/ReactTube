@@ -56,6 +56,7 @@ final class WatchStatus {
   }
 
   func reportError(_ message: String) {
+    WatchLog.shared.error("Connectivity", message)
     updateOnMain {
       self.lastError = message
     }
@@ -113,20 +114,10 @@ extension SessionSync: WCSessionDelegate {
     applicationContext = appContext
     
     if(MusicPlayerManager.shared.type == .phone || !MusicPlayerManager.shared.isPlaying) {
-      MusicPlayerManager.shared.type = .phone
-      if let title = appContext["title"] as? String {
-        MusicPlayerManager.shared.currentTitle = title
-        // Reset artist as not set by api
-        MusicPlayerManager.shared.currentArtist = nil
-        print("Updating title \(title)")
-      } else {
-        print("No title provided for playing state")
-      }
-      if let playing = appContext["playing"] as? Bool {
-        MusicPlayerManager.shared.isPlaying = playing
-      } else {
-        print("No bool provided for playing state")
-      }
+      MusicPlayerManager.shared.applyPhonePlaybackState(
+        title: appContext["title"] as? String,
+        isPlaying: appContext["playing"] as? Bool
+      )
     }
   }
 
@@ -138,7 +129,7 @@ extension SessionSync: WCSessionDelegate {
   func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
     if let error {
       print("WCSession user info transfer failed: \(error.localizedDescription), payload: \(userInfoTransfer.userInfo)")
-      status.reportError(error.localizedDescription)
+      status.reportError("Transfer to the iPhone failed: \(error.localizedDescription)")
     } else {
       print("WCSession user info transfer finished: \(userInfoTransfer.userInfo)")
     }

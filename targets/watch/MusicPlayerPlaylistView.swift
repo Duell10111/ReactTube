@@ -13,6 +13,22 @@ struct MusicPlayerPlaylistView: View {
     var body: some View {
       ScrollViewReader { proxy in
         List {
+          Section {
+            // Both settings are persisted: repeat takes effect immediately,
+            // shuffle applies the next time a playlist is started.
+            Button {
+              musicManager.cycleRepeatMode()
+            } label: {
+              Label(musicManager.preferences.repeatMode.label, systemImage: musicManager.preferences.repeatMode.systemImage)
+                .foregroundStyle(musicManager.preferences.repeatMode == .off ? Color.primary : Color.blue)
+            }
+            Button {
+              musicManager.preferences.setShuffleEnabled(!musicManager.preferences.shuffleEnabled)
+            } label: {
+              Label(musicManager.preferences.shuffleEnabled ? "Shuffle On" : "Shuffle Off", systemImage: "shuffle")
+                .foregroundStyle(musicManager.preferences.shuffleEnabled ? Color.blue : Color.primary)
+            }
+          }
           ForEach(Array(musicManager.playerPlaylistItems.enumerated()), id: \.self.element.id) { (index, video) in
             HStack {
               Button {

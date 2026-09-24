@@ -25,6 +25,8 @@ struct PlaylistListView: View {
     var body: some View {
       List {
         Button("Shuffle", systemImage: "shuffle") {
+          // An explicit shuffle start is also the preference for the next start.
+          musicPlayerManager.preferences.setShuffleEnabled(true)
           musicPlayerManager.updatePlaylist(playlist: playlist, shuffle: true)
         }
         ForEach(Array(playlist.videos.enumerated()), id: \.element) { index, video in
