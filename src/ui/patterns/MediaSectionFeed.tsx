@@ -9,12 +9,7 @@ import {
 } from "react-native";
 
 import {FeedCardRow, FeedFooterLoader, FeedSkeleton} from "./FeedRows";
-import {
-  buildFeedSections,
-  getFeedRowPadding,
-  type FeedItem,
-  type FeedRow,
-} from "./feedLayout";
+import {buildFeedSections, type FeedItem, type FeedRow} from "./feedLayout";
 import {useFeedGeometry} from "./useFeedGeometry";
 import {useFeedPagination} from "./useFeedPagination";
 
@@ -57,8 +52,15 @@ export function MediaSectionFeed({
 }: MediaSectionFeedProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
-  const {metrics, cardWidth, contentPadding, performance, onLayout} =
-    useFeedGeometry();
+  const {
+    metrics,
+    cardWidth,
+    contentPadding,
+    rowPadding,
+    leadingInset,
+    performance,
+    onLayout,
+  } = useFeedGeometry();
   const {loadingMore, handleEndReached} = useFeedPagination(
     onEndReached,
     items.length > 0,
@@ -67,13 +69,6 @@ export function MediaSectionFeed({
   const sections = useMemo(
     () => buildFeedSections(items, metrics.columns),
     [items, metrics.columns],
-  );
-
-  // Horizontal padding lives on the rows, not on the scroll container; see
-  // `getFeedRowPadding`.
-  const rowPadding = useMemo(
-    () => getFeedRowPadding(contentPadding, theme.spacing.sm),
-    [contentPadding, theme.spacing.sm],
   );
 
   const renderItem = useCallback<
@@ -108,7 +103,13 @@ export function MediaSectionFeed({
 
   return (
     <ShelfVideoSelectorProvider>
-      <TVFocusRegion style={styles.region}>
+      {/*
+       * Horizontal padding lives on the rows, not on the scroll container; see
+       * `getFeedRowPadding`. The leading margin is the exception: it is the
+       * region's margin, because a focus region that reached into it would
+       * swallow the Left press that leaves the feed for the navigation rail.
+       */}
+      <TVFocusRegion style={[styles.region, {marginStart: leadingInset}]}>
         <SectionList
           ListEmptyComponent={empty}
           ListFooterComponent={loadingMore ? <FeedFooterLoader /> : null}

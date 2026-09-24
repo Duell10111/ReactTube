@@ -19,6 +19,7 @@ import {
   getFeedContentPadding,
   getFeedMetrics,
   getFeedRowPadding,
+  splitFeedRowPadding,
 } from "../src/ui/patterns/feedLayout.ts";
 import {
   getFeedListPerformance,
@@ -203,6 +204,35 @@ test("gives the horizontal margin to the rows, not to the scroll view", () => {
     ),
     {paddingStart: 8, paddingEnd: 8},
   );
+});
+
+test("keeps the leading margin outside the TV feed's focus region", () => {
+  const metrics = getFeedMetrics("tv");
+  const row = getFeedRowPadding(
+    getFeedContentPadding("tv", metrics, {
+      top: 32,
+      bottom: 32,
+      left: 32,
+      right: 60,
+    }),
+    8,
+  );
+
+  // A focus region covers everything inside it. While the region also covered
+  // the margin beside the first column, a Left press out of the feed landed in
+  // that margin and was handed back to the card it came from, so the rail was
+  // unreachable. The margin belongs outside the region; the rows keep only the
+  // trailing padding, which is what lets a shelf run off the screen edge.
+  assert.deepEqual(splitFeedRowPadding("tv", row), {
+    leadingInset: 32,
+    rowPadding: {paddingStart: 0, paddingEnd: 60},
+  });
+
+  // Touch layouts have no rail to reach, so their rows keep both sides.
+  assert.deepEqual(splitFeedRowPadding("compact", row), {
+    leadingInset: 0,
+    rowPadding: row,
+  });
 });
 
 test("keeps touch feeds on their own density padding", () => {
