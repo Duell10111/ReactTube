@@ -61,7 +61,7 @@ const metadataSeparator = " · ";
 /** At most three parts keeps the metadata within its two-line budget. */
 const maxMetadataParts = 3;
 
-export function getMediaCardKind(element: ElementData): MediaCardKind {
+function getMediaCardKind(element: ElementData): MediaCardKind {
   switch (element.type) {
     case "video":
       return "video";
@@ -79,7 +79,7 @@ export function getMediaCardKind(element: ElementData): MediaCardKind {
   }
 }
 
-export function getMediaCardShape(kind: MediaCardKind): MediaCardShape {
+function getMediaCardShape(kind: MediaCardKind): MediaCardShape {
   switch (kind) {
     case "reel":
       return "portrait";
@@ -94,7 +94,7 @@ export function getMediaCardShape(kind: MediaCardKind): MediaCardShape {
  * Watch progress as a fraction. Values outside the range are clamped instead of
  * dropped, because a progress bar wider than its track is the worse failure.
  */
-export function getMediaCardProgress(element: ElementData): number | undefined {
+function getMediaCardProgress(element: ElementData): number | undefined {
   const progress =
     "thumbnailOverlays" in element
       ? element.thumbnailOverlays?.videoProgress

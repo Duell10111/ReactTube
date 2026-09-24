@@ -28,9 +28,6 @@ const dispatcher = createTVRemoteDispatcher({
   onListenerError: error => LOGGER.warn("TV remote listener failed", error),
 });
 
-/** Exposed for diagnostics; the app always goes through the hook. */
-export const tvRemote = dispatcher;
-
 /**
  * Subscribes to the remote for as long as the component needs it.
  *
