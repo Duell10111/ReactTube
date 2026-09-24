@@ -62,10 +62,11 @@ export function MediaCardThumbnail({
   const inset = tv ? theme.spacing.md : theme.spacing.sm;
   // An avatar is capped at a share of the card, so the card width is not the
   // width it is rendered at and would ask for an image several times too large.
-  const renderedWidth =
-    targetWidth && circle
-      ? Math.min(targetWidth * avatarWidthRatio, avatarMaxWidth)
-      : targetWidth;
+  const avatarSize =
+    circle && targetWidth
+      ? Math.round(Math.min(targetWidth * avatarWidthRatio, avatarMaxWidth))
+      : undefined;
+  const renderedWidth = avatarSize ?? targetWidth;
   const source = renderedWidth
     ? resolveThumbnailUrl(
         model.thumbnailUrl,
@@ -84,8 +85,15 @@ export function MediaCardThumbnail({
           borderRadius: radius,
         },
         // A channel avatar is an identity mark, not feed imagery, so it never
-        // grows to the full card width.
-        circle && [styles.circle, {maxWidth: avatarMaxWidth}],
+        // grows to the full card width. The size is set on both axes: a capped
+        // width alone leaves the aspect ratio deriving the height from the
+        // uncapped one, which turns the circle into a capsule.
+        circle && [
+          styles.circle,
+          avatarSize === undefined
+            ? {maxWidth: avatarMaxWidth, maxHeight: avatarMaxWidth}
+            : {width: avatarSize, height: avatarSize},
+        ],
       ]}>
       {source && !failed ? (
         <Image
