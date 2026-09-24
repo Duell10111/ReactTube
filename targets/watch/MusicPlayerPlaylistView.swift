@@ -34,15 +34,18 @@ struct MusicPlayerPlaylistView: View {
               Button {
                 musicManager.jumpToIndex(index)
               } label: {
-                VStack {
-                  Text(video.title ?? "Track \(index + 1)")
-                  if let artist = video.artist {
-                    Text(artist)
-                      .foregroundStyle(.secondary)
+                HStack {
+                  VideoCoverView(video: video)
+                  VStack(alignment: .leading) {
+                    Text(video.title ?? "Track \(index + 1)")
+                    if let artist = video.artist {
+                      Text(artist)
+                        .foregroundStyle(.secondary)
+                    }
                   }
                 }
               }
-              Spacer()
+              Spacer(minLength: 0)
               if index == musicManager.trackIndex {
                 Image(systemName: "play.fill")
               }

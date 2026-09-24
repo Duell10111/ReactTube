@@ -102,14 +102,7 @@ class PlaylistManager {
       print("Local uri: \(uri)")
       
       // Map to downloaded image if available
-      var coverURL: String? = nil
-      if let url = video.coverURL {
-        if url.hasPrefix("/") {
-          coverURL = getDownloadDirectory().appending(path: url).absoluteString
-        } else {
-          coverURL = url
-        }
-      }
+      let coverURL = resolvedCoverURL(for: video)?.url.absoluteString
       print("Coverurl: \(coverURL ?? "none")")
       
       if let item = TrackEndtime(url: uri, artworkUrl: coverURL, endTiming: CMTime(value: Int64(video.durationMillis/1000), timescale: 1)) {
