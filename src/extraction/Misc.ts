@@ -1,4 +1,5 @@
 import {Thumbnail, ThumbnailOverlays} from "./Types";
+import {isDurationLabel} from "./lockupMetadata";
 import {Misc, Helpers, YTNodes} from "../utils/Youtube";
 
 import Logger from "@/utils/Logger";
@@ -14,9 +15,6 @@ export function getThumbnail(thumbnail: Misc.Thumbnail) {
 }
 
 const LOGGER = Logger.extend("EXTRACTION");
-
-// Matches durations like "1:02" or "1:02:03"
-const DURATION_REGEX = /^\d{1,2}(:\d{2}){1,2}$/;
 
 /**
  * Extracts the duration shown on a thumbnail.
@@ -36,7 +34,7 @@ export function getDurationFromThumbnailOverlays(
   }
   return thumbnailOverlays
     ?.firstOfType(YTNodes.ThumbnailOverlayBadgeView)
-    ?.badges?.find(badge => DURATION_REGEX.test(badge.text))?.text;
+    ?.badges?.find(badge => isDurationLabel(badge.text))?.text;
 }
 
 export function parseThumbnailOverlays(

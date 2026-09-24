@@ -15,6 +15,10 @@ import {
   PlaylistData,
   VideoData,
 } from "./Types";
+import {
+  parseLockupMetadataRows,
+  parseLockupThumbnailBadges,
+} from "./lockupMetadata";
 import {parseTileMetadataLines} from "./tileMetadata";
 import Logger from "../utils/Logger";
 import {Helpers, YTNodes, Parser} from "../utils/Youtube";
@@ -31,6 +35,38 @@ const skippedTypes = [
 ];
 
 const LOGGER = Logger.extend("EXTRACTION");
+
+/**
+ * Author of a lockup. Its name comes from the metadata rows and everything
+ * else from the avatar beside them, which is also the only place the lockup
+ * names the channel it belongs to.
+ */
+function getLockupAuthor(
+  name?: string,
+  image?: YTNodes.DecoratedAvatarView | YTNodes.AvatarStackView | null,
+): Author | undefined {
+  const avatar = image?.is(YTNodes.DecoratedAvatarView)
+    ? image.avatar
+    : image?.is(YTNodes.AvatarStackView)
+      ? image.avatars?.[0]
+      : undefined;
+  const endpoint = image?.renderer_context?.command_context?.on_tap;
+  const thumbnail = avatar?.image?.[0]
+    ? getThumbnail(avatar.image[0])
+    : undefined;
+
+  // A playlist lockup carries no avatar, but it still names its owner.
+  if (!name && !thumbnail) {
+    return undefined;
+  }
+
+  return {
+    id: endpoint?.payload?.browseId as string,
+    name: name ?? "",
+    thumbnail,
+    navEndpoint: endpoint,
+  };
+}
 
 export function getVideoDataOfFirstElement(
   dataArr: Helpers.ObservedArray<Helpers.YTNode>,
@@ -502,43 +538,55 @@ export function getVideoData(
   // TODO: Maybe outsource in other file
   // Lookup Views
   else if (ytNode.is(YTNodes.LockupView)) {
-    const image =
-      ytNode.content_image?.is(YTNodes.CollectionThumbnailView) &&
-      ytNode.content_image.primary_thumbnail?.image?.[0]
-        ? getThumbnail(ytNode.content_image.primary_thumbnail.image[0])
-        : ytNode.content_image?.is(YTNodes.ThumbnailView) &&
-            ytNode.content_image.image[0]
-          ? getThumbnail(ytNode.content_image.image[0])
-          : undefined;
+    // A playlist stacks its thumbnails; the first one is the one to show.
+    const thumbnailView = ytNode.content_image?.is(
+      YTNodes.CollectionThumbnailView,
+    )
+      ? ytNode.content_image.primary_thumbnail
+      : ytNode.content_image?.is(YTNodes.ThumbnailView)
+        ? ytNode.content_image
+        : undefined;
+    const image = thumbnailView?.image?.[0]
+      ? getThumbnail(thumbnailView.image[0])
+      : undefined;
+    const {author, count, published} = parseLockupMetadataRows(
+      ytNode.metadata?.metadata?.metadata_rows,
+    );
+    const badges = parseLockupThumbnailBadges(thumbnailView?.overlays);
+    const authorObject = getLockupAuthor(author, ytNode.metadata?.image);
+    const navEndpoint = ytNode.renderer_context.command_context?.on_tap;
+
     if (ytNode.content_type === "PLAYLIST") {
       return {
         type: "playlist",
         originalNode: ytNode,
         id: ytNode.content_id,
+        navEndpoint,
         thumbnailImage: image,
         title: ytNode.metadata?.title?.text ?? "Unknown Playlist title",
+        author: authorObject,
+        videoCount: badges.videoCount,
       } as PlaylistData;
-    } else if (ytNode.content_type === "VIDEO") {
-      // TODO: NEW Type not handled in lib?!
-      // return {
-      //   type: "playlist",
-      //   originalNode: ytNode,
-      //   id: ytNode.content_id,
-      //   thumbnailImage: getThumbnail(
-      //     ytNode.content_image.primary_thumbnail.image[0],
-      //   ),
-      //   title: ytNode.metadata.title.text ?? "Unknown Playlist title",
-      // } as PlaylistData;
-      // console.log(ytNode);
-      // console.log(ytNode.metadata.metadata.metadata_rows[1]?.metadata_parts);
-
+    } else if (
+      ytNode.content_type === "VIDEO" ||
+      ytNode.content_type === "SHORT"
+    ) {
       return {
-        type: "video",
+        type: ytNode.content_type === "SHORT" ? "reel" : "video",
         originalNode: ytNode,
         id: ytNode.content_id,
         thumbnailImage: image,
         title: ytNode.metadata?.title?.text,
-        navEndpoint: ytNode.renderer_context.command_context?.on_tap,
+        navEndpoint,
+        author: authorObject,
+        short_views: count,
+        publishDate: published,
+        duration: badges.duration,
+        livestream: badges.livestream,
+        thumbnailOverlays:
+          badges.progress !== undefined
+            ? {videoProgress: badges.progress}
+            : undefined,
       } as VideoData;
     } else {
       LOGGER.warn(
