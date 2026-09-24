@@ -6,18 +6,29 @@ import {
   getFeedContentPadding,
   getFeedLayoutClass,
   getFeedMetrics,
+  getFeedRowPadding,
+  splitFeedRowPadding,
   type FeedContentPadding,
   type FeedMetrics,
+  type FeedRowPadding,
 } from "./feedLayout";
 import {getFeedListPerformance, type ListPerformance} from "./feedPerformance";
 
 import {useAppChrome} from "@/ui/layout";
+import {spacing} from "@/ui/theme";
 
 export interface FeedGeometry {
   metrics: FeedMetrics;
   cardWidth: number;
   /** Padding of the scroll content, including the TV overscan margin. */
   contentPadding: FeedContentPadding;
+  /** The horizontal padding the rows carry; see `getFeedRowPadding`. */
+  rowPadding: FeedRowPadding;
+  /**
+   * Margin the feed's focus region keeps outside itself on TV, so the region
+   * starts at the first card and a Left press reaches the navigation rail.
+   */
+  leadingInset: number;
   /** Virtualization settings, which differ because the remote needs depth. */
   performance: ListPerformance;
   onLayout: (event: LayoutChangeEvent) => void;
@@ -44,6 +55,10 @@ export function useFeedGeometry(): FeedGeometry {
     metrics,
     contentInsets,
   );
+  const {leadingInset, rowPadding} = splitFeedRowPadding(
+    feedLayout,
+    getFeedRowPadding(contentPadding, spacing.sm),
+  );
 
   const onLayout = useCallback((event: LayoutChangeEvent) => {
     const {width} = event.nativeEvent.layout;
@@ -56,9 +71,16 @@ export function useFeedGeometry(): FeedGeometry {
     cardWidth: getFeedCardWidth(
       measuredWidth,
       metrics,
-      contentPadding.paddingStart + contentPadding.paddingEnd,
+      // The list reports its width from inside the leading margin, so on TV
+      // that margin is already gone by the time the cards are measured.
+      Math.max(
+        0,
+        contentPadding.paddingStart + contentPadding.paddingEnd - leadingInset,
+      ),
     ),
     contentPadding,
+    rowPadding,
+    leadingInset,
     performance: getFeedListPerformance(feedLayout),
     onLayout,
   };

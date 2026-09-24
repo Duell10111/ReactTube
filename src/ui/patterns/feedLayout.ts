@@ -105,6 +105,39 @@ export function getFeedRowPadding(
   };
 }
 
+export interface FeedRowLayout {
+  /** Margin that belongs outside the feed's focus region. */
+  leadingInset: number;
+  /** The horizontal padding the rows themselves carry. */
+  rowPadding: FeedRowPadding;
+}
+
+/**
+ * Moves the leading row padding out of the feed on TV.
+ *
+ * A focus region is a `UIFocusGuide` spanning the whole view it wraps, and the
+ * focus engine takes the nearest guide over anything behind it. While the feed
+ * region also covered the margin beside the first column, a Left press meant to
+ * leave the feed landed in that margin, and the guide handed focus straight
+ * back to the card it came from — the navigation rail could never be reached.
+ * The margin sits outside the region instead: the region starts exactly at the
+ * first card, so nothing stands between that card and the rail. The rows keep
+ * the trailing padding, which is the one that lets a shelf run off the edge.
+ */
+export function splitFeedRowPadding(
+  layout: LayoutClass,
+  padding: FeedRowPadding,
+): FeedRowLayout {
+  if (layout !== "tv") {
+    return {leadingInset: 0, rowPadding: padding};
+  }
+
+  return {
+    leadingInset: padding.paddingStart,
+    rowPadding: {paddingStart: 0, paddingEnd: padding.paddingEnd},
+  };
+}
+
 export type FeedRow =
   | {type: "shelf"; key: string; shelf: HorizontalData}
   | {type: "header"; key: string; title: string}

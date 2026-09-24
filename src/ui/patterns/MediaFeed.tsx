@@ -15,12 +15,7 @@ import {
   FeedSkeleton,
 } from "./FeedRows";
 import {Shelf} from "./Shelf";
-import {
-  buildFeedRows,
-  getFeedRowPadding,
-  type FeedItem,
-  type FeedRow,
-} from "./feedLayout";
+import {buildFeedRows, type FeedItem, type FeedRow} from "./feedLayout";
 import {useFeedGeometry} from "./useFeedGeometry";
 import {useFeedPagination} from "./useFeedPagination";
 
@@ -72,8 +67,20 @@ export function MediaFeed({
 }: MediaFeedProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
-  const {metrics, cardWidth, contentPadding, performance, onLayout} =
-    useFeedGeometry();
+  // The scroll container keeps only the vertical padding. The horizontal part
+  // belongs to the rows, so a shelf can run to the screen edge instead of
+  // ending at the margin with a dead band beside it — except for the leading
+  // margin on TV, which stays outside the focus region so that a Left press
+  // out of the feed reaches the navigation rail.
+  const {
+    metrics,
+    cardWidth,
+    contentPadding,
+    rowPadding,
+    leadingInset,
+    performance,
+    onLayout,
+  } = useFeedGeometry();
   const {loadingMore, handleEndReached} = useFeedPagination(
     onEndReached,
     items.length > 0,
@@ -82,14 +89,6 @@ export function MediaFeed({
   const rows = useMemo(
     () => buildFeedRows(items, metrics.columns, metrics.shelfPresentation),
     [items, metrics.columns, metrics.shelfPresentation],
-  );
-
-  // The scroll container keeps only the vertical padding. The horizontal part
-  // belongs to the rows, so a shelf can run to the screen edge instead of
-  // ending at the margin with a dead band beside it.
-  const rowPadding = useMemo(
-    () => getFeedRowPadding(contentPadding, theme.spacing.sm),
-    [contentPadding, theme.spacing.sm],
   );
 
   const renderItem = useCallback<ListRenderItem<FeedRow>>(
@@ -138,9 +137,12 @@ export function MediaFeed({
        * The feed is one focus region: it claims focus when the screen opens, so
        * the first press on the remote moves within the grid instead of going
        * nowhere, and it hands focus back to the card that had it when the user
-       * returns from a video.
+       * returns from a video. The leading margin is the region's margin, not
+       * its padding: a focus region covers everything inside it, and a region
+       * reaching into that margin swallows the Left press that leaves the feed
+       * for the navigation rail.
        */}
-      <TVFocusRegion style={styles.region}>
+      <TVFocusRegion style={[styles.region, {marginStart: leadingInset}]}>
         <FlatList
           ListEmptyComponent={empty}
           ListFooterComponent={loadingMore ? <FeedFooterLoader /> : null}
