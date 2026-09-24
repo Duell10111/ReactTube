@@ -61,22 +61,15 @@ class Track: AudioItem {
     }
 
     func getArtwork(_ handler: @escaping (UIImage?) -> Void) {
-        if let artworkURL = artworkURL?.value {
-            if(self.artworkURL?.isLocal ?? false){
-                let image = UIImage.init(contentsOfFile: artworkURL.path);
-                handler(image);
-            } else {
-                URLSession.shared.dataTask(with: artworkURL, completionHandler: { (data, _, error) in
-                    if let data = data, let artwork = UIImage(data: data), error == nil {
-                        handler(artwork)
-                    } else {
-                        handler(nil)
-                    }
-                }).resume()
-            }
-        } else {
+        guard let artworkURL = artworkURL else {
             handler(nil)
+            return
         }
+
+        // Goes through the cache: the artwork of a title is requested by the
+        // player UI and by the now playing info controller, and a remote cover
+        // would otherwise be downloaded again on every track change.
+        ArtworkCache.shared.image(for: artworkURL.value, isLocal: artworkURL.isLocal, completion: handler)
     }
 }
 

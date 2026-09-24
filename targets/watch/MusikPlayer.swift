@@ -9,7 +9,9 @@ import SwiftUI
 
 struct MusikPlayer: View {
     @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
-    @State private var crownValue: Double = 0.0 // Der aktuelle Wert des Digital Crown
+    /// Only while the seek mode is active may the crown change the position; the
+    /// volume control gives it up for that time.
+    @State private var isSeeking: Bool = false
 
     var body: some View {
       @Bindable var musicManager = musicManager
@@ -22,6 +24,9 @@ struct MusikPlayer: View {
                 if let artist = musicManager.currentArtist {
                   Text(artist)
                     .font(.caption2)
+                }
+                if musicManager.duration > 0 {
+                  PlaybackProgressView(isSeeking: $isSeeking)
                 }
               }.padding()
             }
@@ -51,31 +56,50 @@ struct MusikPlayer: View {
           HStack(alignment: .center, spacing: 0) {
             Spacer()
             VolumeControl()
-          }.background(NativeVolumeControl().opacity(0))
+              .opacity(isSeeking ? 0 : 1)
+          }.background {
+            // The native volume control owns the crown. While seeking it must be
+            // gone, otherwise it keeps the crown input for itself.
+            if !isSeeking {
+              NativeVolumeControl().opacity(0)
+            }
+          }
         }.toolbar {
           ToolbarItem(placement: .topBarTrailing) {
             NavigationLink(destination: MusicPlayerPlaylistView()) {
                 Label("Music", systemImage: "music.note.list")
               }
           }
+        }.onChange(of: musicManager.duration) {
+          // Without a known duration there is nothing to seek in, so the crown
+          // goes back to the volume control.
+          if musicManager.duration <= 0 { isSeeking = false }
         }.background(alignment: .center) {
-          if let cover = musicManager.currentCover {
-            Color.clear.overlay {
-              Image(uiImage: cover)
-                  .resizable()
-                  .aspectRatio(contentMode: .fill)
+          ZStack {
+            if let cover = musicManager.currentCover {
+              Color.clear
+                .overlay {
+                  Image(uiImage: cover)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                }
+                // A fill-scaled image is larger than its frame and SwiftUI does
+                // not clip it on its own. Without this the overhanging part is
+                // drawn outside the player and overlaps the neighbouring screen
+                // while a navigation transition is running.
+                .clipped()
+            } else {
+                Image(systemName: "music.note")
+                    .resizable()
+                    .scaledToFit()
+                    .cornerRadius(8)
+                    .padding()
             }
-          } else {
-              Image(systemName: "music.note")
-                  .resizable()
-                  .scaledToFit()
-                  .cornerRadius(8)
-                  .padding()
-          }
 
-          // Makes background a bit darker
-          Color.black.opacity(0.4)
-                .ignoresSafeArea()
+            // Makes background a bit darker
+            Color.black.opacity(0.4)
+          }
+          .ignoresSafeArea()
         }
       }
 //      .focusable(true)

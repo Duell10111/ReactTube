@@ -45,7 +45,7 @@ func send(_ payload: [String: Any], as delivery: Delivery) {
     // only when live delivery is unavailable (or fails).
     if session.isReachable {
       session.sendMessage(payload, replyHandler: nil) { error in
-        print("Immediate WCSession delivery failed, queueing user info: \(error.localizedDescription)")
+        WatchLog.shared.warning("Connectivity", "Direct delivery failed, request queued: \(error.localizedDescription)")
         guard session.activationState == .activated else {
           sessionSync.status.reportError(error.localizedDescription)
           return
@@ -53,6 +53,7 @@ func send(_ payload: [String: Any], as delivery: Delivery) {
         session.transferUserInfo(payload)
       }
     } else {
+      WatchLog.shared.info("Connectivity", "iPhone not reachable, request queued")
       session.transferUserInfo(payload)
     }
   }

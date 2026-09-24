@@ -13,9 +13,6 @@ struct HomeSection: View {
     var body: some View {
       Text(section.title)
       List {
-        Button("Add") {
-          print("Section: ", section.elements)
-        }
         ForEach(section.elements) { e in
           HStack {
             Image(systemName: "music.note")

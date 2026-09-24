@@ -13,9 +13,6 @@ struct HomeSectionList: View {
   
     var body: some View {
       Section(header: Text("Home")) {
-        Button("Print") {
-          print("Homesection: ", homeSections)
-        }
         ForEach(homeSections) { section in
           NavigationLink(section.title) {
             HomeSection(section: section)
