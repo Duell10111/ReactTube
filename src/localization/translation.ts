@@ -1,29 +1,18 @@
 import {
   defaultCoreUILanguage,
   getCoreUILanguageFromSettings,
-  normalizeCoreUILanguage,
   resolveTranslation,
 } from "./core";
 import {de} from "./de";
 import {en, type TranslationKey} from "./en";
-import {
-  supportedUILanguages,
-  type TranslationValues,
-  type UILanguage,
-} from "./types";
+import {type TranslationValues, type UILanguage} from "./types";
 
 export const defaultUILanguage: UILanguage = defaultCoreUILanguage;
 
-export const translations: Record<
-  UILanguage,
-  Record<TranslationKey, string>
-> = {en, de};
-
-export function normalizeUILanguage(value: unknown): UILanguage {
-  return supportedUILanguages.includes(value as UILanguage)
-    ? normalizeCoreUILanguage(value)
-    : defaultUILanguage;
-}
+const translations: Record<UILanguage, Record<TranslationKey, string>> = {
+  en,
+  de,
+};
 
 export function getUILanguageFromSettings(settings: {
   uiLanguage?: unknown;

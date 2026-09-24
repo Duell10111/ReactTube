@@ -31,7 +31,7 @@ export interface PrimaryDestination {
   requiresAccount: boolean;
 }
 
-export const primaryDestinations: readonly PrimaryDestination[] = [
+const primaryDestinations: readonly PrimaryDestination[] = [
   {
     key: "home",
     route: "HomeFeed",
@@ -107,7 +107,7 @@ export interface TVRailDestination {
   availability: "always" | "account" | "anonymous";
 }
 
-export const tvRailDestinations: readonly TVRailDestination[] = [
+const tvRailDestinations: readonly TVRailDestination[] = [
   {
     key: "home",
     labelKey: "navigation.home",
