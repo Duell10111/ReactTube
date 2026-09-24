@@ -227,27 +227,32 @@ export default function VideoDetailScreen({route}: Props) {
     />
   );
 
+  const split = detailLayout.mode === "split";
+
   return (
     <View
       style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      {detailLayout.mode === "split" ? (
-        <View style={styles.split}>
-          <View
-            style={[
-              styles.playerColumn,
-              {width: `${detailLayout.playerColumnRatio * 100}%`},
-            ]}>
-            {player}
-            <ScrollView style={styles.metadataColumn}>{header}</ScrollView>
-          </View>
-          <View style={styles.feedColumn}>{feed}</View>
-        </View>
-      ) : (
-        <>
+      {/*
+        Stacked and split share one tree. The player has to keep its exact
+        place in it: rendering it from two different branches makes React
+        unmount and remount the native video on every rotation, and playback
+        starts over from the beginning. Only styles change between the two
+        arrangements.
+      */}
+      <View style={[styles.body, split && styles.bodySplit]}>
+        <View
+          style={[
+            styles.playerColumn,
+            split && styles.playerColumnSplit,
+            split && {width: `${detailLayout.playerColumnRatio * 100}%`},
+          ]}>
           {player}
-          <View style={styles.feedColumn}>{feed}</View>
-        </>
-      )}
+          {split ? (
+            <ScrollView style={styles.metadataColumn}>{header}</ScrollView>
+          ) : null}
+        </View>
+        <View style={styles.feedColumn}>{feed}</View>
+      </View>
       <SheetPanel
         onClose={() => setPanel(undefined)}
         open={panel === "description"}
@@ -295,11 +300,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  split: {
+  body: {
     flex: 1,
+  },
+  bodySplit: {
     flexDirection: "row",
   },
   playerColumn: {
+    width: "100%",
+  },
+  playerColumnSplit: {
     height: "100%",
   },
   metadataColumn: {
