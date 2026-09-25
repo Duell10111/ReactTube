@@ -1,24 +1,14 @@
-import React, {useCallback} from "react";
-import {
-  FlatList,
-  Platform,
-  StyleSheet,
-  View,
-  type ListRenderItem,
-} from "react-native";
+import React from "react";
+import {StyleSheet, View} from "react-native";
 
-import {MediaCard} from "./MediaCard";
+import {MediaCardRow} from "./MediaCardRow";
 import type {FeedMetrics, FeedRowPadding} from "./feedLayout";
-import {getShelfListPerformance} from "./feedPerformance";
 
 import type {HorizontalData} from "@/extraction/ShelfExtraction";
-import type {ElementData} from "@/extraction/Types";
 import useHorizontalData from "@/hooks/tv/useHorizontalData";
 import {useTranslation} from "@/localization";
 import {AppButton, AppText} from "@/ui/components";
-import {useAppChrome} from "@/ui/layout";
 import {useAppTheme} from "@/ui/theme";
-import {TVFocusRegion} from "@/ui/tv";
 
 interface ShelfProps {
   shelf: HorizontalData;
@@ -41,19 +31,6 @@ export function Shelf({shelf, metrics, padding, onSeeAll}: ShelfProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
   const {elements, fetchMore} = useHorizontalData(shelf);
-  const {layout} = useAppChrome();
-  const performance = getShelfListPerformance(layout);
-
-  const renderItem = useCallback<ListRenderItem<ElementData>>(
-    ({item}) => <MediaCard element={item} width={metrics.shelfCardWidth} />,
-    [metrics.shelfCardWidth],
-  );
-
-  // The same element can appear twice in a shelf, so the index is part of the key.
-  const keyExtractor = useCallback(
-    (item: ElementData, index: number) => `${item.id}-${index}`,
-    [],
-  );
 
   return (
     <View style={[styles.container, {gap: theme.spacing.sm}]}>
@@ -69,27 +46,12 @@ export function Shelf({shelf, metrics, padding, onSeeAll}: ShelfProps) {
           />
         ) : null}
       </View>
-      {/*
-       * A shelf is its own focus region: entering it from the row above lands
-       * on the card the shelf was left at, not back at its first entry.
-       */}
-      <TVFocusRegion>
-        <FlatList
-          contentContainerStyle={{gap: metrics.gap, ...padding}}
-          data={elements}
-          horizontal
-          initialNumToRender={performance.initialNumToRender}
-          keyExtractor={keyExtractor}
-          maxToRenderPerBatch={performance.maxToRenderPerBatch}
-          onEndReached={fetchMore}
-          onEndReachedThreshold={0.8}
-          removeClippedSubviews={performance.removeClippedSubviews}
-          renderItem={renderItem}
-          showsHorizontalScrollIndicator={!Platform.isTV}
-          updateCellsBatchingPeriod={performance.updateCellsBatchingPeriod}
-          windowSize={performance.windowSize}
-        />
-      </TVFocusRegion>
+      <MediaCardRow
+        elements={elements}
+        metrics={metrics}
+        onEndReached={fetchMore}
+        padding={padding}
+      />
     </View>
   );
 }

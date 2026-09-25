@@ -3,6 +3,7 @@ export * from "./AppHeader";
 export * from "./CommentList";
 export * from "./FeedRows";
 export * from "./MediaCard";
+export * from "./MediaCardRow";
 export * from "./MediaCardSkeleton";
 export * from "./MediaCardThumbnail";
 export * from "./MediaFeed";
