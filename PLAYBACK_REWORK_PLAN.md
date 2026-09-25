@@ -114,6 +114,92 @@ tv.getInfo (App-Pfad): UNPLAYABLE · 0 Formate
 
 ---
 
+## 0c. Die Bot-Sperre hängt an der IP — und SABR hilft nicht dagegen *(gemessen 2026-09-26)*
+
+Anlass: auf dem Gerät scheiterte die gesamte Client-Kette gleichzeitig.
+
+```
+TV_SIMPLY   UNPLAYABLE      IOS/VISIONOS/ANDROID_VR/TV_DOWNGRADED/MWEB   LOGIN_REQUIRED
+```
+
+Die naheliegende Überlegung war, Phase 6 (SABR) vorzuziehen, um über den
+TV-Client doch noch an Streams zu kommen. Die Messung widerlegt beide Hälften
+dieser Überlegung.
+
+### Die Sperre ist IP-gebunden
+
+`node dev-scripts/playback-matrix.mjs --videos bUHZ2k9DYHY` reproduzierte den
+Zustand vom Gerät exakt — bei **allen acht** geprüften Clients derselbe Grund:
+
+| | |
+|---|---|
+| `playability_reason` | **"Sign in to confirm you're not a bot"** |
+| `has_streaming_data` | `false` |
+| `server_abr_streaming_url` | `null` |
+| `has_ustreamer_config` | `false` |
+| Antwortzeit | 50–99 ms (die gesunde Antwort braucht 500–970 ms) |
+
+Als Ursache ausgeschlossen:
+
+- **Veraltete Session.** Ein Lauf mit weggeräumtem `.cache` scheiterte identisch.
+- **Die Identität.** Ein frisch geholtes `visitorData` scheiterte identisch.
+- **Anfragefrequenz.** Nach dem Ende der Sperre blieben 36 Anfragen in sechs
+  parallelen Salven vollständig `OK` — die Sperre lässt sich von dieser Seite
+  nicht auslösen.
+- **Fehlender PoToken.** Weder ein echter BotGuard-Token (content-gebunden, TTL
+  43200 s) noch ein Cold-Start-Token änderten etwas.
+
+Aufgelöst hat sie sich mit der **Zwangstrennung des Anschlusses**: mit der neuen
+IP lieferte dasselbe Skript sofort wieder `VISIONOS`, `IOS` und `TV_SIMPLY` mit
+2160p av01 + sidx und `hls_ready=true`. Die alte IP war markiert, mehr nicht.
+
+**Für die Praxis:** ein flächendeckendes `LOGIN_REQUIRED` über die ganze Kette
+ist zuerst ein Verbindungsproblem, kein Code-Problem. Der `reason` unterscheidet
+das — er steht seit dieser Messung im Log (`PlaybackResolver.ts`), vorher wurde
+nur `error ?? status` ausgegeben und beide Fälle sahen gleich aus.
+
+### Folge für die Selbstheilung
+
+`resetRejectedPlaybackSession` warf bei jedem `LOGIN_REQUIRED` die
+Session-Identität weg. Bei einer IP-Sperre bringt das nichts — und ein Muster aus
+„neue Identität pro Abspielversuch" ist genau das, wonach die Bot-Erkennung
+sucht. Die Funktion prüft jetzt den Grund und lässt die Identität bei der
+Bot-Sperre stehen (`isBotGateReason`); für alle anderen `LOGIN_REQUIRED`-Gründe
+bleibt es beim Verwerfen.
+
+### SABR kann LOGIN_REQUIRED strukturell nicht beheben
+
+SABRs beide Eingaben — `server_abr_streaming_url` und
+`video_playback_ustreamer_config` — stammen aus **derselben** `/player`-Antwort,
+die hier `LOGIN_REQUIRED` liefert. Ist sie gesperrt, gibt es nichts, womit sich
+ein `VideoPlaybackAbrRequest` überhaupt bauen ließe; die SABR-Aufklärung des
+Matrix-Skripts brach entsprechend mit „Kein Client lieferte eine
+`server_abr_streaming_url`" ab.
+
+SABR ist ein anderer Weg, die Bytes **abzuholen**, nachdem `/player` geliefert
+hat — kein Weg, an `/player` vorbeizukommen.
+
+### Und der TV-Client kommt über SABR ebenfalls nicht durch
+
+Gemessen am SABR-Endpunkt selbst, nach dem Ende der Sperre:
+
+| Client | SABR-Antwort |
+|---|---|
+| `VISIONOS` | HTTP 200 · 787 935 B UMP · itag 401 + 251 |
+| `IOS` | HTTP 200 · 787 573 B UMP · itag 401 + 140 |
+| `TV_SIMPLY` | **HTTP 403** · 0 B |
+| `WEB` | **HTTP 403** · 0 B |
+
+`TV_SIMPLY` bringt zwar eine `ustreamer_config` mit, wird am SABR-Endpunkt aber
+abgewiesen — dasselbe Bild wie in §0b Befund 5. **SABR erschließt `WEB` und
+`ANDROID` (die SABR-only sind), nicht die TV-Clients.**
+
+⇒ Phase 6 bleibt aus den Gründen in §0b sinnvoll (SABR-only-Clients erschließen,
+Ausweg falls `VISIONOS` die ungekappte Byte-Range verliert). Als Antwort auf
+`LOGIN_REQUIRED` ist sie es nicht.
+
+---
+
 ## 1. Ausgangslage (Ist-Analyse)
 
 ### 1.1 Wie die App heute abspielt
@@ -456,6 +542,11 @@ frei, behebt den 403 bei `MWEB` und erreicht altersbeschränkte sowie geo-blocki
 ---
 
 ### Phase 6 — SABR *(~1,5–2,5 Wochen, Hauptpfad — kann direkt nach Phase 4 beginnen)*
+
+> **Nicht das Mittel gegen `LOGIN_REQUIRED`** und nicht der Weg zu Streams über
+> den TV-Client — beides in §0c gemessen und widerlegt. Der Nutzen von Phase 6
+> bleibt: `WEB`/`ANDROID` erschließen und unabhängig von der Byte-Range-Gunst
+> einzelner Clients werden.
 
 Vorarbeit aus Phase 0: ein handkodierter Request wird bereits akzeptiert, die Antwortstruktur ist bekannt (§0b Befund 5/6). `dev-scripts/lib/proto.mjs` (Writer + UMP-Reader) und `dev-scripts/playback-matrix.mjs#buildAbrRequest` sind die lauffähige Referenz für 6.1–6.3.
 

@@ -53,7 +53,10 @@ export default function useVideoDataGenerator() {
       element.audioSource = resolvedSource.source;
 
       if (info.playability_status?.status === "LOGIN_REQUIRED") {
-        resetRejectedPlaybackSession("audio-metadata");
+        resetRejectedPlaybackSession(
+          "audio-metadata",
+          info.playability_status.reason,
+        );
         throw new Error(`Login Required: ${info.playability_status.reason}`);
       }
 

@@ -55,21 +55,54 @@ function preferRecentClient(
   return [recent, ...clients.filter(client => client !== recent)];
 }
 
+/**
+ * Die Bot-Sperre („Sign in to confirm you're not a bot"). Gemessen am 2026-09-26
+ * hängt sie an der **IP**, nicht an der Session: sie trifft alle Clients
+ * gleichzeitig, ein frisch geholtes `visitorData` löst sie nicht, und mit dem
+ * Wechsel der IP verschwindet sie schlagartig (Plan §0c).
+ */
+const BOT_GATE_REASON = /confirm you.{0,3}re not a bot/i;
+
+export function isBotGateReason(reason?: string | null): boolean {
+  return !!reason && BOT_GATE_REASON.test(reason);
+}
+
 function recoverRejectedSession(
   profile: string,
-  attempts: {status?: string}[] | undefined,
+  attempts: {status?: string; reason?: string}[] | undefined,
 ): void {
-  if (!attempts?.some(attempt => attempt.status === "LOGIN_REQUIRED")) {
+  const rejected = attempts?.filter(
+    attempt => attempt.status === "LOGIN_REQUIRED",
+  );
+
+  if (!rejected?.length) {
     return;
   }
 
-  resetRejectedPlaybackSession(profile);
+  resetRejectedPlaybackSession(profile, rejected[0].reason);
 }
 
-export function resetRejectedPlaybackSession(profile: string): void {
+/**
+ * Verwirft die Session-Identität nach einem `LOGIN_REQUIRED` — außer die Sperre
+ * hängt an der IP. Dann bringt das Verwerfen nichts, und ein Muster aus „neue
+ * Identität pro Abspielversuch" ist genau das, wonach die Bot-Erkennung sucht.
+ */
+export function resetRejectedPlaybackSession(
+  profile: string,
+  reason?: string,
+): void {
+  if (isBotGateReason(reason)) {
+    LOGGER.warn(
+      `${profile}: LOGIN_REQUIRED (${reason}) — die Sperre hängt an der ` +
+        "Verbindung, nicht an der Session. Identität bleibt erhalten; hilft " +
+        "nur eine andere IP.",
+    );
+    return;
+  }
+
   LOGGER.warn(
-    `${profile}: LOGIN_REQUIRED — Session-Identität wird verworfen, ` +
-      "der nächste Start holt eine neue.",
+    `${profile}: LOGIN_REQUIRED${reason ? ` (${reason})` : ""} — ` +
+      "Session-Identität wird verworfen, der nächste Start holt eine neue.",
   );
   resetStoredVisitorData();
   clearInnertubeSessionCache().catch(() => {});
@@ -94,11 +127,16 @@ export async function resolvePlaybackInfo(
       accept: options.accept,
       clients_fallback: options.clientsFallback,
       accept_fallback: options.acceptFallback,
+      // Der `reason` gehört mit ins Log: er unterscheidet eine IP-weite
+      // Bot-Sperre von einem echten Session- oder Videoproblem. Ohne ihn sieht
+      // beides gleich aus (Plan §0c).
       on_attempt: attempt =>
         LOGGER.debug(
           `${options.profile}: Client ${attempt.client}: ${
             attempt.error ?? attempt.status ?? "unbekannt"
-          } (${attempt.duration_ms} ms)`,
+          }${attempt.reason ? ` (${attempt.reason})` : ""} (${
+            attempt.duration_ms
+          } ms)`,
         ),
     });
 
