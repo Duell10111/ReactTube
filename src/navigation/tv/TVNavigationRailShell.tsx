@@ -117,7 +117,17 @@ export function TVNavigationRailShell({children}: TVNavigationRailShellProps) {
 
   useEffect(() => {
     // Restore the remembered destination when focus returns to the rail.
-    const target = itemRefs.current[lastFocusedKey];
+    //
+    // The remembered one can be gone: signing in and out changes which
+    // destinations exist, and the one that was focused last may have
+    // unmounted since. Fall back to the first destination that is actually
+    // mounted, because a guide without destinations stops being a guide —
+    // see the `autoFocus` note on the `TVFocusGuideView` below.
+    const target =
+      itemRefs.current[lastFocusedKey] ??
+      destinations
+        .map(destination => itemRefs.current[destination.key])
+        .find(Boolean);
 
     setRailDestinationRefs(target ? [target] : []);
   }, [destinations, lastFocusedKey]);
@@ -246,7 +256,18 @@ export function TVNavigationRailShell({children}: TVNavigationRailShellProps) {
             {backgroundColor: theme.colors.surface},
             railStyle,
           ]}>
+          {/*
+           * `destinations` sends focus to the remembered destination, and
+           * `autoFocus` is what the guide falls back to while there is none:
+           * an empty `destinations` array removes the underlying
+           * `UIFocusGuide` entirely, and the view then answers
+           * `canBecomeFocused` with its own `isTVSelectable`, which this one
+           * has. The rail would become one focusable box spanning its whole
+           * frame — it would take focus, never report it to a destination, so
+           * it would neither expand nor let any of its buttons be selected.
+           */}
           <TVFocusGuideView
+            autoFocus
             destinations={railDestinationRefs}
             style={[
               styles.railContent,
