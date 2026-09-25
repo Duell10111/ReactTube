@@ -8,6 +8,11 @@ CREATE TABLE `playlist_videos` (
 );
 --> statement-breakpoint
 PRAGMA foreign_keys=OFF;--> statement-breakpoint
+CREATE TEMP TABLE `__playlist_membership_migration` AS
+SELECT `playlist_id`, `id` AS `video_id`,
+	ROW_NUMBER() OVER (PARTITION BY `playlist_id` ORDER BY `rowid`) - 1 AS `playlist_order`
+FROM `video`
+WHERE `playlist_id` IS NOT NULL;--> statement-breakpoint
 CREATE TABLE `__new_video` (
 	`id` text PRIMARY KEY NOT NULL,
 	`duration` integer,
@@ -21,6 +26,9 @@ CREATE TABLE `__new_video` (
 INSERT INTO `__new_video`("id", "duration", "name", "fileUrl") SELECT "id", "duration", "name", "fileUrl" FROM `video`;--> statement-breakpoint
 DROP TABLE `video`;--> statement-breakpoint
 ALTER TABLE `__new_video` RENAME TO `video`;--> statement-breakpoint
+INSERT INTO `playlist_videos`("playlist_id", "video_id", "playlist_order")
+SELECT "playlist_id", "video_id", "playlist_order" FROM `__playlist_membership_migration`;--> statement-breakpoint
+DROP TABLE `__playlist_membership_migration`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;--> statement-breakpoint
 ALTER TABLE `playlist` ADD `description` text;--> statement-breakpoint
 ALTER TABLE `playlist` ADD `coverUrl` text;--> statement-breakpoint

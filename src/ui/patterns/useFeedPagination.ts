@@ -25,7 +25,8 @@ export function useFeedPagination(
     pending.current = true;
     setLoadingMore(true);
 
-    Promise.resolve(onEndReached())
+    Promise.resolve()
+      .then(onEndReached)
       .catch(() => undefined)
       .finally(() => {
         pending.current = false;

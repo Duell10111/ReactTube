@@ -38,7 +38,7 @@ function client(database) {
  * migration that is not newer than the last recorded one and applies the rest
  * in a single transaction.
  */
-function migrate(database) {
+function migrate(database, through = journal.length) {
   database.exec(
     "CREATE TABLE IF NOT EXISTS `__drizzle_migrations` (id SERIAL PRIMARY KEY, hash text NOT NULL, created_at numeric)",
   );
@@ -50,7 +50,7 @@ function migrate(database) {
 
   database.exec("BEGIN");
   try {
-    for (const entry of journal) {
+    for (const entry of journal.slice(0, through)) {
       if (last && Number(last.created_at) >= entry.when) {
         continue;
       }
@@ -73,6 +73,56 @@ function migrate(database) {
     throw error;
   }
 }
+
+test("upgrading an existing database preserves playlist memberships", () => {
+  const database = new DatabaseSync(":memory:");
+  database.exec("PRAGMA foreign_keys=ON");
+  migrate(database, 2);
+
+  database
+    .prepare("INSERT INTO `playlist` (`id`, `name`) VALUES (?, ?)")
+    .run("p1", "First playlist");
+  database
+    .prepare("INSERT INTO `playlist` (`id`, `name`) VALUES (?, ?)")
+    .run("p2", "Second playlist");
+
+  const insertVideo = database.prepare(
+    "INSERT INTO `video` (`id`, `name`, `fileUrl`, `playlist_id`, `duration`) VALUES (?, ?, ?, ?, ?)",
+  );
+  insertVideo.run("v1", "First", "file:///v1.mp4", "p1", 10);
+  insertVideo.run("v2", "Second", "file:///v2.mp4", "p2", 20);
+  insertVideo.run("v3", "Third", "file:///v3.mp4", "p1", 30);
+  insertVideo.run("v4", "Unassigned", "file:///v4.mp4", null, 40);
+
+  migrate(database);
+
+  assert.deepEqual(
+    database
+      .prepare(
+        "SELECT `playlist_id`, `video_id`, `playlist_order` FROM `playlist_videos` ORDER BY `playlist_id`, `playlist_order`",
+      )
+      .all()
+      .map(row => ({...row})),
+    [
+      {playlist_id: "p1", video_id: "v1", playlist_order: 0},
+      {playlist_id: "p1", video_id: "v3", playlist_order: 1},
+      {playlist_id: "p2", video_id: "v2", playlist_order: 0},
+    ],
+  );
+  assert.deepEqual(
+    database
+      .prepare("SELECT `id`, `duration` FROM `video` ORDER BY `id`")
+      .all()
+      .map(row => ({...row})),
+    [
+      {id: "v1", duration: 10},
+      {id: "v2", duration: 20},
+      {id: "v3", duration: 30},
+      {id: "v4", duration: 40},
+    ],
+  );
+  assert.deepEqual(database.prepare("PRAGMA foreign_key_check").all(), []);
+});
 
 function migratedDatabase() {
   const database = new DatabaseSync(":memory:");
