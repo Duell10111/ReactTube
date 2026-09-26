@@ -28,6 +28,7 @@ import {
   type PlaybackMode,
   type StreamingSource,
 } from "@/utils/PlaybackSource";
+import {startSabrPlayback, type SabrPlaybackSource} from "@/utils/SabrPlayback";
 import {YT, YTTV, YTNodes} from "@/utils/Youtube";
 
 const LOGGER = Logger.extend("VIDEO");
@@ -64,6 +65,31 @@ function clampResumePosition(
   return seconds < durationSeconds - RESUME_DEAD_ZONE_SECONDS
     ? seconds
     : undefined;
+}
+
+/**
+ * Startet die SABR-Wiedergabe, wenn Einstellung und Quelle es hergeben
+ * (Plan-Phase 6.5).
+ *
+ * Wie beim eigenen Manifest nur auf ausdrücklichen Wunsch: der Aufbau kostet
+ * eine SABR-Runde, und ohne gewählten Modus stünde die Stufe ungenutzt in der
+ * Ladder.
+ */
+async function startSabrIfPossible(
+  streaming: StreamingSource,
+  mode: PlaybackMode,
+  options: {clientVersion: string; allowAv1?: boolean},
+) {
+  if (mode !== "sabr" || !streaming.canUseSabr) {
+    return undefined;
+  }
+
+  return startSabrPlayback(streaming.info, {
+    videoId: streaming.info.basic_info.id ?? "",
+    client: streaming.client,
+    clientVersion: options.clientVersion,
+    allowAv1: options.allowAv1,
+  });
 }
 
 /**
@@ -120,6 +146,30 @@ export default function useVideoDetails(
   const {appSettings} = useAppData();
   /** Der gewählte Weg — bestimmt Client-Kette, Manifestbau und Ladder-Reihenfolge. */
   const playbackMode = playbackModeFromSettings(appSettings);
+  /**
+   * Der laufende SABR-Strom. Er hält einen lokalen Server und eine offene
+   * Verbindung zu googlevideo — beides muss beim Videowechsel und beim Verlassen
+   * des Screens weg, sonst bleibt der Port belegt und der Strom läuft weiter.
+   */
+  const sabrRef = useRef<SabrPlaybackSource | undefined>(undefined);
+
+  const replaceSabrSource = useCallback(
+    (next: SabrPlaybackSource | undefined) => {
+      const previous = sabrRef.current;
+      sabrRef.current = next;
+      previous?.stop().catch(reason => LOGGER.warn(reason));
+      return next;
+    },
+    [],
+  );
+
+  useEffect(
+    () => () => {
+      sabrRef.current?.stop().catch(() => {});
+      sabrRef.current = undefined;
+    },
+    [],
+  );
   const [startTime, setStartTime] = useState<number>();
 
   // TODO: Maybe replace with fkt in the future?
@@ -190,6 +240,17 @@ export default function useVideoDetails(
                 playbackMode,
                 {allowAv1: appSettings.av1Enabled},
               );
+              // `youtube` ist hier zwangsläufig vorhanden — die Streams kommen
+              // von dieser Instanz —, aber nur die Prüfung macht das auch für
+              // den Typprüfer sichtbar.
+              if (youtube) {
+                parsedDataTV.sabr_hls_url = replaceSabrSource(
+                  await startSabrIfPossible(streaming, playbackMode, {
+                    clientVersion: youtube.session.context.client.clientVersion,
+                    allowAv1: appSettings.av1Enabled,
+                  }),
+                )?.masterUri;
+              }
             }
             setVideoInfo(parsedDataTV);
             setWatchNextSections(parsedDataTV.watchNextSections);
@@ -230,6 +291,12 @@ export default function useVideoDetails(
               playbackMode,
               {allowAv1: appSettings.av1Enabled},
             );
+            parsedData.sabr_hls_url = replaceSabrSource(
+              await startSabrIfPossible(streaming, playbackMode, {
+                clientVersion: youtube.session.context.client.clientVersion,
+                allowAv1: appSettings.av1Enabled,
+              }),
+            )?.masterUri;
             setVideoInfo(parsedData);
             parsedData.watchNextFeed &&
               setWatchNextFeed(parsedData.watchNextFeed);
@@ -301,6 +368,7 @@ export default function useVideoDetails(
     () =>
       buildPlaybackLadder(
         {
+          sabrHlsUrl: videoInfo?.sabr_hls_url,
           generatedHlsUrl: videoInfo?.generated_hls_url,
           youtubeHlsUrl: videoInfo?.hls_manifest_url,
           progressiveUrl: httpVideoURL,
@@ -308,6 +376,7 @@ export default function useVideoDetails(
         playbackMode,
       ),
     [
+      videoInfo?.sabr_hls_url,
       videoInfo?.generated_hls_url,
       videoInfo?.hls_manifest_url,
       httpVideoURL,
