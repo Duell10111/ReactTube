@@ -13,7 +13,8 @@ interface PlayerResolution {
     | "settings.resolution.localHls"
     | "settings.resolution.localHlsAv1"
     | "settings.resolution.youtubeHls"
-    | "settings.resolution.progressive";
+    | "settings.resolution.progressive"
+    | "settings.resolution.sabr";
 }
 
 const playerResolutions: {[key: string]: PlayerResolution} = {
@@ -33,6 +34,10 @@ const playerResolutions: {[key: string]: PlayerResolution} = {
     key: "http",
     labelKey: "settings.resolution.progressive",
   },
+  sabr: {
+    key: "sabr",
+    labelKey: "settings.resolution.sabr",
+  },
 };
 
 export default function PlayerResolutionSelectorScreen() {
@@ -47,24 +52,39 @@ export default function PlayerResolutionSelectorScreen() {
         hlsEnabled: false,
         localHlsEnabled: false,
         av1Enabled: false,
+        sabrEnabled: false,
       });
     } else if (type.key === "hls") {
       updateSettings({
         hlsEnabled: true,
         localHlsEnabled: false,
         av1Enabled: false,
+        sabrEnabled: false,
       });
     } else if (type.key === "hlsLocal") {
       updateSettings({
         hlsEnabled: false,
         localHlsEnabled: true,
         av1Enabled: false,
+        sabrEnabled: false,
       });
     } else if (type.key === "hlsLocalAv1") {
       updateSettings({
         hlsEnabled: false,
         localHlsEnabled: true,
         av1Enabled: true,
+        sabrEnabled: false,
+      });
+    } else if (type.key === "sabr") {
+      // The generated manifest stays configured underneath: SABR needs the local
+      // segment server (plan phase 6.5), and until that exists the ladder drops
+      // straight through to it. AV1 comes along because SABR has no byte-range
+      // cap to work around, so 2160p is the point of choosing it.
+      updateSettings({
+        hlsEnabled: false,
+        localHlsEnabled: true,
+        av1Enabled: true,
+        sabrEnabled: true,
       });
     }
   };
@@ -97,6 +117,9 @@ export function parsePlayerResolution(appSettings: AppSettings) {
   // hardware decoder can otherwise remain silently stuck while loading.
   // YouTube HLS is the fallback; progressive playback may stop early when the
   // client response is capped (see YouTube.js/docs/byte-range-cap.md).
+  if (appSettings.sabrEnabled) {
+    return playerResolutions["sabr"];
+  }
   if (appSettings.localHlsEnabled) {
     return appSettings.av1Enabled
       ? playerResolutions["hlsLocalAv1"]

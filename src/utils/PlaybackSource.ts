@@ -16,6 +16,7 @@ import {
   PLAYBACK_CLIENTS_DEFAULT,
   PLAYBACK_CLIENTS_FULL_BYTE_RANGE,
   PLAYBACK_CLIENTS_PREFER_HLS,
+  PLAYBACK_CLIENTS_SABR,
   resolvePlaybackInfo,
 } from "@/utils/PlaybackResolver";
 import {Innertube, YT, YTNodes} from "@/utils/Youtube";
@@ -31,8 +32,13 @@ const LOGGER = Logger.extend("PLAYBACK");
  *   AVPlayer nur avc1 bis 1080p mit gemuxtem Ton.
  * - `progressive`: der alte Weg über eine einzelne Datei-URL. Bricht bei den
  *   gekappten Clients nach wenigen Sekunden ab und bleibt nur zum Vergleichen.
+ * - `sabr`: Segmente über `server_abr_streaming_url` (Phase 6). Unabhängig von
+ *   der Byte-Range-Gunst einzelner Clients — aber nur `VISIONOS` und `IOS`
+ *   werden am SABR-Endpunkt überhaupt bedient (Plan §0c), und die Segmente
+ *   brauchen einen lokalen Server, der sie an AVPlayer ausliefert (Phase 6.5).
+ *   Solange der fehlt, fällt der Modus auf `generated` zurück.
  */
-export type PlaybackMode = "generated" | "youtube-hls" | "progressive";
+export type PlaybackMode = "generated" | "youtube-hls" | "progressive" | "sabr";
 
 export interface StreamingSource {
   info: YT.VideoInfo;
@@ -46,6 +52,26 @@ export interface StreamingSource {
    * Client **und** indizierte mp4-Formate.
    */
   canGenerateHls: boolean;
+  /**
+   * Ob die Quelle die beiden Eingaben für SABR mitbringt und von einem Client
+   * kommt, den der SABR-Endpunkt bedient.
+   *
+   * Sagt **nichts** darüber, ob SABR abgespielt werden kann: dazu fehlt der
+   * lokale Segment-Server aus Phase 6.5.
+   */
+  canUseSabr: boolean;
+}
+
+/**
+ * Die beiden Eingaben, ohne die SABR nicht anfangen kann — beide stammen aus
+ * derselben `/player`-Antwort. Fehlt sie, fehlen auch sie; das ist der Grund,
+ * warum SABR gegen `LOGIN_REQUIRED` nichts ausrichtet (Plan §0c).
+ */
+function hasSabrInputs(info: YT.VideoInfo): boolean {
+  const ustreamer = (info as any).player_config?.media_common_config
+    ?.media_ustreamer_request_config?.video_playback_ustreamer_config;
+
+  return !!info.streaming_data?.server_abr_streaming_url && !!ustreamer;
 }
 
 /**
@@ -90,35 +116,43 @@ export async function resolveStreamingSource(
   const resolved = await resolvePlaybackInfo(youtube, target, {
     profile: mode,
     clients:
-      mode === "generated"
-        ? PLAYBACK_CLIENTS_FULL_BYTE_RANGE
-        : mode === "youtube-hls"
-          ? PLAYBACK_CLIENTS_PREFER_HLS
-          : PLAYBACK_CLIENTS_DEFAULT,
+      mode === "sabr"
+        ? PLAYBACK_CLIENTS_SABR
+        : mode === "generated"
+          ? PLAYBACK_CLIENTS_FULL_BYTE_RANGE
+          : mode === "youtube-hls"
+            ? PLAYBACK_CLIENTS_PREFER_HLS
+            : PLAYBACK_CLIENTS_DEFAULT,
     accept:
-      mode === "generated"
+      mode === "sabr"
         ? info =>
-            info.playability_status?.status === "OK" &&
-            hasIndexedMp4Formats(info)
-        : mode === "youtube-hls"
+            info.playability_status?.status === "OK" && hasSabrInputs(info)
+        : mode === "generated"
           ? info =>
               info.playability_status?.status === "OK" &&
-              !!info.streaming_data?.hls_manifest_url
-          : info =>
-              info.playability_status?.status === "OK" &&
-              !!info.streaming_data &&
-              [
-                ...(info.streaming_data.formats ?? []),
-                ...(info.streaming_data.adaptive_formats ?? []),
-              ].some(
-                format =>
-                  format.has_video &&
-                  (format.url || format.signature_cipher || format.cipher),
-              ),
+              hasIndexedMp4Formats(info)
+          : mode === "youtube-hls"
+            ? info =>
+                info.playability_status?.status === "OK" &&
+                !!info.streaming_data?.hls_manifest_url
+            : info =>
+                info.playability_status?.status === "OK" &&
+                !!info.streaming_data &&
+                [
+                  ...(info.streaming_data.formats ?? []),
+                  ...(info.streaming_data.adaptive_formats ?? []),
+                ].some(
+                  format =>
+                    format.has_video &&
+                    (format.url || format.signature_cipher || format.cipher),
+                ),
     // Scheitert der eigene Generator an der Quelle, ist YouTubes Manifest die
     // nächstbeste Stufe — deshalb steht die ganze HLS-Kette als Reserve bereit.
+    // Für SABR gilt dasselbe: liefert kein SABR-Client, bleibt der Phase-2-Weg.
     clientsFallback:
-      mode === "generated" ? PLAYBACK_CLIENTS_PREFER_HLS : undefined,
+      mode === "generated" || mode === "sabr"
+        ? PLAYBACK_CLIENTS_PREFER_HLS
+        : undefined,
     // Zweite Runde: irgendein Client mit brauchbaren Formaten.
     acceptFallback: info =>
       info.playability_status?.status === "OK" &&
@@ -138,6 +172,9 @@ export async function resolveStreamingSource(
     PLAYBACK_CLIENTS_FULL_BYTE_RANGE.some(
       client => client === resolved.client,
     ) && hasIndexedMp4Formats(resolved.info);
+  const canUseSabr =
+    PLAYBACK_CLIENTS_SABR.some(client => client === resolved.client) &&
+    hasSabrInputs(resolved.info);
 
   const form = canGenerateHls
     ? "eigenes HLS möglich"
@@ -157,12 +194,24 @@ export async function resolveStreamingSource(
     );
   }
 
+  if (mode === "sabr" && !canUseSabr) {
+    LOGGER.info(
+      `SABR nicht möglich über ${resolved.client} — es fehlt ` +
+        `${
+          hasSabrInputs(resolved.info)
+            ? "ein Client, den der SABR-Endpunkt bedient"
+            : "server_abr_streaming_url oder die ustreamer-Konfiguration"
+        }. Es bleibt beim Phase-2-Weg.`,
+    );
+  }
+
   return {
     info: resolved.info,
     client: resolved.client,
     satisfied: resolved.satisfied,
     hasHlsManifest,
     canGenerateHls,
+    canUseSabr,
   };
 }
 
@@ -176,7 +225,12 @@ export async function resolveStreamingSource(
 export function playbackModeFromSettings(settings: {
   hlsEnabled?: boolean;
   localHlsEnabled?: boolean;
+  sabrEnabled?: boolean;
 }): PlaybackMode {
+  if (settings.sabrEnabled) {
+    return "sabr";
+  }
+
   if (settings.hlsEnabled === false && !settings.localHlsEnabled) {
     return "progressive";
   }

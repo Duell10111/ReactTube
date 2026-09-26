@@ -21,6 +21,14 @@ export interface AppSettings {
    * Keep this disabled until the user explicitly enables it.
    */
   av1Enabled?: boolean;
+  /**
+   * Fetches segments over SABR (plan phase 6).
+   *
+   * Experimental, and only `VISIONOS` and `IOS` are served by the SABR endpoint
+   * at all. Playing the segments needs the local segment server from phase 6.5;
+   * until that exists, playback falls back to the generated manifest on its own.
+   */
+  sabrEnabled?: boolean;
   languageSelected?: string;
   uiLanguage?: UILanguage;
   trackingEnabled?: boolean;

@@ -19,6 +19,7 @@ import type {PlaybackMode} from "@/utils/PlaybackSource";
 
 /** Woran eine Stufe erkannt wird — für Protokoll und Anzeige. */
 export type PlaybackSourceKind =
+  | "sabr-hls"
   | "generated-hls"
   | "youtube-hls"
   | "progressive";
@@ -32,6 +33,8 @@ export interface PlaybackStep {
 
 export function describeSourceKind(kind: PlaybackSourceKind): string {
   switch (kind) {
+    case "sabr-hls":
+      return "SABR";
     case "generated-hls":
       return "eigenes HLS";
     case "youtube-hls":
@@ -51,6 +54,10 @@ export function describeSourceKind(kind: PlaybackSourceKind): string {
  * an Qualität mitbringen.
  */
 const ORDER_BY_MODE: Record<PlaybackMode, PlaybackSourceKind[]> = {
+  // SABR steht vorn, wenn es gewählt ist — dahinter unverändert der Phase-2-Weg.
+  // Die Stufe entsteht überhaupt nur, wenn ein Segment-Server sie ausliefert
+  // (Phase 6.5); ohne ihn fällt die Ladder von selbst auf „eigenes HLS".
+  sabr: ["sabr-hls", "generated-hls", "youtube-hls", "progressive"],
   generated: ["generated-hls", "youtube-hls", "progressive"],
   "youtube-hls": ["youtube-hls", "generated-hls", "progressive"],
   progressive: ["progressive", "youtube-hls", "generated-hls"],
@@ -64,6 +71,7 @@ const ORDER_BY_MODE: Record<PlaybackMode, PlaybackSourceKind[]> = {
  */
 export function buildPlaybackLadder(
   sources: {
+    sabrHlsUrl?: string;
     generatedHlsUrl?: string;
     youtubeHlsUrl?: string;
     progressiveUrl?: string;
@@ -71,6 +79,7 @@ export function buildPlaybackLadder(
   mode: PlaybackMode = "generated",
 ): PlaybackStep[] {
   const byKind: Record<PlaybackSourceKind, string | undefined> = {
+    "sabr-hls": sources.sabrHlsUrl,
     "generated-hls": sources.generatedHlsUrl,
     "youtube-hls": sources.youtubeHlsUrl,
     progressive: sources.progressiveUrl,

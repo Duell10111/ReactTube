@@ -57,12 +57,13 @@ export const de = {
   "settings.resolution.youtubeHls":
     "YouTube-HLS — bis 1080p, gemischter Ton (Standard)",
   "settings.resolution.progressive": "Progressiv (kann früh abbrechen)",
+  "settings.resolution.sabr": "SABR (experimentell — fällt selbsttätig zurück)",
   "settings.diagnostics.run": "Diagnose starten",
   "settings.diagnostics.running": "Läuft…",
   "settings.diagnostics.sessionUnavailable":
     "Die Innertube-Sitzung ist noch nicht bereit.",
   "settings.diagnostics.hint":
-    "Prüft JavaScript-Engine, Player und Clients mit einem Testvideo. Bitte im Release-Build ausführen, da Debug-Builds eine andere Engine verwenden können.",
+    "Prüft JavaScript-Engine, Player, Clients und den SABR-Segmentabruf mit einem Testvideo. Bitte im Release-Build ausführen, da Debug-Builds eine andere Engine verwenden können.",
   "settings.clearAll": "Alle Daten löschen",
   "settings.logout": "Abmelden",
   "settings.value.true": "Ein",
