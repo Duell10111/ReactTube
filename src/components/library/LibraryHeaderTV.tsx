@@ -4,22 +4,22 @@ import {NativeStackNavigationProp} from "@react-navigation/native-stack";
 import {ScrollView} from "react-native";
 
 import {LibraryHeaderTVItem} from "@/components/library/LibraryHeaderTVItem";
+import {useTranslation} from "@/localization";
 import {RootDrawerParamList} from "@/navigation/DrawerStackNavigator";
 
 export function LibraryHeaderTV() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootDrawerParamList>>();
+  const {t} = useTranslation();
 
   return (
     <ScrollView horizontal>
       <LibraryHeaderTVItem
-        title={"Playlists"}
-        color={"red"}
+        title={t("navigation.playlists")}
         onPress={() => navigation.navigate("PlaylistsScreen")}
       />
       <LibraryHeaderTVItem
-        title={"History"}
-        color={"blue"}
+        title={t("navigation.history")}
         onPress={() => navigation.navigate("HistoryScreen")}
       />
     </ScrollView>

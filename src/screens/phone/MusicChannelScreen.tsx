@@ -1,37 +1,54 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import {View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import LoadingComponent from "../../components/general/LoadingComponent";
-import Logger from "../../utils/Logger";
-
 import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
 import {MusicChannelHeader} from "@/components/music/MusicChannelHeader";
-import {MusicChannelList} from "@/components/music/MusicChannelList";
+import {MusicSectionFeed} from "@/components/music/sections/MusicSectionFeed";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import useChannelManager from "@/hooks/channel/useChannelManager";
 import useMusicChannelDetails from "@/hooks/music/useMusicChannelDetails";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
-
-const LOGGER = Logger.extend("PLAYLIST");
 
 type Props = NativeStackScreenProps<RootStackParamList, "MusicChannelScreen">;
 
 export function MusicChannelScreen({navigation, route}: Props) {
   const {artistId} = route.params;
-  const {artist} = useMusicChannelDetails(artistId);
-  const {bottom, left, right} = useSafeAreaInsets();
+  const {artist, loading, error, reload} = useMusicChannelDetails(artistId);
   const {setPlaylistViaEndpoint} = useMusikPlayerContext();
+  const {bottom, left, right} = useSafeAreaInsets();
+  const {subscribe, unsubscribe} = useChannelManager();
+  const [subscribed, setSubscribed] = useState<boolean>();
 
   useEffect(() => {
     navigation.setOptions({headerTitle: artist?.title});
+  }, [artist, navigation]);
+
+  useEffect(() => {
+    setSubscribed(artist?.subscription?.subscribed);
   }, [artist]);
 
-  if (!artist) {
-    return <LoadingComponent />;
-  }
+  const subscription = artist?.subscription;
+  const playEndpoint = artist?.playEndpoint;
+  const radioEndpoint = artist?.radioEndpoint;
 
-  // LOGGER.debug("Playlist: ", recursiveTypeLogger([playlist.page_contents]));
+  const onSubscribePress = () => {
+    if (!subscription) {
+      return;
+    }
+
+    const next = !subscribed;
+
+    // The button follows the press; a failed request puts it back, because the
+    // alternative is a page that claims a subscription the account does not have.
+    setSubscribed(next);
+    Promise.resolve(
+      next
+        ? subscribe(subscription.channelId)
+        : unsubscribe(subscription.channelId),
+    ).catch(() => setSubscribed(!next));
+  };
 
   return (
     <View
@@ -41,21 +58,44 @@ export function MusicChannelScreen({navigation, route}: Props) {
         paddingLeft: left,
         paddingRight: right,
       }}>
-      <MusicChannelList
-        data={artist.data}
-        // onFetchMore={() => fetchMore()}
+      <MusicSectionFeed
+        error={error}
+        loading={loading}
+        onRetry={reload}
+        sections={artist?.data ?? []}
+        testID={"music-artist-feed"}
         ListHeaderComponent={
-          <MusicChannelHeader
-            image={artist.thumbnail}
-            title={artist.title}
-            // subtitle={artist.description}
-            onPlayPress={() => {
-              if (artist.playEndpoint) {
-                setPlaylistViaEndpoint(artist.playEndpoint);
-                navigation.navigate("MusicPlayerScreen");
+          artist ? (
+            <MusicChannelHeader
+              description={artist.description}
+              image={artist.thumbnail}
+              subscribeLabel={
+                subscribed
+                  ? (subscription?.subscribedLabel ??
+                    subscription?.subscribeLabel)
+                  : subscription?.subscribeLabel
               }
-            }}
-          />
+              subscribed={subscribed}
+              title={artist.title}
+              onPlayPress={
+                playEndpoint
+                  ? () => {
+                      setPlaylistViaEndpoint(playEndpoint);
+                      navigation.navigate("MusicPlayerScreen");
+                    }
+                  : undefined
+              }
+              onRadioPress={
+                radioEndpoint
+                  ? () => {
+                      setPlaylistViaEndpoint(radioEndpoint);
+                      navigation.navigate("MusicPlayerScreen");
+                    }
+                  : undefined
+              }
+              onSubscribePress={subscription ? onSubscribePress : undefined}
+            />
+          ) : null
         }
       />
       <MusicBottomPlayerBar />

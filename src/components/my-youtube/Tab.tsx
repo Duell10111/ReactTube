@@ -1,4 +1,4 @@
-import {StyleSheet, Text, TouchableOpacity} from "react-native";
+import {AppListItem} from "@/ui/components";
 
 interface TabProps {
   title: string;
@@ -6,24 +6,5 @@ interface TabProps {
 }
 
 export function Tab({title, onPress}: TabProps) {
-  return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
-      <Text style={styles.title}>{title}</Text>
-    </TouchableOpacity>
-  );
+  return <AppListItem onPress={onPress} title={title} />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    height: 60,
-    padding: 20,
-    margin: 5,
-    borderRadius: 15,
-    backgroundColor: "#222222",
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 18,
-    color: "white",
-  },
-});

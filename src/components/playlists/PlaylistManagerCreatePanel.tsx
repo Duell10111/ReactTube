@@ -2,6 +2,8 @@ import {useState} from "react";
 import {StyleSheet, View} from "react-native";
 import {Button, TextInput} from "react-native-paper";
 
+import {useTranslation} from "@/localization";
+
 interface PlaylistManagerCreatePanelProps {
   onPlaylistCreate: (name: string) => void;
 }
@@ -10,11 +12,12 @@ export function PlaylistManagerCreatePanel({
   onPlaylistCreate,
 }: PlaylistManagerCreatePanelProps) {
   const [name, setName] = useState<string>();
+  const {t} = useTranslation();
 
   return (
     <View style={styles.container}>
       <TextInput
-        label={"Playlist Name"}
+        label={t("playlist.manager.name")}
         mode={"flat"}
         onChangeText={setName}
         value={name}
@@ -24,7 +27,7 @@ export function PlaylistManagerCreatePanel({
         mode={"contained"}
         dark
         onPress={() => name && name.length > 0 && onPlaylistCreate(name)}>
-        {"Create Playlist"}
+        {t("playlist.manager.create")}
       </Button>
     </View>
   );
@@ -33,7 +36,7 @@ export function PlaylistManagerCreatePanel({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: "80%",
+    width: "100%",
   },
   createButton: {
     marginTop: 20,

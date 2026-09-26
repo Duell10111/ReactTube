@@ -1,5 +1,6 @@
 import {Dispatch, SetStateAction, useEffect, useRef} from "react";
-import {useTVEventHandler} from "react-native";
+
+import {useTVRemoteEvent} from "@/ui/tv";
 
 interface TVSeekControlProps {
   enabled: boolean;
@@ -97,7 +98,7 @@ export default function useTVSeekControl({
     );
   }
 
-  useTVEventHandler(event => {
+  useTVRemoteEvent(event => {
     if (event.eventType === "playPause") {
       setPause(!pause);
     }

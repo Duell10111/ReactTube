@@ -1,11 +1,15 @@
-import AntDesign from "@expo/vector-icons/AntDesign";
+import {MaterialIcons} from "@expo/vector-icons";
 import React from "react";
-import {StyleSheet, Text, TouchableOpacity} from "react-native";
+import {Pressable, StyleSheet} from "react-native";
 import Animated, {
   SharedValue,
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
+
+import {useTranslation} from "@/localization";
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 interface EndCardContainerProps {
   children: React.ReactNode;
@@ -18,6 +22,8 @@ export default function EndCardContainer({
   showEndCard,
   onCloseEndCard,
 }: EndCardContainerProps) {
+  const {theme} = useAppTheme();
+  const {t} = useTranslation();
   const containerStyle = useAnimatedStyle(() => {
     return {
       opacity: withTiming(showEndCard.value ? 1 : 0),
@@ -27,12 +33,18 @@ export default function EndCardContainer({
   return (
     <Animated.View style={[styles.container, containerStyle]}>
       {children}
-      <TouchableOpacity style={styles.closeContainer} onPress={onCloseEndCard}>
-        <>
-          <Text style={styles.closeText}>{"Close"}</Text>
-          <AntDesign name={"down"} size={35} color={"white"} />
-        </>
-      </TouchableOpacity>
+      <Pressable
+        accessibilityLabel={t("common.close")}
+        accessibilityRole={"button"}
+        onPress={onCloseEndCard}
+        style={styles.closeContainer}>
+        <AppText variant={"label"}>{t("common.close")}</AppText>
+        <MaterialIcons
+          color={theme.colors.textPrimary}
+          name={"keyboard-arrow-down"}
+          size={35}
+        />
+      </Pressable>
     </Animated.View>
   );
 }
@@ -52,9 +64,5 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: "center",
-  },
-  closeText: {
-    color: "white",
-    fontSize: 20,
   },
 });

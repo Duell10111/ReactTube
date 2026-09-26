@@ -1,6 +1,6 @@
 import {useNavigation} from "@react-navigation/native";
 import React, {useMemo} from "react";
-import {Modal, ScrollView, StyleSheet, Text, View} from "react-native";
+import {Modal, ScrollView, StyleSheet, View} from "react-native";
 
 import ChannelIcon from "./ChannelIcon";
 import NextVideo from "./endcard/NextVideo";
@@ -9,6 +9,9 @@ import useVideoElementData from "../../hooks/video/useVideoElementData";
 import {RelatedVideos} from "@/components/video/tv/RelatedVideos";
 import {YTVideoInfo} from "@/extraction/Types";
 import {NativeStackProp} from "@/navigation/types";
+import {AppText} from "@/ui/components";
+import {getVideoDetailMetadata} from "@/ui/patterns";
+import {useAppTheme} from "@/ui/theme";
 
 interface Props {
   video: YTVideoInfo;
@@ -18,8 +21,15 @@ interface Props {
   currentResolution?: string;
 }
 
+const metadataSeparator = " · ";
+
 // TODO: Add autoplay for next video
 
+/**
+ * End screen of the TV player. It reuses the metadata parts of the detail view
+ * model, so the line under the title reads the same here, in the player
+ * overlay, and on a card.
+ */
 export default function EndCard({
   visible,
   onCloseRequest,
@@ -28,6 +38,7 @@ export default function EndCard({
   currentResolution,
 }: Props) {
   const navigation = useNavigation<NativeStackProp>();
+  const {theme} = useAppTheme();
 
   // TODO: use playlist data if available?
   const nextVideoID = useMemo(() => {
@@ -41,6 +52,14 @@ export default function EndCard({
 
   const {videoElement} = useVideoElementData(nextVideoID ?? undefined);
 
+  const metadataLine = useMemo(
+    () =>
+      [...getVideoDetailMetadata(video), currentResolution]
+        .filter(Boolean)
+        .join(metadataSeparator),
+    [currentResolution, video],
+  );
+
   if (!video.originalData.watch_next_feed) {
     // TODO: Add warning or debug message
     return null;
@@ -48,10 +67,11 @@ export default function EndCard({
 
   return (
     <Modal
-      visible={visible}
       onRequestClose={() => onCloseRequest()}
-      transparent>
-      <View style={styles.touchContainer}>
+      transparent
+      visible={visible}>
+      <View
+        style={[styles.touchContainer, {backgroundColor: theme.colors.scrim}]}>
         <View style={styles.nextVideoContainer}>
           {endCard ? (
             <NextVideo
@@ -66,31 +86,40 @@ export default function EndCard({
             />
           ) : null}
         </View>
-        <View style={styles.videoInfoContainer}>
+        <View
+          style={[
+            styles.videoInfoContainer,
+            {
+              backgroundColor: theme.colors.scrim,
+              paddingStart: theme.spacing.xl,
+              gap: theme.spacing.md,
+            },
+          ]}>
           <View style={styles.channelContainer}>
             <ChannelIcon channelId={video.channel_id ?? ""} />
-            <Text style={[styles.text, styles.channelText]}>
+            <AppText numberOfLines={1} variant={"labelSmall"}>
               {video.channel?.name ?? ""}
-            </Text>
+            </AppText>
           </View>
           <View style={styles.videoContainer}>
-            <Text style={[styles.text, styles.videoTitle]}>{video.title}</Text>
-            <Text style={[styles.text, styles.viewsText]}>
-              {`${video.short_views}`}
-            </Text>
-            {video.publishDate ? (
-              <Text style={[styles.text, styles.viewsText]}>
-                {`${video.publishDate}`}
-              </Text>
-            ) : null}
-            {currentResolution ? (
-              <Text style={[styles.text, styles.viewsText]}>
-                {`Current Resolution ${currentResolution}`}
-              </Text>
+            <AppText numberOfLines={2} variant={"titleSmall"}>
+              {video.title}
+            </AppText>
+            {metadataLine ? (
+              <AppText color={"textSecondary"} variant={"bodySmall"}>
+                {metadataLine}
+              </AppText>
             ) : null}
           </View>
         </View>
-        <View style={styles.bottomContainer}>
+        <View
+          style={[
+            styles.bottomContainer,
+            {
+              backgroundColor: theme.colors.scrim,
+              paddingTop: theme.spacing.xl,
+            },
+          ]}>
           <ScrollView>
             <RelatedVideos YTVideoInfo={video} playlistShown={false} />
           </ScrollView>
@@ -102,33 +131,18 @@ export default function EndCard({
 
 const styles = StyleSheet.create({
   touchContainer: {
-    backgroundColor: "#11111199",
     flex: 1,
     justifyContent: "flex-end",
   },
   videoInfoContainer: {
-    backgroundColor: "#111111cc",
-    paddingStart: 20,
     flexDirection: "row",
   },
   channelContainer: {
     alignItems: "center",
   },
-  channelText: {
-    fontSize: 17,
-  },
   videoContainer: {
-    marginStart: 10,
+    flex: 1,
     justifyContent: "center",
-  },
-  videoTitle: {
-    fontSize: 25,
-  },
-  viewsText: {
-    alignSelf: "flex-start",
-  },
-  text: {
-    color: "white",
   },
   nextVideoContainer: {
     flex: 1,
@@ -137,24 +151,6 @@ const styles = StyleSheet.create({
     width: "100%",
     minHeight: "40%",
     maxHeight: "50%",
-    backgroundColor: "#111111cc",
     justifyContent: "center",
-    paddingTop: 20,
-  },
-  bottomText: {
-    fontSize: 20,
-    paddingStart: 20,
-    color: "white",
-    paddingBottom: 15,
-  },
-  bottomPlaylistTextContainer: {
-    flexDirection: "row",
-    paddingStart: 20,
-    paddingBottom: 15,
-  },
-  bottomPlaylistText: {
-    fontSize: 20,
-    color: "white",
-    paddingStart: 10,
   },
 });

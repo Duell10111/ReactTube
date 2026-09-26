@@ -4,33 +4,42 @@ import {AppSettings, useAppData} from "../../../context/AppDataContext";
 import {SettingsSelectorItem} from "../SettingsItem";
 import SettingsSection from "../SettingsSection";
 
+import {useTranslation} from "@/localization";
+import {useAppTheme} from "@/ui/theme";
+
 interface PlayerResolution {
   key: string;
-  label: string;
+  labelKey:
+    | "settings.resolution.localHls"
+    | "settings.resolution.localHlsAv1"
+    | "settings.resolution.youtubeHls"
+    | "settings.resolution.progressive";
 }
 
 const playerResolutions: {[key: string]: PlayerResolution} = {
   hlsLocal: {
     key: "hlsLocal",
-    label: "Eigenes HLS — bis 1080p, mehrsprachig",
+    labelKey: "settings.resolution.localHls",
   },
   hlsLocalAv1: {
     key: "hlsLocalAv1",
-    label: "Eigenes HLS + AV1 — 4K (nur Apple TV 4K, 3. Gen)",
+    labelKey: "settings.resolution.localHlsAv1",
   },
   hls: {
     key: "hls",
-    label: "YouTube-HLS — bis 1080p, Ton gemuxt (Standard)",
+    labelKey: "settings.resolution.youtubeHls",
   },
   http: {
     key: "http",
-    label: "Progressiv (bricht früh ab)",
+    labelKey: "settings.resolution.progressive",
   },
 };
 
 export default function PlayerResolutionSelectorScreen() {
   const {appSettings, updateSettings} = useAppData();
   const player = parsePlayerResolution(appSettings);
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   const onPress = (type: PlayerResolution) => {
     if (type.key === "http") {
@@ -62,12 +71,12 @@ export default function PlayerResolutionSelectorScreen() {
 
   return (
     <SettingsSection
-      style={styles.container}
-      sectionTitle={"Player Resolution Variant"}>
+      style={[styles.container, {backgroundColor: theme.colors.background}]}
+      sectionTitle={t("settings.videoResolution")}>
       {Object.values(playerResolutions).map(v => (
         <SettingsSelectorItem
           key={v.key}
-          label={v.label}
+          label={t(v.labelKey)}
           selected={player.key === v.key}
           onPress={() => onPress(v)}
         />
@@ -79,19 +88,15 @@ export default function PlayerResolutionSelectorScreen() {
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 20,
-    backgroundColor: "#111111",
   },
 });
 
 export function parsePlayerResolution(appSettings: AppSettings) {
-  // Plan-Phase 2c: das selbst gebaute Manifest bringt getrennte, mehrsprachige
-  // Tonspuren — mit AV1 zusätzlich 1440p/2160p, die YouTube in avc1 gar nicht
-  // anbietet. AV1 ist bewusst eine eigene Auswahl: ohne Hardware-Decoder
-  // (alles vor Apple TV 4K, 3. Gen — auch der Simulator) bleibt der Player
-  // stumm im Ladezustand hängen, ohne einen Fehler zu melden.
-  // YouTubes eigenes Manifest (Phase 2a) bleibt die Reserve, wenn kein
-  // ungekappter Client antwortet; der progressive Weg bricht bei gekappten
-  // Clients nach rund 0,37 MB ab (siehe YouTube.js/docs/byte-range-cap.md).
+  // The locally generated manifest provides separate multilingual audio tracks
+  // and, with AV1, 1440p/2160p. AV1 stays explicit because devices without a
+  // hardware decoder can otherwise remain silently stuck while loading.
+  // YouTube HLS is the fallback; progressive playback may stop early when the
+  // client response is capped (see YouTube.js/docs/byte-range-cap.md).
   if (appSettings.localHlsEnabled) {
     return appSettings.av1Enabled
       ? playerResolutions["hlsLocalAv1"]
@@ -101,4 +106,8 @@ export function parsePlayerResolution(appSettings: AppSettings) {
     return playerResolutions["http"];
   }
   return playerResolutions["hls"];
+}
+
+export function getPlayerResolutionLabel(appSettings: AppSettings) {
+  return parsePlayerResolution(appSettings).labelKey;
 }

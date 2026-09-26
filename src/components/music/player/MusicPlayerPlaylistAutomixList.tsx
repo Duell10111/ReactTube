@@ -1,14 +1,19 @@
 import {useCallback} from "react";
-import {FlatList, ListRenderItem, StyleSheet, Text, View} from "react-native";
-import {Divider, Switch} from "react-native-paper";
+import {FlatList, ListRenderItem, StyleSheet, View} from "react-native";
+import {Switch} from "react-native-paper";
 
 import {MusicPlayerPlaylistListItem} from "@/components/music/player/MusicPlayerPlaylistListItem";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {YTPlaylistPanelItem} from "@/extraction/Types";
+import {useTranslation} from "@/localization";
+import {AppText, Divider} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 export function MusicPlayerPlaylistAutomixList() {
   const {automix, setAutomix, automixPlaylist, setCurrentItem} =
     useMusikPlayerContext();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   const renderItem = useCallback<ListRenderItem<YTPlaylistPanelItem>>(
     ({item, index}) => (
@@ -24,16 +29,21 @@ export function MusicPlayerPlaylistAutomixList() {
 
   return (
     <View style={styles.container}>
-      <Divider bold style={styles.divider} />
-      <View style={styles.buttonContainer}>
+      <Divider style={styles.divider} />
+      <View
+        style={[
+          styles.buttonContainer,
+          {gap: theme.spacing.md, padding: theme.spacing.md},
+        ]}>
         <View style={styles.textContainer}>
-          <Text
-            style={
-              styles.titleStyle
-            }>{`Autoplay ${automix ? "enabled" : "disabled"}`}</Text>
-          <Text style={styles.subtitleStyle}>
-            {"Add similar songs to provide endless music"}
-          </Text>
+          <AppText variant={"label"}>
+            {t("music.autoplay", {
+              state: t(automix ? "common.enabled" : "common.disabled"),
+            })}
+          </AppText>
+          <AppText color={"textSecondary"} variant={"bodySmall"}>
+            {t("music.autoplay.hint")}
+          </AppText>
         </View>
         <Switch value={automix} onValueChange={amix => setAutomix(amix)} />
       </View>
@@ -47,28 +57,17 @@ export function MusicPlayerPlaylistAutomixList() {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 5,
+    marginTop: 8,
   },
   divider: {
-    marginTop: 5,
+    marginTop: 8,
   },
   buttonContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 5,
-    marginVertical: 10,
   },
   textContainer: {
     flex: 1,
-  },
-  titleStyle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "white",
-  },
-  subtitleStyle: {
-    fontSize: 11,
-    color: "white",
   },
 });

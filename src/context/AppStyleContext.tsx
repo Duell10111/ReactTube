@@ -1,6 +1,8 @@
-import React, {createContext, useContext} from "react";
+import React from "react";
 
-type StyleType = "dark" | "light";
+import {ThemeProvider, useAppTheme} from "@/ui/theme";
+
+type StyleType = "dark";
 
 interface AppStyle {
   textColor: string;
@@ -9,36 +11,29 @@ interface AppStyle {
   backgroundColorAlpha: string;
 }
 
-const dark: AppStyle = {
-  textColor: "white",
-  invertedTextColor: "black",
-  backgroundColor: "black",
-  backgroundColorAlpha: "#111111cc",
-};
-
 interface AppStyleContext {
   type: StyleType;
   style: AppStyle;
 }
-
-const Context = createContext<AppStyleContext>({
-  style: dark,
-  type: "dark",
-});
 
 interface Props {
   children?: React.ReactNode;
 }
 
 export default function AppStyleProvider({children}: Props) {
-  const value: AppStyleContext = {
-    type: "dark",
-    style: dark,
-  };
-
-  return <Context.Provider value={value} children={children} />;
+  return <ThemeProvider>{children}</ThemeProvider>;
 }
 
-export function useAppStyle() {
-  return useContext(Context);
+export function useAppStyle(): AppStyleContext {
+  const {theme} = useAppTheme();
+
+  return {
+    type: theme.name,
+    style: {
+      textColor: theme.colors.textPrimary,
+      invertedTextColor: theme.colors.background,
+      backgroundColor: theme.colors.background,
+      backgroundColorAlpha: theme.colors.scrim,
+    },
+  };
 }

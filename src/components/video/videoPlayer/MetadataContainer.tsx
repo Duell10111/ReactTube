@@ -1,44 +1,85 @@
 import {useNavigation} from "@react-navigation/native";
-import {StyleSheet, Text, TVFocusGuideView, View} from "react-native";
+import React from "react";
+import {StyleSheet, TVFocusGuideView, View} from "react-native";
 
 import {VideoMetadata} from "./VideoPlayer";
 
 import {MetadataButton} from "@/components/video/videoPlayer/metadata/MetadataButton";
+import {useTranslation} from "@/localization";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
+import {useTVOverscanInsets} from "@/ui/tv";
 
 interface MetadataContainerProps {
   metadata: VideoMetadata;
   resolution?: string;
   pause: () => void;
   onJumpToStart: () => void;
+  /** Reports that focus reached the controls above the bottom panel. */
+  onControlFocus?: () => void;
 }
+
+const metadataSeparator = " · ";
 
 export default function MetadataContainer({
   metadata,
   resolution,
   pause,
   onJumpToStart,
+  onControlFocus,
 }: MetadataContainerProps) {
   const navigation = useNavigation<RootNavProp>();
+  const {theme} = useAppTheme();
+  const {t} = useTranslation();
+  const overscan = useTVOverscanInsets();
+
+  const subtitle = [
+    metadata.author,
+    metadata.views,
+    metadata.videoDate,
+    resolution,
+  ]
+    .filter(Boolean)
+    .join(metadataSeparator);
 
   return (
     <TVFocusGuideView autoFocus>
-      <View style={styles.container}>
-        <View style={styles.titleMetadata}>
-          <Text style={styles.title} numberOfLines={2}>
+      {/* The overlay is drawn edge to edge, so the row keeps the title-safe
+       * margin itself. A percentage width only happened to approximate it at
+       * one resolution. */}
+      <View
+        style={[
+          styles.container,
+          {
+            gap: theme.spacing.lg,
+            paddingTop: overscan.top,
+            paddingStart: overscan.left,
+            paddingEnd: overscan.right,
+          },
+        ]}>
+        <View
+          style={[
+            styles.titleMetadata,
+            {
+              gap: theme.spacing.xs,
+              padding: theme.spacing.md,
+              borderRadius: theme.radii.panel,
+              backgroundColor: theme.colors.scrim,
+            },
+          ]}>
+          <AppText numberOfLines={2} variant={"titleLarge"}>
             {metadata.title}
-          </Text>
-          <Text
-            style={
-              styles.subtitle
-            }>{`${metadata.author} ○ ${metadata.views} ○ ${metadata.videoDate}${resolution ? ` ○ ${resolution}` : ""}`}</Text>
+          </AppText>
+          <AppText color={"textSecondary"} variant={"bodySmall"}>
+            {subtitle}
+          </AppText>
         </View>
-
-        {/*Spacer Container*/}
-        <View style={{flex: 1}} />
-        {/*TODO: Add Author,Pro and Contra Section*/}
+        <View style={styles.spacer} />
         <View style={styles.buttonMetadata}>
           <MetadataButton
+            onFocus={onControlFocus}
+            accessibilityLabel={t("video.player.channel")}
             imageUrl={metadata.authorThumbnailUrl}
             // TODO: Outsource pause event in VideoScreen?
             onPress={() => {
@@ -47,35 +88,49 @@ export default function MetadataContainer({
             }}
           />
           <MetadataButton
-            iconType={"antdesign"}
-            iconName={"like"}
-            onPress={metadata.onLike}
+            onFocus={onControlFocus}
+            accessibilityLabel={t("video.action.like")}
             active={metadata.liked}
+            icon={"thumb-up"}
+            onPress={metadata.onLike}
           />
           <MetadataButton
-            iconType={"antdesign"}
-            iconName={"dislike"}
-            onPress={metadata.onDislike}
+            onFocus={onControlFocus}
+            accessibilityLabel={t("video.action.dislike")}
             active={metadata.disliked}
+            icon={"thumb-down"}
+            onPress={metadata.onDislike}
           />
           <MetadataButton
-            iconType={"material-community"}
-            iconName={"playlist-plus"}
+            onFocus={onControlFocus}
+            accessibilityLabel={t("video.action.save")}
+            icon={"playlist-add"}
             onPress={metadata.onSaveVideo}
           />
+          {metadata.onShowDetails ? (
+            <MetadataButton
+              onFocus={onControlFocus}
+              accessibilityLabel={t("video.player.details")}
+              icon={"info-outline"}
+              onPress={metadata.onShowDetails}
+            />
+          ) : null}
           <MetadataButton
-            iconType={"antdesign"}
-            iconName={"step-backward"}
+            onFocus={onControlFocus}
+            accessibilityLabel={t("video.player.jumpToStart")}
+            icon={"skip-previous"}
             onPress={onJumpToStart}
           />
           <MetadataButton
-            iconType={"font-awesome"}
-            iconName={"refresh"}
+            onFocus={onControlFocus}
+            accessibilityLabel={t("video.player.reload")}
+            icon={"refresh"}
             onPress={metadata.onRefresh}
           />
           <MetadataButton
-            iconType={"feather"}
-            iconName={"settings"}
+            onFocus={onControlFocus}
+            accessibilityLabel={t("video.player.settings")}
+            icon={"settings"}
             onPress={() => navigation.navigate("VideoPlayerSettings")}
           />
         </View>
@@ -86,29 +141,18 @@ export default function MetadataContainer({
 
 const styles = StyleSheet.create({
   container: {
-    width: "95%",
+    width: "100%",
     alignSelf: "center",
-    // backgroundColor: "red",
     flexDirection: "row",
   },
   titleMetadata: {
-    borderRadius: 15,
-    backgroundColor: "rgba(119,119,119,0.5)",
     maxWidth: "40%",
-    padding: 10,
   },
-  title: {
-    color: "white",
-    fontSize: 35,
-    fontWeight: "bold",
-  },
-  subtitle: {
-    color: "white",
-    fontSize: 20,
+  spacer: {
+    flex: 1,
   },
   buttonMetadata: {
     alignSelf: "flex-end",
-    // backgroundColor: "blue",
     flexDirection: "row",
   },
 });

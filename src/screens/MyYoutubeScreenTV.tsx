@@ -1,17 +1,14 @@
-import {useFocusEffect} from "@react-navigation/native";
-import {useCallback, useEffect} from "react";
-import {Dimensions, StyleSheet, TVFocusGuideView, View} from "react-native";
+import {StyleSheet, View} from "react-native";
 
-import GridFeedView from "@/components/grid/GridFeedView";
 import {TabNavigator} from "@/components/my-youtube/TabNavigator";
-import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
 import useMyYoutubeScreen from "@/hooks/tv/useMyYoutubeScreen";
 import {useDrawerContext} from "@/navigation/DrawerContext";
-
-const {width} = Dimensions.get("window");
+import {MediaFeed} from "@/ui/patterns";
+import {TVFocusRegion} from "@/ui/tv";
 
 export function MyYoutubeScreenTV() {
-  const {data, tabs, selectTab, fetchMore} = useMyYoutubeScreen();
+  const {data, tabs, selectTab, fetchMore, loading, error} =
+    useMyYoutubeScreen();
   const {setHideDrawer} = useDrawerContext();
 
   // TODO: Reset Hide when leaving screen?!
@@ -27,19 +24,26 @@ export function MyYoutubeScreenTV() {
   //   }, []),
   // );
 
+  // The screen has two focus regions side by side. The feed brings its own,
+  // so wrapping it in a second one here only put two guides in competition
+  // over the same moves; the tab column is the one that still needs one, so
+  // returning from the grid lands on the tab that is open.
   return (
-    <ShelfVideoSelectorProvider onElementFocused={() => setHideDrawer?.(true)}>
-      <View style={styles.container}>
-        <View style={{width: 250}}>
-          <TabNavigator tabs={tabs} onPress={tab => selectTab(tab)} />
-        </View>
-        <View style={{width: width - 250, height: "100%"}}>
-          <TVFocusGuideView autoFocus>
-            <GridFeedView items={data} onEndReached={fetchMore} />
-          </TVFocusGuideView>
-        </View>
+    <View style={styles.container}>
+      <TVFocusRegion style={styles.tabs}>
+        <TabNavigator tabs={tabs} onPress={tab => selectTab(tab)} />
+      </TVFocusRegion>
+      <View style={styles.content}>
+        <MediaFeed
+          error={error}
+          items={data}
+          loading={loading}
+          onElementFocused={() => setHideDrawer?.(true)}
+          onEndReached={fetchMore}
+          testID={"my-youtube-feed"}
+        />
       </View>
-    </ShelfVideoSelectorProvider>
+    </View>
   );
 }
 
@@ -47,5 +51,14 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     flex: 1,
+  },
+  tabs: {
+    width: 250,
+  },
+  // The screen fills the navigation content plane, so the grid takes the
+  // remaining width instead of measuring the whole window.
+  content: {
+    flex: 1,
+    height: "100%",
   },
 });

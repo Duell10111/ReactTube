@@ -5,12 +5,19 @@ import {languages, parseLanguage} from "../../../utils/YTLanguages";
 import {SettingsSelectorItem} from "../SettingsItem";
 import SettingsSection from "../SettingsSection";
 
+import {useTranslation} from "@/localization";
+import {useAppTheme} from "@/ui/theme";
+
 export default function LanguageSelectorScreen() {
   const {appSettings, updateSettings} = useAppData();
   const selected = parseLanguage(appSettings);
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   return (
-    <SettingsSection style={styles.container} sectionTitle={"Languages"}>
+    <SettingsSection
+      style={[styles.container, {backgroundColor: theme.colors.background}]}
+      sectionTitle={t("settings.languages")}>
       {languages.map(v => (
         <SettingsSelectorItem
           key={v.key}
@@ -30,6 +37,5 @@ export default function LanguageSelectorScreen() {
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 20,
-    backgroundColor: "#111111",
   },
 });

@@ -5,13 +5,17 @@ import {
   ActivityIndicator,
   Image,
   StyleSheet,
-  Text,
   TouchableHighlight,
   View,
 } from "react-native";
 
 import {useMusikPlayerContext} from "../../context/MusicPlayerContext";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
+
+import {useTranslation} from "@/localization";
+import {AppText} from "@/ui/components";
+import {appChromeMetrics} from "@/ui/layout/appShell";
+import {useAppTheme} from "@/ui/theme";
 
 type NProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -25,6 +29,8 @@ export function MusicBottomPlayerBar({
   const {currentItem, playing, play, pause, playbackStatus} =
     useMusikPlayerContext();
   const navigation = useNavigation<NProp>();
+  const {theme} = useAppTheme();
+  const {t} = useTranslation();
   const isLoading =
     playbackStatus === "loading" || playbackStatus === "buffering";
 
@@ -38,27 +44,49 @@ export function MusicBottomPlayerBar({
         !onPressOverride
           ? navigation.navigate("MusicPlayerScreen")
           : onPressOverride()
-      }>
-      <View style={styles.container}>
+      }
+      underlayColor={theme.colors.surfacePressed}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: theme.colors.surfaceRaised,
+            height: appChromeMetrics.miniPlayerHeight,
+            paddingHorizontal: theme.spacing.sm,
+            borderTopColor: theme.colors.divider,
+          },
+        ]}>
         <Image
-          style={styles.imageStyle}
+          style={[styles.imageStyle, {borderRadius: theme.radii.control}]}
           source={{uri: currentItem?.thumbnailImage?.url}}
         />
-        <View style={styles.textContainer}>
-          <Text style={styles.titleStyle}>{currentItem.title}</Text>
-          <Text style={styles.subtitleStyle}>{currentItem.author?.name}</Text>
+        <View style={[styles.textContainer, {marginStart: theme.spacing.md}]}>
+          <AppText numberOfLines={1} variant={"label"}>
+            {currentItem.title}
+          </AppText>
+          <AppText
+            color={"textSecondary"}
+            numberOfLines={1}
+            variant={"labelSmall"}>
+            {currentItem.author?.name}
+          </AppText>
         </View>
-        <View style={styles.buttonsContainer}>
+        <View
+          style={[
+            styles.buttonsContainer,
+            {marginHorizontal: theme.spacing.sm},
+          ]}>
           {isLoading ? (
             <ActivityIndicator
-              color={"white"}
-              accessibilityLabel={"Loading song"}
+              accessibilityLabel={t("music.loading")}
+              color={theme.colors.textPrimary}
             />
           ) : (
             <Icon
+              accessibilityLabel={t(playing ? "music.pause" : "music.play")}
               name={!playing ? "play" : "pause"}
               type={"feather"}
-              color={"white"}
+              color={theme.colors.textPrimary}
               onPress={() => {
                 if (playing) {
                   pause();
@@ -69,7 +97,6 @@ export function MusicBottomPlayerBar({
             />
           )}
         </View>
-        <View style={styles.bottomLine} />
       </View>
     </TouchableHighlight>
   );
@@ -78,42 +105,22 @@ export function MusicBottomPlayerBar({
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    backgroundColor: "#33333333",
-    paddingVertical: 5,
     alignItems: "center",
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   imageStyle: {
     width: 45,
     height: 45,
-    borderRadius: 5,
   },
   textContainer: {
     flex: 1,
-    marginLeft: 15,
     justifyContent: "space-evenly",
-  },
-  titleStyle: {
-    fontSize: 15,
-    color: "white",
-  },
-  subtitleStyle: {
-    // fontSize: 15,
-    fontWeight: "200",
-    color: "white",
   },
   buttonsContainer: {
     flexDirection: "row",
     height: "100%",
     alignItems: "center",
-    marginLeft: 5,
-    marginRight: 15,
-    // backgroundColor: "white",
-  },
-  bottomLine: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    height: 1,
-    backgroundColor: "#ffffffcc",
+    minWidth: appChromeMetrics.minimumTouchTarget,
+    justifyContent: "center",
   },
 });

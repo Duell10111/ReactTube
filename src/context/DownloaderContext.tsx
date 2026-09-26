@@ -1,6 +1,12 @@
-import {createContext, MutableRefObject, ReactNode, useContext} from "react";
+import {
+  createContext,
+  MutableRefObject,
+  ReactNode,
+  useContext,
+  useEffect,
+} from "react";
 
-import ErrorComponent from "../components/general/ErrorComponent";
+import DatabaseRecoveryComponent from "../components/general/DatabaseRecoveryComponent";
 import LoadingComponent from "../components/general/LoadingComponent";
 import useDownloadProcessor, {
   DownloadRef,
@@ -8,7 +14,9 @@ import useDownloadProcessor, {
 // @ts-ignore Ignore atm as not relevant for Android
 import useWatchSync from "../hooks/watchSync/useWatchSync";
 
-import {useMigration} from "@/downloader/DownloadDatabaseOperations";
+import {useDatabaseMigration} from "@/downloader/DownloadDatabaseOperations";
+import {useTranslation} from "@/localization";
+import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 export interface WatchFileTransferInfo {
   uri: string;
@@ -35,11 +43,19 @@ interface DownloaderContextProps {
 }
 
 export function DownloaderContext({children}: DownloaderContextProps) {
-  const {success, error} = useMigration();
+  const {phase, success, error, diagnostics, recovered, retry, repair, reset} =
+    useDatabaseMigration();
 
-  if (error) {
+  if (phase === "failed" || phase === "repairing") {
     return (
-      <ErrorComponent text={`Local DB migration failed: ${error.message}`} />
+      <DatabaseRecoveryComponent
+        busy={phase === "repairing"}
+        diagnostics={diagnostics}
+        error={error}
+        onRepair={repair}
+        onReset={reset}
+        onRetry={retry}
+      />
     );
   }
 
@@ -48,12 +64,24 @@ export function DownloaderContext({children}: DownloaderContextProps) {
   }
 
   return (
-    <InitializedDownloaderContext>{children}</InitializedDownloaderContext>
+    <InitializedDownloaderContext recovered={recovered}>
+      {children}
+    </InitializedDownloaderContext>
   );
 }
 
-function InitializedDownloaderContext({children}: DownloaderContextProps) {
+function InitializedDownloaderContext({
+  children,
+  recovered,
+}: DownloaderContextProps & {recovered: boolean}) {
+  const {t} = useTranslation();
   const {downloadRefs, download} = useDownloadProcessor();
+
+  useEffect(() => {
+    if (recovered) {
+      showMessage({type: "warning", message: t("database.recovered")});
+    }
+  }, [recovered, t]);
 
   const {watchTransfers, upload, sendPlaylist} = useWatchSync();
 

@@ -4,25 +4,29 @@ import {SettingsSelectorItem} from "../SettingsItem";
 import SettingsSection from "../SettingsSection";
 
 import {AppSettings, useAppData} from "@/context/AppDataContext";
+import {useTranslation} from "@/localization";
+import {useAppTheme} from "@/ui/theme";
 
 interface TrackingSelection {
   key: string;
-  label: string;
+  labelKey: "common.enabled" | "common.disabled";
 }
 
 const trackingOptions: {[key: string]: TrackingSelection} = {
   enabled: {
     key: "enabled",
-    label: "Enabled",
+    labelKey: "common.enabled",
   },
   disabled: {
     key: "disabled",
-    label: "Disabled",
+    labelKey: "common.disabled",
   },
 };
 
 export default function TrackingSelector() {
   const {appSettings, updateSettings} = useAppData();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   const onPress = (type: TrackingSelection) => {
     if (type.key === "enabled") {
@@ -37,11 +41,13 @@ export default function TrackingSelector() {
   };
 
   return (
-    <SettingsSection style={styles.container} sectionTitle={"Video Tracking"}>
+    <SettingsSection
+      style={[styles.container, {backgroundColor: theme.colors.background}]}
+      sectionTitle={t("settings.videoTracking")}>
       {Object.values(trackingOptions).map(v => (
         <SettingsSelectorItem
           key={v.key}
-          label={v.label}
+          label={t(v.labelKey)}
           selected={parseTrackingSelection(appSettings).key === v.key}
           onPress={() => onPress(v)}
         />
@@ -53,7 +59,6 @@ export default function TrackingSelector() {
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 20,
-    backgroundColor: "#111111",
   },
 });
 

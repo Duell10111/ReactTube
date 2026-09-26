@@ -1,23 +1,18 @@
 import React, {useEffect} from "react";
-import {
-  Linking,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import {Button} from "react-native-paper";
+import {Linking, Platform, StyleSheet, View} from "react-native";
 import QRCode from "react-native-qrcode-svg";
 
 import {useAccountContext} from "@/context/AccountContext";
-import {useAppStyle} from "@/context/AppStyleContext";
+import {useTranslation} from "@/localization";
+import {AppButton, AppText, Screen} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 const Clipboard = !Platform.isTV ? require("expo-clipboard") : {};
 
 export default function LoginScreen() {
   const account = useAccountContext();
-  const {style, type} = useAppStyle();
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   useEffect(() => {
     if (!Platform.isTV && account?.qrCode) {
@@ -26,64 +21,76 @@ export default function LoginScreen() {
   }, [account?.qrCode]);
 
   return (
-    <View style={styles.container}>
+    <Screen
+      contentContainerStyle={[
+        styles.container,
+        {gap: theme.spacing.xl, padding: theme.spacing.xl},
+      ]}
+      scroll>
       {account?.qrCode ? (
-        <View style={styles.loginContainer}>
-          <QRCode
-            value={account.qrCode.verification_url}
-            size={Platform.isTV ? 500 : 250}
-            backgroundColor={type === "dark" ? "black" : undefined}
-            color={type === "dark" ? "white" : undefined}
-          />
-          <Text style={[styles.codeText, {color: style.textColor}]}>
-            {"Your code is: " + account.qrCode.user_code}
-          </Text>
+        <View
+          style={[
+            styles.loginContainer,
+            {
+              backgroundColor: theme.colors.surfaceRaised,
+              borderRadius: theme.radii.panel,
+              gap: theme.spacing.lg,
+              padding: theme.spacing.xl,
+            },
+          ]}>
+          <View style={[styles.qr, {backgroundColor: theme.colors.focus}]}>
+            <QRCode
+              value={account.qrCode.verification_url}
+              size={Platform.isTV ? 420 : 240}
+              backgroundColor={theme.colors.focus}
+              color={theme.colors.background}
+            />
+          </View>
+          <AppText align={"center"} variant={"titleMedium"}>
+            {t("login.code", {code: account.qrCode.user_code})}
+          </AppText>
         </View>
       ) : (
         <View style={styles.loginContainer}>
-          <Text style={[styles.codeText, {color: style.textColor}]}>
-            {"Please init login first"}
-          </Text>
+          <AppText align={"center"} variant={"titleMedium"}>
+            {t("login.waiting.title")}
+          </AppText>
+          <AppText align={"center"} color={"textSecondary"}>
+            {t("login.waiting.message")}
+          </AppText>
         </View>
       )}
-      <TouchableOpacity
-        onPress={() => {
-          console.log("Login pressed");
-          console.log(account);
-          account?.login();
-        }}>
-        <Button icon={"login"} mode={"contained"}>
-          {"Login"}
-        </Button>
-      </TouchableOpacity>
+      <AppButton
+        fullWidth
+        label={t("login.start")}
+        onPress={() => account?.login()}
+      />
       {!Platform.isTV ? (
-        <Button
-          icon={"login"}
-          mode={"contained"}
-          style={{marginTop: 20}}
+        <AppButton
+          disabled={!account?.qrCode?.verification_url}
+          fullWidth
+          label={t("login.openPage")}
           onPress={() => {
             if (account?.qrCode?.verification_url)
               Linking.openURL(account?.qrCode?.verification_url).catch(
                 console.warn,
               );
-          }}>
-          {"Open login page"}
-        </Button>
+          }}
+          variant={"secondary"}
+        />
       ) : null}
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     justifyContent: "center",
-  },
-  codeText: {
-    fontSize: 25,
-    paddingVertical: 20,
   },
   loginContainer: {
     alignItems: "center",
+  },
+  qr: {
+    padding: 8,
   },
 });

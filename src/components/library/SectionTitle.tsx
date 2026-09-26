@@ -1,18 +1,25 @@
-import {StyleSheet, Text} from "react-native";
+import React from "react";
+import {View} from "react-native";
+
+import {AppText} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 interface SectionTitleProps {
   title: string;
 }
 
 export function SectionTitle({title}: SectionTitleProps) {
-  return <Text style={styles.titleStyle}>{title}</Text>;
-}
+  const {theme} = useAppTheme();
 
-const styles = StyleSheet.create({
-  titleStyle: {
-    color: "white",
-    fontSize: 30,
-    fontWeight: "bold",
-    margin: 20,
-  },
-});
+  return (
+    <View
+      style={{
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: theme.spacing.md,
+      }}>
+      <AppText accessibilityRole={"header"} variant={"titleLarge"}>
+        {title}
+      </AppText>
+    </View>
+  );
+}

@@ -1,39 +1,32 @@
-import {useCallback, useState} from "react";
-import {FlatList, ListRenderItem} from "react-native";
+import {useMemo} from "react";
 
-import LoadingComponent from "@/components/general/LoadingComponent";
-import {LibrarySectionItem} from "@/components/library/LibrarySectionItem";
-import {YTLibrarySection} from "@/extraction/Types";
-import useLibrary from "@/hooks/useLibrary";
+import useLibrary from "@/hooks/tv/useLibrary";
+import {MediaSectionFeed} from "@/ui/patterns";
 
-interface LibraryScreenProps {}
+export function LibraryScreen() {
+  const {data, fetchMore, refresh, refreshing, loading, error} = useLibrary();
 
-export function LibraryScreen({}: LibraryScreenProps) {
-  const {data} = useLibrary();
-  const [details, setDetails] = useState<YTLibrarySection>();
-
-  const renderItem = useCallback<ListRenderItem<YTLibrarySection>>(
-    ({item, index}) => {
-      return <LibrarySectionItem section={item} />;
-    },
-    [],
+  const sections = useMemo(
+    () =>
+      // The library opens with a shelf of navigation tiles (history,
+      // playlists). Those carry no thumbnail and are dropped while parsing, so
+      // without this filter the feed would render their title above nothing.
+      data.filter(
+        item => !("parsedData" in item) || item.parsedData.length > 0,
+      ),
+    [data],
   );
 
-  const keyExtractor = useCallback((item: YTLibrarySection, index: number) => {
-    return item.title + item.type;
-  }, []);
-
-  if (!data) {
-    return <LoadingComponent />;
-  }
-
   return (
-    <FlatList
-      data={data.sections}
-      renderItem={renderItem}
-      keyExtractor={keyExtractor}
-      // onEndReached={onFetchMore}
-      // ListHeaderComponent={ListHeaderComponent}
+    <MediaSectionFeed
+      error={error}
+      items={sections}
+      loading={loading}
+      onEndReached={fetchMore}
+      onRefresh={refresh}
+      onRetry={refresh}
+      refreshing={refreshing}
+      testID={"library-section-feed"}
     />
   );
 }

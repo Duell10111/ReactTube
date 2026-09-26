@@ -7,6 +7,8 @@ import {
 } from "react-native";
 
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {useTranslation} from "@/localization";
+import {useAppTheme} from "@/ui/theme";
 
 export function MusicPlayerPlayerButtons() {
   const {
@@ -23,6 +25,8 @@ export function MusicPlayerPlayerButtons() {
   } = useMusikPlayerContext();
   const isLoading =
     playbackStatus === "loading" || playbackStatus === "buffering";
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   const onPressRepeat = () => {
     switch (repeat) {
@@ -40,31 +44,39 @@ export function MusicPlayerPlayerButtons() {
   return (
     <View style={styles.playerItemsContainer}>
       <Icon
+        accessibilityLabel={t("music.repeat")}
         // @ts-ignore
         Component={TouchableOpacity}
         name={!repeat || repeat === "RepeatAll" ? "repeat" : "repeat-once"}
         type={"material-community"}
         size={25}
-        color={repeat ? "blue" : "white"}
+        color={repeat ? theme.colors.brand : theme.colors.textPrimary}
         containerStyle={{marginRight: 30}}
         onPress={onPressRepeat}
       />
       <Icon
+        accessibilityLabel={t("music.previous")}
         // @ts-ignore
         Component={TouchableOpacity}
         name={"step-backward"}
         type={"antdesign"}
         size={25}
-        color={"white"}
+        color={theme.colors.textPrimary}
         containerStyle={{marginRight: 20}}
         onPress={previous}
       />
       {isLoading ? (
-        <View style={styles.loadingButton} accessibilityLabel={"Loading song"}>
-          <ActivityIndicator color={"black"} size={"small"} />
+        <View
+          style={[
+            styles.loadingButton,
+            {backgroundColor: theme.colors.textPrimary},
+          ]}
+          accessibilityLabel={t("music.loading")}>
+          <ActivityIndicator color={theme.colors.background} size={"small"} />
         </View>
       ) : (
         <Icon
+          accessibilityLabel={t(playing ? "music.pause" : "music.play")}
           // @ts-ignore
           Component={TouchableOpacity}
           name={!playing ? "play" : "pause"}
@@ -81,22 +93,24 @@ export function MusicPlayerPlayerButtons() {
         />
       )}
       <Icon
+        accessibilityLabel={t("music.next")}
         // @ts-ignore
         Component={TouchableOpacity}
         name={"step-forward"}
         type={"antdesign"}
         size={25}
-        color={"white"}
+        color={theme.colors.textPrimary}
         containerStyle={{marginLeft: 20}}
         onPress={next}
       />
       <Icon
+        accessibilityLabel={t("music.shuffle")}
         // @ts-ignore
         Component={TouchableOpacity}
         name={"shuffle"}
         type={"material-community"}
         size={25}
-        color={shuffle ? "rgb(66,115,241)" : "white"}
+        color={shuffle ? theme.colors.brand : theme.colors.textPrimary}
         containerStyle={{marginLeft: 30}}
         onPress={() => setShuffle(!shuffle)}
       />
@@ -108,7 +122,6 @@ const styles = StyleSheet.create({
   playerItemsContainer: {
     flexDirection: "row",
     width: "100%",
-    // backgroundColor: "green",
     alignItems: "center",
     justifyContent: "center",
     maxHeight: 200,
@@ -119,6 +132,5 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: "white",
   },
 });

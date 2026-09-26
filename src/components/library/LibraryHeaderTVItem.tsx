@@ -1,37 +1,26 @@
-import {StyleSheet, Text, TouchableOpacity, ViewStyle} from "react-native";
+import {StyleSheet, View} from "react-native";
+
+import {AppButton} from "@/ui/components";
 
 interface LibraryHeaderTVItemProps {
   title: string;
-  color: ViewStyle["backgroundColor"];
   onPress?: () => void;
 }
 
 export function LibraryHeaderTVItem({
   title,
-  color,
   onPress,
 }: LibraryHeaderTVItemProps) {
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[styles.container, {backgroundColor: color}]}>
-      <Text style={styles.textStyle}>{title}</Text>
-    </TouchableOpacity>
+    <View style={styles.container}>
+      <AppButton label={title} onPress={onPress} variant={"secondary"} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width: 150,
-    aspectRatio: 1,
-    borderRadius: 25,
+    minWidth: 220,
     marginHorizontal: 25,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  textStyle: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "white",
   },
 });

@@ -7,21 +7,19 @@ import {
   isNull,
   sql,
 } from "drizzle-orm";
-import {drizzle, useLiveQuery} from "drizzle-orm/expo-sqlite";
-import {useMigrations} from "drizzle-orm/expo-sqlite/migrator";
-import {openDatabaseSync} from "expo-sqlite";
+import {useLiveQuery} from "drizzle-orm/expo-sqlite";
 import {useEffect, useState} from "react";
 
-import migrations from "./drizzle/migrations";
+import {db} from "./database";
 import * as schema from "./schema";
 import {Video} from "./schema";
 
-const expoDb = openDatabaseSync("downloadDB.db", {enableChangeListener: true});
-export const db = drizzle(expoDb);
-
-export function useMigration() {
-  return useMigrations(db, migrations);
-}
+export {db} from "./database";
+export {useDatabaseMigration} from "./useDatabaseMigration";
+export type {
+  DatabaseMigrationPhase,
+  DatabaseMigrationState,
+} from "./useDatabaseMigration";
 
 export async function findVideo(id: string): Promise<Video | undefined> {
   const result = await db

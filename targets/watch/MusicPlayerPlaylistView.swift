@@ -13,20 +13,39 @@ struct MusicPlayerPlaylistView: View {
     var body: some View {
       ScrollViewReader { proxy in
         List {
+          Section {
+            // Both settings are persisted: repeat takes effect immediately,
+            // shuffle applies the next time a playlist is started.
+            Button {
+              musicManager.cycleRepeatMode()
+            } label: {
+              Label(musicManager.preferences.repeatMode.label, systemImage: musicManager.preferences.repeatMode.systemImage)
+                .foregroundStyle(musicManager.preferences.repeatMode == .off ? Color.primary : Color.blue)
+            }
+            Button {
+              musicManager.preferences.setShuffleEnabled(!musicManager.preferences.shuffleEnabled)
+            } label: {
+              Label(musicManager.preferences.shuffleEnabled ? "Shuffle On" : "Shuffle Off", systemImage: "shuffle")
+                .foregroundStyle(musicManager.preferences.shuffleEnabled ? Color.blue : Color.primary)
+            }
+          }
           ForEach(Array(musicManager.playerPlaylistItems.enumerated()), id: \.self.element.id) { (index, video) in
             HStack {
               Button {
                 musicManager.jumpToIndex(index)
               } label: {
-                VStack {
-                  Text(video.title ?? "Track \(index + 1)")
-                  if let artist = video.artist {
-                    Text(artist)
-                      .foregroundStyle(.secondary)
+                HStack {
+                  VideoCoverView(video: video)
+                  VStack(alignment: .leading) {
+                    Text(video.title ?? "Track \(index + 1)")
+                    if let artist = video.artist {
+                      Text(artist)
+                        .foregroundStyle(.secondary)
+                    }
                   }
                 }
               }
-              Spacer()
+              Spacer(minLength: 0)
               if index == musicManager.trackIndex {
                 Image(systemName: "play.fill")
               }

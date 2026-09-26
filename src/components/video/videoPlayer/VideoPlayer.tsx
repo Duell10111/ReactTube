@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {DeviceEventEmitter, useTVEventHandler, View} from "react-native";
+import {DeviceEventEmitter, View} from "react-native";
 import {
   OnAudioTracksData,
   OnLoadData,
@@ -23,6 +23,7 @@ import useTVSeekControl from "./hooks/useTVSeekControl";
 import {usePanResponders} from "./usePanResponders";
 
 import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
+import {useTVRemoteEvent} from "@/ui/tv";
 import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
 
 export const PausePlayerEvent = "PlayerPauseVideo";
@@ -32,7 +33,8 @@ export interface VideoMetadata {
   title: string;
   author: string;
   authorID: string;
-  authorThumbnailUrl: string;
+  /** Missing while the channel is still loading, or when it has no avatar. */
+  authorThumbnailUrl?: string;
   onAuthorPress: () => void;
   views: string;
   videoDate: string;
@@ -42,6 +44,8 @@ export interface VideoMetadata {
   onDislike?: () => void;
   onSaveVideo?: () => void;
   onRefresh?: () => void;
+  /** Opens the side panel. Left out where a surface has none. */
+  onShowDetails?: () => void;
 }
 
 // TODO: Use own types
@@ -267,7 +271,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
 
     const longButtonPressed = useRef<string>(undefined);
 
-    useTVEventHandler(event => {
+    useTVRemoteEvent(event => {
       switch (event.eventType) {
         case "select":
         case "up":

@@ -1,30 +1,40 @@
 import React from "react";
-import {View} from "react-native";
+import {StyleSheet, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {SectionFeedPhone} from "@/components/history/SectionFeedPhone";
-import useHistory from "@/hooks/useHistory";
+import useHistory from "@/hooks/tv/useHistory";
+import {useTranslation} from "@/localization";
+import {MediaSectionFeed} from "@/ui/patterns";
 
 export function HistoryScreen() {
-  const {content, fetchMore, parsedContent} = useHistory();
+  const {data, fetchMore, refresh, refreshing, loading, error} = useHistory();
   const {bottom, left, right} = useSafeAreaInsets();
-
-  console.log(parsedContent);
+  const {t} = useTranslation();
 
   return (
     <View
-      style={{
-        flex: 1,
-        paddingBottom: bottom,
-        paddingLeft: left,
-        paddingRight: right,
-      }}>
-      <SectionFeedPhone
-        // TODO: Remove in future
-        // @ts-ignore
-        items={parsedContent}
-        onEndReached={() => fetchMore().catch(console.warn)}
+      style={[
+        styles.container,
+        {paddingBottom: bottom, paddingLeft: left, paddingRight: right},
+      ]}>
+      <MediaSectionFeed
+        emptyMessage={t("history.empty.message")}
+        emptyTitle={t("history.empty.title")}
+        error={error}
+        items={data}
+        loading={loading}
+        onEndReached={fetchMore}
+        onRefresh={refresh}
+        onRetry={refresh}
+        refreshing={refreshing}
+        testID={"history-section-feed"}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

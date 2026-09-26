@@ -35,14 +35,14 @@ class DownloadManager {
     var didStartAudioDownload = false
 
     if let streamURL = video.downloadURL, video.validUntil != nil, let uri = URL(string: streamURL) {
-      print("Started download \(video.id)")
+      WatchLog.shared.info("Download", "Started: \(video.title ?? video.id)")
       let request = URLRequest(url: uri)
       _ = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
         print("Progrss: \(progress)")
         self.progressDownloads[video.id] = Double(progress)
       }) { error, fileUrl in
         if let error = error {
-          print("Error is \(error as NSError)")
+          WatchLog.shared.error("Download", "Failed for \(video.title ?? video.id): \(error.localizedDescription)")
         } else {
           if let url = fileUrl {
             print("Downloaded file's url is \(url.path)")
@@ -67,7 +67,7 @@ class DownloadManager {
       activeDownloads.append(ActiveDownload(id: video.id))
       didStartAudioDownload = true
     } else {
-      print("Video metadata not available needed for Download")
+      WatchLog.shared.warning("Download", "No download URL for \(video.title ?? video.id)")
     }
     // TODO: Add clear function to delete images without downloaded audio
     // Image Download
@@ -81,7 +81,7 @@ class DownloadManager {
           print("Error is \(error as NSError)")
         } else {
           if let url = fileUrl {
-            print("Downloaded file's url is \(url.path)")
+            print("Downloaded cover url is \(url.path)")
             // TODO: Remove hardcode fileExt
             let saveDownload = saveDownloadFile(id: video.id, filePath: url, fileExtension: "png")
             if let saveURL = saveDownload {

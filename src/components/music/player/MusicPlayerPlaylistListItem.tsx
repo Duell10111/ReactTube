@@ -1,9 +1,11 @@
 import _ from "lodash";
-import {Image, StyleSheet, Text, TouchableHighlight, View} from "react-native";
+import {Image, StyleSheet} from "react-native";
 
 import {VideoData} from "@/extraction/Types";
+import {AppListItem} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
-export const ITEM_HEIGHT = 50;
+export const ITEM_HEIGHT = 72;
 
 interface MusicPlayerPlaylistListItemProps {
   data: VideoData;
@@ -16,58 +18,34 @@ export function MusicPlayerPlaylistListItem({
   data,
   onPress,
 }: MusicPlayerPlaylistListItemProps) {
+  const {theme} = useAppTheme();
+
   return (
-    <TouchableHighlight onPress={onPress}>
-      <View
-        style={[
-          styles.container,
-          currentItem ? styles.selectedContainerStyle : undefined,
-        ]}>
+    <AppListItem
+      leading={
         <Image
-          style={styles.imageStyle}
+          style={[styles.imageStyle, {borderRadius: theme.radii.control}]}
           source={{uri: data.thumbnailImage.url}}
         />
-        <View style={styles.textContainer}>
-          <Text style={styles.titleStyle}>{data.title}</Text>
-          <Text style={styles.subtitleStyle}>{`${_.chain([
-            data.author?.name ?? "",
-            data.duration,
-          ])
-            .compact()
-            .value()
-            .join(" - ")}`}</Text>
-        </View>
-      </View>
-    </TouchableHighlight>
+      }
+      onPress={onPress}
+      selected={currentItem}
+      style={styles.container}
+      subtitle={_.chain([data.author?.name ?? "", data.duration])
+        .compact()
+        .value()
+        .join(" • ")}
+      title={data.title}
+    />
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: ITEM_HEIGHT, // Needed to fixed item size to scroll efficiently
-  },
-  selectedContainerStyle: {
-    backgroundColor: "#77777777",
+    height: ITEM_HEIGHT,
   },
   imageStyle: {
     width: 45,
     height: 45,
-    borderRadius: 5,
-  },
-  textContainer: {
-    flex: 1,
-    marginLeft: 15,
-    justifyContent: "space-evenly",
-  },
-  titleStyle: {
-    fontSize: 15,
-    color: "white",
-  },
-  subtitleStyle: {
-    // fontSize: 15,
-    fontWeight: "200",
-    color: "white",
   },
 });

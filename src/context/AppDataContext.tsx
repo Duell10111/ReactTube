@@ -1,7 +1,7 @@
 import React, {createContext, useCallback, useContext, useState} from "react";
 import {createMMKV} from "react-native-mmkv";
 
-// TODO: Use MMKV For this to support Android
+import type {UILanguage} from "@/localization/types";
 
 const storage = createMMKV({id: "settings"});
 
@@ -13,15 +13,16 @@ export interface AppSettings {
   hlsEnabled?: boolean;
   localHlsEnabled?: boolean;
   /**
-   * AV1 im selbst gebauten Manifest anbieten (Plan-Phase 2c).
+   * Offers AV1 in the custom manifest (plan phase 2c).
    *
-   * Nur so kommt 1440p/2160p zustande — YouTube liefert avc1 höchstens in 1080p.
-   * Hardware-dekodiert wird AV1 aber erst ab Apple TV 4K (3. Gen); wo der
-   * Decoder fehlt, hängt der Player stumm, statt einen Fehler zu melden.
-   * Deshalb aus, bis man es bewusst einschaltet.
+   * YouTube only supplies avc1 up to 1080p, so AV1 is needed for 1440p/2160p.
+   * Hardware decoding starts with Apple TV 4K (3rd generation). On devices
+   * without a decoder, playback stalls silently instead of reporting an error.
+   * Keep this disabled until the user explicitly enables it.
    */
   av1Enabled?: boolean;
   languageSelected?: string;
+  uiLanguage?: UILanguage;
   trackingEnabled?: boolean;
 }
 

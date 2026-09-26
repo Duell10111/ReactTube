@@ -1,16 +1,9 @@
 import {useFocusEffect} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React, {useEffect, useMemo, useRef, useState} from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  View,
-  useTVEventHandler,
-  TVEventControl,
-} from "react-native";
+import {StyleSheet, View, TVEventControl} from "react-native";
 
 import VideoComponent from "../components/VideoComponent";
-import ErrorComponent from "../components/general/ErrorComponent";
 import EndCard from "../components/video/EndCard";
 import VideoEndCard from "../components/video/VideoEndCard";
 import VideoPlayerNative from "../components/video/VideoPlayerNative";
@@ -22,8 +15,13 @@ import LOGGER from "../utils/Logger";
 
 import {BottomMetadata} from "@/components/video/tv/BottomMetadata";
 import {useAppData} from "@/context/AppDataContext";
+import {useVideoSidePanel} from "@/context/VideoSidePanelContext";
 import useChannelDetails from "@/hooks/useChannelDetails";
+import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
+import {ErrorState} from "@/ui/components";
+import {VideoDetailSkeleton, createVideoDetailViewModel} from "@/ui/patterns";
+import {useTVRemoteEvent} from "@/ui/tv";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -41,6 +39,7 @@ export default function VideoScreen({route, navigation}: Props) {
   const {
     YTVideoInfo,
     videoUrl,
+    error,
     playbackSource,
     playbackLadderStep,
     playbackLadderSize,
@@ -55,14 +54,25 @@ export default function VideoScreen({route, navigation}: Props) {
     addToWatchHistory,
     refresh,
   } = useVideoDetails(navEndpoint ?? videoId, "TV", route.params.startSeconds);
-  // @ts-ignore TODO: fix
-  const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id);
+  const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id ?? "");
   const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components
   const [ended, setEnded] = useState(false);
 
   const {appSettings} = useAppData();
+  const {prepare: prepareSidePanel} = useVideoSidePanel();
+  const {t} = useTranslation();
+  const detailModel = useMemo(
+    () =>
+      YTVideoInfo
+        ? createVideoDetailViewModel(YTVideoInfo, {
+            translate: t,
+            canOpenComments: true,
+          })
+        : undefined,
+    [YTVideoInfo, t],
+  );
   const videoPlayerRef = useRef<VideoPlayerRefs>(undefined);
   const currentTimeRef = useRef<number>(undefined);
 
@@ -76,7 +86,7 @@ export default function VideoScreen({route, navigation}: Props) {
   // TODO: Add Endcard as additional Modal on top of VideoPlayer?
 
   const longClickCount = useRef(0);
-  useTVEventHandler(event => {
+  useTVRemoteEvent(event => {
     // LOGGER.debug("TV Event: ", event.eventType);
     // Skip on own overlay enabled!
     if (appSettings.ownOverlayEnabled) {
@@ -103,27 +113,28 @@ export default function VideoScreen({route, navigation}: Props) {
   });
 
   if (!YTVideoInfo) {
-    return (
-      <View
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            alignItems: "center",
-            justifyContent: "center",
-          },
-        ]}>
-        <ActivityIndicator size={"large"} />
-      </View>
-    );
+    if (error) {
+      return (
+        <ErrorState
+          message={t("video.unavailable.message")}
+          onRetry={() => refresh()}
+          title={t("video.unavailable.title")}
+        />
+      );
+    }
+
+    return <VideoDetailSkeleton />;
   }
 
   if (!videoUrl) {
     return (
-      <ErrorComponent
-        text={
+      <ErrorState
+        message={
           YTVideoInfo.originalData.playability_status?.reason ??
-          "Video source is not available"
+          t("video.unavailable.message")
         }
+        onRetry={() => refresh()}
+        title={t("video.unavailable.title")}
       />
     );
   }
@@ -144,8 +155,8 @@ export default function VideoScreen({route, navigation}: Props) {
             onPlaybackFailure: reportPlaybackFailure,
             onPlaybackInfoUpdate: infos => {
               setPlaybackInfos({
-                // Plan-Phase 4.3: was gerade wirklich läuft — Quelle, Stufe und
-                // Auflösung, damit ein Fehlverhalten ohne Xcode erkennbar ist.
+                // Phase 4.3: expose the active source, fallback step, and
+                // resolution so playback issues are visible without Xcode.
                 resolution:
                   `${infos.height}p` +
                   (playbackSource
@@ -161,9 +172,10 @@ export default function VideoScreen({route, navigation}: Props) {
             title: YTVideoInfo.title,
             author: YTVideoInfo.author?.name ?? "Unknown",
             authorID: YTVideoInfo.channel_id ?? "",
-            // @ts-ignore TODO: Allow videos without author Thumbnail?!
-            authorThumbnailUrl:
-              YTVideoInfo.channel?.url ?? parsedChannel?.thumbnail?.url,
+            // `channel.url` is the channel page, not an image — it was the
+            // first choice here, so the avatar was never anything an Image
+            // could load. The channel request carries the only thumbnail.
+            authorThumbnailUrl: parsedChannel?.thumbnail?.url,
             onAuthorPress: () =>
               YTVideoInfo.channel_id &&
               navigation.navigate("ChannelScreen", {
@@ -191,6 +203,18 @@ export default function VideoScreen({route, navigation}: Props) {
               refresh(
                 await videoPlayerRef.current?.getCurrentPositionSeconds?.(),
               );
+            },
+            onShowDetails: () => {
+              if (!detailModel) {
+                return;
+              }
+
+              prepareSidePanel({
+                videoId,
+                model: detailModel,
+                queueEntries: YTVideoInfo.playlist?.content ?? [],
+              });
+              navigation.navigate("VideoPlayerInfo");
             },
           }}
           videoID={YTVideoInfo.id}

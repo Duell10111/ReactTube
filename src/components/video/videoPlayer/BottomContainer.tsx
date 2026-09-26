@@ -3,14 +3,25 @@ import {StyleSheet, View} from "react-native";
 
 import ShelfVideoSelectorProvider from "../../../context/ShelfVideoSelector";
 
+import {useAppTheme} from "@/ui/theme";
+
 interface Props {
   children: React.ReactNode;
   onFocus?: () => void;
 }
 
 export default function BottomContainer({children, onFocus}: Props) {
+  const {theme} = useAppTheme();
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.colors.background,
+          paddingTop: theme.spacing.sm,
+        },
+      ]}>
       <ShelfVideoSelectorProvider onElementFocused={onFocus}>
         {children}
       </ShelfVideoSelectorProvider>
@@ -20,8 +31,6 @@ export default function BottomContainer({children, onFocus}: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#080808dd",
-    paddingTop: 10,
     height: "100%", // TODO: Adapt for playlist scrollview
   },
 });

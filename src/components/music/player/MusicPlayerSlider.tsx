@@ -9,9 +9,11 @@ import {
 import {ReText} from "react-native-redash";
 
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {useAppTheme} from "@/ui/theme";
 
 export function MusicPlayerSlider() {
   const {currentTime, duration, seek} = useMusikPlayerContext();
+  const {theme} = useAppTheme();
 
   const min = useSharedValue(0);
   const currentProgressString = useSharedValue("");
@@ -45,13 +47,24 @@ export function MusicPlayerSlider() {
           return dur.toFormat("mm:ss");
         }}
         disableTrackFollow
+        theme={{
+          bubbleBackgroundColor: theme.colors.surfacePressed,
+          maximumTrackTintColor: theme.colors.divider,
+          minimumTrackTintColor: theme.colors.mediaProgress,
+        }}
         onSlidingComplete={seconds => {
           // console.log(`Slide to ${seconds}`);
           seek(seconds);
         }}
       />
-      <ReText style={styles.currentTimeStyle} text={currentProgressString} />
-      <ReText style={styles.durationTimeStyle} text={durationString} />
+      <ReText
+        style={[styles.currentTimeStyle, {color: theme.colors.textSecondary}]}
+        text={currentProgressString}
+      />
+      <ReText
+        style={[styles.durationTimeStyle, {color: theme.colors.textSecondary}]}
+        text={durationString}
+      />
     </View>
   );
 }
@@ -66,13 +79,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     bottom: 0,
-    color: "white",
   },
   durationTimeStyle: {
     position: "absolute",
     right: 0,
     bottom: 0,
-    color: "white",
   },
 });
 

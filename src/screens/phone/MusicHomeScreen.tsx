@@ -1,57 +1,73 @@
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackNavigationProp} from "@react-navigation/native-stack";
-import {Icon} from "@rneui/base";
-import React, {useCallback, useEffect} from "react";
-import {FlatList, ListRenderItem} from "react-native";
+import React, {useEffect} from "react";
 
-import MusicHorizontalItem from "../../components/music/MusicHorizontalItem";
 import useMusicHome from "../../hooks/music/useMusicHome";
 
-import {HorizontalData} from "@/extraction/ShelfExtraction";
+import {MusicFilterChips} from "@/components/music/sections/MusicFilterChips";
+import {MusicSectionFeed} from "@/components/music/sections/MusicSectionFeed";
+import {musicSurfacePadding} from "@/components/music/sections/musicSectionModel";
 import usePhoneOrientationLocker from "@/hooks/ui/usePhoneOrientationLocker";
+import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
+import {AppIconButton} from "@/ui/components";
 
 export function MusicHomeScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const {data, fetchContinuation, refreshing, refresh} = useMusicHome();
+  const {
+    data,
+    fetchContinuation,
+    refreshing,
+    refresh,
+    loading,
+    error,
+    filters,
+    activeFilter,
+    applyFilter,
+  } = useMusicHome();
+  const {t} = useTranslation();
 
   useEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
-        <Icon
-          name={"library-music"}
-          type={"material"}
+        <AppIconButton
+          accessibilityLabel={t("navigation.musicLibrary")}
+          icon={"library-music"}
           onPress={() => navigation.navigate("MusicLibraryScreen")}
-          color={"white"}
-          style={{marginStart: 10}}
         />
       ),
       headerRight: () => (
-        <Icon
-          name={"search"}
+        <AppIconButton
+          accessibilityLabel={t("navigation.musicSearch")}
+          icon={"search"}
           onPress={() => navigation.navigate("MusicSearchScreen")}
-          color={"white"}
-          style={{marginEnd: 10}}
         />
       ),
     });
-  }, [navigation]);
+  }, [navigation, t]);
 
   // TODO: Could cause locks if screen is still loaded in background
   usePhoneOrientationLocker();
 
-  const renderItem = useCallback<ListRenderItem<HorizontalData>>(({item}) => {
-    return <MusicHorizontalItem data={item} />;
-  }, []);
-
   return (
-    <FlatList
-      data={data}
-      renderItem={renderItem}
+    <MusicSectionFeed
+      error={error}
+      loading={loading}
       onEndReached={fetchContinuation}
-      refreshing={refreshing}
       onRefresh={refresh}
+      onRetry={refresh}
+      refreshing={refreshing}
+      sections={data ?? []}
+      testID={"music-home-feed"}
+      ListHeaderComponent={
+        <MusicFilterChips
+          filters={filters}
+          onSelect={applyFilter}
+          padding={musicSurfacePadding}
+          selected={activeFilter}
+        />
+      }
     />
   );
 }

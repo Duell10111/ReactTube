@@ -1,4 +1,8 @@
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {StyleSheet} from "react-native";
+
+import {Chip} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
+import {TVFocusRegion} from "@/ui/tv";
 
 interface ButtonValue {
   value: string;
@@ -16,39 +20,31 @@ export default function ChannelButtons({
   onValueChange,
   value,
 }: ChannelButtonsProps) {
+  const {theme} = useAppTheme();
+
+  // The tab row is a focus region of its own, so coming back up out of the
+  // feed lands on the tab that is open instead of on the first one.
   return (
-    <View style={styles.row}>
-      {buttons.map((button, index) => (
-        <TouchableOpacity
+    <TVFocusRegion
+      style={[
+        styles.row,
+        {gap: theme.spacing.sm, paddingHorizontal: theme.spacing.xl},
+      ]}>
+      {buttons.map(button => (
+        <Chip
           key={button.value}
-          style={{
-            backgroundColor: value === button.value ? "lightblue" : undefined,
-            borderEndWidth: index === buttons.length - 1 ? undefined : 2,
-            borderColor: "white",
-            flex: 1,
-            alignItems: "center",
-          }}
-          onPress={() => onValueChange(button.value)}>
-          <Text
-            style={{
-              fontSize: 30,
-              fontWeight: "bold",
-              color: "white",
-              padding: 5,
-            }}>
-            {button.label}
-          </Text>
-        </TouchableOpacity>
+          label={button.label}
+          onPress={() => onValueChange(button.value)}
+          selected={value === button.value}
+        />
       ))}
-    </View>
+    </TVFocusRegion>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    backgroundColor: "#222222",
-    borderRadius: 25,
-    overflow: "hidden",
+    flexWrap: "wrap",
   },
 });

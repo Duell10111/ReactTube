@@ -1,25 +1,33 @@
 import React, {useEffect} from "react";
-import {TVEventControl, View} from "react-native";
+import {StyleSheet, TVEventControl, View} from "react-native";
 import {RnNativeSearchBarView} from "rn-native-search-bar";
 
-import GridFeedView from "@/components/grid/GridFeedView";
-import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
-import {HorizontalData} from "@/extraction/ShelfExtraction";
+import {SearchResultFeed} from "@/components/search/SearchResultFeed";
+import {useTranslation} from "@/localization";
+import type {FeedItem} from "@/ui/patterns";
+import {useAppTheme} from "@/ui/theme";
 
 interface SearchBarScreenProps {
-  data: HorizontalData[];
+  items: FeedItem[];
   hints: string[];
+  query: string;
+  loading: boolean;
+  error: unknown;
   performSearch(text: string): void;
-  fetchMore(): Promise<void>;
+  fetchMore(): Promise<unknown>;
 }
 
 export function SearchBarScreen({
   hints,
-  data,
+  items,
+  query,
+  loading,
+  error,
   performSearch,
   fetchMore,
 }: SearchBarScreenProps) {
-  console.log("Data: ", data);
+  const {t} = useTranslation();
+  const {theme} = useAppTheme();
 
   useEffect(() => {
     TVEventControl.disableGestureHandlersCancelTouches();
@@ -27,26 +35,36 @@ export function SearchBarScreen({
   }, []);
 
   return (
-    <View style={{flex: 1}}>
+    <View style={styles.container}>
       <RnNativeSearchBarView
-        style={{width: "100%", height: "100%", backgroundColor: "#555555"}}
-        placeholder={"Search"}
+        style={[styles.searchBar, {backgroundColor: theme.colors.surface}]}
+        placeholder={t("search.placeholder")}
         searchHints={hints}
         onSearchTextChanged={event => performSearch(event.nativeEvent.text)}
         onSearchButtonClicked={event => performSearch(event.nativeEvent.text)}
         onSearchTextEditEndedEvent={event => {
-          console.log("SearchTextEdit Ended!");
           performSearch(event.nativeEvent.text);
         }}>
-        <View style={{flex: 1}}>
-          <ShelfVideoSelectorProvider>
-            <GridFeedView
-              items={data}
-              onEndReached={() => fetchMore().catch(console.warn)}
-            />
-          </ShelfVideoSelectorProvider>
+        <View style={styles.container}>
+          <SearchResultFeed
+            error={error}
+            fetchMore={fetchMore}
+            items={items}
+            loading={loading}
+            query={query}
+          />
         </View>
       </RnNativeSearchBarView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  searchBar: {
+    width: "100%",
+    height: "100%",
+  },
+});

@@ -1,5 +1,9 @@
 import {Feather} from "@expo/vector-icons";
-import {StyleSheet, TouchableOpacity, View, Text} from "react-native";
+import React from "react";
+import {StyleSheet, View} from "react-native";
+
+import {AppListItem} from "@/ui/components";
+import {useAppTheme} from "@/ui/theme";
 
 interface Props {
   onPress?: () => void;
@@ -16,27 +20,26 @@ export default function SettingsSelectorOverview({
   label,
   value,
 }: Props) {
+  const {theme} = useAppTheme();
+
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
-      <TouchableOpacity onPress={onPress} style={styles.row}>
-        <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
-          <Feather
-            color={"#fff"}
-            // @ts-ignore
-            name={icon}
-            size={20}
-          />
-        </View>
-
-        <Text style={styles.rowLabel}>{label}</Text>
-
-        <View style={styles.rowSpacer} />
-
-        <Text style={styles.rowValue}>{value}</Text>
-
-        <Feather color={"#C6C6C6"} name={"chevron-right"} size={20} />
-      </TouchableOpacity>
-    </View>
+    <RowWrapper>
+      <AppListItem
+        leading={
+          <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
+            <Feather
+              color={theme.colors.textPrimary}
+              // @ts-ignore The icon name is supplied by the settings descriptor.
+              name={icon}
+              size={20}
+            />
+          </View>
+        }
+        onPress={onPress}
+        title={label}
+        trailingText={value}
+      />
+    </RowWrapper>
   );
 }
 
@@ -51,18 +54,25 @@ export function SettingsSelectorItem({
   label,
   selected,
 }: PropsSelectorItem) {
+  const {theme} = useAppTheme();
+
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
-      <TouchableOpacity onPress={onPress} style={styles.row}>
-        <Text style={styles.rowLabel}>{label}</Text>
-
-        <View style={styles.rowSpacer} />
-
-        {selected ? (
-          <Feather color={"#C6C6C6"} name={"check"} size={20} />
-        ) : null}
-      </TouchableOpacity>
-    </View>
+    <RowWrapper>
+      <AppListItem
+        onPress={onPress}
+        selected={selected}
+        title={label}
+        trailing={
+          selected ? (
+            <Feather
+              color={theme.colors.textSecondary}
+              name={"check"}
+              size={20}
+            />
+          ) : null
+        }
+      />
+    </RowWrapper>
   );
 }
 
@@ -81,26 +91,35 @@ export function SettingsStandaloneSelector({
   label,
   selected,
 }: PropsStandaloneSelectorItem) {
+  const {theme} = useAppTheme();
+
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
-      <TouchableOpacity onPress={onPress} style={styles.row}>
-        <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
-          <Feather
-            color={"#fff"}
-            // @ts-ignore
-            name={icon}
-            size={20}
-          />
-        </View>
-        <Text style={styles.rowLabel}>{label}</Text>
-
-        <View style={styles.rowSpacer} />
-
-        {selected ? (
-          <Feather color={"#C6C6C6"} name={"check"} size={20} />
-        ) : null}
-      </TouchableOpacity>
-    </View>
+    <RowWrapper>
+      <AppListItem
+        leading={
+          <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
+            <Feather
+              color={theme.colors.textPrimary}
+              // @ts-ignore The icon name is supplied by the settings descriptor.
+              name={icon}
+              size={20}
+            />
+          </View>
+        }
+        onPress={onPress}
+        selected={selected}
+        title={label}
+        trailing={
+          selected ? (
+            <Feather
+              color={theme.colors.textSecondary}
+              name={"check"}
+              size={20}
+            />
+          ) : null
+        }
+      />
+    </RowWrapper>
   );
 }
 
@@ -117,64 +136,44 @@ export function SettingsButton({
   iconBackground,
   label,
 }: PropsSettingsButton) {
+  const {theme} = useAppTheme();
+
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst]}>
-      <TouchableOpacity onPress={onPress} style={styles.row}>
-        {icon && iconBackground ? (
-          <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
-            <Feather
-              color={"#fff"}
-              // @ts-ignore
-              name={icon}
-              size={20}
-            />
-          </View>
-        ) : null}
+    <RowWrapper>
+      <AppListItem
+        destructive={!icon}
+        leading={
+          icon && iconBackground ? (
+            <View style={[styles.rowIcon, {backgroundColor: iconBackground}]}>
+              <Feather
+                color={theme.colors.textPrimary}
+                // @ts-ignore The icon name is supplied by the settings descriptor.
+                name={icon}
+                size={20}
+              />
+            </View>
+          ) : undefined
+        }
+        onPress={onPress}
+        title={label}
+      />
+    </RowWrapper>
+  );
+}
 
-        <Text style={styles.rowLabel}>{label}</Text>
+function RowWrapper({children}: {children: React.ReactNode}) {
+  const {theme} = useAppTheme();
 
-        <View style={styles.rowSpacer} />
-      </TouchableOpacity>
+  return (
+    <View style={[styles.rowWrapper, {borderColor: theme.colors.divider}]}>
+      {children}
     </View>
   );
 }
 
-// <View style={styles.rowWrapper}>
-//   <View style={styles.row}>
-//     <View
-//       style={[styles.rowIcon, { backgroundColor: '#007AFF' }]}>
-//       <FeatherIcon
-//         color="#fff"
-//         name="moon"
-//         size={20} />
-//     </View>
-//
-//     <Text style={styles.rowLabel}>Dark Mode</Text>
-//
-//     <View style={styles.rowSpacer} />
-//
-//     <Switch
-//       onValueChange={emailNotifications =>
-//         setForm({ ...form, emailNotifications })
-//       }
-//       value={form.emailNotifications} />
-//   </View>
-// </View>
-
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    paddingRight: 24,
-    height: 50,
-  },
   rowWrapper: {
-    borderTopWidth: 1,
-    borderColor: "#e3e3e3",
-  },
-  rowFirst: {
-    borderTopWidth: 0,
+    marginBottom: 4,
   },
   rowIcon: {
     width: 30,
@@ -183,21 +182,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
-  },
-  rowLabel: {
-    fontSize: 17,
-    fontWeight: "500",
-    color: "#000",
-  },
-  rowSpacer: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-  },
-  rowValue: {
-    fontSize: 17,
-    fontWeight: "500",
-    color: "#8B8B8B",
-    marginRight: 4,
   },
 });

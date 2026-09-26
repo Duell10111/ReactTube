@@ -1,21 +1,25 @@
-import {
-  NavigationContainer,
-  DefaultTheme,
-  DarkTheme,
-} from "@react-navigation/native";
+import {NavigationContainer} from "@react-navigation/native";
 import React from "react";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 
 import RootStackNavigator from "./RootStackNavigator";
-import {useAppStyle} from "../context/AppStyleContext";
+
+import {PlaylistManagerContext} from "@/context/PlaylistManagerContext";
+import {navigationTheme} from "@/ui/theme";
 
 export default function Navigation() {
-  const {type} = useAppStyle();
-
   return (
     <SafeAreaProvider>
-      <NavigationContainer theme={type === "dark" ? DarkTheme : DefaultTheme}>
-        <RootStackNavigator />
+      <NavigationContainer theme={navigationTheme}>
+        {/*
+         * Inside the container on purpose: the manager renders its bottom sheet
+         * next to the navigator, and the playlist rows in it are media rows that
+         * navigate. Above the container they had no navigation object and saving
+         * a video crashed.
+         */}
+        <PlaylistManagerContext>
+          <RootStackNavigator />
+        </PlaylistManagerContext>
       </NavigationContainer>
     </SafeAreaProvider>
   );

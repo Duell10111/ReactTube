@@ -28,7 +28,8 @@ struct MusicListItemView: View {
       } label: {
         VStack {
           HStack {
-            VStack {
+            VideoCoverView(video: video)
+            VStack(alignment: .leading) {
               Text(video.title ?? "Unknown title")
                 .foregroundStyle(video.downloaded == true ? .blue : .primary)
               if let artist = video.artist {
@@ -36,12 +37,11 @@ struct MusicListItemView: View {
                   .foregroundStyle(.secondary)
               }
             }
+            Spacer(minLength: 0)
             if video.downloaded {
-              Spacer()
               Image(systemName: "arrow.down.circle")
                 .foregroundColor(.blue)
             } else if let validUntil = video.validUntil, validUntil < Date() && video.downloaded != true {
-              Spacer()
               Image(systemName: "clock.badge.exclamationmark")
                 .foregroundColor(.red)
             }
