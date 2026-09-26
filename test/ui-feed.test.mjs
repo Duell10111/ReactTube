@@ -341,3 +341,29 @@ test("keeps the window layout class before the first measurement and on TV", () 
   // The TV content plane is translated, never resized, so it keeps its class.
   assert.equal(getFeedLayoutClass(500, "tv"), "tv");
 });
+
+test("keeps every row key when a continuation fills the last row", () => {
+  // The rows a page produces have to survive the next page, including the
+  // partly filled last one. A key that changes unmounts that row, and on TV the
+  // focused card inside it goes with it — focus falls back to the first card,
+  // which reads as the feed jumping to the top while more results load.
+  const first = Array.from({length: 6}, (_value, index) =>
+    video({id: `first-${index}`}),
+  );
+  const second = first.concat(
+    Array.from({length: 6}, (_value, index) => video({id: `second-${index}`})),
+  );
+
+  const before = buildFeedRows(first, 4).map(row => row.key);
+  const after = buildFeedRows(second, 4).map(row => row.key);
+
+  assert.equal(before.length, 2);
+  assert.deepEqual(after.slice(0, before.length), before);
+  assert.equal(new Set(after).size, after.length);
+});
+
+test("keeps card row keys unique when the same entry repeats", () => {
+  const rows = buildFeedRows([video({id: "a"}), video({id: "a"})], 1);
+
+  assert.equal(new Set(rows.map(row => row.key)).size, 2);
+});
