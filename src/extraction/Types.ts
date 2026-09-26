@@ -151,6 +151,8 @@ export interface YTVideoInfo {
    * und getrennte Tonspuren statt gemuxtem Ton.
    */
   generated_hls_url?: string;
+  /** Master des lokalen SABR-Servers (Plan-Phase 6.5). */
+  sabr_hls_url?: string;
   best_format?: YTFormat;
   expires?: Date;
   // Playability Status

@@ -1,8 +1,9 @@
-import {YT, YTNodes} from "../../utils/Youtube";
 import {useEffect, useMemo, useState} from "react";
+
 import {useYoutubeContext} from "../../context/YoutubeContext";
-import Logger from "../../utils/Logger";
 import {getElementDataFromVideoInfo} from "../../extraction/YTElements";
+import Logger from "../../utils/Logger";
+import {YT, YTNodes} from "../../utils/Youtube";
 
 const LOGGER = Logger.extend("VIDEO");
 
