@@ -13,6 +13,7 @@ export {
   PLAYBACK_CLIENTS_DEFAULT,
   PLAYBACK_CLIENTS_FULL_BYTE_RANGE,
   PLAYBACK_CLIENTS_PREFER_HLS,
+  PLAYBACK_CLIENTS_SABR,
 } from "@/utils/PlaybackClientProfiles";
 
 const LOGGER = Logger.extend("PLAYBACK");

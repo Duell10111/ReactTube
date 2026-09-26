@@ -541,12 +541,123 @@ frei, behebt den 403 bei `MWEB` und erreicht altersbeschränkte sowie geo-blocki
 
 ---
 
-### Phase 6 — SABR *(~1,5–2,5 Wochen, Hauptpfad — kann direkt nach Phase 4 beginnen)*
+### Phase 6 — SABR *(6.1–6.4 + 6.6 ✅ umgesetzt 2026-09-26, 6.5 offen)*
 
 > **Nicht das Mittel gegen `LOGIN_REQUIRED`** und nicht der Weg zu Streams über
 > den TV-Client — beides in §0c gemessen und widerlegt. Der Nutzen von Phase 6
 > bleibt: `WEB`/`ANDROID` erschließen und unabhängig von der Byte-Range-Gunst
 > einzelner Clients werden.
+
+#### Stand
+
+| Schritt | Stand |
+|---|---|
+| 6.1 Protos | ✅ `protos/sabr/**` aus SmartTube übernommen, 28 Dateien, über `npm run build:proto` erzeugt (`protoc` 7.36.2 / ts_proto 2.12.0). Herkunft und Lizenzen in `YouTube.js/NOTICE` |
+| 6.2 UMP-Decoder | ✅ `src/core/sabr/UmpDecoder.ts` — inkrementell, weil Parts regelmäßig über Chunk-Grenzen laufen |
+| 6.3 SabrStream/-Processor | ✅ `SabrProcessor.ts` (Zustandsmaschine, Request-Bau) + `SabrStream.ts` (Transport, Request-Schleife) |
+| 6.4 Manifest | ✅ `toHLS({ mode: 'segments' })` + `buildSabrHlsIndex()`; `toDash()` bleibt Phase 7 (Android) |
+| 6.5 Segment-Server | ❌ **offen** — braucht Phase 3 (lokales Nativ-Modul). `SabrSegmentSource` ist die Gegenstelle, die es aufrufen wird |
+| 6.6 Flag & Fallback | ✅ Einstellung „SABR (experimentell)", Modus `sabr` in der Client-Kette und der Fehler-Ladder, selbsttätiger Rückfall |
+
+#### Was auf dem Weg dazukam
+
+- **`SabrSegmentSource`** (nicht im Plan vorgesehen). SABR schiebt: der Server
+  entscheidet, was er sendet, und eine Runde liefert mehrere Segmente beider
+  Spuren. Ein Player fragt umgekehrt — „Segment 42 von Format 401". Dazwischen
+  braucht es etwas, das den Strom zieht und hält. Genau das ist die Gegenstelle
+  für 6.5.
+- **Rückwärtszugriff.** Der Strom läuft nur vorwärts, ein Segment hinter der
+  Position wäre unerreichbar. `getSegment` erkennt das und positioniert neu —
+  ohne das scheiterte die Seek-Probe reproduzierbar.
+- **Der Segmentplan kommt aus dem Init-Segment.** YouTube legt in das
+  SABR-Init-Segment eine `sidx`-Box (gemessen: `ftyp moov sidx`). Damit stehen
+  die **echten** Segmentdauern schon vor dem ersten Mediensegment fest —
+  `buildSabrHlsIndex()` liest sie dort, ohne Zusatzanfrage. Die gleichmäßige
+  Aufteilung aus Segmentzahl und Gesamtdauer bleibt nur Notnagel.
+- **Im Segmentmodus gibt es keine Client-Leiter.** Bei SABR adaptiert der
+  Server, und ein Strom trägt genau die Formate, die er angefragt hat. Das
+  Manifest bietet deshalb **eine** Variante; `codec_preference`, `max_height` und
+  `max_video_renditions` sind dort ohne Wirkung. Die Codec-Wahl passiert bei der
+  Formatauswahl für den `SabrStream`.
+
+#### Verifikation
+
+`node dev-scripts/phase6-verify.mjs [videoId] [client] [segmente]` zieht echte
+Segmente und prüft sie. Lauf vom 2026-09-26, `bUHZ2k9DYHY` über `VISIONOS`:
+
+```
+Format 401: · video/mp4 av01.0.12M.08 · 195 Segmente · 1051425 ms
+  Init-Segment: 3073 B · ftyp moov sidx
+  4 Mediensegmente: je moof + mdat · 10466 KB
+Format 140: · audio/mp4 mp4a.40.2 · 106 Segmente · 1051492 ms
+  Init-Segment: 2027 B · ftyp moov sidx
+  4 Mediensegmente: je moof + mdat · 631 KB
+Seek auf 525712 ms → Segment 97 · 1222 KB · moof mdat
+Segmentplan: 195 bzw. 106 Einträge, Gesamtdauer 1051,4 s — echte Dauern aus sidx
+toHLS({mode:'segments'}): 2 Playlists, 195 lückenlose Segment-URLs, kein BYTERANGE
+Gegenprobe: erste Segment-URL der Playlist über die Quelle bedient — 1668 KB
+```
+
+Die Segmentzahlen deckten sich mit der Byte-Range-Messung aus §0b (195 Video-,
+106 Audiosegmente) — zwei unabhängige Wege, dasselbe Ergebnis.
+
+**Ein Befund verfeinert §0b Nr. 5.** „SABR funktioniert ohne PoToken" gilt nicht
+für jeden Client gleich. Je zweimal gemessen:
+
+| Client | `STREAM_PROTECTION_STATUS` | Seek |
+|---|---|---|
+| `VISIONOS` | `OK` durchgehend | ✅ Segment 97 geliefert |
+| `IOS` | `ATTESTATION_PENDING`, nach dem Seek `ATTESTATION_REQUIRED` | ❌ Strom versiegt |
+
+Für die ersten Runden liefert `IOS` also Medien, dauerhaft aber nicht. **Für SABR
+ist `VISIONOS` der Client**, `IOS` bleibt Reserve, bis Phase 2b/5 einen PoToken
+liefert. `PLAYBACK_CLIENTS_SABR` ist entsprechend sortiert.
+
+Dazu 27 Einheitentests in `YouTube.js/tests/sabr.test.ts` (UMP-VarInts über alle
+fünf Breiten, Part-Aufteilung über Chunk-Grenzen, Segment-Wiederzusammenbau,
+abgeschnittene Segmente, `buffered_ranges` aus aufeinanderfolgenden und
+springenden Sequenznummern, Playback-Cookie, PoToken als Rohbytes) und 6 in
+`test/playback-ladder.test.mjs` für den Rückfall.
+
+#### Gerätetest: SABR-Probe in den Diagnostics
+
+*Einstellungen ▸ Playback diagnostics* zieht jetzt zusätzlich echte Segmente über
+SABR (`checkSabr` in `src/utils/PlaybackDiagnostics.ts`). Sie beantwortet, was der
+Node-Lauf nicht kann: setzt `fetch` unter Hermes einen POST mit Protobuf-Rumpf so
+ab, dass der Endpunkt ihn annimmt, und lässt sich UMP auf dem Gerät zerlegen?
+
+Die Probe läuft an der **anonymen** Instanz — eine angemeldete Session
+beantwortet Nicht-TV-Clients mit HTTP 400, und SABR braucht genau einen davon.
+Sie wählt bewusst die **kleinsten** mp4-Formate; gemessen kostet sie einen
+`/player`-Abruf und **eine** SABR-Anfrage mit 107 KB über die Leitung (80 KB
+Segmentdaten):
+
+```
+SABR (VISIONOS):
+    itag 160+139 · Antwort ganz gepuffert · Schutz ok · 1400ms
+    160: video/mp4 avc1.4D400C · 195 Segmente · 1051425ms
+        init 3110B [ftyp moov sidx] · Segment 1 14803B [moof mdat]
+    139: audio/mp4 mp4a.40.5 · 106 Segmente · 1051539ms
+        init 2036B [ftyp moov sidx] · Segment 1 61494B [moof mdat]
+```
+
+`Antwort ganz gepuffert` ist der erwartete Nebenbefund: React Natives `fetch`
+liefert keinen lesbaren `response.body`, die Antwort landet also komplett im
+Speicher. `SabrStream` deckt beide Wege ab (`last_response_streamed` sagt,
+welcher genommen wurde) — für die Größenordnung einer SABR-Antwort ist das
+unkritisch, für einen Live-Strom wäre es der Punkt, an dem man nachsieht.
+
+#### Was 6.5 noch braucht
+
+AVPlayer kann `sabr://` nicht laden, und Segmente lassen sich nicht wie in
+Phase 2c als `file://` ablegen — sie entstehen erst beim Abruf. Es braucht also
+den lokalen Server aus Phase 3. Die Gegenstelle steht: `SabrSegmentSource.getInit`
+für `#EXT-X-MAP`, `getSegment` für jeden `#EXTINF`-Eintrag. Die Pfade, die das
+Manifest erzeugt, sind `<base_url>/<format key>/init.mp4` und
+`<base_url>/<format key>/<n>.m4s`.
+
+Solange der Server fehlt, entsteht keine `sabr-hls`-Stufe und die Ladder beginnt
+eine Stufe tiefer — die Einstellung ist also gefahrlos, sie tut noch nichts.
 
 Vorarbeit aus Phase 0: ein handkodierter Request wird bereits akzeptiert, die Antwortstruktur ist bekannt (§0b Befund 5/6). `dev-scripts/lib/proto.mjs` (Writer + UMP-Reader) und `dev-scripts/playback-matrix.mjs#buildAbrRequest` sind die lauffähige Referenz für 6.1–6.3.
 
@@ -597,7 +708,7 @@ Nach **Phase 2** ist das Kernversprechen erfüllt ("spielt wie SmartTube" auf Ap
 | 2b PoToken | 3–5 T | hoch — **zurückgestellt**, gemessen ohne Wirkung; auf tvOS zusätzlich ohne WebView |
 | 3 media-server | 4–6 T | mittel (erstes eigenes Nativ-Modul im Projekt) |
 | 4 Robustheit | ✅ erledigt (Gerätetest offen) | – |
-| 6 SABR | 1,5–2,5 W | hoch — durch Phase 0 deutlich gesunken (Request akzeptiert, Antwortstruktur bekannt) |
+| 6 SABR | ✅ 6.1–6.4 + 6.6 erledigt · 6.5 offen (braucht Phase 3) | Protokollrisiko ist weg: echte Segmente gemessen |
 | 7 Android + Abschluss | 3–4 T | niedrig |
 
 **Die Wiedergabequalität ist am Ziel — der Beweis auf dem Gerät fehlt noch:**
