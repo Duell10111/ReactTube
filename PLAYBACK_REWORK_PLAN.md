@@ -523,6 +523,28 @@ Ursache des Hängens.
 
 ---
 
+### Phase 3 — `modules/media-server` als lokales Expo-Modul *(~4–6 Tage; Auslöser: 2.0 scheitert **oder** Start von Phase 6)*
+
+Gerüst: `npx create-expo-module@latest --local media-server` ⇒ `modules/media-server/` mit `ios/`, `android/`, `expo-module.config.json`. JS-Bindings über Nitro (`react-native-nitro-modules` ist bereits Dependency); Expo-Autolinking übernimmt den Rest.
+
+3.1 **API (JS).**
+```ts
+startServer(): Promise<{ port: number; token: string }>   // Loopback, zufälliger Port
+registerText(path: string, body: string, contentType: string): void  // Manifeste
+registerSabrSource(path: string, handlerId: string): void            // Phase 6
+stopServer(): Promise<void>
+```
+3.2 **tvOS/iOS (Swift).** Minimaler HTTP/1.1-Server auf `NWListener` (Network.framework, ab tvOS 12) — ~300 Zeilen, keine Fremd-Dependency. Muss beherrschen: `GET`, `HEAD`, `Range` (`206 Partial Content`), `Content-Length`, Keep-Alive.
+**Pflichtdetails, sonst spielt AVPlayer nicht:**
+- Content-Type `application/vnd.apple.mpegurl` für `.m3u8`, `video/iso.segment` für `.m4s`
+- `Info.plist`: `NSAppTransportSecurity → NSAllowsLocalNetworking = true` (via `expo-build-properties` oder Config-Plugin des Moduls)
+- Loopback (`127.0.0.1`) löst **keine** Local-Network-Berechtigungsabfrage aus
+- Lebensdauer an den Video-Screen koppeln; bei Hintergrund-Audio (`UIBackgroundModes: audio` ist gesetzt) muss der Listener weiterlaufen
+  3.3 **Android (Kotlin).** NanoHTTPD (Apache-2.0, eine Datei) oder handgeschrieben auf `ServerSocket`; gleiche Range-Semantik.
+  3.4 **Umschalten.** In `usePlaybackSource` nur die Ablage der Manifeste wechseln (`file://` → `http://127.0.0.1:<port>`); Generator und Player-Anbindung bleiben unberührt.
+
+---
+
 ### Phase 5 — PoToken (BotGuard) → **läuft als Phase 2b**
 
 > Diese Phase ist nach der Messung aus Phase 2 vorgezogen worden und heißt dort **2b**.
