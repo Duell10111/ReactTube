@@ -258,7 +258,13 @@ export function buildFeedRows(
 
     rows.push({
       type: "cards",
-      key: `cards-${rows.length}-${pending.map(item => item.id).join("-")}`,
+      // Keyed by the row's position and first entry, never by everything in
+      // it. A key covering every entry changes as soon as a continuation fills
+      // the last, partly filled row, so the list drops that row and mounts a
+      // new one — and on TV the focused card inside it goes with it. The feed's
+      // focus guide then falls back to the first focusable element, which is
+      // why loading the next page while scrolling threw focus back to the top.
+      key: `cards-${rows.length}-${pending[0].id}`,
       items: pending,
     });
     pending = [];
