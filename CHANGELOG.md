@@ -17,6 +17,27 @@
 * create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
 * update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
 
+## [0.4.0](https://github.com/Duell10111/ReactTube/compare/v0.3.2...v0.4.0) (2026-09-26)
+
+
+### ✨ Features
+
+* redesign UI to be more user friendly and more beautiful ([#80](https://github.com/Duell10111/ReactTube/issues/80)) ([56df121](https://github.com/Duell10111/ReactTube/commit/56df12186148da21c49d2410666fe591e31f4378))
+
+
+### 🐛 Bugfixes
+
+* fix and improve video playback ([cd9db6c](https://github.com/Duell10111/ReactTube/commit/cd9db6ca941969bb7e3d5383225838560cbad106))
+* fix possible key prop issue in VideoMenu.tsx ([6b69559](https://github.com/Duell10111/ReactTube/commit/6b6955974e6ef4fb474753ec75b722684eaf42d4))
+* update dependencies and fix outdated patch ([dde31bd](https://github.com/Duell10111/ReactTube/commit/dde31bd396402599e154bf925811d526313ee89b))
+* update youtubei.js dependency to published version and add local development instructions ([2cbd558](https://github.com/Duell10111/ReactTube/commit/2cbd5582946a72fd4112edf0474ba87151ca9a4f))
+
+
+### ⬆️ Upgrade
+
+* upgrade to expo sdk 54 with old architecture ([#76](https://github.com/Duell10111/ReactTube/issues/76)) ([d75c7be](https://github.com/Duell10111/ReactTube/commit/d75c7be1299d24c75bf21e5403c4f4fe0adb6967))
+* upgrade to expo sdk 57 and disable track-player for the moment ([466a756](https://github.com/Duell10111/ReactTube/commit/466a75618d5a7119674dee15d02ddb23e925a620))
+
 ## [0.3.2](https://github.com/Duell10111/ReactTube/compare/v0.3.1...v0.3.2) (2025-10-31)
 
 
