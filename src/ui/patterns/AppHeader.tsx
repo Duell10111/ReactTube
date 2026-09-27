@@ -6,6 +6,7 @@ import {useTranslation} from "@/localization";
 import type {RootNavProp} from "@/navigation/RootStackNavigator";
 import {AppIconButton, AppText} from "@/ui/components";
 import {useAppChrome} from "@/ui/layout";
+import type {SearchRouteName} from "@/ui/navigation";
 import {useAppTheme} from "@/ui/theme";
 
 interface AppHeaderProps {
@@ -13,6 +14,11 @@ interface AppHeaderProps {
   /** Shows the app name instead of the screen title, used on the start screen. */
   brand?: boolean;
   showSearch?: boolean;
+  /**
+   * Search surface the search action opens. Music keeps its own screen because
+   * its results are filtered by playlists, songs and clips.
+   */
+  searchRoute?: SearchRouteName;
   showAccount?: boolean;
   onBack?: () => void;
   onSearch?: () => void;
@@ -22,13 +28,15 @@ interface AppHeaderProps {
 const BRAND_NAME = "ReactTube";
 
 /**
- * Global header for the phone and tablet shell. Search stays a global action
- * and the account action always leads to the personal surface.
+ * Global header for the phone and tablet shell. Search stays a global action,
+ * pointing at the search surface of the active destination, and the account
+ * action always leads to the personal surface.
  */
 export function AppHeader({
   title,
   brand = false,
   showSearch = true,
+  searchRoute = "Search",
   showAccount = true,
   onBack,
   onSearch,
@@ -77,7 +85,7 @@ export function AppHeader({
             accessibilityLabel={t("navigation.search")}
             icon={"search"}
             onPress={() =>
-              onSearch ? onSearch() : navigation.navigate("Search")
+              onSearch ? onSearch() : navigation.navigate(searchRoute)
             }
           />
         ) : null}
