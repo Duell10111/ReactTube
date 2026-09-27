@@ -19,6 +19,19 @@ export type PrimaryDestinationKey =
  */
 export type SearchRouteName = "Search" | "MusicSearchScreen";
 
+/** Surfaces an extra header action next to the screen title can open. */
+export type HeaderActionRouteName = "MusicLibraryScreen";
+
+/**
+ * Extra header action for destinations that own a second surface, like the
+ * music library.
+ */
+export interface DestinationHeaderAction {
+  route: HeaderActionRouteName;
+  labelKey: TranslationKey;
+  icon: AppIconName;
+}
+
 export type PrimaryRouteName =
   | "HomeFeed"
   | "Subscriptions"
@@ -33,6 +46,8 @@ export interface PrimaryDestination {
   icon: AppIconName;
   /** Search surface the header opens while this destination is active. */
   searchRoute: SearchRouteName;
+  /** Shortcut the header shows next to the title, for destinations that need one. */
+  headerAction?: DestinationHeaderAction;
   /**
    * Destinations that need an account stay visible and explain the sign-in
    * requirement instead of disappearing from the navigation.
@@ -63,6 +78,11 @@ const primaryDestinations: readonly PrimaryDestination[] = [
     labelKey: "navigation.music",
     icon: "library-music",
     searchRoute: "MusicSearchScreen",
+    headerAction: {
+      route: "MusicLibraryScreen",
+      labelKey: "navigation.musicLibrary",
+      icon: "library-music",
+    },
     requiresAccount: false,
   },
   {
