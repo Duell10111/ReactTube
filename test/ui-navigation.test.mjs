@@ -36,6 +36,18 @@ test("keeps five stable primary destinations for signed in and signed out users"
   assert.equal(getPrimaryDestinationByRoute("Settings"), undefined);
 });
 
+test("keeps the music destination on its own search surface", () => {
+  // Music search filters by playlists, songs and clips, so the header action
+  // opens the music search screen instead of the video search.
+  assert.equal(
+    getPrimaryDestinationByRoute("MusicHomeFeed")?.searchRoute,
+    "MusicSearchScreen",
+  );
+  for (const route of ["HomeFeed", "Subscriptions", "Download", "You"]) {
+    assert.equal(getPrimaryDestinationByRoute(route)?.searchRoute, "Search");
+  }
+});
+
 test("keeps every TV destination reachable in both account states", () => {
   const signedIn = getTVRailDestinations(true).map(({key}) => key);
   const signedOut = getTVRailDestinations(false).map(({key}) => key);

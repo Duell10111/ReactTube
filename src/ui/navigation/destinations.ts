@@ -12,6 +12,13 @@ export type PrimaryDestinationKey =
   | "downloads"
   | "you";
 
+/**
+ * Search surfaces reachable from the header. Music search stays separate
+ * because it filters by playlists, songs and clips, which the video search
+ * does not know about.
+ */
+export type SearchRouteName = "Search" | "MusicSearchScreen";
+
 export type PrimaryRouteName =
   | "HomeFeed"
   | "Subscriptions"
@@ -24,6 +31,8 @@ export interface PrimaryDestination {
   route: PrimaryRouteName;
   labelKey: TranslationKey;
   icon: AppIconName;
+  /** Search surface the header opens while this destination is active. */
+  searchRoute: SearchRouteName;
   /**
    * Destinations that need an account stay visible and explain the sign-in
    * requirement instead of disappearing from the navigation.
@@ -37,6 +46,7 @@ const primaryDestinations: readonly PrimaryDestination[] = [
     route: "HomeFeed",
     labelKey: "navigation.home",
     icon: "home",
+    searchRoute: "Search",
     requiresAccount: false,
   },
   {
@@ -44,6 +54,7 @@ const primaryDestinations: readonly PrimaryDestination[] = [
     route: "Subscriptions",
     labelKey: "navigation.subscriptions",
     icon: "subscriptions",
+    searchRoute: "Search",
     requiresAccount: true,
   },
   {
@@ -51,6 +62,7 @@ const primaryDestinations: readonly PrimaryDestination[] = [
     route: "MusicHomeFeed",
     labelKey: "navigation.music",
     icon: "library-music",
+    searchRoute: "MusicSearchScreen",
     requiresAccount: false,
   },
   {
@@ -58,6 +70,7 @@ const primaryDestinations: readonly PrimaryDestination[] = [
     route: "Download",
     labelKey: "navigation.downloads",
     icon: "download",
+    searchRoute: "Search",
     requiresAccount: false,
   },
   {
@@ -65,6 +78,7 @@ const primaryDestinations: readonly PrimaryDestination[] = [
     route: "You",
     labelKey: "navigation.you",
     icon: "account-circle",
+    searchRoute: "Search",
     requiresAccount: false,
   },
 ];

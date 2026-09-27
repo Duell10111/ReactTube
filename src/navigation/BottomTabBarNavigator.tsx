@@ -57,6 +57,7 @@ export default function BottomTabBarNavigator() {
           header: ({options}) => (
             <AppHeader
               brand={route.name === "HomeFeed"}
+              searchRoute={destination?.searchRoute}
               showAccount={route.name !== "You"}
               title={options.title ?? route.name}
             />
