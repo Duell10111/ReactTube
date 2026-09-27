@@ -6,7 +6,7 @@ import {useTranslation} from "@/localization";
 import type {RootNavProp} from "@/navigation/RootStackNavigator";
 import {AppIconButton, AppText} from "@/ui/components";
 import {useAppChrome} from "@/ui/layout";
-import type {SearchRouteName} from "@/ui/navigation";
+import type {DestinationHeaderAction, SearchRouteName} from "@/ui/navigation";
 import {useAppTheme} from "@/ui/theme";
 
 interface AppHeaderProps {
@@ -19,6 +19,11 @@ interface AppHeaderProps {
    * its results are filtered by playlists, songs and clips.
    */
   searchRoute?: SearchRouteName;
+  /**
+   * Shortcut shown in front of the title, for destinations that own a second
+   * surface, like the music library.
+   */
+  leadingAction?: DestinationHeaderAction;
   showAccount?: boolean;
   onBack?: () => void;
   onSearch?: () => void;
@@ -37,6 +42,7 @@ export function AppHeader({
   brand = false,
   showSearch = true,
   searchRoute = "Search",
+  leadingAction,
   showAccount = true,
   onBack,
   onSearch,
@@ -71,6 +77,13 @@ export function AppHeader({
             accessibilityLabel={t("common.back")}
             icon={"arrow-back"}
             onPress={onBack}
+          />
+        ) : null}
+        {leadingAction ? (
+          <AppIconButton
+            accessibilityLabel={t(leadingAction.labelKey)}
+            icon={leadingAction.icon}
+            onPress={() => navigation.navigate(leadingAction.route)}
           />
         ) : null}
         <View style={[styles.titleContainer, {marginStart: theme.spacing.sm}]}>
