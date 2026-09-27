@@ -48,6 +48,17 @@ test("keeps the music destination on its own search surface", () => {
   }
 });
 
+test("keeps the music library one tap away from the music header", () => {
+  const destinations = getPrimaryDestinations();
+
+  assert.deepEqual(
+    destinations
+      .filter(destination => destination.headerAction)
+      .map(destination => [destination.key, destination.headerAction.route]),
+    [["music", "MusicLibraryScreen"]],
+  );
+});
+
 test("keeps every TV destination reachable in both account states", () => {
   const signedIn = getTVRailDestinations(true).map(({key}) => key);
   const signedOut = getTVRailDestinations(false).map(({key}) => key);
