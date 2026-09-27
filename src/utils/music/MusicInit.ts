@@ -19,10 +19,20 @@ export function setupMusicPlayer(): boolean {
       },
     });
     TrackPlayer.setCommands({
-      // Next/Previous bleiben deaktiviert, solange die App nur den aktuellen
-      // Titel nativ hält und die restliche Playlist ausschließlich in React lebt.
-      capabilities: [PlayerCommand.PlayPause, PlayerCommand.Seek],
-      handling: "native",
+      capabilities: [
+        PlayerCommand.PlayPause,
+        PlayerCommand.Seek,
+        PlayerCommand.Next,
+        PlayerCommand.Previous,
+      ],
+      // Play/Pause und Seek bleiben nativ, damit sie ohne JS funktionieren.
+      // Next/Previous müssen dagegen nach JS, weil nativ nur der aktuelle Titel
+      // liegt und die Playlist samt Repeat, Shuffle und Automix in React lebt.
+      handling: "hybrid",
+      perCommandHandling: {
+        [PlayerCommand.Next]: "js",
+        [PlayerCommand.Previous]: "js",
+      },
     });
     isMusicPlayerInitialized = true;
     return true;

@@ -887,7 +887,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     TrackPlayer.seekTo(seconds);
   };
 
-  const previous = async () => {
+  const previous = useCallback(async () => {
     if (playlist) {
       const previousElement = getPreviousPlaylistItem(
         playlist.items,
@@ -908,11 +908,37 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         await selectResolvedTrack(videoExtractor(nextElement));
       }
     }
-  };
+  }, [currentVideoData, playlist, selectResolvedTrack, videoExtractor]);
 
-  const next = () => {
+  const next = useCallback(() => {
     return onEndReached();
-  };
+  }, [onEndReached]);
+
+  // Lock screen, notification and headset buttons for next/previous run through
+  // JS (see setCommands in MusicInit): the native side only holds the current
+  // item, so only the playlist logic here knows which track follows.
+  useEffect(() => {
+    const nextSubscription = TrackPlayer.addEventListener(
+      Event.RemoteNext,
+      () => {
+        LOGGER.debug("Remote control requested the next track");
+        return next().catch(LOGGER.warn);
+      },
+    );
+
+    const previousSubscription = TrackPlayer.addEventListener(
+      Event.RemotePrevious,
+      () => {
+        LOGGER.debug("Remote control requested the previous track");
+        return previous().catch(LOGGER.warn);
+      },
+    );
+
+    return () => {
+      nextSubscription.remove();
+      previousSubscription.remove();
+    };
+  }, [next, previous]);
 
   const addAsNextItem = useCallback(
     (videoData: VideoData) => {

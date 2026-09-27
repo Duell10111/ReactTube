@@ -5,9 +5,10 @@ import LOGGER from "../Logger";
 let isPlaybackSessionRegistered = false;
 
 export default function musicPlaybackSession(): void {
-  // Play/Pause und Seek werden über setCommands nativ ausgeführt. Die
-  // prozessweite Session bleibt für Diagnose verfügbar, wenn kein React-Baum
-  // gemountet ist (z. B. während reiner Hintergrundwiedergabe).
+  // Play/Pause und Seek werden über setCommands nativ ausgeführt, Next/Previous
+  // beantwortet der MusicPlayerContext in JS, weil nur er die Playlist kennt.
+  // Ohne gemounteten React-Baum (z. B. nach dem Wegwischen der App) bleiben
+  // deshalb nur die nativen Kommandos; die Session bleibt für Diagnose da.
   TrackPlayer.addEventListener(Event.PlaybackError, ({code, message}) => {
     LOGGER.error(`Music playback failed (${code}): ${message}`);
   });
