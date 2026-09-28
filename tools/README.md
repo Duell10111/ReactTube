@@ -20,3 +20,22 @@ So wurde Spike 2.0 entschieden: dieselben Dateien einmal über `file://`
 (geladen, `playable=true`) — woraus folgte, dass nur das Master nicht über
 `file://` kommen darf. Als `data:`-URI wird es angenommen und darf von dort die
 Medien-Playlists per absolutem `file://` referenzieren.
+
+## `ytm-traffic/`
+
+Messlabor für den Traffic der YouTube-Music-App auf dem iPad, plus die
+InnerTube-Gegentests gegen das lokale YouTube.js.
+
+```
+mitm/       mitmproxy-Addons zur Offline-Auswertung einer Aufzeichnung
+            wg-client-config.py baut die WireGuard-Client-Config
+innertube/  Node-Skripte: OAuth-Device-Flow und Client-Matrix
+```
+
+**Wozu:** Der iOS-Client authentifiziert sich per OAuth2-Bearer statt per
+Cookie, und das Token aus dem TV-Device-Flow wird ausschließlich mit
+`clientName: TVHTML5` akzeptiert — jeder andere Client antwortet mit 400. Das
+ist der Grund für die Zwei-Sessions-Architektur bei Musikdaten.
+
+Aufbau, Auswertung und Befunde: `YOUTUBE_MUSIC_IOS_TRAFFIC_ANALYSIS.md` im
+Repo-Root.

@@ -1,0 +1,7 @@
+# Enthält ein gültiges OAuth-Refresh-Token
+innertube/creds.json
+innertube/.ytcache*
+innertube/*.log
+# Aufgezeichnete Flows enthalten unredigierte Tokens und Cookies
+*.flows
+mitm-wg.conf
