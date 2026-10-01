@@ -140,7 +140,7 @@ export default function VideoScreen({route, navigation}: Props) {
   }
 
   return (
-    <View style={[StyleSheet.absoluteFill]}>
+    <View style={styles.playerRoot}>
       {appSettings.ownOverlayEnabled || appSettings.vlcEnabled ? (
         // TODO: Add VLC VideoComponent, once VLC Player is not broken anymore on XCode 16
         <VideoPlayer
@@ -308,3 +308,12 @@ export default function VideoScreen({route, navigation}: Props) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  // Letterboxing for non-16:9 videos must be black, not the theme surface
+  // that would otherwise show through around the contained video.
+  playerRoot: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "black",
+  },
+});
