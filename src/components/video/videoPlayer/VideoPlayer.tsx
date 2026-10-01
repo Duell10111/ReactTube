@@ -1,3 +1,4 @@
+import {useIsFocused} from "@react-navigation/native";
 import React, {
   forwardRef,
   useCallback,
@@ -20,6 +21,7 @@ import EndCardContainer from "./EndCardContainer";
 import {useAnimations} from "./hooks/useAnimations";
 import {useControlTimeout} from "./hooks/useControlTimeout";
 import useTVSeekControl from "./hooks/useTVSeekControl";
+import {getSeekerPositionForTime} from "./tvRemoteSeek";
 import {usePanResponders} from "./usePanResponders";
 
 import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
@@ -89,6 +91,11 @@ interface VideoPlayerProps<T> {
   onAuthorClick?: () => void;
   onProgress?: (progressData: OnProgressData) => void;
   onEnd?: () => void;
+  /**
+   * False while something the player does not own, such as the end card
+   * modal, has the remote. The player then leaves remote input alone.
+   */
+  remoteEnabled?: boolean;
 
   // Custom Props
   // Used by Sponsor block only
@@ -109,6 +116,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       endCardContainer,
       onProgress,
       onEnd,
+      remoteEnabled = true,
       ...props
     },
     ref,
@@ -271,6 +279,12 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
 
     const longButtonPressed = useRef<string>(undefined);
 
+    // Settings, details and the playlist picker are transparent modals above
+    // this screen. The player kept reacting to the remote behind them, so
+    // browsing a menu revealed the controls or seeked the video underneath.
+    const screenFocused = useIsFocused();
+    const remoteActive = screenFocused && remoteEnabled;
+
     useTVRemoteEvent(event => {
       switch (event.eventType) {
         case "select":
@@ -293,19 +307,17 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           break;
         case "longLeft":
         case "longRight":
-          // Special treatment for longLeft/Right
-          // console.log("LONG Control Timeout Triggered! ", event.eventType);
-          // console.log("Current: ", longButtonPressed.current);
-          if (
-            (event.eventType === "longLeft" ||
-              event.eventType === "longRight") &&
-            !longButtonPressed.current
-          ) {
+          // A held arrow scrubs; reveal the controls so the preview is
+          // visible. Scrubbing with hidden controls moved the video blind.
+          if (event.eventKeyAction === 0) {
             longButtonPressed.current = event.eventType;
-            // console.log("Disabling Timeout!");
-            clearControlTimeout();
-          } else if (event.eventType === longButtonPressed.current) {
-            // console.log("Activating Timeout again!");
+            if (!showEndcard) {
+              setShowControls(true);
+            }
+          } else if (
+            event.eventKeyAction === 1 &&
+            event.eventType === longButtonPressed.current
+          ) {
             longButtonPressed.current = undefined;
             setControlTimeout();
           }
@@ -317,7 +329,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           setShowEndcard(false);
           break;
       }
-    });
+    }, remoteActive);
 
     // console.log("Endcard: ", showEndcard);
     // console.log("Endcard Ani ", animations.showEndCard.value);
@@ -339,6 +351,28 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     //   onPlay,
     // };
 
+    const seekVideo = useCallback(
+      (seconds: number) => _videoRef.current?.seek(seconds),
+      [],
+    );
+
+    const {scrubTime} = useTVSeekControl({
+      seekerFocused: seekerFocus,
+      active: remoteActive,
+      duration,
+      currentTime,
+      seek: seekVideo,
+      setPause: setPaused,
+    });
+
+    // While a held key scrubs, the bar and the timer preview the release
+    // target; the video keeps playing until the seek is committed.
+    const displayedTime = scrubTime ?? currentTime;
+    const displayedSeekerPosition =
+      scrubTime !== undefined
+        ? getSeekerPositionForTime(scrubTime, duration, seekerWidth)
+        : seekerPosition;
+
     const {clearControlTimeout, resetControlTimeout, setControlTimeout} =
       useControlTimeout({
         controlTimeout,
@@ -346,23 +380,9 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         mounted: mounted.current,
         showControls,
         setShowControls,
-        alwaysShowControls: false,
+        // The timer must not hide the preview of a scrub in progress.
+        alwaysShowControls: scrubTime !== undefined,
       });
-
-    useTVSeekControl({
-      duration,
-      currentTime,
-      setSeekerPosition,
-      seekerWidth,
-      seeking,
-      clearControlTimeout: () => {},
-      enabled: seekerFocus,
-      seekerPosition,
-      setSeeking,
-      seek: _videoRef?.current?.seek,
-      pause: _paused,
-      setPause: setPaused,
-    });
 
     const {seekPanResponder} = usePanResponders({
       duration,
@@ -443,6 +463,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         {endCardContainer ? (
           <EndCardContainer
             showEndCard={animations.showEndCard}
+            visible={showEndcard}
             onCloseEndCard={() => setShowEndcard(false)}>
             {endCardContainer}
           </EndCardContainer>
@@ -452,20 +473,26 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           <BottomControls
             animations={animations}
             resetControlTimeout={resetControlTimeout}
-            seekerFillWidth={seekerFillWidth}
+            seekerFillWidth={
+              scrubTime !== undefined
+                ? displayedSeekerPosition
+                : seekerFillWidth
+            }
             setSeekerWidth={setSeekerWidth}
             setSeekerFocus={setSeekerFocus}
-            seekerPosition={seekerPosition}
+            seekerPosition={displayedSeekerPosition}
             panHandlers={seekPanResponder}
             showTimeRemaining={false}
             duration={duration}
-            currentTime={currentTime}
+            currentTime={displayedTime}
             showDuration
             bottomContainer={bottomContainer}
             metadata={props.metadata}
             resolution={resolution}
             showControls={showControls}
             setPaused={setPaused}
+            onSeekbarPress={() => setPaused(paused => !paused)}
+            restoreFocusOnHide={remoteActive && !showEndcard}
             onJumpToStart={() => _videoRef.current?.seek(0)}
           />
         </>

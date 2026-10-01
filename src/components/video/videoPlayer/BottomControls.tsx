@@ -1,4 +1,5 @@
-import React, {Dispatch, SetStateAction, useEffect} from "react";
+import {useIsFocused} from "@react-navigation/native";
+import React, {Dispatch, SetStateAction, useEffect, useRef} from "react";
 import {
   ImageBackground,
   PanResponderInstance,
@@ -34,6 +35,12 @@ interface BottomControlsProps {
   showHours: boolean;
   paused: boolean;
   setPaused: Dispatch<SetStateAction<boolean>>;
+  onSeekbarPress: () => void;
+  /**
+   * Whether hiding the controls may pull focus back onto the seek bar. Off
+   * while something else, like the end card, holds the focus.
+   */
+  restoreFocusOnHide: boolean;
   showTimeRemaining: boolean;
   currentTime: number;
   duration: number;
@@ -63,6 +70,8 @@ export default function BottomControls({
   showHours,
   paused,
   setPaused,
+  onSeekbarPress,
+  restoreFocusOnHide,
   currentTime,
   duration,
   bottomContainer,
@@ -72,6 +81,11 @@ export default function BottomControls({
 }: BottomControlsProps) {
   const {bottomContainerStyle, topContainerStyle, showBottomContainer} =
     useAnimatedBottomControls();
+  const seekbarHandleRef = useRef<View>(null);
+  // A transparent modal on top owns the focus; pulling it back here would
+  // strand the remote behind the modal.
+  const screenFocused = useIsFocused();
+  const canRestoreFocus = restoreFocusOnHide && screenFocused;
 
   useEffect(() => {
     if (showControls) {
@@ -82,10 +96,17 @@ export default function BottomControls({
     // collapse the panel right after it was reopened.
     const timeout = setTimeout(() => {
       showBottomContainer.value = false;
+      // Focus used to stay on whatever control was last used, now invisible.
+      // The next Select then reloaded the video or opened a related one
+      // without the user seeing what was focused. Parking it on the seek bar
+      // makes a hidden overlay respond to Select and left/right predictably.
+      if (canRestoreFocus) {
+        seekbarHandleRef.current?.requestTVFocus?.();
+      }
     }, 200);
 
     return () => clearTimeout(timeout);
-  }, [showControls, showBottomContainer]);
+  }, [showControls, showBottomContainer, canRestoreFocus]);
 
   const timerControl = false ? (
     <NullControl />
@@ -113,6 +134,8 @@ export default function BottomControls({
       seekColor={seekColor}
       seekerPanHandlers={panHandlers}
       setSeekerWidth={setSeekerWidth}
+      handleRef={seekbarHandleRef}
+      onPress={onSeekbarPress}
       onFocus={() => {
         // console.log("Seekder focus");
         showBottomContainer.value = false;
@@ -154,7 +177,16 @@ export default function BottomControls({
           imageStyle={[styles.vignette]}>
           <SafeAreaView style={styles.seekBarContainer}>
             {timerControl}
-            <TVFocusGuideView autoFocus hasTVPreferredFocus={showControls}>
+            {/* While the controls are hidden, focus stays on the seek bar, so
+             * the first press only reveals them instead of moving through
+             * controls nobody can see. */}
+            <TVFocusGuideView
+              autoFocus
+              hasTVPreferredFocus={showControls}
+              trapFocusUp={!showControls}
+              trapFocusDown={!showControls}
+              trapFocusLeft={!showControls}
+              trapFocusRight={!showControls}>
               {seekbarControl}
             </TVFocusGuideView>
           </SafeAreaView>

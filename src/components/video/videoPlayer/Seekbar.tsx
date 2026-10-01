@@ -1,4 +1,4 @@
-import {Dispatch, SetStateAction, useState} from "react";
+import {Dispatch, Ref, SetStateAction, useState} from "react";
 import {PanResponderInstance, Pressable, StyleSheet, View} from "react-native";
 
 import {useAppTheme} from "@/ui/theme";
@@ -11,6 +11,10 @@ interface SeekbarProps {
   setSeekerWidth: Dispatch<SetStateAction<number>>;
   onFocus?: () => void;
   onBlur?: () => void;
+  /** Select on the focused handle; the TV overlay toggles playback with it. */
+  onPress?: () => void;
+  /** The focusable handle, so the overlay can move focus back onto it. */
+  handleRef?: Ref<View>;
 }
 
 const handleSize = 32;
@@ -28,6 +32,8 @@ export default function Seekbar({
   setSeekerWidth,
   onFocus,
   onBlur,
+  onPress,
+  handleRef,
 }: SeekbarProps) {
   const {theme, reduceMotion} = useAppTheme();
   const [focused, setFocused] = useState(false);
@@ -54,6 +60,8 @@ export default function Seekbar({
         pointerEvents={"none"}
         style={[styles.handle, {left: seekerPosition}]}>
         <Pressable
+          ref={handleRef}
+          onPress={onPress}
           onBlur={() => {
             setFocused(false);
             onBlur?.();
