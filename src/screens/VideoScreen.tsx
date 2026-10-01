@@ -218,6 +218,8 @@ export default function VideoScreen({route, navigation}: Props) {
             },
           }}
           videoID={YTVideoInfo.id}
+          // The end card is a native modal above the player.
+          remoteEnabled={!showEndCard}
           onProgress={data => {
             reportProgress(data.currentTime);
             if (
