@@ -1,6 +1,6 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React, {useState} from "react";
-import {Image, StyleSheet, View} from "react-native";
+import {Image, ScrollView, StyleSheet, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
@@ -79,7 +79,16 @@ export function MusicPlayerScreen({navigation}: Props) {
         <MusicPlayerTitle />
         {playbackError ? <ErrorState message={playbackError.message} /> : null}
         <MusicPlayerSlider />
-        <View style={styles.buttonContainer}>
+        {/* Scrolls horizontally when the actions do not fit the device width. */}
+        <ScrollView
+          horizontal
+          alwaysBounceHorizontal={false}
+          showsHorizontalScrollIndicator={false}
+          style={styles.buttonScroller}
+          contentContainerStyle={[
+            styles.buttonContainer,
+            {gap: theme.spacing.sm},
+          ]}>
           <MusicPlayerActionButton
             iconName={"playlist-add"}
             iconType={"material"}
@@ -128,7 +137,7 @@ export function MusicPlayerScreen({navigation}: Props) {
               }
             }}
           />
-        </View>
+        </ScrollView>
         <MusicPlayerPlayerButtons />
         <View style={styles.bottomActionsContainer}>
           <AppText
@@ -170,11 +179,13 @@ const styles = StyleSheet.create({
     flex: 0.55,
     marginHorizontal: 5,
   },
+  buttonScroller: {
+    // ScrollView grows by default, which would steal height in the column.
+    flexGrow: 0,
+  },
   buttonContainer: {
-    width: "100%",
     minHeight: 50,
-    justifyContent: "flex-start",
-    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 10,
   },
   bottomActionsContainer: {
