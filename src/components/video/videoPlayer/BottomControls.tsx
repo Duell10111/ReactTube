@@ -179,14 +179,19 @@ export default function BottomControls({
             {timerControl}
             {/* While the controls are hidden, focus stays on the seek bar, so
              * the first press only reveals them instead of moving through
-             * controls nobody can see. */}
+             * controls nobody can see. Left and right always seek here, so
+             * they never move focus off the bar.
+             *
+             * No `hasTVPreferredFocus` on reveal: hiding already parks focus
+             * on the bar, and requesting focus for this container made tvOS
+             * resolve it to the last focused related video instead, so the
+             * next left/right scrolled that list rather than seeking. */}
             <TVFocusGuideView
               autoFocus
-              hasTVPreferredFocus={showControls}
               trapFocusUp={!showControls}
               trapFocusDown={!showControls}
-              trapFocusLeft={!showControls}
-              trapFocusRight={!showControls}>
+              trapFocusLeft
+              trapFocusRight>
               {seekbarControl}
             </TVFocusGuideView>
           </SafeAreaView>
