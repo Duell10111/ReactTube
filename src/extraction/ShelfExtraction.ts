@@ -33,7 +33,7 @@ export interface HorizontalData {
 }
 
 export interface HorizontalDataButton {
-  type: "PLAY" | "PLAYLIST_ADD";
+  type: "PLAY" | "PLAYLIST_ADD" | "SHUFFLE" | "MIX";
   title?: string;
   endpoint?: YTNodes.NavigationEndpoint;
 }
@@ -288,6 +288,14 @@ function extractButton(node: Helpers.YTNode) {
     switch (node.icon_type) {
       case "PLAY_ARROW":
         type = "PLAY";
+        break;
+      case "MUSIC_SHUFFLE":
+      case "SHUFFLE":
+        type = "SHUFFLE";
+        break;
+      case "MIX":
+      case "MUSIC_MIX":
+        type = "MIX";
         break;
       // case "PLAYLIST_ADD":
       //   type = "PLAYLIST_ADD";

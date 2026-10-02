@@ -4,7 +4,7 @@ import React, {useMemo} from "react";
 import {PixelRatio, Pressable, StyleSheet, View} from "react-native";
 
 import {MusicTrackMenu} from "./MusicTrackMenu";
-import {getMusicSubtitle} from "./musicSectionModel";
+import {getMusicCardShape, getMusicSubtitle} from "./musicSectionModel";
 
 import type {ElementData} from "@/extraction/Types";
 import {useTranslation} from "@/localization";
@@ -19,6 +19,9 @@ import {useAppTheme} from "@/ui/theme";
 /** Cover art beside a track title, at the size Music renders it on a phone. */
 const thumbnailSize = 48;
 
+/** A video frame keeps the row height and grows sideways instead. */
+const wideThumbnailWidth = Math.round((thumbnailSize * 16) / 9);
+
 const maxThumbnailPixelRatio = 2;
 
 interface MusicTrackRowProps {
@@ -28,18 +31,24 @@ interface MusicTrackRowProps {
   /** Offers the remove action, for a playlist the user owns. */
   editable?: boolean;
   onRemove?: () => void;
+  /**
+   * Shows a video's 16:9 frame instead of a square crop. Search lists do this;
+   * a track shelf keeps its covers square so the titles stay in one column.
+   */
+  videoFrame?: boolean;
 }
 
 /**
  * One entry of a track shelf: square cover art, title, the line Music composes
  * itself, and the overflow menu. Denser than `MediaRow`, whose 16:9 thumbnail
- * would let only two songs share a screen.
+ * would let only two songs share a screen. Artists get a round avatar.
  */
 export function MusicTrackRow({
   element,
   width,
   editable,
   onRemove,
+  videoFrame = false,
 }: MusicTrackRowProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
@@ -51,9 +60,12 @@ export function MusicTrackRow({
     [element, t],
   );
   const subtitle = getMusicSubtitle(element, model.metadataLine);
+  const shape = getMusicCardShape(element);
+  const thumbnailWidth =
+    videoFrame && shape === "wide" ? wideThumbnailWidth : thumbnailSize;
   const source = resolveThumbnailUrl(
     model.thumbnailUrl,
-    thumbnailSize,
+    thumbnailWidth,
     Math.min(PixelRatio.get(), maxThumbnailPixelRatio),
   );
 
@@ -79,7 +91,9 @@ export function MusicTrackRow({
           style={[
             styles.thumbnail,
             {
-              borderRadius: theme.radii.control,
+              width: thumbnailWidth,
+              borderRadius:
+                shape === "circle" ? theme.radii.round : theme.radii.control,
               backgroundColor: theme.colors.surfaceRaised,
             },
           ]}>
@@ -142,7 +156,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   thumbnail: {
-    width: thumbnailSize,
     height: thumbnailSize,
     alignItems: "center",
     justifyContent: "center",

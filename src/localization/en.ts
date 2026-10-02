@@ -206,6 +206,9 @@ export const en = {
   "search.empty.title": "Search YouTube",
   "search.empty.message":
     "Enter a search term to see videos, channels, and playlists.",
+  "search.music.empty.title": "Search YouTube Music",
+  "search.music.empty.message":
+    "Enter a search term to find songs, artists, albums, and playlists.",
   "search.noResults.title": "No results",
   "search.noResults.message":
     "No entry matches this search term. Try a different wording.",
