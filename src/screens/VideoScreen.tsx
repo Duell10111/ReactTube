@@ -139,6 +139,8 @@ export default function VideoScreen({route, navigation}: Props) {
     );
   }
 
+  const endscreen = YTVideoInfo.endscreen;
+
   return (
     <View style={styles.playerRoot}>
       {appSettings.ownOverlayEnabled || appSettings.vlcEnabled ? (
@@ -253,10 +255,18 @@ export default function VideoScreen({route, navigation}: Props) {
               seek={seconds => videoPlayerRef.current?.seek(seconds)}
             />
           }
-          endCardContainer={
-            YTVideoInfo.endscreen ? (
-              <VideoEndCard endcard={YTVideoInfo.endscreen} />
-            ) : null
+          renderEndscreen={
+            endscreen
+              ? ({currentTime, forced, browsing, onElementOpened}) => (
+                  <VideoEndCard
+                    browsing={browsing}
+                    currentTime={currentTime}
+                    endcard={endscreen}
+                    ignoreTiming={forced}
+                    onElementOpened={onElementOpened}
+                  />
+                )
+              : undefined
           }
           endCardStartSeconds={YTVideoInfo.endscreen?.startDuration}
         />
@@ -298,10 +308,7 @@ export default function VideoScreen({route, navigation}: Props) {
       <EndCard
         video={YTVideoInfo}
         visible={showEndCard}
-        onCloseRequest={() => {
-          console.log("Back pressed");
-          setShowEndCard(false);
-        }}
+        onCloseRequest={() => setShowEndCard(false)}
         endCard={ended}
         currentResolution={playbackInfos?.resolution}
       />

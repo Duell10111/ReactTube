@@ -273,4 +273,12 @@ export const de = {
   "video.player.language": "Audiosprache",
   "video.player.channel": "Kanal öffnen",
   "video.panel.close": "Panel schließen",
+  "video.endscreen.browse": "Empfehlungen",
+  "video.endscreen.exit": "Zurück zum Video",
+  "video.endscreen.fromCreator": "Vom Kanal empfohlen",
+  "video.endscreen.playlist": "Playlist",
+  "video.endscreen.channel": "Kanal",
+  "video.upNext.startsIn": "Startet in {seconds} s",
+  "video.upNext.stopped": "Automatische Wiedergabe angehalten",
+  "video.upNext.playNow": "Jetzt abspielen",
 } as const satisfies Record<TranslationKey, string>;

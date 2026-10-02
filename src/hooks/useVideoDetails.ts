@@ -33,21 +33,21 @@ import {YT, YTTV, YTNodes} from "@/utils/Youtube";
 const LOGGER = Logger.extend("VIDEO");
 
 /**
- * Abstand zum Videoende, ab dem eine Fortsetzungsmarke nicht mehr gilt.
+ * Distance from the end of the video within which a resume marker no longer
+ * applies.
  *
- * Wer bis kurz vor Schluss geschaut hat, will beim nächsten Mal von vorn
- * anfangen und nicht auf den Abspann springen. Vor allem aber: eine Marke
- * **hinter** dem Ende lässt AVPlayer hängen — gemessen mit einem 218,778 s
- * langen Video und einer Marke bei 219 s, der Player blieb stumm im
- * Ladezustand, ohne Fehler zu melden.
+ * Someone who watched almost to the end wants to start over next time instead
+ * of jumping into the credits. More importantly, a marker **past** the end
+ * makes AVPlayer hang — measured with a 218.778 s video and a marker at 219 s,
+ * the player stayed silently in its loading state without reporting an error.
  */
 const RESUME_DEAD_ZONE_SECONDS = 5;
 
 /**
- * Bringt eine Fortsetzungsmarke in den gültigen Bereich.
+ * Brings a resume marker into the valid range.
  *
- * @returns die Sekunde, an der eingestiegen wird, oder `undefined` für „von
- *   vorn".
+ * @returns the second playback starts at, or `undefined` for "from the
+ *   beginning".
  */
 function clampResumePosition(
   seconds: number | undefined,
@@ -67,21 +67,21 @@ function clampResumePosition(
 }
 
 /**
- * Baut das eigene Manifest, wenn die Quelle es hergibt (Plan-Phase 2c).
+ * Builds the app's own manifest when the source allows it (plan phase 2c).
  *
- * Bewusst vor dem Veröffentlichen der Metadaten: der Bau kostet einen
- * Range-Request je Rendition (rund eine halbe Sekunde). Würde er nachlaufen,
- * bekäme der Player erst YouTubes Manifest und danach unseres — und startete
- * die Wiedergabe sichtbar neu.
+ * Deliberately before the metadata is published: building costs one range
+ * request per rendition (about half a second). If it ran afterwards, the
+ * player would first get YouTube's manifest and then ours — and visibly
+ * restart playback.
  */
 async function generateIfPossible(
   streaming: StreamingSource,
   mode: PlaybackMode,
   options: GeneratedHlsOptions,
 ) {
-  // Nur bauen, wenn er auch gewählt ist. Sonst kostet er anderthalb Sekunden
-  // Startzeit und steht anschließend ungenutzt in der Ladder — bei
-  // „YouTube-HLS" ist das die falsche erste Stufe.
+  // Only build it when it is selected. Otherwise it costs one and a half
+  // seconds of startup time and then sits unused in the ladder — with
+  // "YouTube HLS" it is the wrong first step.
   if (mode !== "generated" || !streaming.canGenerateHls) {
     return undefined;
   }
@@ -108,9 +108,9 @@ export default function useVideoDetails(
   const videoTVRef = useRef<YTTV.VideoInfo>(undefined);
   const [videoInfo, setVideoInfo] = useState<YTVideoInfo>();
   /**
-   * Zustände der Metadatenabfrage. Vorher endete ein Fehlschlag in
-   * `LOGGER.warn`, und die Oberfläche zeigte unbegrenzt einen Ladezustand —
-   * ohne Unterschied zwischen „lädt noch" und „kommt nicht mehr".
+   * States of the metadata request. A failure used to end in `LOGGER.warn`,
+   * and the UI showed a loading state indefinitely — with no difference
+   * between "still loading" and "never arriving".
    */
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>();
@@ -118,7 +118,7 @@ export default function useVideoDetails(
   const [watchNextSections, setWatchNextSections] =
     useState<HorizontalData[]>();
   const {appSettings} = useAppData();
-  /** Der gewählte Weg — bestimmt Client-Kette, Manifestbau und Ladder-Reihenfolge. */
+  /** The selected path — decides the client chain, manifest build, and ladder order. */
   const playbackMode = playbackModeFromSettings(appSettings);
   const [startTime, setStartTime] = useState<number>();
 
@@ -133,10 +133,10 @@ export default function useVideoDetails(
         ? ((videoId.payload.startTimeSeconds as number) ?? passedStartSeconds)
         : passedStartSeconds;
     if (client === "TV") {
-      // Plan-Phase 1.8: Endpunkte getrennt beziehen. Die Metadaten kommen von der
-      // angemeldeten TV-Instanz (nur sie liefert Watch-Next und Transport-Controls),
-      // die Streams von der anonymen Instanz über die Client-Kette — der TV-Client
-      // antwortet auf /player unabhängig vom Login mit UNPLAYABLE.
+      // Plan phase 1.8: fetch the endpoints separately. The metadata comes from
+      // the signed-in TV instance (only it provides watch-next and transport
+      // controls), the streams from the anonymous instance via the client
+      // chain — the TV client answers /player with UNPLAYABLE regardless of login.
       Promise.all([
         tvYoutube?.tv?.getInfo(videoId),
         youtube
@@ -146,7 +146,7 @@ export default function useVideoDetails(
           : undefined,
       ])
         .then(async ([tvInfo, streaming]) => {
-          // Plan-Phase 0.4: festhalten, was die Clients tatsächlich geliefert haben.
+          // Plan phase 0.4: record what the clients actually delivered.
           LOGGER.info(describeStreamingData(tvInfo, "TV (Metadaten)"));
           if (streaming) {
             LOGGER.info(
@@ -164,12 +164,12 @@ export default function useVideoDetails(
               parsedDataTV.chapters = parsed.chapters;
               parsedDataTV.hls_manifest_url = parsed.hls_manifest_url;
               parsedDataTV.expires = parsed.expires;
-              // Die TV-Antwort enthält keine Formate — das Abspielformat muss
-              // aus der Antwort des Stream-Clients kommen.
+              // The TV response contains no formats — the playback format has
+              // to come from the stream client's response.
               parsedDataTV.best_format = parsed.best_format;
-              // Die Dauer entscheidet, ob eine Fortsetzungsmarke noch gilt —
-              // liefert die TV-Antwort keine (sie ist UNPLAYABLE und trägt
-              // keine streaming_data), kommt sie vom Stream-Client.
+              // The duration decides whether a resume marker still applies —
+              // if the TV response has none (it is UNPLAYABLE and carries no
+              // streaming_data), it comes from the stream client.
               parsedDataTV.durationSeconds =
                 parsedDataTV.durationSeconds ?? parsed.durationSeconds;
               parsedDataTV.playlist = parsedDataTV.playlist ?? parsed.playlist;
@@ -181,9 +181,9 @@ export default function useVideoDetails(
               parsedDataTV.commentsEntryPointHeader =
                 detailFallback.commentsEntryPointHeader;
             }
-            // Vor dem Veröffentlichen der Metadaten: sonst bekäme der Player
-            // erst YouTubes Manifest und eine halbe Sekunde später unseres —
-            // ein sichtbarer Neustart der Wiedergabe.
+            // Before publishing the metadata: otherwise the player would get
+            // YouTube's manifest first and ours half a second later — a
+            // visible restart of playback.
             if (streaming) {
               parsedDataTV.generated_hls_url = await generateIfPossible(
                 streaming,
@@ -291,11 +291,46 @@ export default function useVideoDetails(
         );
         setHttpVideoURL(undefined);
       });
-  }, [videoInfo, youtube]);
+    // Keyed on the format, not the whole info: the end screen arriving later
+    // replaces the info object and must not decipher the stream again.
+  }, [videoInfo?.best_format, youtube]);
+
+  // The end screen is part of the WEB /player response only: the TV response
+  // is UNPLAYABLE and the stream clients leave it out, so the TV player never
+  // had the creator's end cards. It is fetched on its own once the metadata is
+  // in, so it never delays the start of playback.
+  const endscreenVideoId =
+    client === "TV" && videoInfo && !videoInfo.endscreen
+      ? videoInfo.id
+      : undefined;
+
+  useEffect(() => {
+    if (!endscreenVideoId || !youtube) {
+      return;
+    }
+    let active = true;
+    youtube
+      .getBasicInfo(endscreenVideoId)
+      .then(info => {
+        const endscreen = getElementDataFromVideoInfo(info).endscreen;
+        if (!active || !endscreen) {
+          return;
+        }
+        setVideoInfo(previous =>
+          previous?.id === endscreenVideoId && !previous.endscreen
+            ? {...previous, endscreen}
+            : previous,
+        );
+      })
+      .catch(LOGGER.warn);
+    return () => {
+      active = false;
+    };
+  }, [endscreenVideoId, youtube]);
 
   /**
-   * Die Stufen, die für dieses Video bereitstehen (Plan-Phase 4.1), und auf
-   * welcher gerade gespielt wird.
+   * The steps available for this video (plan phase 4.1), and the one that is
+   * currently playing.
    */
   const ladder = useMemo(
     () =>
@@ -319,10 +354,10 @@ export default function useVideoDetails(
   const ladderRef = useRef<PlaybackStep[]>([]);
   const ladderIndexRef = useRef(0);
 
-  // Eine neue Quellenlage — anderes Video, Aktualisierung, umgestellte
-  // Einstellung — beginnt wieder oben. Ein bloßes Nachreichen derselben Stufen
-  // darf die Ladder dagegen nicht zurücksetzen, sonst landet ein gerade
-  // abgestiegener Player sofort wieder auf der defekten Stufe.
+  // A new set of sources — another video, a refresh, a changed setting —
+  // starts at the top again. Merely re-delivering the same steps must not
+  // reset the ladder, though, or a player that just stepped down would land
+  // right back on the broken step.
   useEffect(() => {
     if (!sameLadder(ladderRef.current, ladder)) {
       ladderRef.current = ladder;
@@ -334,10 +369,10 @@ export default function useVideoDetails(
   const currentStep = ladder[Math.min(ladderIndex, ladder.length - 1)];
 
   /**
-   * Die Sekunde, an der eingestiegen wird — gegen die Videodauer geprüft.
+   * The second playback starts at — checked against the video duration.
    *
-   * Erst hier, weil die Dauer aus den Metadaten kommt und beim Setzen der Marke
-   * noch nicht feststeht.
+   * Only here, because the duration comes from the metadata and is not yet
+   * known when the marker is set.
    */
   const resumeSeconds = useMemo(
     () => clampResumePosition(startTime, videoInfo?.durationSeconds),
@@ -353,7 +388,7 @@ export default function useVideoDetails(
     }
   }, [startTime, resumeSeconds, videoInfo?.durationSeconds]);
 
-  /** Letzte bekannte Abspielposition — überlebt Stufenwechsel und Auffrischung. */
+  /** Last known playback position — survives step changes and refreshes. */
   const positionRef = useRef(0);
 
   const reportProgress = useCallback((seconds: number) => {
@@ -361,14 +396,13 @@ export default function useVideoDetails(
   }, []);
 
   /**
-   * Meldet, dass die laufende Stufe nicht trägt — als Fehler oder als
-   * Stillstand.
+   * Reports that the current step does not work — as an error or as a stall.
    *
-   * @returns ob noch eine Stufe übrig war.
+   * @returns whether another step was left.
    */
   const reportPlaybackFailure = useCallback((reason: string) => {
-    // Bewusst über Refs statt über den State-Updater: dort hätte das Protokoll
-    // als Seiteneffekt gestanden, den React doppelt ausführen darf.
+    // Deliberately through refs instead of the state updater: there the logging
+    // would be a side effect that React is allowed to run twice.
     const index = ladderIndexRef.current;
     const steps = ladderRef.current;
     const next = index + 1;
@@ -392,7 +426,7 @@ export default function useVideoDetails(
     ladderIndexRef.current = next;
     setLadderIndex(next);
 
-    // Die nächste Stufe fängt dort an, wo die vorige stehengeblieben ist.
+    // The next step starts where the previous one stopped.
     if (positionRef.current > 0) {
       setStartTime(positionRef.current);
     }
@@ -420,17 +454,16 @@ export default function useVideoDetails(
   }, []);
 
   /**
-   * Frischt die Streaming-Daten auf, bevor sie ablaufen — Plan-Phase 4.2.
+   * Refreshes the streaming data before it expires — plan phase 4.2.
    *
-   * Die Segment-URLs tragen ein `expire` von rund vier Stunden. Das reicht für
-   * die meisten Videos, aber nicht für ein pausiertes, ein langes, oder eines,
-   * das aus dem Hintergrund zurückkommt: danach antwortet googlevideo mit 403,
-   * und weil ein hängender Player keinen Fehler meldet, sieht das aus wie ein
-   * Einfrieren. Das selbst gebaute Manifest ist besonders betroffen — es backt
-   * die URLs in die Playlists ein.
+   * The segment URLs carry an `expire` of about four hours. That is enough for
+   * most videos, but not for a paused one, a long one, or one that returns
+   * from the background: googlevideo then answers with 403, and because a
+   * stalled player reports no error, it looks like a freeze. The self-built
+   * manifest is affected most — it bakes the URLs into the playlists.
    *
-   * Ersetzt den auskommentierten Block, der hier stand: der frischte ohne
-   * Vorlauf und ohne Position auf.
+   * Replaces the commented-out block that used to be here: it refreshed
+   * without lead time and without the position.
    */
   const expiresAt = videoInfo?.expires?.getTime();
 
@@ -439,8 +472,8 @@ export default function useVideoDetails(
       return;
     }
 
-    // Eine Minute Vorlauf, damit der Austausch fertig ist, bevor die alten URLs
-    // ungültig werden.
+    // One minute of lead time, so the swap is done before the old URLs become
+    // invalid.
     const delay = expiresAt - Date.now() - 60_000;
 
     if (delay <= 0) {
@@ -537,11 +570,11 @@ export default function useVideoDetails(
     YTVideoInfo: videoInfo,
     loading,
     error,
-    // Das eigene Manifest hat Vorrang — es trägt mehrsprachigen Ton und mit AV1
-    // 4K. Fehlt es, bleibt YouTubes eigenes (Phase 2a) der Weg.
+    // The app's own manifest takes precedence — it carries multi-language audio
+    // and, with AV1, 4K. Without it, YouTube's own (phase 2a) is the way.
     hlsManifestUrl: videoInfo?.generated_hls_url ?? videoInfo?.hls_manifest_url,
     httpVideoURL,
-    /** Die Quelle, die gerade gilt — Ergebnis der Ladder aus Plan-Phase 4.1. */
+    /** The source currently in effect — the result of the plan phase 4.1 ladder. */
     videoUrl: currentStep?.uri,
     playbackSource: currentStep,
     playbackLadderSize: ladder.length,

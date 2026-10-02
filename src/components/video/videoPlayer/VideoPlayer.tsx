@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {DeviceEventEmitter, View} from "react-native";
+import {BackHandler, DeviceEventEmitter, View} from "react-native";
 import {
   OnAudioTracksData,
   OnLoadData,
@@ -24,12 +24,23 @@ import useTVSeekControl from "./hooks/useTVSeekControl";
 import {getSeekerPositionForTime} from "./tvRemoteSeek";
 import {usePanResponders} from "./usePanResponders";
 
+import {isEndscreenShown} from "@/components/video/endcard/endscreenModel";
 import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
 import {useTVRemoteEvent} from "@/ui/tv";
 import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
 
 export const PausePlayerEvent = "PlayerPauseVideo";
-export const EndCardCloseEvent = "EndCardClose";
+
+/** What the player tells the end card layer it renders. */
+export interface EndscreenRenderState {
+  currentTime: number;
+  /** The user opened the cards before their time; show all of them. */
+  forced: boolean;
+  /** The cards own the remote. */
+  browsing: boolean;
+  /** Call once a card has been opened, so the player leaves browse mode. */
+  onElementOpened: () => void;
+}
 
 export interface VideoMetadata {
   title: string;
@@ -85,7 +96,8 @@ interface VideoPlayerProps<T> {
   VideoComponentProps: T;
   bottomContainer?: React.ReactNode;
   metadata: VideoMetadata;
-  endCardContainer: React.ReactNode;
+  /** The creator's end cards; left out when the video has none. */
+  renderEndscreen?: (state: EndscreenRenderState) => React.ReactNode;
   endCardStartSeconds?: number;
   // Callbacks
   onAuthorClick?: () => void;
@@ -113,7 +125,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     {
       VideoComponent,
       bottomContainer,
-      endCardContainer,
+      renderEndscreen,
       onProgress,
       onEnd,
       remoteEnabled = true,
@@ -142,7 +154,13 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     const [currentTime, setCurrentTime] = useState(0);
 
     const [showControls, setShowControls] = useState(false);
-    const [showEndcard, setShowEndcard] = useState(false);
+
+    // End cards: they show up on their own at the end screen's start, stay
+    // passive while the video plays, and only take the remote in browse mode.
+    const [endscreenDismissed, setEndscreenDismissed] = useState(false);
+    const [endscreenForced, setEndscreenForced] = useState(false);
+    const [endscreenBrowsingState, setEndscreenBrowsing] = useState(false);
+    const [playbackEnded, setPlaybackEnded] = useState(false);
 
     const [loading, setLoading] = useState(true);
     const [duration, setDuration] = useState(0);
@@ -186,8 +204,17 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       // }
     }
 
+    // Leaving the very end again, by seeking or replaying, brings the end
+    // cards back for the next pass.
+    const leaveEndedState = (time: number) => {
+      if (playbackEnded && duration > 0 && time < duration - 1) {
+        setPlaybackEnded(false);
+      }
+    };
+
     function _onProgress(data: OnProgressData) {
       // console.log("Progress: ", data);
+      leaveEndedState(data.currentTime);
       if (!seeking) {
         setCurrentTime(data.currentTime);
 
@@ -205,6 +232,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       //   setControlTimeout();
       // }
       setCurrentTime(data.seekTime);
+      leaveEndedState(data.seekTime);
 
       // if (typeof onSeek === "function") {
       //   onSeek(obj);
@@ -212,6 +240,10 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     };
 
     const _onEnd = () => {
+      // The end screen after the video takes over from the end cards.
+      setPlaybackEnded(true);
+      setEndscreenBrowsing(false);
+      setEndscreenForced(false);
       if (currentTime < duration) {
         setCurrentTime(duration);
         // setPaused(!props.repeat);
@@ -226,8 +258,20 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       }
     };
 
+    const hasEndscreen = renderEndscreen !== undefined;
+    const endscreenShown =
+      hasEndscreen &&
+      isEndscreenShown({
+        currentTime,
+        startSeconds: props.endCardStartSeconds,
+        ended: playbackEnded,
+        dismissed: endscreenDismissed,
+        forced: endscreenForced,
+      });
+    const endscreenBrowsing = endscreenShown && endscreenBrowsingState;
+
     useEffect(() => {
-      if (showControls && !loading && !showEndcard) {
+      if (showControls && !loading && !endscreenBrowsing) {
         animations.showControlAnimation();
         setControlTimeout();
         // typeof events.onShowControls === 'function' && events.onShowControls();
@@ -237,33 +281,36 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         // typeof events.onHideControls === 'function' && events.onHideControls();
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showControls, loading, showEndcard]);
+    }, [showControls, loading, endscreenBrowsing]);
 
     useEffect(() => {
-      animations.showEndCard.value = showEndcard;
-    }, [showEndcard]);
-
-    const endCardShownRef = useRef(false);
-
-    useEffect(() => {
-      // @ts-ignore TODO: fix
-      if (!endCardShownRef.current && currentTime > props.endCardStartSeconds) {
-        setShowEndcard(true);
-        endCardShownRef.current = true;
-      } else if (
-        endCardShownRef.current &&
-        // @ts-ignore TODO: fix
-        currentTime < props.endCardStartSeconds
-      ) {
-        endCardShownRef.current = false;
+      // Seeking back before the end screen starts a fresh pass through it.
+      const startSeconds = props.endCardStartSeconds;
+      if (startSeconds !== undefined && currentTime < startSeconds) {
+        setEndscreenDismissed(false);
       }
-    }, [currentTime]);
+    }, [currentTime, props.endCardStartSeconds]);
 
     useEffect(() => {
-      const sub = DeviceEventEmitter.addListener(EndCardCloseEvent, () => {
-        setShowEndcard(false);
-      });
-      return () => sub.remove();
+      if (!endscreenShown) {
+        setEndscreenBrowsing(false);
+      }
+    }, [endscreenShown]);
+
+    const startBrowsingEndscreen = useCallback(() => {
+      setShowControls(false);
+      setEndscreenBrowsing(true);
+    }, []);
+
+    const stopBrowsingEndscreen = useCallback(() => {
+      setEndscreenBrowsing(false);
+      setEndscreenForced(false);
+    }, []);
+
+    const onEndscreenElementOpened = useCallback(() => {
+      setEndscreenBrowsing(false);
+      setEndscreenForced(false);
+      setEndscreenDismissed(true);
     }, []);
 
     useEffect(() => {
@@ -273,10 +320,6 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       return () => sub.remove();
     }, []);
 
-    //TODO: Add support for back event to dismiss EndCard/Controls
-    // Currently not working with native screen stack
-    // https://github.com/software-mansion/react-native-screens/pull/801
-
     const longButtonPressed = useRef<string>(undefined);
 
     // Settings, details and the playlist picker are transparent modals above
@@ -285,6 +328,20 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
     const screenFocused = useIsFocused();
     const remoteActive = screenFocused && remoteEnabled;
 
+    // Back leaves browse mode before it leaves the screen. On tvOS the menu
+    // key reaches React Navigation through `BackHandler`, and the listener
+    // added last runs first, so this one can consume the press.
+    useEffect(() => {
+      if (!endscreenBrowsing || !remoteActive) {
+        return;
+      }
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        stopBrowsingEndscreen();
+        return true;
+      });
+      return () => sub.remove();
+    }, [endscreenBrowsing, remoteActive, stopBrowsingEndscreen]);
+
     useTVRemoteEvent(event => {
       switch (event.eventType) {
         case "select":
@@ -292,7 +349,19 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         case "down":
         case "right":
         case "left":
-          if (showEndcard) {
+          // The focus engine moves between the cards on its own.
+          if (endscreenBrowsing) {
+            return;
+          }
+          // With the controls hidden, Up has no other job, so it is the way
+          // into the cards that the hint points at.
+          if (
+            event.eventType === "up" &&
+            endscreenShown &&
+            !showControls &&
+            longButtonPressed.current === undefined
+          ) {
+            startBrowsingEndscreen();
             return;
           }
           // console.log("Control Timeout Triggered! ", event.eventType);
@@ -311,7 +380,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           // visible. Scrubbing with hidden controls moved the video blind.
           if (event.eventKeyAction === 0) {
             longButtonPressed.current = event.eventType;
-            if (!showEndcard) {
+            if (!endscreenBrowsing) {
               setShowControls(true);
             }
           } else if (
@@ -323,16 +392,19 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           }
           break;
         case "longUp":
-          setShowEndcard(true);
+          // Opens the cards on demand, even before their time.
+          if (hasEndscreen && !playbackEnded) {
+            setEndscreenForced(true);
+            startBrowsingEndscreen();
+          }
           break;
         case "longDown":
-          setShowEndcard(false);
+          // Hides the cards for the rest of this pass.
+          stopBrowsingEndscreen();
+          setEndscreenDismissed(true);
           break;
       }
     }, remoteActive);
-
-    // console.log("Endcard: ", showEndcard);
-    // console.log("Endcard Ani ", animations.showEndCard.value);
 
     // const events = {
     //   onError: onError || _onError,
@@ -460,12 +532,17 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           // @ts-ignore
           ref={_videoRef}
         />
-        {endCardContainer ? (
+        {renderEndscreen ? (
           <EndCardContainer
-            showEndCard={animations.showEndCard}
-            visible={showEndcard}
-            onCloseEndCard={() => setShowEndcard(false)}>
-            {endCardContainer}
+            browsing={endscreenBrowsing}
+            controlsVisible={showControls}
+            visible={endscreenShown}>
+            {renderEndscreen({
+              currentTime,
+              forced: endscreenForced,
+              browsing: endscreenBrowsing,
+              onElementOpened: onEndscreenElementOpened,
+            })}
           </EndCardContainer>
         ) : null}
         <>
@@ -492,7 +569,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
             showControls={showControls}
             setPaused={setPaused}
             onSeekbarPress={() => setPaused(paused => !paused)}
-            restoreFocusOnHide={remoteActive && !showEndcard}
+            restoreFocusOnHide={remoteActive && !endscreenBrowsing}
             onJumpToStart={() => _videoRef.current?.seek(0)}
           />
         </>

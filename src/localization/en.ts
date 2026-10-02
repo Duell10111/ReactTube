@@ -262,6 +262,14 @@ export const en = {
   "video.player.language": "Audio language",
   "video.player.channel": "Open channel",
   "video.panel.close": "Close panel",
+  "video.endscreen.browse": "Recommendations",
+  "video.endscreen.exit": "Back to video",
+  "video.endscreen.fromCreator": "From the channel",
+  "video.endscreen.playlist": "Playlist",
+  "video.endscreen.channel": "Channel",
+  "video.upNext.startsIn": "Starts in {seconds} s",
+  "video.upNext.stopped": "Autoplay stopped",
+  "video.upNext.playNow": "Play now",
 } as const;
 
 export type TranslationKey = keyof typeof en;
