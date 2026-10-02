@@ -17,6 +17,43 @@
 * create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
 * update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
 
+## [0.4.0](https://github.com/Duell10111/ReactTube/compare/v0.3.2...v0.4.0) (2026-10-02)
+
+
+### ✨ Features
+
+* add leading action to AppHeader for quick access to music library ([0e509ea](https://github.com/Duell10111/ReactTube/commit/0e509ea44e2b37465efae415d8577fbcfe11454b))
+* add search route support in navigation for music and other destinations ([771de30](https://github.com/Duell10111/ReactTube/commit/771de30650b52bf26cd71f86726e0dc3da3bb7ba))
+* enable remote control for next/previous track in MusicPlayerContext ([3c3de9b](https://github.com/Duell10111/ReactTube/commit/3c3de9ba8e9c4e37b165a023625994875be9bc85))
+* redesign UI to be more user friendly and more beautiful ([#80](https://github.com/Duell10111/ReactTube/issues/80)) ([56df121](https://github.com/Duell10111/ReactTube/commit/56df12186148da21c49d2410666fe591e31f4378))
+* reimplement end screen functionality with creator recommendations and autoplay countdown ([561e52f](https://github.com/Duell10111/ReactTube/commit/561e52fca79e60a0fb4e5d98e8fb6c22cce98567))
+
+
+### 🐛 Bugfixes
+
+* enhance content ID extraction for LockupView to handle missing IDs ([7462f70](https://github.com/Duell10111/ReactTube/commit/7462f705d654204656491b1201cfea1a7bc441f3))
+* enhance music search functionality with top result card and improved layout ([fb261a5](https://github.com/Duell10111/ReactTube/commit/fb261a5a180264f8883b8523b3af2d6896b88a2a))
+* ensure unique row keys in feed layout to maintain focus during pagination ([1e89a93](https://github.com/Duell10111/ReactTube/commit/1e89a93a892fac9f83b3f42961f845ca9a97ecc5))
+* fix and improve video playback ([cd9db6c](https://github.com/Duell10111/ReactTube/commit/cd9db6ca941969bb7e3d5383225838560cbad106))
+* fix possible key prop issue in VideoMenu.tsx ([6b69559](https://github.com/Duell10111/ReactTube/commit/6b6955974e6ef4fb474753ec75b722684eaf42d4))
+* improve layout and interaction of music player components with consistent button sizing and scrollable action buttons ([faf565e](https://github.com/Duell10111/ReactTube/commit/faf565e1051af8245d41d857c26cfa16594f0da6))
+* improve TV remote seeking and focus handling in native overlay ([5e9f2b8](https://github.com/Duell10111/ReactTube/commit/5e9f2b8330f9ff8987032e18d472fb0b2eed591a))
+* refine TV focus handling in BottomControls for improved seek bar interaction ([4a0bcaa](https://github.com/Duell10111/ReactTube/commit/4a0bcaa2992982bd67cc11c8f1c3215d913ce18a))
+* update dependencies and fix outdated patch ([dde31bd](https://github.com/Duell10111/ReactTube/commit/dde31bd396402599e154bf925811d526313ee89b))
+* update VideoScreen to use styled player root with black background for letterboxing ([650bda2](https://github.com/Duell10111/ReactTube/commit/650bda2a999beae609431896d1b9a4372200b52e))
+* update youtubei.js dependency to published version and add local development instructions ([2cbd558](https://github.com/Duell10111/ReactTube/commit/2cbd5582946a72fd4112edf0474ba87151ca9a4f))
+
+
+### 📄 Documentation
+
+* update local build documentation for Apple TV with streamlined instructions and improved clarity ([63b159d](https://github.com/Duell10111/ReactTube/commit/63b159d3bc886e9f827290d4f35644c887e52ef5))
+
+
+### ⬆️ Upgrade
+
+* upgrade to expo sdk 54 with old architecture ([#76](https://github.com/Duell10111/ReactTube/issues/76)) ([d75c7be](https://github.com/Duell10111/ReactTube/commit/d75c7be1299d24c75bf21e5403c4f4fe0adb6967))
+* upgrade to expo sdk 57 and disable track-player for the moment ([466a756](https://github.com/Duell10111/ReactTube/commit/466a75618d5a7119674dee15d02ddb23e925a620))
+
 ## [0.3.2](https://github.com/Duell10111/ReactTube/compare/v0.3.1...v0.3.2) (2025-10-31)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "reacttube",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "main": "index.js",
   "dependencies": {
     "@craftzdog/react-native-buffer": "6.1.2",
