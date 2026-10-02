@@ -1,11 +1,12 @@
-import {Pressable, StyleSheet, View} from "react-native";
+import {StyleSheet, View} from "react-native";
 
-import {MusicSearchListItem} from "@/components/music/MusicSearchListItem";
-import MusicSearchSectionButtonItem from "@/components/music/MusicSearchSectionButtonItem";
+import {MusicSearchTopResult} from "@/components/music/MusicSearchTopResult";
+import {isMusicTopResult} from "@/components/music/musicSearchModel";
+import {MusicTrackRow} from "@/components/music/sections/MusicTrackRow";
+import {musicSurfacePadding} from "@/components/music/sections/musicSectionModel";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
-import {VideoData} from "@/extraction/Types";
 import {useTranslation} from "@/localization";
-import {AppText} from "@/ui/components";
+import {AppText, Chip} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
 
 interface MusicSearchSectionItemProps {
@@ -13,6 +14,7 @@ interface MusicSearchSectionItemProps {
   onPress?: () => void;
 }
 
+/** One shelf of the unfiltered music search: the top result or a titled list. */
 export default function MusicSearchSectionItem({
   data,
   onPress,
@@ -20,29 +22,51 @@ export default function MusicSearchSectionItem({
   const {t} = useTranslation();
   const {theme} = useAppTheme();
 
-  if (data.thumbnail && data.buttons?.length && data.buttons.length > 0) {
-    return <MusicSearchSectionButtonItem data={data} />;
+  if (isMusicTopResult(data)) {
+    return (
+      <View
+        style={{
+          paddingHorizontal: musicSurfacePadding,
+          paddingBottom: theme.spacing.lg,
+        }}>
+        <MusicSearchTopResult data={data} />
+      </View>
+    );
+  }
+
+  if (data.parsedData.length === 0) {
+    return null;
   }
 
   return (
-    <View style={[styles.container, {marginHorizontal: theme.spacing.sm}]}>
-      <Pressable
-        accessibilityRole={"button"}
-        style={styles.headerContainer}
-        onPress={onPress}>
-        <AppText style={styles.titleStyle} variant={"titleMedium"}>
-          {data.title}
-        </AppText>
-        <AppText
-          color={"textSecondary"}
-          style={styles.moreText}
-          variant={"label"}>
-          {t("common.more")}
-        </AppText>
-      </Pressable>
-      <View style={styles.itemContainer}>
-        {data.parsedData.map(element => (
-          <MusicSearchListItem key={element.id} data={element as VideoData} />
+    <View style={{paddingBottom: theme.spacing.lg}}>
+      {data.title ? (
+        <View
+          style={[
+            styles.header,
+            {
+              gap: theme.spacing.md,
+              paddingHorizontal: musicSurfacePadding,
+              paddingBottom: theme.spacing.xs,
+            },
+          ]}>
+          <AppText
+            accessibilityRole={"header"}
+            numberOfLines={1}
+            style={styles.title}
+            variant={"titleLarge"}>
+            {data.title}
+          </AppText>
+          {onPress ? <Chip label={t("common.more")} onPress={onPress} /> : null}
+        </View>
+      ) : null}
+      <View style={{paddingHorizontal: musicSurfacePadding - theme.spacing.xs}}>
+        {data.parsedData.map((element, index) => (
+          <MusicTrackRow
+            element={element}
+            key={`${element.id}-${index}`}
+            videoFrame
+          />
         ))}
       </View>
     </View>
@@ -50,17 +74,11 @@ export default function MusicSearchSectionItem({
 }
 
 const styles = StyleSheet.create({
-  container: {},
-  headerContainer: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 10,
   },
-  titleStyle: {
+  title: {
     flex: 1,
   },
-  moreText: {
-    marginHorizontal: 10,
-  },
-  itemContainer: {},
 });

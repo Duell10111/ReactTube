@@ -23,6 +23,8 @@ export default function useMusicSearch() {
   const searchContinuation = useRef<SearchContinuation>(undefined);
   const [searchResult, setSearchResult] = useState<Helpers.YTNode[]>([]);
   const [cloudChip, setCloudChip] = useState<YTChipCloud | undefined>();
+  // Tells "nothing searched yet" apart from "searched, nothing found".
+  const [searchedQuery, setSearchedQuery] = useState<string>();
 
   const parsedData = useMemo(() => {
     return parseArrayHorizontalData(searchResult);
@@ -33,6 +35,7 @@ export default function useMusicSearch() {
       ?.search(query)
       .then(searchObj => {
         searchObject.current = searchObj;
+        setSearchedQuery(query);
         setCloudChip(
           searchObj.header ? parseChipCloud(searchObj.header) : undefined,
         );
@@ -157,6 +160,7 @@ export default function useMusicSearch() {
 
   return {
     search,
+    searchedQuery,
     searchResult,
     parsedData,
     searchSuggestions,

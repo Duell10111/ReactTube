@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  getTopResultActions,
+  isMusicTopResult,
+  resolveMusicEndpointTarget,
+} from "../src/components/music/musicSearchModel.ts";
+import {
   buildTrackColumns,
   createMusicSectionModel,
   getMusicCardShape,
@@ -212,4 +217,72 @@ test("replaces only a screen that links onward to itself", () => {
     false,
     "an artist screen never stacks onto itself",
   );
+});
+
+test("recognizes the top result card of a music search", () => {
+  assert.equal(
+    isMusicTopResult(shelf({originalNode: {type: "MusicCardShelf"}})),
+    true,
+  );
+  assert.equal(
+    isMusicTopResult(shelf({originalNode: {type: "MusicShelf"}})),
+    false,
+  );
+});
+
+test("keeps at most two playable actions on the top result card", () => {
+  const endpoint = {payload: {playlistId: "RDAO1"}};
+  const actions = getTopResultActions([
+    {type: "SHUFFLE", title: "Shuffle", endpoint},
+    {type: "PLAY", title: "Play"},
+    {type: "PLAYLIST_ADD", title: "Save", endpoint},
+    {type: "MIX", title: "Mix", endpoint},
+    {type: "PLAY", title: "Play again", endpoint},
+  ]);
+
+  assert.deepEqual(
+    actions.map(action => action.type),
+    ["SHUFFLE", "MIX"],
+  );
+  assert.deepEqual(getTopResultActions(undefined), []);
+});
+
+test("routes the top result header by the page it links to", () => {
+  const musicConfig = pageType => ({
+    browseEndpointContextSupportedConfigs: {
+      browseEndpointContextMusicConfig: {pageType},
+    },
+  });
+
+  assert.deepEqual(resolveMusicEndpointTarget({payload: {videoId: "abc"}}), {
+    kind: "play",
+  });
+  assert.deepEqual(
+    resolveMusicEndpointTarget({
+      payload: {browseId: "UC1", ...musicConfig("MUSIC_PAGE_TYPE_ARTIST")},
+    }),
+    {kind: "artist", id: "UC1"},
+  );
+  assert.deepEqual(
+    resolveMusicEndpointTarget({
+      payload: {browseId: "MPREb1", ...musicConfig("MUSIC_PAGE_TYPE_ALBUM")},
+    }),
+    {kind: "album", id: "MPREb1"},
+  );
+  assert.deepEqual(
+    resolveMusicEndpointTarget({
+      payload: {browseId: "VLPL1"},
+      metadata: {page_type: "MUSIC_PAGE_TYPE_PLAYLIST"},
+    }),
+    {kind: "playlist", id: "VLPL1"},
+  );
+  assert.deepEqual(resolveMusicEndpointTarget({payload: {browseId: "UC2"}}), {
+    kind: "artist",
+    id: "UC2",
+  });
+  assert.equal(
+    resolveMusicEndpointTarget({payload: {browseId: "FE"}}),
+    undefined,
+  );
+  assert.equal(resolveMusicEndpointTarget(undefined), undefined);
 });

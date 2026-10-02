@@ -214,6 +214,9 @@ export const de = {
   "search.empty.title": "YouTube durchsuchen",
   "search.empty.message":
     "Gib einen Suchbegriff ein, um Videos, Kanäle und Playlists zu sehen.",
+  "search.music.empty.title": "YouTube Music durchsuchen",
+  "search.music.empty.message":
+    "Gib einen Suchbegriff ein, um Titel, Künstler, Alben und Playlists zu finden.",
   "search.noResults.title": "Keine Treffer",
   "search.noResults.message":
     "Kein Eintrag passt zu diesem Suchbegriff. Versuche eine andere Formulierung.",
