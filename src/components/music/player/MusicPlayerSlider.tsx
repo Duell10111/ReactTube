@@ -1,12 +1,12 @@
 import {Duration} from "luxon";
-import {StyleSheet, View} from "react-native";
+import {useState} from "react";
+import {StyleSheet, Text, View} from "react-native";
 import {Slider} from "react-native-awesome-slider";
 import {
   runOnJS,
-  useDerivedValue,
+  useAnimatedReaction,
   useSharedValue,
 } from "react-native-reanimated";
-import {ReText} from "react-native-redash";
 
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {useAppTheme} from "@/ui/theme";
@@ -16,24 +16,36 @@ export function MusicPlayerSlider() {
   const {theme} = useAppTheme();
 
   const min = useSharedValue(0);
-  const currentProgressString = useSharedValue("");
-  const durationString = useSharedValue("");
+  // Plain React state instead of ReText: ReText re-commits its mount-time value
+  // whenever this component re-renders (e.g. on play/pause), which wiped the
+  // natively-set duration label because the duration rarely changes afterwards.
+  const [currentSeconds, setCurrentSeconds] = useState(() =>
+    Math.floor(currentTime.value),
+  );
+  const [durationSeconds, setDurationSeconds] = useState(() =>
+    Math.floor(duration.value),
+  );
 
-  const parseProgress = (seconds: number) => {
-    currentProgressString.value = secondsToReadableString(seconds);
-  };
+  // Only cross to JS when the displayed whole second changes.
+  useAnimatedReaction(
+    () => Math.floor(currentTime.value),
+    (seconds, previous) => {
+      if (seconds !== previous) {
+        runOnJS(setCurrentSeconds)(seconds);
+      }
+    },
+    [currentTime],
+  );
 
-  useDerivedValue(() => {
-    return runOnJS(parseProgress)(currentTime.value);
-  }, [currentTime]);
-
-  const parseDuration = (seconds: number) => {
-    durationString.value = secondsToReadableString(seconds);
-  };
-
-  useDerivedValue(() => {
-    return runOnJS(parseDuration)(duration.value);
-  }, [duration]);
+  useAnimatedReaction(
+    () => Math.floor(duration.value),
+    (seconds, previous) => {
+      if (seconds !== previous) {
+        runOnJS(setDurationSeconds)(seconds);
+      }
+    },
+    [duration],
+  );
 
   return (
     <View>
@@ -57,14 +69,14 @@ export function MusicPlayerSlider() {
           seek(seconds);
         }}
       />
-      <ReText
-        style={[styles.currentTimeStyle, {color: theme.colors.textSecondary}]}
-        text={currentProgressString}
-      />
-      <ReText
-        style={[styles.durationTimeStyle, {color: theme.colors.textSecondary}]}
-        text={durationString}
-      />
+      <Text
+        style={[styles.currentTimeStyle, {color: theme.colors.textSecondary}]}>
+        {secondsToReadableString(currentSeconds)}
+      </Text>
+      <Text
+        style={[styles.durationTimeStyle, {color: theme.colors.textSecondary}]}>
+        {secondsToReadableString(durationSeconds)}
+      </Text>
     </View>
   );
 }
