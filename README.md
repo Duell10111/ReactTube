@@ -1,44 +1,43 @@
 # ReactTube
 
-An ad free Youtube alternative developed in React-Native mainly for Apply TV, but should also work on other Android and iOS Platforms.
+An ad-free YouTube client built with Expo and React Native for Apple TV, Android TV, phones, and tablets. An experimental native Apple Watch companion is also included.
 
 Main goals:
 
-- Youtube-experience without **ADs**
-- General Youtube client features
+- A YouTube experience without ads
+- General YouTube client features
 
-**Currently, still in development**, contributions welcome!
+**Still in development; contributions are welcome!**
 
 This project uses the [Youtube.js](https://github.com/LuanRT/YouTube.js) library to access the Youtube API.
 
 ## Features
 
-| Feature                                         | Available                                                      |
-|-------------------------------------------------|----------------------------------------------------------------|
-| Basic UI (including Channel and Playlist Views) | ✅                                                              |
-| Video Playback up until 720p                    | ✅                                                              |
-| 1080p playback up to 4K                         | ✅ (using HLS toggle)                                           |
-| Youtube Login via QR Code                       | ⚠️ (Working again for non YT music features)                   |
-| History Page                                    | ✅                                                              |
-| Subscription Page                               | ✅                                                              |
-| Social Interactions (Like, Subscribe etc.)      | ⏳ (Partial support)                                            |
-| Chapter-Information                             | ✅ (works with non VLC Player)                                  |
-| Youtube Music Support                           | ✅                                                              |
-| Basic Mobile Support                            | ✅                                                              |
-| Apple Watch Variant (Alpha)                     | ✅                                                              |
-| Local Database Storage without login            | ✅                                                              |
-| Download videos for offline usage               | ⏳ (Music variant can be downloaded on phone and watch variant) |
-| Android TV Support                              | ❌ (UI mostly broken)                                           |
+| Feature                                          | Status                                                                                                           |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Basic UI (including channel and playlist views)  | ✅                                                                                                               |
+| Video playback                                   | ✅ Progressive, YouTube HLS, and generated HLS modes are available                                               |
+| High-resolution playback                         | ⚠️ Generated HLS can offer up to 4K with AV1 enabled, depending on source and hardware                           |
+| YouTube login via QR code                        | ⚠️ Available; account features require a successful sign-in                                                      |
+| History and subscriptions                        | ✅                                                                                                               |
+| Social interactions (likes, subscriptions, etc.) | ⏳ Partial support                                                                                               |
+| Chapter information                              | ✅ When chapters are provided for a video                                                                        |
+| YouTube Music support                            | ✅                                                                                                               |
+| Phone and tablet support                         | ✅                                                                                                               |
+| Apple Watch companion (alpha)                    | ⚠️ Native watch app with music playback and downloads                                                            |
+| Local database storage without login             | ✅                                                                                                               |
+| Offline downloads                                | ⚠️ Audio downloads on phones; iPhone can transfer them to Apple Watch. Offline video files are not yet supported |
+| Android TV support                               | ⚠️ Experimental; device testing is still needed                                                                  |
+
+The app UI can be switched between English and German in Settings. This is separate from the YouTube content language setting.
 
 ### Building
 
-The app can be build like any other react-native app.
+Install dependencies with npm and `npm install --legacy-peer-deps` before running Expo.
 
-You maybe have to create a **free Apple account** for building on real iOS/tvOS Devices.
+For physical iOS or Apple TV devices, configure Apple development signing in Xcode.
 
-**Hint:** I am currently experiencing issues after using yarn as package manager, therefore you should use npm instead.
-As react native tvOS causes some peer dependency issues, you should trigger the install command with the legacy-peer-deps:
-`npm i --legacy-peer-deps`
+For a local Apple TV build, see the [tvOS build guide](LOCALBUILD.md). It covers the TV-specific `app.json` settings and iOS prebuild step.
 
 For more information look into:
 
@@ -48,17 +47,14 @@ For more information look into:
 
 - [GitHub - react-native-tvos/react-native-tvos: React Native repo with additions for Apple TV and Android TV support.](https://github.com/react-native-tvos/react-native-tvos)
 
-- [Local build README](LOCALBUILD.md)
-
 ## Troubleshooting
 
 - #### App stuck in splash screen (Logo screen).
 
   Yarn v1 can cause issues with the node dependencies causing the app to never start, using npm instead can solve this issue.
   If you previously used yarn v1 you should delete the _node_modules_ and trigger a fresh npm installation.
-  
-  Related issue: https://github.com/Duell10111/ReactTube/issues/49
 
+  Related issue: https://github.com/Duell10111/ReactTube/issues/49
 
 ## ⚠️ Disclaimer
 
