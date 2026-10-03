@@ -1,3 +1,112 @@
+diff --git a/node_modules/react-native-video/android/gradle.properties b/node_modules/react-native-video/android/gradle.properties
+index d29fa1a..e54f9cc 100644
+--- a/node_modules/react-native-video/android/gradle.properties
++++ b/node_modules/react-native-video/android/gradle.properties
+@@ -4,7 +4,7 @@ RNVideo_targetSdkVersion=35
+ RNVideo_compileSdkVersion=35
+ RNVideo_ndkversion=27.1.12297006
+ RNVideo_buildToolsVersion=35.0.0
+-RNVideo_media3Version=1.8.0
++RNVideo_media3Version=1.9.2
+ RNVideo_useExoplayerIMA=false
+ RNVideo_useExoplayerRtsp=false
+ RNVideo_useExoplayerSmoothStreaming=true
+diff --git a/node_modules/react-native-video/android/src/main/java/com/brentvatne/exoplayer/ReactExoplayerView.java b/node_modules/react-native-video/android/src/main/java/com/brentvatne/exoplayer/ReactExoplayerView.java
+index e16ac96..2d4b4ab 100644
+--- a/node_modules/react-native-video/android/src/main/java/com/brentvatne/exoplayer/ReactExoplayerView.java
++++ b/node_modules/react-native-video/android/src/main/java/com/brentvatne/exoplayer/ReactExoplayerView.java
+@@ -58,6 +58,7 @@ import androidx.media3.datasource.DataSpec;
+ import androidx.media3.datasource.DefaultDataSource;
+ import androidx.media3.datasource.HttpDataSource;
+ import androidx.media3.exoplayer.DefaultLoadControl;
++import androidx.media3.exoplayer.LoadControl;
+ import androidx.media3.exoplayer.DefaultRenderersFactory;
+ import androidx.media3.exoplayer.ExoPlayer;
+ import androidx.media3.exoplayer.dash.DashMediaSource;
+@@ -167,6 +168,11 @@ public class ReactExoplayerView extends FrameLayout implements
+         AdErrorEvent.AdErrorListener {
+ 
+     public static final double DEFAULT_MAX_HEAP_ALLOCATION_PERCENT = 1;
++
++    private static int bufferValue(int configured, int fallback) {
++        return configured != BufferConfig.Companion.getBufferConfigPropUnsetInt() ? configured : fallback;
++    }
++
+     public static final double DEFAULT_MIN_BUFFER_MEMORY_RESERVE = 0;
+ 
+     private static final String TAG = "ReactExoplayerView";
+@@ -565,24 +571,22 @@ public class ReactExoplayerView extends FrameLayout implements
+         private final int availableHeapInBytes;
+         private final Runtime runtime;
+         public RNVLoadControl(DefaultAllocator allocator, BufferConfig config) {
++            // media3 1.9 removed the constructor without local-playback
++            // thresholds. Local playback reuses the configured values so the
++            // buffering behaves exactly as it did before.
+             super(allocator,
+-                    config.getMinBufferMs() != BufferConfig.Companion.getBufferConfigPropUnsetInt()
+-                            ? config.getMinBufferMs()
+-                            : DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+-                    config.getMaxBufferMs() != BufferConfig.Companion.getBufferConfigPropUnsetInt()
+-                            ? config.getMaxBufferMs()
+-                            : DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
+-                    config.getBufferForPlaybackMs() != BufferConfig.Companion.getBufferConfigPropUnsetInt()
+-                            ? config.getBufferForPlaybackMs()
+-                            : DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS ,
+-                    config.getBufferForPlaybackAfterRebufferMs() != BufferConfig.Companion.getBufferConfigPropUnsetInt()
+-                            ? config.getBufferForPlaybackAfterRebufferMs()
+-                            : DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
++                    bufferValue(config.getMinBufferMs(), DefaultLoadControl.DEFAULT_MIN_BUFFER_MS),
++                    bufferValue(config.getMinBufferMs(), DefaultLoadControl.DEFAULT_MIN_BUFFER_MS),
++                    bufferValue(config.getMaxBufferMs(), DefaultLoadControl.DEFAULT_MAX_BUFFER_MS),
++                    bufferValue(config.getMaxBufferMs(), DefaultLoadControl.DEFAULT_MAX_BUFFER_MS),
++                    bufferValue(config.getBufferForPlaybackMs(), DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS),
++                    bufferValue(config.getBufferForPlaybackMs(), DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS),
++                    bufferValue(config.getBufferForPlaybackAfterRebufferMs(), DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS),
++                    bufferValue(config.getBufferForPlaybackAfterRebufferMs(), DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS),
+                     -1,
+                     true,
+-                    config.getBackBufferDurationMs() != BufferConfig.Companion.getBufferConfigPropUnsetInt()
+-                            ? config.getBackBufferDurationMs()
+-                            : DefaultLoadControl.DEFAULT_BACK_BUFFER_DURATION_MS,
++                    true,
++                    bufferValue(config.getBackBufferDurationMs(), DefaultLoadControl.DEFAULT_BACK_BUFFER_DURATION_MS),
+                     DefaultLoadControl.DEFAULT_RETAIN_BACK_BUFFER_FROM_KEYFRAME);
+             runtime = Runtime.getRuntime();
+             ActivityManager activityManager = (ActivityManager) themedReactContext.getSystemService(ThemedReactContext.ACTIVITY_SERVICE);
+@@ -593,13 +597,13 @@ public class ReactExoplayerView extends FrameLayout implements
+         }
+ 
+         @Override
+-        public boolean shouldContinueLoading(long playbackPositionUs, long bufferedDurationUs, float playbackSpeed) {
++        public boolean shouldContinueLoading(LoadControl.Parameters parameters) {
+             if (bufferingStrategy == BufferingStrategy.BufferingStrategyEnum.DisableBuffering) {
+                 return false;
+             } else if (bufferingStrategy == BufferingStrategy.BufferingStrategyEnum.DependingOnMemory) {
+                 // The goal of this algorithm is to pause video loading (increasing the buffer)
+                 // when available memory on device become low.
+-                int loadedBytes = getAllocator().getTotalBytesAllocated();
++                int loadedBytes = getAllocator(parameters.playerId).getTotalBytesAllocated();
+                 boolean isHeapReached = availableHeapInBytes > 0 && loadedBytes >= availableHeapInBytes;
+                 if (isHeapReached) {
+                     return false;
+@@ -610,7 +614,7 @@ public class ReactExoplayerView extends FrameLayout implements
+                         ? source.getBufferConfig().getMinBufferMemoryReservePercent()
+                         : ReactExoplayerView.DEFAULT_MIN_BUFFER_MEMORY_RESERVE;
+                 long reserveMemory = (long) minBufferMemoryReservePercent * runtime.maxMemory();
+-                long bufferedMs = bufferedDurationUs / (long) 1000;
++                long bufferedMs = parameters.bufferedDurationUs / (long) 1000;
+                 if (reserveMemory > freeMemory && bufferedMs > 2000) {
+                     // We don't have enough memory in reserve so we stop buffering to allow other components to use it instead
+                     return false;
+@@ -622,7 +626,7 @@ public class ReactExoplayerView extends FrameLayout implements
+                 }
+             }
+             // "default" case or normal case for "DependingOnMemory"
+-            return super.shouldContinueLoading(playbackPositionUs, bufferedDurationUs, playbackSpeed);
++            return super.shouldContinueLoading(parameters);
+         }
+     }
+ 
 diff --git a/node_modules/react-native-video/lib/Video.js b/node_modules/react-native-video/lib/Video.js
 index 2dbeed3..d47c8e6 100644
 --- a/node_modules/react-native-video/lib/Video.js

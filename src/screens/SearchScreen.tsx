@@ -73,7 +73,20 @@ export default function SearchScreen() {
       return;
     }
 
-    searchSuggestions(searchText).then(setHints).catch(LOGGER.warn);
+    // Responses can arrive out of order while typing, so only the one for the
+    // current text may update the hints.
+    let current = true;
+    searchSuggestions(searchText)
+      .then(nextHints => {
+        if (current) {
+          setHints(nextHints);
+        }
+      })
+      .catch(LOGGER.warn);
+
+    return () => {
+      current = false;
+    };
   }, [searchSuggestions, searchText]);
 
   // Kept in a ref so re-registering the native search bar on every keystroke
