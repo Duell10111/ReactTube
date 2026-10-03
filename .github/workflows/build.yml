@@ -3,7 +3,7 @@ on:
 #  push:
 #    branches:
 #      - main
-  workflow_dispatch:  # Ermöglicht manuelle Auslöser
+  workflow_dispatch:  # Allows manual triggering
   release:
     types: [ published ]
 
@@ -23,7 +23,7 @@ jobs:
           xcode-version: latest-stable
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
+        uses: Homebrew/actions/setup-homebrew@main
       - name: Install sponge
         run: brew install sponge
       - name: Setup
@@ -54,7 +54,7 @@ jobs:
 #        uses: actions/checkout@v5
 #      - name: Set up Homebrew
 #        id: set-up-homebrew
-#        uses: Homebrew/actions/setup-homebrew@master
+#        uses: Homebrew/actions/setup-homebrew@main
 #      - name: Install sponge
 #        run: brew install sponge
 #      - name: Setup
