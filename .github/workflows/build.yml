@@ -4,6 +4,13 @@ on:
 #    branches:
 #      - main
   workflow_dispatch:  # Allows manual triggering
+    inputs:
+      # Lets a run started from main rebuild an older tag with the current
+      # workflow; leave empty to build the selected ref.
+      tag_name:
+        description: 'Optional release tag to build and attach the artifacts to'
+        required: false
+        type: string
   release:
     types: [ published ]
   # Releases created by release-please use GITHUB_TOKEN and therefore do not
