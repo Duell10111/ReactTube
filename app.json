@@ -78,7 +78,8 @@
           "style": "light"
         }
       ],
-      "./fmt_path.js"
+      "./fmt_path.js",
+      "./plugins/android/withTVDisplayScaling.js"
     ],
     "name": "reacttube",
     "slug": "reacttube",

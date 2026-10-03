@@ -24,7 +24,10 @@ if (process.env?.EXPO_TV === '1') {
 }
  */
 
-if (appJSONConfig.expo.plugins[0][1].isTV) {
+// EXPO_TV=1 is honored as well because the config-tv plugin already prebuilds a
+// TV project from it; without the TV extensions such a build would bundle the
+// phone variants of every component.
+if (process.env.EXPO_TV === "1" || appJSONConfig.expo.plugins[0][1].isTV) {
   console.log("---- Adding TV file extensions ----");
   config.resolver.sourceExts.unshift(
     ...config.resolver.sourceExts.map(e => `tv.${e}`),

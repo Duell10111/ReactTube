@@ -7,11 +7,12 @@ import {spacing} from "../theme/spacing.ts";
  * they do not use the same logical resolution:
  *
  * - tvOS renders 1920 x 1080 points and asks for 60 x 30 points.
- * - Android TV renders 960 x 540 dp and asks for 48 x 27 dp.
+ * - Android TV natively renders 960 x 540 dp and asks for 48 x 27 dp.
  *
- * A ratio with a floor satisfies both: the ratio reproduces the tvOS margin on
- * the larger coordinate space, and the floor reproduces the Android TV margin
- * on the smaller one. The cap keeps an unusually large logical surface from
+ * The app rescales Android TV to the tvOS surface (see
+ * plugins/android/withTVDisplayScaling.js), so both normally use the ratio.
+ * The floor still covers a build without that rescaling, where the ratio alone
+ * would undercut the Android TV margin on the smaller surface. The cap keeps an unusually large logical surface from
  * spending a tenth of the screen on a margin nothing crops.
  */
 export const tvOverscanMetrics = {
