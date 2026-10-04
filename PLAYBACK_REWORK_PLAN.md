@@ -114,6 +114,92 @@ tv.getInfo (App-Pfad): UNPLAYABLE · 0 Formate
 
 ---
 
+## 0c. Die Bot-Sperre hängt an der IP — und SABR hilft nicht dagegen *(gemessen 2026-09-26)*
+
+Anlass: auf dem Gerät scheiterte die gesamte Client-Kette gleichzeitig.
+
+```
+TV_SIMPLY   UNPLAYABLE      IOS/VISIONOS/ANDROID_VR/TV_DOWNGRADED/MWEB   LOGIN_REQUIRED
+```
+
+Die naheliegende Überlegung war, Phase 6 (SABR) vorzuziehen, um über den
+TV-Client doch noch an Streams zu kommen. Die Messung widerlegt beide Hälften
+dieser Überlegung.
+
+### Die Sperre ist IP-gebunden
+
+`node dev-scripts/playback-matrix.mjs --videos bUHZ2k9DYHY` reproduzierte den
+Zustand vom Gerät exakt — bei **allen acht** geprüften Clients derselbe Grund:
+
+| | |
+|---|---|
+| `playability_reason` | **"Sign in to confirm you're not a bot"** |
+| `has_streaming_data` | `false` |
+| `server_abr_streaming_url` | `null` |
+| `has_ustreamer_config` | `false` |
+| Antwortzeit | 50–99 ms (die gesunde Antwort braucht 500–970 ms) |
+
+Als Ursache ausgeschlossen:
+
+- **Veraltete Session.** Ein Lauf mit weggeräumtem `.cache` scheiterte identisch.
+- **Die Identität.** Ein frisch geholtes `visitorData` scheiterte identisch.
+- **Anfragefrequenz.** Nach dem Ende der Sperre blieben 36 Anfragen in sechs
+  parallelen Salven vollständig `OK` — die Sperre lässt sich von dieser Seite
+  nicht auslösen.
+- **Fehlender PoToken.** Weder ein echter BotGuard-Token (content-gebunden, TTL
+  43200 s) noch ein Cold-Start-Token änderten etwas.
+
+Aufgelöst hat sie sich mit der **Zwangstrennung des Anschlusses**: mit der neuen
+IP lieferte dasselbe Skript sofort wieder `VISIONOS`, `IOS` und `TV_SIMPLY` mit
+2160p av01 + sidx und `hls_ready=true`. Die alte IP war markiert, mehr nicht.
+
+**Für die Praxis:** ein flächendeckendes `LOGIN_REQUIRED` über die ganze Kette
+ist zuerst ein Verbindungsproblem, kein Code-Problem. Der `reason` unterscheidet
+das — er steht seit dieser Messung im Log (`PlaybackResolver.ts`), vorher wurde
+nur `error ?? status` ausgegeben und beide Fälle sahen gleich aus.
+
+### Folge für die Selbstheilung
+
+`resetRejectedPlaybackSession` warf bei jedem `LOGIN_REQUIRED` die
+Session-Identität weg. Bei einer IP-Sperre bringt das nichts — und ein Muster aus
+„neue Identität pro Abspielversuch" ist genau das, wonach die Bot-Erkennung
+sucht. Die Funktion prüft jetzt den Grund und lässt die Identität bei der
+Bot-Sperre stehen (`isBotGateReason`); für alle anderen `LOGIN_REQUIRED`-Gründe
+bleibt es beim Verwerfen.
+
+### SABR kann LOGIN_REQUIRED strukturell nicht beheben
+
+SABRs beide Eingaben — `server_abr_streaming_url` und
+`video_playback_ustreamer_config` — stammen aus **derselben** `/player`-Antwort,
+die hier `LOGIN_REQUIRED` liefert. Ist sie gesperrt, gibt es nichts, womit sich
+ein `VideoPlaybackAbrRequest` überhaupt bauen ließe; die SABR-Aufklärung des
+Matrix-Skripts brach entsprechend mit „Kein Client lieferte eine
+`server_abr_streaming_url`" ab.
+
+SABR ist ein anderer Weg, die Bytes **abzuholen**, nachdem `/player` geliefert
+hat — kein Weg, an `/player` vorbeizukommen.
+
+### Und der TV-Client kommt über SABR ebenfalls nicht durch
+
+Gemessen am SABR-Endpunkt selbst, nach dem Ende der Sperre:
+
+| Client | SABR-Antwort |
+|---|---|
+| `VISIONOS` | HTTP 200 · 787 935 B UMP · itag 401 + 251 |
+| `IOS` | HTTP 200 · 787 573 B UMP · itag 401 + 140 |
+| `TV_SIMPLY` | **HTTP 403** · 0 B |
+| `WEB` | **HTTP 403** · 0 B |
+
+`TV_SIMPLY` bringt zwar eine `ustreamer_config` mit, wird am SABR-Endpunkt aber
+abgewiesen — dasselbe Bild wie in §0b Befund 5. **SABR erschließt `WEB` und
+`ANDROID` (die SABR-only sind), nicht die TV-Clients.**
+
+⇒ Phase 6 bleibt aus den Gründen in §0b sinnvoll (SABR-only-Clients erschließen,
+Ausweg falls `VISIONOS` die ungekappte Byte-Range verliert). Als Antwort auf
+`LOGIN_REQUIRED` ist sie es nicht.
+
+---
+
 ## 1. Ausgangslage (Ist-Analyse)
 
 ### 1.1 Wie die App heute abspielt
@@ -437,6 +523,104 @@ Ursache des Hängens.
 
 ---
 
+### Phase 3 — `modules/media-server` als lokales Expo-Modul *(✅ umgesetzt 2026-09-26 für Apple, Android offen)*
+
+> Ausgelöst durch Phase 6.5: SABR-Segmente lassen sich nicht als Dateien ablegen,
+> weil sie erst beim Abruf entstehen. Der serverlose Weg aus 2.0 trägt SABR also
+> nicht.
+
+#### Stand
+
+| Schritt | Stand |
+|---|---|
+| 3.1 API (JS) | ✅ `modules/media-server/src/MediaServerModule.ts` — statt `registerSabrSource(path, handlerId)` ein Ereignis mit Antwortfunktion, siehe unten |
+| 3.2 tvOS/iOS (Swift) | ✅ `ios/LocalMediaServer.swift` auf `NWListener`, ~380 Zeilen, keine Fremd-Dependency. GET, HEAD, `Range`→206, 416 mit Gesamtlänge, 404/405, Keep-Alive, Content-Types |
+| 3.3 Android (Kotlin) | ❌ offen — gehört zu Phase 7 („Apple TV hat Priorität", Entscheidung 1) |
+| 3.4 Umschalten | ✅ für SABR; der Phase-2c-Weg bleibt bewusst auf `data:`+`file://`, er braucht den Server nicht |
+
+`NSAppTransportSecurity → NSAllowsLocalNetworking` steht in `app.json` unter
+`expo.ios.infoPlist`; Loopback löst keine Berechtigungsabfrage aus.
+
+#### Abweichung von 3.1: kein `handlerId`, sondern ein Ereignis
+
+Der Plan sah `registerSabrSource(path, handlerId)` vor — der Server ruft eine
+JS-Funktion. Über die Expo-Brücke geht das nicht synchron, und ein Segment
+braucht ohnehin Zeit. Umgesetzt ist deshalb die Umkehrung:
+
+```
+registerStreamPrefix(prefix)                    JS meldet ein Präfix an
+  → onSegmentRequest { requestId, path }        der Server fragt
+  → respondToSegment(requestId, bytes, type)    JS antwortet
+  → failSegment(requestId, status, message)     oder eben nicht
+```
+
+`respondToSegment` ist bewusst **synchron**: ein `Uint8Array` zeigt in den
+Speicher der JS-Laufzeit und gilt nur innerhalb des Aufrufs, also wird dort
+sofort nach `Data` kopiert. Jede Anfrage muss beantwortet werden — sonst wartet
+die Verbindung den Zeitablauf (30 s) ab und der Player steht so lange still.
+
+#### Verifiziert ohne Gerätebuild
+
+`tools/media-server-probe.swift` kompiliert `LocalMediaServer.swift` einzeln und
+prüft ihn gegen **echte SABR-Daten**, die `YouTube.js/dev-scripts/dump-sabr-fixture.mjs`
+vorher ablegt:
+
+```bash
+node dev-scripts/dump-sabr-fixture.mjs /tmp/sabr-fixture      # im Fork
+swiftc -O -o /tmp/media-server-probe \
+  tools/media-server-probe.swift modules/media-server/ios/LocalMediaServer.swift
+/tmp/media-server-probe /tmp/sabr-fixture
+```
+
+Lauf vom 2026-09-26 — **28 von 28 Prüfungen bestanden**:
+
+```
+▶ HTTP-Semantik
+  Master 200 · application/vnd.apple.mpegurl · Content-Length passt
+  Segment 200 · video/iso.segment · beginnt mit moof
+  HEAD ohne Rumpf, gleiche Content-Length
+  Range 0-99 → 206 · bytes 0-99/61494 · Inhalt stimmt
+  Range ab Offset ohne Ende, Range -20, Range jenseits des Endes → 416 bytes */61494
+  404 für fehlendes Segment · 405 mit Allow für POST
+  Keep-Alive: sechs Segmente auf einer Session
+▶ AVFoundation
+  Master geladen · playable=true · Dauer 68.6s
+  Wiedergabe läuft · 3.1s abgespielt
+  Video- und Tonspur dekodiert · vide, soun
+  39 Anbieter-Aufrufe
+```
+
+**Damit ist die Kette bewiesen**: echte SABR-Bytes → `LocalMediaServer` →
+AVPlayer dekodiert Bild und Ton. Genau der Weg, den Phase 2.0 mit `file://`
+nicht gehen konnte.
+
+Zwei Fehlschläge unterwegs waren die Probe, nicht der Server, und sind beide im
+Skript vermerkt: `AVURLAsset.tracks` ist bei HLS immer leer (die Spuren hängen am
+`AVPlayerItem`), und `Thread.sleep` blockiert den Run-Loop, über den AVPlayer
+seinen Zustand vorantreibt — die Zeit blieb auf 0, obwohl alles stimmte.
+
+#### Ursprüngliche Spezifikation
+
+Gerüst: `npx create-expo-module@latest --local media-server` ⇒ `modules/media-server/` mit `ios/`, `android/`, `expo-module.config.json`. JS-Bindings über Nitro (`react-native-nitro-modules` ist bereits Dependency); Expo-Autolinking übernimmt den Rest.
+
+3.1 **API (JS).**
+```ts
+startServer(): Promise<{ port: number; token: string }>   // Loopback, zufälliger Port
+registerText(path: string, body: string, contentType: string): void  // Manifeste
+registerSabrSource(path: string, handlerId: string): void            // Phase 6
+stopServer(): Promise<void>
+```
+3.2 **tvOS/iOS (Swift).** Minimaler HTTP/1.1-Server auf `NWListener` (Network.framework, ab tvOS 12) — ~300 Zeilen, keine Fremd-Dependency. Muss beherrschen: `GET`, `HEAD`, `Range` (`206 Partial Content`), `Content-Length`, Keep-Alive.
+**Pflichtdetails, sonst spielt AVPlayer nicht:**
+- Content-Type `application/vnd.apple.mpegurl` für `.m3u8`, `video/iso.segment` für `.m4s`
+- `Info.plist`: `NSAppTransportSecurity → NSAllowsLocalNetworking = true` (via `expo-build-properties` oder Config-Plugin des Moduls)
+- Loopback (`127.0.0.1`) löst **keine** Local-Network-Berechtigungsabfrage aus
+- Lebensdauer an den Video-Screen koppeln; bei Hintergrund-Audio (`UIBackgroundModes: audio` ist gesetzt) muss der Listener weiterlaufen
+  3.3 **Android (Kotlin).** NanoHTTPD (Apache-2.0, eine Datei) oder handgeschrieben auf `ServerSocket`; gleiche Range-Semantik.
+  3.4 **Umschalten.** In `usePlaybackSource` nur die Ablage der Manifeste wechseln (`file://` → `http://127.0.0.1:<port>`); Generator und Player-Anbindung bleiben unberührt.
+
+---
+
 ### Phase 5 — PoToken (BotGuard) → **läuft als Phase 2b**
 
 > Diese Phase ist nach der Messung aus Phase 2 vorgezogen worden und heißt dort **2b**.
@@ -455,7 +639,206 @@ frei, behebt den 403 bei `MWEB` und erreicht altersbeschränkte sowie geo-blocki
 
 ---
 
-### Phase 6 — SABR *(~1,5–2,5 Wochen, Hauptpfad — kann direkt nach Phase 4 beginnen)*
+### Phase 6 — SABR *(✅ umgesetzt 2026-09-26; Apple-Pfad vollständig, Android in Phase 7)*
+
+> **Nicht das Mittel gegen `LOGIN_REQUIRED`** und nicht der Weg zu Streams über
+> den TV-Client — beides in §0c gemessen und widerlegt. Der Nutzen von Phase 6
+> bleibt: `WEB`/`ANDROID` erschließen und unabhängig von der Byte-Range-Gunst
+> einzelner Clients werden.
+
+#### Stand
+
+| Schritt | Stand |
+|---|---|
+| 6.1 Protos | ✅ `protos/sabr/**` aus SmartTube übernommen, 28 Dateien, über `npm run build:proto` erzeugt (`protoc` 7.36.2 / ts_proto 2.12.0). Herkunft und Lizenzen in `YouTube.js/NOTICE` |
+| 6.2 UMP-Decoder | ✅ `src/core/sabr/UmpDecoder.ts` — inkrementell, weil Parts regelmäßig über Chunk-Grenzen laufen |
+| 6.3 SabrStream/-Processor | ✅ `SabrProcessor.ts` (Zustandsmaschine, Request-Bau) + `SabrStream.ts` (Transport, Request-Schleife) |
+| 6.4 Manifest | ✅ `toHLS({ mode: 'segments' })` + `buildSabrHlsIndex()`; `toDash()` bleibt Phase 7 (Android) |
+| 6.5 Segment-Server | ✅ `src/utils/SabrPlayback.ts` über `modules/media-server` (Phase 3) |
+| 6.6 Flag & Fallback | ✅ Einstellung „SABR (experimentell)", Modus `sabr` in der Client-Kette und der Fehler-Ladder, selbsttätiger Rückfall |
+
+#### Was auf dem Weg dazukam
+
+- **`SabrSegmentSource`** (nicht im Plan vorgesehen). SABR schiebt: der Server
+  entscheidet, was er sendet, und eine Runde liefert mehrere Segmente beider
+  Spuren. Ein Player fragt umgekehrt — „Segment 42 von Format 401". Dazwischen
+  braucht es etwas, das den Strom zieht und hält. Genau das ist die Gegenstelle
+  für 6.5.
+- **Rückwärtszugriff.** Der Strom läuft nur vorwärts, ein Segment hinter der
+  Position wäre unerreichbar. `getSegment` erkennt das und positioniert neu —
+  ohne das scheiterte die Seek-Probe reproduzierbar.
+- **Der Segmentplan kommt aus dem Init-Segment.** YouTube legt in das
+  SABR-Init-Segment eine `sidx`-Box (gemessen: `ftyp moov sidx`). Damit stehen
+  die **echten** Segmentdauern schon vor dem ersten Mediensegment fest —
+  `buildSabrHlsIndex()` liest sie dort, ohne Zusatzanfrage. Die gleichmäßige
+  Aufteilung aus Segmentzahl und Gesamtdauer bleibt nur Notnagel.
+- **Im Segmentmodus gibt es keine Client-Leiter.** Bei SABR adaptiert der
+  Server, und ein Strom trägt genau die Formate, die er angefragt hat. Das
+  Manifest bietet deshalb **eine** Variante; `codec_preference`, `max_height` und
+  `max_video_renditions` sind dort ohne Wirkung. Die Codec-Wahl passiert bei der
+  Formatauswahl für den `SabrStream`.
+
+#### Verifikation
+
+`node dev-scripts/phase6-verify.mjs [videoId] [client] [segmente]` zieht echte
+Segmente und prüft sie. Lauf vom 2026-09-26, `bUHZ2k9DYHY` über `VISIONOS`:
+
+```
+Format 401: · video/mp4 av01.0.12M.08 · 195 Segmente · 1051425 ms
+  Init-Segment: 3073 B · ftyp moov sidx
+  4 Mediensegmente: je moof + mdat · 10466 KB
+Format 140: · audio/mp4 mp4a.40.2 · 106 Segmente · 1051492 ms
+  Init-Segment: 2027 B · ftyp moov sidx
+  4 Mediensegmente: je moof + mdat · 631 KB
+Seek auf 525712 ms → Segment 97 · 1222 KB · moof mdat
+Segmentplan: 195 bzw. 106 Einträge, Gesamtdauer 1051,4 s — echte Dauern aus sidx
+toHLS({mode:'segments'}): 2 Playlists, 195 lückenlose Segment-URLs, kein BYTERANGE
+Gegenprobe: erste Segment-URL der Playlist über die Quelle bedient — 1668 KB
+```
+
+Die Segmentzahlen deckten sich mit der Byte-Range-Messung aus §0b (195 Video-,
+106 Audiosegmente) — zwei unabhängige Wege, dasselbe Ergebnis.
+
+**Ein Befund verfeinert §0b Nr. 5.** „SABR funktioniert ohne PoToken" gilt nicht
+für jeden Client gleich. Je zweimal gemessen:
+
+| Client | `STREAM_PROTECTION_STATUS` | Seek |
+|---|---|---|
+| `VISIONOS` | `OK` durchgehend | ✅ Segment 97 geliefert |
+| `IOS` | `ATTESTATION_PENDING`, nach dem Seek `ATTESTATION_REQUIRED` | ❌ Strom versiegt |
+
+Für die ersten Runden liefert `IOS` also Medien, dauerhaft aber nicht. **Für SABR
+ist `VISIONOS` der Client**, `IOS` bleibt Reserve, bis Phase 2b/5 einen PoToken
+liefert. `PLAYBACK_CLIENTS_SABR` ist entsprechend sortiert.
+
+Dazu 27 Einheitentests in `YouTube.js/tests/sabr.test.ts` (UMP-VarInts über alle
+fünf Breiten, Part-Aufteilung über Chunk-Grenzen, Segment-Wiederzusammenbau,
+abgeschnittene Segmente, `buffered_ranges` aus aufeinanderfolgenden und
+springenden Sequenznummern, Playback-Cookie, PoToken als Rohbytes) und 6 in
+`test/playback-ladder.test.mjs` für den Rückfall.
+
+#### Gerätetest: SABR-Probe in den Diagnostics
+
+*Einstellungen ▸ Playback diagnostics* zieht jetzt zusätzlich echte Segmente über
+SABR (`checkSabr` in `src/utils/PlaybackDiagnostics.ts`). Sie beantwortet, was der
+Node-Lauf nicht kann: setzt `fetch` unter Hermes einen POST mit Protobuf-Rumpf so
+ab, dass der Endpunkt ihn annimmt, und lässt sich UMP auf dem Gerät zerlegen?
+
+Die Probe läuft an der **anonymen** Instanz — eine angemeldete Session
+beantwortet Nicht-TV-Clients mit HTTP 400, und SABR braucht genau einen davon.
+Sie wählt bewusst die **kleinsten** mp4-Formate; gemessen kostet sie einen
+`/player`-Abruf und **eine** SABR-Anfrage mit 107 KB über die Leitung (80 KB
+Segmentdaten):
+
+```
+SABR (VISIONOS):
+    itag 160+139 · Antwort ganz gepuffert · Schutz ok · 1400ms
+    160: video/mp4 avc1.4D400C · 195 Segmente · 1051425ms
+        init 3110B [ftyp moov sidx] · Segment 1 14803B [moof mdat]
+    139: audio/mp4 mp4a.40.5 · 106 Segmente · 1051539ms
+        init 2036B [ftyp moov sidx] · Segment 1 61494B [moof mdat]
+```
+
+`Antwort ganz gepuffert` ist der erwartete Nebenbefund: React Natives `fetch`
+liefert keinen lesbaren `response.body`, die Antwort landet also komplett im
+Speicher. `SabrStream` deckt beide Wege ab (`last_response_streamed` sagt,
+welcher genommen wurde) — für die Größenordnung einer SABR-Antwort ist das
+unkritisch, für einen Live-Strom wäre es der Punkt, an dem man nachsieht.
+
+#### 6.5 — die Auslieferung an AVPlayer *(✅ umgesetzt 2026-09-26)*
+
+`src/utils/SabrPlayback.ts` verbindet `SabrSegmentSource` mit dem Server aus
+Phase 3:
+
+```
+AVPlayer                       media-server (Swift)          SabrSegmentSource (JS)
+   │ GET /sabr/<t>/master.m3u8  ─▶ abgelegter Text
+   │ GET /sabr/<t>/seg/401:/42.m4s ─▶ onSegmentRequest ──────▶ getSegment("401:", 42)
+   │                                  respondToSegment ◀────── Bytes
+```
+
+Ablauf beim Start: Strom öffnen, Segmentplan aus den Init-Segmenten lesen,
+Server starten, Manifest mit `mode:'segments'` auf `http://127.0.0.1:<port>/sabr/<token>/seg`
+erzeugen, Playlists als Text ablegen, Präfix anmelden. Zurück kommt die Master-URL
+— kein `data:`-URI und kein `file://` mehr, der Umweg aus Phase 2.0 entfällt hier.
+
+**Pfadaufbau.** Das Master liegt neben den Medien-Playlists, weil es sie mit
+relativem Namen referenziert; die Segmente liegen unter `/seg` eine Ebene tiefer,
+damit ihr Präfix die Playlists nicht überdeckt.
+
+**Lebensdauer.** Ein laufender Strom hält einen Server und eine offene Verbindung
+zu googlevideo. `useVideoDetails` hält ihn in einem Ref, beendet den vorigen beim
+Videowechsel und den laufenden beim Verlassen des Screens. Ohne das bliebe der
+Port belegt und der Strom liefe weiter.
+
+**Ein Prefetch ist nicht eingebaut.** Der Plan sah „Prefetch der nächsten n
+Segmente" vor; gemessen liefert eine SABR-Runde bereits mehrere Segmente beider
+Spuren auf einmal, die `SabrSegmentSource` hält sie in ihrem Fenster. Der Prefetch
+wäre also ein zweiter Puffer vor dem ersten. Wenn der Gerätetest Stalls zeigt, ist
+das die Stelle — bis dahin ist es Spekulation.
+
+#### Gerätelauf 2026-09-26: zwei Fehler, ein Grund
+
+Auf der Apple TV lief die Wiedergabe an und blieb dann hängen — einzelne Segmente
+kamen nicht (`did not deliver segment 46 of format 137:`), AVPlayer wiederholte sie
+und gab nach rund drei Minuten mit `NSURLErrorDomain -1008` auf. `phase6-verify.mjs`
+hatte das nicht gesehen, weil es Segmente **streng der Reihe nach und einzeln**
+holt. AVPlayer tut beides nicht: es fragt Bild und Ton **gleichzeitig** und weit
+**vorausschauend** — auf dem Gerät wurde Segment 27 schon vier Sekunden nach dem
+Start verlangt.
+
+`dev-scripts/phase65-stress.mjs` ahmt genau das nach und reproduziert den Ausfall.
+
+**Die Ursache: `advance()` nahm das Maximum über die Formate.** Eine SABR-Runde
+trägt beide Spuren, und ihre Segmentgrenzen liegen nicht aufeinander — gemessen
+5,4 s je Videosegment gegen 9,9 s je Tonsegment. Damit zog das Tonsegment die
+Position über ein Videosegment hinweg, das noch nicht gekommen war. Direkt
+beobachtet nach einem Rückwärtssprung:
+
+```
+Seek auf 45211 ms
+  Runde 1 → 137: [9]      140: [5,6]   playerTime danach 59908 ms   ← Ton zieht vor
+  Runde 2 → 137: [11,12]  140: [7]                                  ← 10 fehlt für immer
+```
+
+`advance()` nimmt jetzt das **Minimum** über die Formate, die etwas geliefert
+haben — den ersten Punkt, den noch nicht jede Spur abdeckt. Danach:
+
+```
+  Runde 1 → 137: [9]      140: [5,6]   playerTime danach 52219 ms
+  Runde 2 → 137: [10,11]  140: [7]                                  ← Lücke geschlossen
+```
+
+**Zwei weitere Stellen, die derselbe Lauf aufgedeckt hat:**
+
+- **Der Re-Seek rechnete mit der mittleren Segmentdauer.** Die echten Dauern
+  schwanken stark (gemessen 3,92 s und 5,88 s hintereinander), also landete das
+  Ziel im falschen Segment. `SabrSegmentSource` liest die exakten Startzeiten
+  jetzt aus der `sidx`-Box des Init-Segments — dieselbe Quelle, aus der
+  `buildSabrHlsIndex` schon die Playlist-Dauern nimmt — und zielt bewusst auf das
+  **vorige** Segment: ein Segment Überschuss kostet einen Abruf, ein Segment zu
+  wenig kostet die Anfrage.
+- **Das Fenster warf erwartete Segmente weg.** Bei dreißig gleichzeitigen
+  Anfragen fiel eines davon aus dem Fenster, während noch darauf gewartet wurde;
+  der Waiter schloss daraus „der Strom ist vorbei" und löste einen Re-Seek aus,
+  der allen anderen den Cache leerte. Erwartete Segmente sind jetzt von der
+  Verdrängung ausgenommen.
+
+**Und der Stillstand selbst:** ein Fehlschlag wird jetzt mit **404** beantwortet,
+nicht mit 503 — ein 5xx lädt AVPlayer zum Wiederholen ein. Dazu zählt
+`SabrPlayback` Fehlschläge in Folge und schreibt ab dem dritten deutlich ins
+Protokoll, dass der Strom hinüber ist und die Ladder absteigen soll.
+
+Nach den Änderungen: **1500 Segmente über 1,2 GB ohne einen Fehlschlag**, mit
+Vorlauf 40 und einem Sprung mitten im Lauf. Dazu drei Regressionstests für
+`advance()` in `tests/sabr.test.ts` (30 Tests).
+
+#### Was noch offen ist
+
+- **Android.** Phase 3.3 (Kotlin-Server) und der DASH-Weg gehören zu Phase 7.
+- **Der zweite Gerätelauf.** Der erste hat die drei Fehler oben zutage gebracht;
+  dass es damit auf dem Gerät durchläuft, ist in Node nachgestellt, aber noch nicht
+  auf der Apple TV gemessen.
 
 Vorarbeit aus Phase 0: ein handkodierter Request wird bereits akzeptiert, die Antwortstruktur ist bekannt (§0b Befund 5/6). `dev-scripts/lib/proto.mjs` (Writer + UMP-Reader) und `dev-scripts/playback-matrix.mjs#buildAbrRequest` sind die lauffähige Referenz für 6.1–6.3.
 
@@ -489,7 +872,7 @@ Vorarbeit aus Phase 0: ein handkodierter Request wird bereits akzeptiert, die An
                                                                             │
                                                                             ├─▶ 4 Robustheit ✅
                                                                             │
-                                                     3 media-server ───────┴─▶ 6 SABR ─▶ 7 Android/Abschluss
+                                                     3 media-server ✅ ────┴─▶ 6 SABR ✅ ─▶ 7 Android/Abschluss
 
                                                      2b PoToken — zurückgestellt, nur noch Reserve
 ```
@@ -504,9 +887,9 @@ Nach **Phase 2** ist das Kernversprechen erfüllt ("spielt wie SmartTube" auf Ap
 | 2a YouTube-HLS | ✅ erledigt | – |
 | 2c eigener Generator | ✅ erledigt (Gerätetest offen) | – |
 | 2b PoToken | 3–5 T | hoch — **zurückgestellt**, gemessen ohne Wirkung; auf tvOS zusätzlich ohne WebView |
-| 3 media-server | 4–6 T | mittel (erstes eigenes Nativ-Modul im Projekt) |
+| 3 media-server | ✅ erledigt (Apple) · Android offen | gering: gegen echte Daten geprüft, 28/28 |
 | 4 Robustheit | ✅ erledigt (Gerätetest offen) | – |
-| 6 SABR | 1,5–2,5 W | hoch — durch Phase 0 deutlich gesunken (Request akzeptiert, Antwortstruktur bekannt) |
+| 6 SABR | ✅ erledigt (Apple) | Protokollrisiko weg: echte Segmente gemessen, Kette bis AVPlayer belegt |
 | 7 Android + Abschluss | 3–4 T | niedrig |
 
 **Die Wiedergabequalität ist am Ziel — der Beweis auf dem Gerät fehlt noch:**

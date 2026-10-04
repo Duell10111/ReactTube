@@ -43,8 +43,13 @@ export default function PlaybackDiagnosticsScreen() {
     (async () => {
       const collected: DiagnosticsResult[] = [];
 
+      // The SABR probe runs on the anonymous instance only: a logged-in session
+      // answers non-TV clients with HTTP 400, and SABR needs one of those.
       collected.push(
-        await runDiagnostics(youtube, {label: "Standard-Instanz"}),
+        await runDiagnostics(youtube, {
+          label: "Standard-Instanz",
+          includeSabr: true,
+        }),
       );
 
       if (tvYoutube && tvYoutube !== youtube) {

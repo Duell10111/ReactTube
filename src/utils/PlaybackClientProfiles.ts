@@ -27,6 +27,22 @@ export const PLAYBACK_CLIENTS_FULL_BYTE_RANGE = [
 ] as InnerTubeClient[];
 
 /**
+ * Clients, die der SABR-Endpunkt tatsächlich bedient.
+ *
+ * Gemessen am 2026-09-26 gegen `server_abr_streaming_url` (Plan §0c/§6):
+ * `VISIONOS` und `IOS` antworten mit HTTP 200 und echten Mediendaten,
+ * `TV_SIMPLY` und `WEB` mit **403** — obwohl beide eine `ustreamer_config`
+ * mitbringen. Die Liste ist also keine Vorliebe, sondern die Menge des
+ * Möglichen.
+ *
+ * **Die Reihenfolge ist es dagegen schon.** `VISIONOS` meldet durchgehend
+ * `STREAM_PROTECTION_STATUS = OK`; `IOS` startet bei `ATTESTATION_PENDING` und
+ * verlangt nach einem Seek `ATTESTATION_REQUIRED` — ohne PoToken versiegt der
+ * Strom dort also. `IOS` ist Reserve, bis Phase 2b/5 den Token liefert.
+ */
+export const PLAYBACK_CLIENTS_SABR = ["VISIONOS", "IOS"] as InnerTubeClient[];
+
+/**
  * Das Musikprofil ist absichtlich anonym und besitzt eine echte Client-Ladder:
  * VISIONOS liefert direkte Dateien, die übrigen Clients sichern Audio/HLS ab.
  */

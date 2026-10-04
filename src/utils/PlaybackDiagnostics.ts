@@ -16,7 +16,7 @@
 // @ts-ignore Ignore no type definitions found
 import {InnerTubeClient} from "youtubei.js/dist/src/types";
 
-import {Innertube, Misc} from "@/utils/Youtube";
+import {Innertube, Misc, Sabr} from "@/utils/Youtube";
 
 export interface EngineCheck {
   hermes: boolean;
@@ -66,6 +66,43 @@ export interface TvNamespaceCheck {
   error?: string;
 }
 
+/**
+ * Ergebnis der SABR-Probe — Plan-Phase 6.
+ *
+ * Beantwortet die Frage, die der Node-Lauf nicht beantworten kann: setzt `fetch`
+ * unter Hermes einen POST mit Protobuf-Rumpf so ab, dass der SABR-Endpunkt ihn
+ * annimmt, und lässt sich die UMP-Antwort auf dem Gerät zerlegen? `streamedBody`
+ * ist dabei der interessante Nebenbefund — React Native liefert in der Regel
+ * keinen lesbaren `response.body`, die Antwort landet also komplett im Speicher.
+ */
+export interface SabrCheck {
+  client: string;
+  hasSabrUrl: boolean;
+  hasUstreamerConfig: boolean;
+  videoItag?: number;
+  audioItag?: number;
+  /** Ob die Antwort strömend gelesen wurde oder ganz gepuffert werden musste. */
+  streamedBody?: boolean;
+  /** `STREAM_PROTECTION_STATUS` der Antwort. `required` heißt: PoToken nötig. */
+  protectionStatus?: string;
+  formats?: {
+    key: string;
+    mimeType?: string;
+    totalSegments: number;
+    durationMs: number;
+    /** Größe des Init-Segments und seine mp4-Boxen (`ftyp moov …` erwartet). */
+    initBytes?: number;
+    initBoxes?: string;
+    /** Erstes Mediensegment (`moof mdat` erwartet). */
+    segmentBytes?: number;
+    segmentBoxes?: string;
+  }[];
+  /** UMP-Parts, die die Implementierung nicht kennt — Hinweis auf Protokolldrift. */
+  unknownParts?: string[];
+  error?: string;
+  ms?: number;
+}
+
 export interface DiagnosticsResult {
   startedAt: string;
   videoId: string;
@@ -88,6 +125,8 @@ export interface DiagnosticsResult {
   clients: ClientCheck[];
   /** Der Pfad, den die App für die TV-Wiedergabe tatsächlich benutzt. */
   tvNamespace?: TvNamespaceCheck;
+  /** Holt SABR auf diesem Gerät echte Segmente? */
+  sabr?: SabrCheck;
 }
 
 export const DIAGNOSTICS_CLIENTS: InnerTubeClient[] = [
@@ -261,6 +300,172 @@ async function checkFormat(
   return check;
 }
 
+/* ------------------------------------- SABR ----------------------------------- */
+
+/**
+ * Liest die Top-Level-Boxtypen eines mp4-Fragments.
+ *
+ * Reicht als Echtheitsprüfung: ein Init-Segment beginnt mit `ftyp` und trägt
+ * `moov`, ein Mediensegment `moof` + `mdat`. Was dazwischen an Bytes liegt, muss
+ * hier niemand deuten.
+ */
+function readBoxTypes(data: Uint8Array, limit = 6): string {
+  const types: string[] = [];
+  let offset = 0;
+
+  while (offset + 8 <= data.length && types.length < limit) {
+    const size =
+      data[offset] * 2 ** 24 +
+      (data[offset + 1] << 16) +
+      (data[offset + 2] << 8) +
+      data[offset + 3];
+
+    types.push(
+      String.fromCharCode(
+        data[offset + 4],
+        data[offset + 5],
+        data[offset + 6],
+        data[offset + 7],
+      ),
+    );
+
+    // 0 heißt „bis zum Ende", 1 heißt 64-Bit-Größe dahinter — beides beendet
+    // hier die Aufzählung, weil der erste Boxtyp die Frage schon beantwortet.
+    if (size < 8) {
+      break;
+    }
+
+    offset += size;
+  }
+
+  return types.join(" ");
+}
+
+/**
+ * Wählt bewusst die **kleinsten** indizierten mp4-Formate.
+ *
+ * Die Probe prüft den Mechanismus, nicht die Qualität — und eine Runde 2160p
+ * kostet rund 2,5 MB Mobilfunk- oder WLAN-Verkehr für nichts.
+ */
+function pickSmallestSabrFormats(info: any) {
+  const adaptive = info.streaming_data?.adaptive_formats ?? [];
+  const usable = (f: any) => f.mime_type?.includes("mp4");
+
+  const video = adaptive
+    .filter((f: any) => f.has_video && !f.has_audio && usable(f))
+    .sort((a: any, b: any) => (a.height ?? 0) - (b.height ?? 0))[0];
+
+  const audio = adaptive
+    .filter((f: any) => f.has_audio && !f.has_video && usable(f))
+    .sort((a: any, b: any) => (a.bitrate ?? 0) - (b.bitrate ?? 0))[0];
+
+  return {video, audio};
+}
+
+/**
+ * Zieht über SABR ein Init- und ein Mediensegment je Spur.
+ *
+ * Gemessen (Plan §6) bedient der SABR-Endpunkt nur `VISIONOS` und `IOS`; bei
+ * `IOS` verlangt der Server nach kurzer Zeit Attestierung. Deshalb ist
+ * `VISIONOS` die Vorgabe.
+ */
+export async function checkSabr(
+  youtube: Innertube,
+  videoId: string,
+  client = "VISIONOS",
+): Promise<SabrCheck> {
+  const started = Date.now();
+  const check: SabrCheck = {
+    client,
+    hasSabrUrl: false,
+    hasUstreamerConfig: false,
+  };
+
+  try {
+    const info = await youtube.getBasicInfo(videoId, {client} as any);
+    const streamingUrl = info.streaming_data?.server_abr_streaming_url;
+    const ustreamerConfig = (info as any).player_config?.media_common_config
+      ?.media_ustreamer_request_config?.video_playback_ustreamer_config;
+
+    check.hasSabrUrl = !!streamingUrl;
+    check.hasUstreamerConfig = !!ustreamerConfig;
+
+    if (!streamingUrl || !ustreamerConfig) {
+      check.error =
+        "Die /player-Antwort trägt keine SABR-Eingaben — ohne sie ist SABR " +
+        "unmöglich (siehe Plan §0c).";
+      return check;
+    }
+
+    const {video, audio} = pickSmallestSabrFormats(info);
+
+    if (!video || !audio) {
+      check.error = "Keine indizierten mp4-Formate für Video und Ton gefunden";
+      return check;
+    }
+
+    check.videoItag = video.itag;
+    check.audioItag = audio.itag;
+
+    const toFormatId = (format: any) => ({
+      itag: format.itag,
+      lastModified: Number(format.last_modified_ms ?? 0),
+      xtags: format.xtags ?? undefined,
+    });
+
+    const stream = new Sabr.SabrStream({
+      server_abr_streaming_url: streamingUrl,
+      ustreamer_config: ustreamerConfig,
+      client_name: client,
+      client_version: youtube.session.context.client.clientVersion,
+      video_format_id: toFormatId(video),
+      audio_format_id: toFormatId(audio),
+      video_id: videoId,
+      // Dieselbe fetch-Funktion wie der Rest der Session, damit Kopfzeilen und
+      // Netzwerkverhalten sich nicht von den übrigen Abrufen unterscheiden.
+      fetch: youtube.session.http.fetch_function,
+    });
+
+    const source = new Sabr.SabrSegmentSource(stream, {window: 4});
+
+    try {
+      const formats = await source.open();
+
+      check.formats = [];
+
+      for (const format of formats) {
+        const entry: NonNullable<SabrCheck["formats"]>[number] = {
+          key: format.key,
+          mimeType: format.mime_type,
+          totalSegments: format.total_segments,
+          durationMs: format.duration_ms,
+        };
+
+        const init = await source.getInit(format.key);
+        entry.initBytes = init.length;
+        entry.initBoxes = readBoxTypes(init);
+
+        const segment = await source.getSegment(format.key, 1);
+        entry.segmentBytes = segment.length;
+        entry.segmentBoxes = readBoxTypes(segment);
+
+        check.formats.push(entry);
+      }
+
+      check.streamedBody = stream.last_response_streamed;
+      check.protectionStatus = stream.protection_status;
+      check.unknownParts = stream.unknown_parts;
+    } finally {
+      await source.close();
+    }
+  } catch (error: any) {
+    check.error = String(error?.message ?? error);
+  }
+
+  check.ms = Date.now() - started;
+  return check;
+}
+
 /* ------------------------------------- Lauf ----------------------------------- */
 
 export async function runDiagnostics(
@@ -270,6 +475,16 @@ export async function runDiagnostics(
     clients?: InnerTubeClient[];
     label?: string;
     includeTvNamespace?: boolean;
+    /**
+     * Zieht zusätzlich echte Segmente über SABR (Plan-Phase 6).
+     *
+     * Gemessen kostet die Probe einen zusätzlichen `/player`-Abruf und **eine**
+     * SABR-Anfrage mit rund 110 KB über die Leitung (80 KB davon Segmentdaten) —
+     * sie wählt dafür die kleinsten mp4-Formate. Sie gehört an die **anonyme**
+     * Instanz: eine angemeldete Session beantwortet Nicht-TV-Clients mit HTTP 400,
+     * und SABR braucht genau einen davon.
+     */
+    includeSabr?: boolean;
   },
 ): Promise<DiagnosticsResult> {
   const videoId = options?.videoId ?? DIAGNOSTICS_DEFAULT_VIDEO;
@@ -339,6 +554,10 @@ export async function runDiagnostics(
 
   if (options?.includeTvNamespace) {
     result.tvNamespace = await checkTvNamespace(youtube, videoId);
+  }
+
+  if (options?.includeSabr) {
+    result.sabr = await checkSabr(youtube, videoId);
   }
 
   return result;
@@ -427,6 +646,44 @@ export function formatDiagnostics(result: DiagnosticsResult): string {
             `decipher ${f.decipher} · HTTP ${f.httpStatus ?? "–"} · ` +
             `sidx ${f.sidx === "ok" ? `${f.sidxSegments} Segmente` : (f.sidx ?? "–")}`,
         );
+      }
+    }
+  }
+
+  if (result.sabr) {
+    const sabr = result.sabr;
+    lines.push("");
+    lines.push(`SABR (${sabr.client}):`);
+
+    if (!sabr.hasSabrUrl || !sabr.hasUstreamerConfig) {
+      lines.push(
+        `    Eingaben fehlen — SABR-URL ${sabr.hasSabrUrl ? "ja" : "nein"}, ` +
+          `ustreamer-Konfiguration ${sabr.hasUstreamerConfig ? "ja" : "nein"}`,
+      );
+    }
+
+    if (sabr.error) {
+      lines.push(`    FEHLER ${sabr.error}`);
+    } else {
+      lines.push(
+        `    itag ${sabr.videoItag}+${sabr.audioItag} · ` +
+          `Antwort ${sabr.streamedBody ? "strömend" : "ganz gepuffert"} · ` +
+          `Schutz ${sabr.protectionStatus} · ${sabr.ms}ms`,
+      );
+
+      for (const format of sabr.formats ?? []) {
+        lines.push(
+          `    ${format.key} ${format.mimeType ?? ""} · ` +
+            `${format.totalSegments} Segmente · ${format.durationMs}ms`,
+        );
+        lines.push(
+          `        init ${format.initBytes}B [${format.initBoxes}] · ` +
+            `Segment 1 ${format.segmentBytes}B [${format.segmentBoxes}]`,
+        );
+      }
+
+      if (sabr.unknownParts?.length) {
+        lines.push(`    unbekannte UMP-Parts: ${sabr.unknownParts.join(", ")}`);
       }
     }
   }
