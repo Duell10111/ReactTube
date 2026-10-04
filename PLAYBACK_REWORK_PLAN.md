@@ -690,6 +690,34 @@ Apps unkritisch.
 
 - **Gerätetest** auf iPhone, Apple TV und Android TV (über die Diagnose, siehe oben).
 
+#### Nachtrag: private Videos über `TV_DOWNGRADED` *(✅ umgesetzt 2026-10-04)*
+
+Frage war, ob der PoToken den TV-Client wieder öffnet — nur angemeldete TV-Abrufe
+erreichen die privaten Videos des Nutzers. **Gemessen (Node, TV-OAuth-Session):**
+
+| Client, angemeldet | privates Video |
+|---|---|
+| `TV` (ohne / content- / session-Token, `getBasicInfo` und `tv.getInfo`) | 60/60 `UNPLAYABLE (The page needs to be reloaded.)` — Token wirkungslos; zwei Einzeltreffer über alle Läufe, nicht reproduzierbar |
+| `WEB`, `MWEB` | HTTP 400 (TV-Token passt nicht) |
+| `TV_EMBEDDED` | „This video is unavailable" |
+| **`TV_DOWNGRADED`** | **`OK`, alle Formate mit URL, Byte-Ranges über die ganze Datei `206`** — 16-s-Video und 82-min-Video (gesperrt, 1,8 GB, 720p50) |
+
+`signatureTimestamp` scheidet als Ursache aus (TV- und Web-Player identisch). `TV_DOWNGRADED`
+liefert weder YouTube-HLS noch SABR, aber indizierte mp4 ⇒ der eigene Generator (2c) trägt.
+`/next` beantwortet `TV_DOWNGRADED` angemeldet mit HTTP 400, daher nur `/player`.
+
+Umsetzung:
+
+- Fork: `getPlayableInfo({player_only})` fragt nur `/player` (`getBasicInfo`).
+- App: `resolveStreamingSource(…, {signedInYoutube})` — scheitert die anonyme Kette mit
+  `LOGIN_REQUIRED (… private …)`, fragt `resolveSignedInSource` die angemeldete TV-Instanz über
+  `PLAYBACK_CLIENTS_SIGNED_IN = [TV_DOWNGRADED]`. Die Quelle trägt `authenticated`; das eigene
+  Manifest wird dann in **jedem** Wiedergabemodus gebaut.
+- Selbstheilung: ein privates Video verwirft die Session-Identität nicht mehr
+  (`privatePlayback.ts#failedAsPrivateVideo`).
+- Geprüft in Node bis zum Manifest: 82-min-Video, 2 Varianten + Tonspur, 959/492 Segmente,
+  Anfang/Mitte/Ende `206` mit exakter Länge. **Gerätetest offen.**
+
 ### Phase 6 — SABR *(✅ umgesetzt 2026-09-26; Apple-Pfad vollständig, Android in Phase 7)*
 
 > **Nicht das Mittel gegen `LOGIN_REQUIRED`** und nicht der Weg zu Streams über

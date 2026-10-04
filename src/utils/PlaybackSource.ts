@@ -15,11 +15,13 @@ import {
   PLAYBACK_CLIENTS_DEFAULT,
   PLAYBACK_CLIENTS_FULL_BYTE_RANGE,
   PLAYBACK_CLIENTS_PREFER_HLS,
+  PLAYBACK_CLIENTS_SIGNED_IN,
   resolvePlaybackInfo,
   sabrPlaybackClients,
 } from "@/utils/PlaybackResolver";
 import {Innertube, YT, YTNodes} from "@/utils/Youtube";
 import {poTokenForClient, poTokenMinter} from "@/utils/potoken/PoTokenProvider";
+import {failedAsPrivateVideo} from "@/utils/privatePlayback";
 
 const LOGGER = Logger.extend("PLAYBACK");
 
@@ -56,6 +58,11 @@ export interface StreamingSource {
    * SABR endpoint serves. It does not guarantee that the stream starts.
    */
   canUseSabr: boolean;
+  /**
+   * The streams came through the signed-in session — the user's private
+   * video. Only the app's own manifest can play it (no YouTube HLS, no SABR).
+   */
+  authenticated?: boolean;
 }
 
 /**
@@ -101,11 +108,14 @@ function hasIndexedMp4Formats(info: YT.VideoInfo): boolean {
  * @param options.mode - Which delivery form to aim for. The first pass only
  *   accepts clients that can serve it; only if none does, the second pass
  *   falls back to anything playable.
+ * @param options.signedInYoutube - The signed-in TV instance. When the
+ *   anonymous chain fails because the video is private, it is asked through
+ *   {@link resolveSignedInSource}.
  */
 export async function resolveStreamingSource(
   youtube: Innertube,
   target: string | YTNodes.NavigationEndpoint,
-  options?: {mode?: PlaybackMode},
+  options?: {mode?: PlaybackMode; signedInYoutube?: Innertube},
 ): Promise<StreamingSource | undefined> {
   const mode = options?.mode ?? "generated";
   const sabrClients = sabrPlaybackClients(poTokenMinter.isSupported);
@@ -114,8 +124,13 @@ export async function resolveStreamingSource(
       ? target
       : (target.payload?.videoId as string | undefined);
 
+  let privateVideo = false;
+
   const resolved = await resolvePlaybackInfo(youtube, target, {
     profile: mode,
+    onFailure: attempts => {
+      privateVideo = failedAsPrivateVideo(attempts);
+    },
     poTokenFor: videoId ? poTokenForClient(videoId) : undefined,
     clients:
       mode === "sabr"
@@ -166,7 +181,9 @@ export async function resolveStreamingSource(
   });
 
   if (!resolved) {
-    return undefined;
+    return privateVideo && options?.signedInYoutube?.session.logged_in
+      ? resolveSignedInSource(options.signedInYoutube, target)
+      : undefined;
   }
 
   const hasHlsManifest = !!resolved.info.streaming_data?.hls_manifest_url;
@@ -214,6 +231,58 @@ export async function resolveStreamingSource(
     hasHlsManifest,
     canGenerateHls,
     canUseSabr,
+  };
+}
+
+/**
+ * Fetches a private video of the signed-in user through `TV_DOWNGRADED`, the
+ * only client that returns it (see `privatePlayback.ts`).
+ *
+ * The streams carry no YouTube HLS and no SABR URL, but their byte ranges are
+ * uncapped, so the app's own manifest plays them in every playback mode.
+ */
+export async function resolveSignedInSource(
+  signedInYoutube: Innertube,
+  target: string | YTNodes.NavigationEndpoint,
+): Promise<StreamingSource | undefined> {
+  const resolved = await resolvePlaybackInfo(signedInYoutube, target, {
+    profile: "signed-in",
+    clients: PLAYBACK_CLIENTS_SIGNED_IN,
+    // Credentials are the point here; `TV_DOWNGRADED` accepts the TV token.
+    skipAuth: false,
+    // It answers `/next` with HTTP 400 when signed in; the metadata comes from
+    // elsewhere (`tv.getInfo` on TV, the player response on phones).
+    playerOnly: true,
+    accept: info =>
+      info.playability_status?.status === "OK" && hasIndexedMp4Formats(info),
+    acceptFallback: info =>
+      info.playability_status?.status === "OK" &&
+      [
+        ...(info.streaming_data?.formats ?? []),
+        ...(info.streaming_data?.adaptive_formats ?? []),
+      ].some(f => f.has_video && (f.url || f.signature_cipher)),
+  });
+
+  if (!resolved) {
+    LOGGER.warn("Private video: the signed-in session got no streams either");
+    return undefined;
+  }
+
+  const canGenerateHls = hasIndexedMp4Formats(resolved.info);
+
+  LOGGER.info(
+    `Private video via signed-in ${resolved.client} · ` +
+      `${canGenerateHls ? "own HLS possible" : "progressive only"}`,
+  );
+
+  return {
+    info: resolved.info,
+    client: resolved.client,
+    satisfied: resolved.satisfied,
+    hasHlsManifest: !!resolved.info.streaming_data?.hls_manifest_url,
+    canGenerateHls,
+    canUseSabr: false,
+    authenticated: true,
   };
 }
 
