@@ -6,7 +6,9 @@ import {
 
 export function showMessage(options: MessageOptions) {
   nativeShowMessage({
-    position: {top: Platform.OS === "ios" ? 30 : 20},
+    // Keep the string position: a custom object position skips the safe-area
+    // inset that the root FlashMessage applies via `statusBarHeight`.
+    position: "top",
     floating: true,
     animated: true,
     duration: 1000,

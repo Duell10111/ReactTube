@@ -9,6 +9,10 @@ import {StatusBar} from "react-native";
 import FlashMessage from "react-native-flash-message";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import {PaperProvider} from "react-native-paper";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import AccountContextProvider from "./src/context/AccountContext";
 import AppDataContextProvider from "./src/context/AppDataContext";
@@ -28,6 +32,9 @@ import {paperTheme, useAppTheme} from "@/ui/theme";
 
 function ThemedApp() {
   const {theme, reduceMotion} = useAppTheme();
+  // The flash message library only knows outdated iPhone models and no tvOS
+  // overscan, so feed it the real top inset instead of its own guess.
+  const {top: safeAreaTop} = useSafeAreaInsets();
   const resolvedPaperTheme = useMemo(
     () => ({
       ...paperTheme,
@@ -72,6 +79,7 @@ function ThemedApp() {
                       backgroundColor={theme.colors.surfaceRaised}
                       color={theme.colors.textPrimary}
                       position={"top"}
+                      statusBarHeight={safeAreaTop}
                       style={{borderRadius: theme.radii.control}}
                       textStyle={theme.typography.bodySmall}
                       titleStyle={theme.typography.label}
@@ -90,9 +98,11 @@ function ThemedApp() {
 const App = () => {
   return (
     <GestureHandlerRootView style={{flex: 1}}>
-      <AppStyleProvider>
-        <ThemedApp />
-      </AppStyleProvider>
+      <SafeAreaProvider>
+        <AppStyleProvider>
+          <ThemedApp />
+        </AppStyleProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 };
