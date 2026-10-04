@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 
 import Logger from "../../utils/Logger";
 
@@ -6,6 +6,11 @@ import {useYoutubeTVContext} from "@/context/YoutubeContext";
 import {useTranslation} from "@/localization";
 import {useSettings} from "@/utils/SettingsWrapper";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
+import {Innertube} from "@/utils/Youtube";
+import {
+  parseAccountChannels,
+  type AccountChannel,
+} from "@/utils/accountChannels";
 
 const accountKey = "accountData";
 
@@ -19,8 +24,19 @@ interface Account {
   credentials?: AccountCredentials;
 }
 
+/** The brand channel the signed-in primary account acts as. */
+interface ActiveChannel {
+  pageId: string;
+  name: string;
+}
+
 interface AccountData {
   accounts: Account[];
+  /**
+   * Kept beside `accounts` on purpose: token refreshes rewrite `accounts`,
+   * and the settings store merges only the top level.
+   */
+  activeChannel?: ActiveChannel;
 }
 
 interface LoginData {
@@ -37,6 +53,19 @@ interface SessionCredentials {
 }
 
 const LOGGER = Logger.extend("ACCOUNT");
+
+/**
+ * Makes every following request of the session act as the brand channel
+ * `pageId`, or as the account itself without one. Takes effect at once on the
+ * live session (see `accountChannels.ts`).
+ */
+function applyChannel(youtube: Innertube, pageId?: string) {
+  if (pageId) {
+    youtube.session.context.user.onBehalfOfUser = pageId;
+  } else {
+    delete youtube.session.context.user.onBehalfOfUser;
+  }
+}
 
 // TODO: Rewrite login mechanism and make faster!
 
@@ -61,6 +90,9 @@ export default function useAccountData() {
     },
   );
   const [qrCode, setQRCodeData] = useState<LoginData>();
+  const [channels, setChannels] = useState<AccountChannel[]>();
+  const [channelsLoading, setChannelsLoading] = useState(false);
+  const [channelsError, setChannelsError] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
   const [autoLoginFinished, setAutoLoginFinished] = useState(false);
 
@@ -93,8 +125,12 @@ export default function useAccountData() {
       // do something with the credentials, eg; save them in a database.
       LOGGER.info("Sign in successful");
       LOGGER.debug("Credentials: ", JSON.stringify(credentials));
+      // A new sign-in may be a different account; its channels differ too.
+      applyChannel(youtube, undefined);
+      setChannels(undefined);
       updateSettings({
         accounts: [{credentials: toStoredCredentials(credentials)}],
+        activeChannel: undefined,
       });
       setQRCodeData(undefined);
       showMessage({
@@ -136,6 +172,9 @@ export default function useAccountData() {
       return;
     }
     const credentials = settings.accounts?.[0]?.credentials;
+    // Before the sign-in, so not a single request goes out as the wrong
+    // identity.
+    applyChannel(youtube, settings.activeChannel?.pageId);
     if (youtube.session.logged_in || !credentials) {
       setAutoLoginFinished(true);
       return;
@@ -192,11 +231,14 @@ export default function useAccountData() {
       LOGGER.warn("No Youtube Context available!");
       return;
     }
+    applyChannel(youtube, undefined);
+    setChannels(undefined);
     youtube.session
       .signOut()
       .then(() => {
         updateSettings({
           accounts: [], // Adapt when using multiple accounts
+          activeChannel: undefined,
         });
         LOGGER.debug("Logout succeeded");
       })
@@ -206,14 +248,72 @@ export default function useAccountData() {
         // Delete to allow new login
         updateSettings({
           accounts: [], // Adapt when using multiple accounts
+          activeChannel: undefined,
         });
       });
     LOGGER.debug("Logout triggered");
   };
 
+  /** Fetches the account's channels; the TV client accepts the TV token. */
+  const loadChannels = useCallback(async () => {
+    if (!youtube?.session.logged_in) {
+      setChannels(undefined);
+      return;
+    }
+
+    setChannelsLoading(true);
+    setChannelsError(false);
+
+    try {
+      const response = await youtube.actions.execute("/account/accounts_list", {
+        client: "TV",
+        parse: false,
+        accountReadMask: {returnOwner: true, returnBrandAccounts: true},
+      });
+      setChannels(parseAccountChannels(response.data));
+    } catch (error) {
+      LOGGER.warn("Loading the account's channels failed: ", error);
+      setChannelsError(true);
+    } finally {
+      setChannelsLoading(false);
+    }
+  }, [youtube]);
+
+  /** Acts as `channel` from now on; the primary account has no `pageId`. */
+  const selectChannel = useCallback(
+    (channel: AccountChannel) => {
+      if (!youtube) {
+        return;
+      }
+
+      applyChannel(youtube, channel.pageId);
+      updateSettings({
+        activeChannel: channel.pageId
+          ? {pageId: channel.pageId, name: channel.name}
+          : undefined,
+      });
+      setChannels(current =>
+        current?.map(entry => ({
+          ...entry,
+          selected: entry.pageId === channel.pageId,
+        })),
+      );
+      LOGGER.info(
+        `Acting as ${channel.pageId ? "brand channel" : "primary account"}`,
+      );
+    },
+    [updateSettings, youtube],
+  );
+
   return {
     login,
     logout,
+    channels,
+    channelsLoading,
+    channelsError,
+    loadChannels,
+    selectChannel,
+    activeChannelName: settings.activeChannel?.name,
     qrCode,
     loginData: settings,
     clearAllData: clearAll,

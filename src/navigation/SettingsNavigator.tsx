@@ -6,6 +6,7 @@ import PlayerResolutionSelectorScreen from "../components/settings/screens/Playe
 import PlayerTypeSelectorScreen from "../components/settings/screens/PlayerSelector";
 import SettingsScreen from "../screens/SettingsScreen";
 
+import ChannelSelectorScreen from "@/components/settings/screens/ChannelSelector";
 import TrackingSelector from "@/components/settings/screens/TrackingSelector";
 import UILanguageSelectorScreen from "@/components/settings/screens/UILanguageSelector";
 
@@ -17,6 +18,7 @@ export type SettingsStackParamList = {
   PlayerResolutionSelector: undefined;
   TrackingSelector: undefined;
   PlaybackDiagnostics: undefined;
+  ChannelSelector: undefined;
 };
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
@@ -42,6 +44,10 @@ export default function SettingsNavigator() {
         component={PlayerResolutionSelectorScreen}
       />
       <Stack.Screen name={"TrackingSelector"} component={TrackingSelector} />
+      <Stack.Screen
+        name={"ChannelSelector"}
+        component={ChannelSelectorScreen}
+      />
       <Stack.Screen
         name={"PlaybackDiagnostics"}
         component={PlaybackDiagnosticsScreen}

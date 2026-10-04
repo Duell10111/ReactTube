@@ -714,9 +714,34 @@ Umsetzung:
   `PLAYBACK_CLIENTS_SIGNED_IN = [TV_DOWNGRADED]`. Die Quelle trägt `authenticated`; das eigene
   Manifest wird dann in **jedem** Wiedergabemodus gebaut.
 - Selbstheilung: ein privates Video verwirft die Session-Identität nicht mehr
-  (`privatePlayback.ts#failedAsPrivateVideo`).
+  (`signedInPlayback.ts#needsSignedInPlayback`).
 - Geprüft in Node bis zum Manifest: 82-min-Video, 2 Varianten + Tonspur, 959/492 Segmente,
   Anfang/Mitte/Ende `206` mit exakter Länge. **Gerätetest offen.**
+
+#### Nachtrag: altersbeschränkte Videos und Kanalwahl *(✅ umgesetzt 2026-10-04)*
+
+Altersbeschränkte Videos (`LOGIN_REQUIRED (Sign in to confirm your age)`) laufen über denselben
+angemeldeten `TV_DOWNGRADED`-Weg — **aber nur mit dem Google-Hauptkonto**. Ein Brand-Account hat
+kein Alter (`UNPLAYABLE (… Sign in to your primary account to confirm your age.)`), das Hauptkonto
+sieht dafür die privaten Videos des Brand-Kanals nicht. Gemessen:
+
+| TV-Anmeldung | altersbeschränkt | private Videos des Brand-Kanals |
+|---|---|---|
+| Brand-Account direkt | ✘ | ✔ |
+| Hauptkonto | ✔ | ✘ unavailable |
+| **Hauptkonto + `onBehalfOfUser` = `pageId` des Brand-Kanals** | **✔** | **✔** |
+
+`onBehalfOfUser` lässt sich zur Laufzeit an der laufenden Session setzen; `/account/accounts_list`
+(TV-Client) meldet den Kanal danach als ausgewählt. Umsetzung:
+
+- `signedInPlayback.ts`: Fallback greift bei „private“ **und** bei der Alterssperre; beide lösen
+  keine Session-Selbstheilung aus (die Bot-Sperre weiterhin schon).
+- `accountChannels.ts`: Parser der Kontenliste (ohne E-Mail), `hasChannelChoice`.
+- `useAccountData`: `loadChannels`/`selectChannel`, gewählter Kanal als `activeChannel` neben
+  `accounts` gespeichert und vor dem Auto-Login gesetzt; neue Anmeldung/Abmeldung setzt zurück.
+- Einstellungen ▸ **Kanal** (`ChannelSelector`, TV und Telefon, en/de). Bei einer
+  Brand-only-Anmeldung erklärt der Bildschirm, dass für altersbeschränkte Videos eine Anmeldung
+  mit dem Hauptkonto nötig ist.
 
 ### Phase 6 — SABR *(✅ umgesetzt 2026-09-26; Apple-Pfad vollständig, Android in Phase 7)*
 

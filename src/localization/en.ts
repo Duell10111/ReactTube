@@ -64,6 +64,17 @@ export const en = {
     "Checks the JavaScript engine, player, clients, and SABR segment retrieval with a test video. Run this in a release build because debug builds can use a different engine.",
   "settings.clearAll": "Clear all",
   "settings.logout": "Sign out",
+  "settings.channel": "Channel",
+  "settings.channel.title": "Channels",
+  "settings.channel.primaryAccount": "Primary account",
+  "settings.channel.brandChannel": "Brand channel",
+  "settings.channel.loading": "Loading channels",
+  "settings.channel.loadFailed": "Channels could not be loaded.",
+  "settings.channel.signedOut": "Sign in to choose a channel.",
+  "settings.channel.noChoice":
+    "This sign-in belongs to {name} only. To watch age-restricted videos and switch between your channels, sign out and sign in again with your primary Google account.",
+  "settings.channel.hint":
+    "The app acts as the selected channel, as in the browser. Age-restricted videos keep working because the primary account stays signed in.",
   "settings.value.true": "On",
   "settings.value.false": "Off",
   "you.account": "Account",

@@ -15,6 +15,7 @@ import {SettingsStackParamList} from "../navigation/SettingsNavigator";
 import {parseLanguage} from "../utils/YTLanguages";
 
 import {useAccountContext} from "@/context/AccountContext";
+import {useYoutubeTVContext} from "@/context/YoutubeContext";
 import {useTranslation} from "@/localization";
 import {useAppTheme} from "@/ui/theme";
 
@@ -25,7 +26,8 @@ type Props = CompositeScreenProps<
 
 export default function SettingsScreen({navigation}: Props) {
   const {appSettings} = useAppData();
-  const {logout, clearAllData} = useAccountContext();
+  const {logout, clearAllData, activeChannelName} = useAccountContext();
+  const signedIn = !!useYoutubeTVContext()?.session.logged_in;
   const {language, t} = useTranslation();
   const {theme} = useAppTheme();
 
@@ -87,6 +89,15 @@ export default function SettingsScreen({navigation}: Props) {
           )}
           onPress={() => navigate("TrackingSelector")}
         />
+        {signedIn ? (
+          <SettingsItem
+            icon={"user"}
+            iconBackground={theme.colors.brand}
+            label={t("settings.channel")}
+            value={activeChannelName ?? t("settings.channel.primaryAccount")}
+            onPress={() => navigate("ChannelSelector")}
+          />
+        ) : null}
         <SettingsItem
           icon={"activity"}
           iconBackground={theme.colors.success}

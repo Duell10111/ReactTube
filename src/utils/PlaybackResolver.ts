@@ -8,7 +8,7 @@ import {
 } from "@/utils/InnertubeSession";
 import Logger from "@/utils/Logger";
 import {Innertube, YT, YTNodes} from "@/utils/Youtube";
-import {failedAsPrivateVideo} from "@/utils/privatePlayback";
+import {needsSignedInPlayback} from "@/utils/signedInPlayback";
 
 export {
   PLAYBACK_CLIENTS_DEFAULT,
@@ -92,9 +92,12 @@ function recoverRejectedSession(
     return;
   }
 
-  // A private video rejects every anonymous client; the session is fine.
-  if (failedAsPrivateVideo(rejected)) {
-    LOGGER.info(`${profile}: video is private, session identity kept`);
+  // A private or age-restricted video rejects every anonymous client; the
+  // session is fine.
+  if (needsSignedInPlayback(rejected)) {
+    LOGGER.info(
+      `${profile}: video needs a signed-in account, session identity kept`,
+    );
     return;
   }
 
