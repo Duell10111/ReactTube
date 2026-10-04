@@ -66,6 +66,17 @@ export const de = {
     "Prüft JavaScript-Engine, Player, Clients und den SABR-Segmentabruf mit einem Testvideo. Bitte im Release-Build ausführen, da Debug-Builds eine andere Engine verwenden können.",
   "settings.clearAll": "Alle Daten löschen",
   "settings.logout": "Abmelden",
+  "settings.channel": "Kanal",
+  "settings.channel.title": "Kanäle",
+  "settings.channel.primaryAccount": "Hauptkonto",
+  "settings.channel.brandChannel": "Brand-Kanal",
+  "settings.channel.loading": "Kanäle werden geladen",
+  "settings.channel.loadFailed": "Die Kanäle konnten nicht geladen werden.",
+  "settings.channel.signedOut": "Melde dich an, um einen Kanal zu wählen.",
+  "settings.channel.noChoice":
+    "Diese Anmeldung gehört nur zu {name}. Um altersbeschränkte Videos zu sehen und zwischen deinen Kanälen zu wechseln, melde dich ab und mit deinem Google-Hauptkonto neu an.",
+  "settings.channel.hint":
+    "Die App tritt als der gewählte Kanal auf, wie im Browser. Altersbeschränkte Videos funktionieren weiter, weil das Hauptkonto angemeldet bleibt.",
   "settings.value.true": "Ein",
   "settings.value.false": "Aus",
   "you.account": "Konto",

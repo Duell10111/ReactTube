@@ -62,10 +62,11 @@ export function sabrPlaybackClients(
 }
 
 /**
- * Clients for the signed-in fallback that plays the user's private videos.
+ * Clients for the signed-in fallback that plays private and age-restricted
+ * videos.
  *
  * `TV_DOWNGRADED` is the only client that returns them (see
- * `privatePlayback.ts`); its byte ranges are uncapped there, so the app's own
+ * `signedInPlayback.ts`); its byte ranges are uncapped there, so the app's own
  * HLS generator can serve them.
  */
 export const PLAYBACK_CLIENTS_SIGNED_IN = [
