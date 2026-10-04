@@ -10,6 +10,12 @@ const accountContext = createContext<ReturnType<typeof useAccountData>>({
   login: () => {},
   logout: () => {},
   qrCode: undefined,
+  channels: undefined,
+  channelsLoading: false,
+  channelsError: false,
+  loadChannels: async () => {},
+  selectChannel: () => {},
+  activeChannelName: undefined,
 });
 
 interface Props {

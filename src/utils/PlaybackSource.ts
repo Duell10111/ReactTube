@@ -21,7 +21,7 @@ import {
 } from "@/utils/PlaybackResolver";
 import {Innertube, YT, YTNodes} from "@/utils/Youtube";
 import {poTokenForClient, poTokenMinter} from "@/utils/potoken/PoTokenProvider";
-import {failedAsPrivateVideo} from "@/utils/privatePlayback";
+import {needsSignedInPlayback} from "@/utils/signedInPlayback";
 
 const LOGGER = Logger.extend("PLAYBACK");
 
@@ -59,8 +59,9 @@ export interface StreamingSource {
    */
   canUseSabr: boolean;
   /**
-   * The streams came through the signed-in session — the user's private
-   * video. Only the app's own manifest can play it (no YouTube HLS, no SABR).
+   * The streams came through the signed-in session — a private or
+   * age-restricted video. Only the app's own manifest can play it (no YouTube
+   * HLS, no SABR).
    */
   authenticated?: boolean;
 }
@@ -109,8 +110,8 @@ function hasIndexedMp4Formats(info: YT.VideoInfo): boolean {
  *   accepts clients that can serve it; only if none does, the second pass
  *   falls back to anything playable.
  * @param options.signedInYoutube - The signed-in TV instance. When the
- *   anonymous chain fails because the video is private, it is asked through
- *   {@link resolveSignedInSource}.
+ *   anonymous chain fails because the video is private or age-restricted, it
+ *   is asked through {@link resolveSignedInSource}.
  */
 export async function resolveStreamingSource(
   youtube: Innertube,
@@ -124,12 +125,12 @@ export async function resolveStreamingSource(
       ? target
       : (target.payload?.videoId as string | undefined);
 
-  let privateVideo = false;
+  let signedInOnly = false;
 
   const resolved = await resolvePlaybackInfo(youtube, target, {
     profile: mode,
     onFailure: attempts => {
-      privateVideo = failedAsPrivateVideo(attempts);
+      signedInOnly = needsSignedInPlayback(attempts);
     },
     poTokenFor: videoId ? poTokenForClient(videoId) : undefined,
     clients:
@@ -181,7 +182,7 @@ export async function resolveStreamingSource(
   });
 
   if (!resolved) {
-    return privateVideo && options?.signedInYoutube?.session.logged_in
+    return signedInOnly && options?.signedInYoutube?.session.logged_in
       ? resolveSignedInSource(options.signedInYoutube, target)
       : undefined;
   }
@@ -235,8 +236,9 @@ export async function resolveStreamingSource(
 }
 
 /**
- * Fetches a private video of the signed-in user through `TV_DOWNGRADED`, the
- * only client that returns it (see `privatePlayback.ts`).
+ * Fetches a video only the signed-in user may watch through `TV_DOWNGRADED`, the
+ * only client that returns it (see `signedInPlayback.ts`). Also used for
+ * age-restricted videos, which need the signed-in (primary) account.
  *
  * The streams carry no YouTube HLS and no SABR URL, but their byte ranges are
  * uncapped, so the app's own manifest plays them in every playback mode.
@@ -264,14 +266,16 @@ export async function resolveSignedInSource(
   });
 
   if (!resolved) {
-    LOGGER.warn("Private video: the signed-in session got no streams either");
+    LOGGER.warn(
+      "Private/age-restricted video: the signed-in session got no streams either",
+    );
     return undefined;
   }
 
   const canGenerateHls = hasIndexedMp4Formats(resolved.info);
 
   LOGGER.info(
-    `Private video via signed-in ${resolved.client} · ` +
+    `Private/age-restricted video via signed-in ${resolved.client} · ` +
       `${canGenerateHls ? "own HLS possible" : "progressive only"}`,
   );
 

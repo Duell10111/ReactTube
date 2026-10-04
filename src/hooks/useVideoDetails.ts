@@ -126,8 +126,9 @@ async function generateIfPossible(
 ) {
   // Only build it when it is selected. Otherwise it costs one and a half
   // seconds of startup time and then sits unused in the ladder — with
-  // "YouTube HLS" it is the wrong first step. A private video is the
-  // exception: it has neither YouTube HLS nor SABR, so this is its only path.
+  // "YouTube HLS" it is the wrong first step. Signed-in sources (private and
+  // age-restricted videos) are the exception: they have neither YouTube HLS
+  // nor SABR, so this is their only path.
   if (
     !streaming.canGenerateHls ||
     (mode !== "generated" && !streaming.authenticated)

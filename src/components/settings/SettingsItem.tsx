@@ -46,12 +46,14 @@ export default function SettingsSelectorOverview({
 interface PropsSelectorItem {
   onPress?: () => void;
   label: string;
+  subtitle?: string;
   selected: boolean;
 }
 
 export function SettingsSelectorItem({
   onPress,
   label,
+  subtitle,
   selected,
 }: PropsSelectorItem) {
   const {theme} = useAppTheme();
@@ -61,6 +63,7 @@ export function SettingsSelectorItem({
       <AppListItem
         onPress={onPress}
         selected={selected}
+        subtitle={subtitle}
         title={label}
         trailing={
           selected ? (
