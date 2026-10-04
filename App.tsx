@@ -22,6 +22,7 @@ import Navigation from "./src/navigation/Navigation";
 import BackgroundWrapper from "./src/utils/BackgroundWrapper";
 
 import {VideoProvider} from "@/components/corner-video/VideoProvider";
+import PoTokenWebViewHost from "@/components/potoken/PoTokenWebViewHost";
 import {VideoPlayerSettingsContext} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
 import {DownloaderContext} from "@/context/DownloaderContext";
 import {MusicPlayerContext} from "@/context/MusicPlayerContext";
@@ -84,6 +85,7 @@ function ThemedApp() {
                       textStyle={theme.typography.bodySmall}
                       titleStyle={theme.typography.label}
                     />
+                    <PoTokenWebViewHost />
                   </DownloaderContext>
                 </MusicPlayerContext>
               </AccountContextProvider>

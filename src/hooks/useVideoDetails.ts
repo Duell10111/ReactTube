@@ -29,7 +29,12 @@ import {
   type StreamingSource,
 } from "@/utils/PlaybackSource";
 import {startSabrPlayback, type SabrPlaybackSource} from "@/utils/SabrPlayback";
-import {YT, YTTV, YTNodes} from "@/utils/Youtube";
+import {Innertube, YT, YTTV, YTNodes} from "@/utils/Youtube";
+import {
+  clientNeedsPoToken,
+  getContentPoToken,
+  poTokenMinter,
+} from "@/utils/potoken/PoTokenProvider";
 
 const LOGGER = Logger.extend("VIDEO");
 
@@ -68,27 +73,41 @@ function clampResumePosition(
 }
 
 /**
- * Startet die SABR-Wiedergabe, wenn Einstellung und Quelle es hergeben
- * (Plan-Phase 6.5).
+ * Starts SABR playback when the setting and the source allow it (plan phase
+ * 6.5).
  *
- * Wie beim eigenen Manifest nur auf ausdrücklichen Wunsch: der Aufbau kostet
- * eine SABR-Runde, und ohne gewählten Modus stünde die Stufe ungenutzt in der
- * Ladder.
+ * As with the app's own manifest only on explicit request: setting it up costs
+ * a SABR round, and without the mode selected the stage would sit unused in
+ * the ladder.
  */
 async function startSabrIfPossible(
   streaming: StreamingSource,
   mode: PlaybackMode,
-  options: {clientVersion: string; allowAv1?: boolean},
+  options: {youtube: Innertube; allowAv1?: boolean},
 ) {
   if (mode !== "sabr" || !streaming.canUseSabr) {
     return undefined;
   }
 
+  const videoId = streaming.info.basic_info.id ?? "";
+  // Plan phase 5: only `WEB` measurably needs a token; the chain picks it
+  // only where one can be minted, so other clients never wait for BotGuard.
+  const needsPoToken = clientNeedsPoToken(streaming.client);
+
   return startSabrPlayback(streaming.info, {
-    videoId: streaming.info.basic_info.id ?? "",
+    videoId,
     client: streaming.client,
-    clientVersion: options.clientVersion,
+    clientVersion: options.youtube.session.context.client.clientVersion,
     allowAv1: options.allowAv1,
+    poToken: needsPoToken ? await getContentPoToken(videoId) : undefined,
+    refreshPoToken: needsPoToken
+      ? () => {
+          poTokenMinter.reportRejected(videoId);
+          return getContentPoToken(videoId);
+        }
+      : undefined,
+    decipherUrl: async url =>
+      (await options.youtube.session.player?.decipher(url)) ?? url,
   });
 }
 
@@ -147,9 +166,9 @@ export default function useVideoDetails(
   /** The selected path — decides the client chain, manifest build, and ladder order. */
   const playbackMode = playbackModeFromSettings(appSettings);
   /**
-   * Der laufende SABR-Strom. Er hält einen lokalen Server und eine offene
-   * Verbindung zu googlevideo — beides muss beim Videowechsel und beim Verlassen
-   * des Screens weg, sonst bleibt der Port belegt und der Strom läuft weiter.
+   * The running SABR stream. It holds a local server and an open connection
+   * to googlevideo — both must go when the video changes or the screen is
+   * left, otherwise the port stays taken and the stream keeps running.
    */
   const sabrRef = useRef<SabrPlaybackSource | undefined>(undefined);
 
@@ -240,13 +259,13 @@ export default function useVideoDetails(
                 playbackMode,
                 {allowAv1: appSettings.av1Enabled},
               );
-              // `youtube` ist hier zwangsläufig vorhanden — die Streams kommen
-              // von dieser Instanz —, aber nur die Prüfung macht das auch für
-              // den Typprüfer sichtbar.
+              // `youtube` is necessarily present here — the streams come from
+              // this instance — but only the check makes that visible to the
+              // type checker.
               if (youtube) {
                 parsedDataTV.sabr_hls_url = replaceSabrSource(
                   await startSabrIfPossible(streaming, playbackMode, {
-                    clientVersion: youtube.session.context.client.clientVersion,
+                    youtube,
                     allowAv1: appSettings.av1Enabled,
                   }),
                 )?.masterUri;
@@ -293,7 +312,7 @@ export default function useVideoDetails(
             );
             parsedData.sabr_hls_url = replaceSabrSource(
               await startSabrIfPossible(streaming, playbackMode, {
-                clientVersion: youtube.session.context.client.clientVersion,
+                youtube,
                 allowAv1: appSettings.av1Enabled,
               }),
             )?.masterUri;

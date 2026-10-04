@@ -190,6 +190,10 @@ Gemessen am SABR-Endpunkt selbst, nach dem Ende der Sperre:
 | `TV_SIMPLY` | **HTTP 403** · 0 B |
 | `WEB` | **HTTP 403** · 0 B |
 
+> **Korrektur 2026-10-04 (Phase 5):** Die 403 für `TV_SIMPLY` und `WEB` kamen vom
+> ungelösten `n`-Parameter der Streaming-URL. Über `Player#decipher` werden beide
+> bedient; ohne PoToken versiegen sie aber nach einem Seek. `WEB` trägt mit Token.
+
 `TV_SIMPLY` bringt zwar eine `ustreamer_config` mit, wird am SABR-Endpunkt aber
 abgewiesen — dasselbe Bild wie in §0b Befund 5. **SABR erschließt `WEB` und
 `ANDROID` (die SABR-only sind), nicht die TV-Clients.**
@@ -621,23 +625,51 @@ stopServer(): Promise<void>
 
 ---
 
-### Phase 5 — PoToken (BotGuard) → **läuft als Phase 2b**
+### Phase 5 — PoToken (BotGuard) *(✅ umgesetzt 2026-10-04 für iPhone/iPad/Android/Android TV; tvOS bewusst ohne)*
 
-> Diese Phase ist nach der Messung aus Phase 2 vorgezogen worden und heißt dort **2b**.
-> Die Beschreibung unten bleibt maßgeblich, die Einordnung hat sich geändert:
+> **Neu eingeordnet nach Messung.** Der PoToken hebt weder die Byte-Range-Kappung
+> auf (§2, erneut bestätigt) noch hilft er `IOS`, `TV_SIMPLY` oder `MWEB` am
+> SABR-Endpunkt. Sein einziger gemessener Nutzen: **`WEB` über SABR inklusive
+> Seek.** Damit ist er eine Reserve hinter `VISIONOS`, kein Hauptpfad.
 
-Für **SABR** ist PoToken keine Vorbedingung — das hat Phase 0 gezeigt (`IOS`, `VISIONOS`,
-`ANDROID`, `ANDROID_VR` liefern SABR-Medien ohne ihn). Für den **eigenen HLS-Generator**
-ist er es sehr wahrscheinlich doch: die Byte-Range-Auslieferung bricht ohne `pot` nach
-0,37 MB ab (`YouTube.js/docs/byte-range-cap.md`). Darüber hinaus schaltet er WEB-Clients
-frei, behebt den 403 bei `MWEB` und erreicht altersbeschränkte sowie geo-blockierte Videos.
+#### Messungen (Node, 2026-10-04)
 
-5.1 `react-native-webview` + unsichtbares WebView, das die BotGuard-Challenge löst. Portierung von `potokennp2/generators/PoTokenWebView.kt` + `misc/JavaScriptUtil.kt` (MIT — direkte Übernahme mit Copyright-Hinweis zulässig).
-5.2 Trennung wie in SmartTube: **session**-PoT (aus `visitorData`, für Streaming-URLs `&pot=`) und **content**-PoT (aus `videoId`, für den Player-Request), Cache + Reset-Cooldown (`PoTokenGate.kt:96-116`).
-5.3 Fork: `getPlayableInfo` reicht pro Client den passenden PoT durch (`Innertube.getInfo` unterstützt `options.po_token` bereits, `Innertube.ts:104`); nur für `isWebPotRequired`-Clients anfordern.
-5.4 **Wenn SABR ihn doch verlangt:** der PoToken geht dort **als Bytes** in den Request-Payload (StreamerContext-Feld 2), nicht base64-kodiert als Query-Param — siehe `src/core/Player.ts:204` und `dev-scripts/playback-matrix.mjs#buildAbrRequest`.
+| Befund | Ergebnis |
+|---|---|
+| WEB-SABR, rohe `server_abr_streaming_url` | HTTP 403 — **Ursache war der ungelöste `n`-Parameter, nicht der fehlende Token.** Mit `Player#decipher` liefert WEB Segmente bis 2160p. Dasselbe gilt für `TV_SIMPLY`; der 403 aus §0c hatte diese Ursache. |
+| WEB-SABR ohne Token | Status `pending`, nach Seek `ATTESTATION_REQUIRED` |
+| Token aus der bloßen `Create`/`att/get`-Challenge | Status bleibt `pending` — wird abgelehnt |
+| **Token aus der Homepage-Challenge (`ytAtN`) mit `yt.config_`** | **Status `OK`, Seek funktioniert, alle Phase-6-Prüfungen grün** |
+| content- vs. session-Bindung | nur content (Video-ID) wirkt; session ändert nichts |
+| Token nur im SABR-Request, nicht im `/player` | genügt |
+| `visitorData` der App ≠ das der Homepage | egal, Token wirkt trotzdem |
+| `IOS`, `TV_SIMPLY`, `MWEB` mit Web-Token | bleiben `pending` — Token hilft nicht |
+| Minimaler DOM-Shim statt Browser (Hermes-Weg) | `GenerateIT` liefert `null` — **BotGuard braucht einen echten Browser** |
+| Streuung | Rund jeder fünfte BotGuard-Lauf liefert einen Token, den der Server nicht annimmt; die Länge ist **kein** verlässliches Merkmal. Nur das Server-Urteil (`OK`/`pending`) zählt. |
 
----
+#### Umsetzung
+
+| Punkt | Ort |
+|---|---|
+| 5.1 BotGuard im unsichtbaren WebView | `src/components/potoken/PoTokenWebViewHost.tsx` (App-Root), Seite `src/utils/potoken/botguardPage.ts` (Portierung SmartTube `po_token2.html`/`PoTokenWebView4`, Aufruf wie `bgutils-js`) |
+| Challenge + `GenerateIT` | `src/utils/potoken/botguardSession.ts` (Netzwerk auf RN-Seite), Parser ohne `eval` in `botguardChallenge.ts` |
+| 5.2 Cache, TTL, Cooldown | `src/utils/potoken/PoTokenMinter.ts` — content-Token je Video (LRU 16), ein gemeinsamer BotGuard-Lauf, 10 min Sicherheitsabstand vor Ablauf, 60 s Pause nach Fehlschlag, 20 s Zeitlimit, `reportRejected()` erzwingt einen neuen Lauf |
+| 5.3 Token pro Client | Fork: `getPlayableInfo({po_token_for})` (`Innertube.ts`, `TV.ts`, `PlaybackResolver.ts`); App: `poTokenForClient()` nur für `WEB` |
+| 5.4 SABR | `SabrPlayback.ts`: URL über `Player#decipher`, Token im `StreamerContext`; ist der Status nach der ersten Runde nicht `OK`, **genau ein** Neuversuch mit frischem Token |
+| Client-Kette | `PLAYBACK_CLIENTS_SABR_WITH_PO_TOKEN = VISIONOS → WEB → IOS`, nur wo ein WebView existiert (`sabrPlaybackClients()`) |
+| tvOS | kein WebView ⇒ `PoTokenWebViewHost.ios.tv.tsx` rendert nichts, `react-native.config.js` nimmt `react-native-webview` im TV-Build aus dem iOS-Autolinking (Podspec kennt kein tvOS). Kette bleibt `VISIONOS → IOS`. |
+
+#### Verifikation
+
+- `node --test test/potoken.test.mjs` — Parser, Cache, Ablauf, Cooldown, Zeitlimit, Ablehnung, Client-Liste (13 Tests).
+- `node tools/potoken-page-probe.mjs` fährt **dieselbe WebView-Seite** unter jsdom gegen YouTube; den Token prüft
+  `POT_VALUE=<token> node dev-scripts/phase6-verify.mjs bUHZ2k9DYHY WEB` im Fork (4 von 5 Läufen `OK` + Seek).
+- Im Fork: `POT=content POT_SOURCE=homepage node dev-scripts/phase6-verify.mjs … WEB` (Minter in `dev-scripts/lib/potoken.mjs`, jetzt mit Homepage-Quelle).
+
+#### Offen
+
+- **Gerätetest** auf iPhone und Android TV: läuft BotGuard im WKWebView/Android-WebView, und wie oft akzeptiert der Server den Token dort?
+- `PlaybackDiagnostics` zeigt den Token-Status noch nicht an.
 
 ### Phase 6 — SABR *(✅ umgesetzt 2026-09-26; Apple-Pfad vollständig, Android in Phase 7)*
 
