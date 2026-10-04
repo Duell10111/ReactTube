@@ -104,6 +104,10 @@ export default function SearchScreen() {
         placeholder: t("search.placeholder"),
         onChangeText: event => setSearchText(event.nativeEvent.text),
         onSearchButtonPress: event => {
+          // Android keeps the bar focused after submitting, and a focused bar
+          // shows the suggestions instead of the results.
+          searchBarRef.current?.blur();
+          setSearchBarOpen(false);
           performSearchRef.current(event.nativeEvent.text);
         },
         textColor: theme.colors.textPrimary,
