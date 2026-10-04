@@ -1,24 +1,24 @@
 /**
- * SABR-Wiedergabe über den lokalen Server — Plan-Phase 6.5.
+ * SABR playback through the local server — plan phase 6.5.
  *
- * Der Weg aus Phase 2c legt Playlists als Dateien ab und lässt AVPlayer die
- * Segmente direkt bei googlevideo holen. Bei SABR geht das nicht: es gibt keine
- * Segment-URLs, die man in eine Playlist schreiben könnte — der Server entscheidet
- * segmentweise, was er sendet, und die Bytes entstehen erst beim Abruf. Also
- * braucht es eine Adresse dazwischen, und die liefert `modules/media-server`.
+ * The phase 2c path stores playlists as files and lets AVPlayer fetch the
+ * segments straight from googlevideo. SABR cannot do that: there are no
+ * segment URLs to write into a playlist — the server decides per segment what
+ * it sends, and the bytes only exist once requested. So an address in between
+ * is needed, and `modules/media-server` provides it.
  *
- * Der Aufbau:
+ * The layout:
  *
  * ```
  *   AVPlayer                     media-server (Swift)            SabrSegmentSource (JS)
- *      │  GET /…/master.m3u8  ──▶  abgelegter Text
+ *      │  GET /…/master.m3u8  ──▶  registered text
  *      │  GET /…/seg/401:/42.m4s ─▶ onSegmentRequest  ──────────▶  getSegment("401:", 42)
  *      │                             respondToSegment ◀──────────  Bytes
  * ```
  *
- * **Eine Variante, keine Leiter.** Bei SABR adaptiert der Server; ein Strom trägt
- * genau die Formate, die er angefragt bekam. Die Codec-Wahl passiert deshalb hier
- * bei der Formatauswahl, nicht im Manifest.
+ * **One variant, no ladder.** With SABR the server adapts; a stream carries
+ * exactly the formats it requested. The codec choice therefore happens here in
+ * format selection, not in the manifest.
  */
 import MediaServer from "../../modules/media-server";
 
@@ -28,44 +28,44 @@ import {parseSabrSegmentPath} from "@/utils/sabrSegmentPath";
 
 const LOGGER = Logger.extend("PLAYBACK");
 
-/** Unter diesem Präfix liegen die Segmente; daneben die Playlists. */
+/** The segments live under this prefix; the playlists sit next to it. */
 const SEGMENT_SEGMENT = "seg";
 
-/** Ab hier gilt der Strom als hinüber und es wird nur noch protokolliert. */
+/** From here on the stream counts as dead and failures are only logged. */
 const MAX_CONSECUTIVE_FAILURES = 3;
 
 export interface SabrPlaybackOptions {
   /**
-   * AV1 zulassen.
+   * Allow AV1.
    *
-   * Wie beim eigenen Manifest eine bewusste Entscheidung: ohne Hardware-Decoder
-   * bleibt der Player stumm im Ladezustand stehen, statt einen Fehler zu melden.
-   * Nur Apple TV 4K (3. Gen) dekodiert av01.
+   * A deliberate choice, as with the app's own manifest: without a hardware
+   * decoder the player sits silently in its loading state instead of reporting
+   * an error. Only Apple TV 4K (3rd gen) decodes av01.
    */
   allowAv1?: boolean;
   maxHeight?: number;
 }
 
 export interface SabrPlaybackSource {
-  /** Was in die Quelle des Players geht. */
+  /** What goes into the player's source. */
   masterUri: string;
-  /** Gewählte Formate — fürs Protokoll. */
+  /** Selected formats — for the log. */
   videoItag?: number;
   audioItag?: number;
-  /** Beendet Strom und Registrierungen. Muss zum Verlassen des Screens laufen. */
+  /** Ends the stream and registrations. Must run when the screen is left. */
   stop: () => Promise<void>;
 }
 
-/** Nur Pfadtrennung auf Loopback, keine Sicherheitsgrenze. */
+/** Only path separation on loopback, not a security boundary. */
 function randomToken(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
 /**
- * Wählt Video- und Tonformat für den Strom.
+ * Picks the video and audio format for the stream.
  *
- * mp4 ist Pflicht (AVPlayer spielt kein WebM), und die Codec-Reihenfolge
- * entspricht dem eigenen Manifest: avc1 zuerst, av01 nur wenn erlaubt.
+ * mp4 is mandatory (AVPlayer plays no WebM), and the codec order matches the
+ * app's own manifest: avc1 first, av01 only when allowed.
  */
 function pickFormats(info: YT.VideoInfo, options: SabrPlaybackOptions) {
   const adaptive = info.streaming_data?.adaptive_formats ?? [];
@@ -85,9 +85,9 @@ function pickFormats(info: YT.VideoInfo, options: SabrPlaybackOptions) {
     )
     .sort((a: any, b: any) => (b.height ?? 0) - (a.height ?? 0));
 
-  // Die erste erlaubte Familie stellt das Format; av01 steuert nur Höhen bei,
-  // die avc1 nicht erreicht. Ohne das bekäme ein Gerät ohne AV1-Decoder hier
-  // 2160p av01 und bliebe hängen.
+  // The first allowed family provides the format; av01 only contributes
+  // heights avc1 does not reach. Without that, a device without an AV1 decoder
+  // would get 2160p av01 here and hang.
   const primary = families.find(candidate =>
     videos.some(format => family(format) === candidate),
   );
@@ -114,11 +114,11 @@ function toFormatId(format: any) {
 }
 
 /**
- * Baut einen SABR-Strom auf und macht ihn über den lokalen Server spielbar.
+ * Sets up a SABR stream and makes it playable through the local server.
  *
- * Gibt `undefined` zurück, wenn dieser Weg nicht möglich ist — dann übernimmt
- * die nächste Stufe der Ladder. Ein Fehlschlag hier ist kein Ausnahmefall,
- * sondern der Normalbetrieb für Clients, die der SABR-Endpunkt nicht bedient.
+ * Returns `undefined` when this path is not possible — the next ladder stage
+ * takes over. A failure here is not exceptional but normal operation for
+ * clients the SABR endpoint does not serve.
  */
 export async function startSabrPlayback(
   info: YT.VideoInfo,
@@ -126,16 +126,27 @@ export async function startSabrPlayback(
     videoId: string;
     client: string;
     clientVersion: string;
+    /** Content-bound PoToken for clients that need one (plan phase 5). */
     poToken?: string;
+    /**
+     * Mints a replacement after the server did not accept `poToken`. Called
+     * at most once per start.
+     */
+    refreshPoToken?: () => Promise<string | undefined>;
+    /**
+     * Solves the `n` challenge of the streaming URL (`Player#decipher`).
+     * Without it `WEB` answers 403; `VISIONOS`/`IOS` URLs pass unchanged.
+     */
+    decipherUrl?: (url: string) => Promise<string>;
   } & SabrPlaybackOptions,
 ): Promise<SabrPlaybackSource | undefined> {
   const started = Date.now();
 
-  const streamingUrl = info.streaming_data?.server_abr_streaming_url;
+  const rawStreamingUrl = info.streaming_data?.server_abr_streaming_url;
   const ustreamerConfig = (info as any).player_config?.media_common_config
     ?.media_ustreamer_request_config?.video_playback_ustreamer_config;
 
-  if (!streamingUrl || !ustreamerConfig) {
+  if (!rawStreamingUrl || !ustreamerConfig) {
     LOGGER.debug("SABR: die Player-Antwort trägt keine SABR-Eingaben");
     return undefined;
   }
@@ -151,23 +162,60 @@ export async function startSabrPlayback(
   let subscription: {remove: () => void} | undefined;
 
   try {
-    const stream = new Sabr.SabrStream({
-      server_abr_streaming_url: streamingUrl,
-      ustreamer_config: ustreamerConfig,
-      client_name: options.client,
-      client_version: options.clientVersion,
-      video_format_id: toFormatId(video),
-      audio_format_id: toFormatId(audio),
-      video_id: options.videoId,
-      po_token: options.poToken,
-    });
+    const streamingUrl = options.decipherUrl
+      ? await options.decipherUrl(rawStreamingUrl).catch(error => {
+          LOGGER.warn(
+            `SABR: could not solve the URL's n challenge: ${error?.message ?? error}`,
+          );
+          return rawStreamingUrl;
+        })
+      : rawStreamingUrl;
 
-    source = new Sabr.SabrSegmentSource(stream);
+    // The first round brings format metadata and init segments — without
+    // them there is no segment plan and therefore no playlist.
+    const open = async (poToken?: string) => {
+      const stream = new Sabr.SabrStream({
+        server_abr_streaming_url: streamingUrl,
+        ustreamer_config: ustreamerConfig,
+        client_name: options.client,
+        client_version: options.clientVersion,
+        video_format_id: toFormatId(video),
+        audio_format_id: toFormatId(audio),
+        video_id: options.videoId,
+        po_token: poToken,
+      });
+      const segmentSource = new Sabr.SabrSegmentSource(stream);
+      // Tracked outside so the error path below can close it.
+      source = segmentSource;
+      return {stream, segmentSource, formats: await segmentSource.open()};
+    };
 
-    // Die erste Runde bringt Formatmetadaten und Init-Segmente — ohne sie gibt
-    // es keinen Segmentplan und damit keine Playlist.
-    const formats = await source.open();
-    const index = await Sabr.buildSabrHlsIndex(source);
+    let opened = await open(options.poToken);
+
+    // A token the server accepted turns the status to `ok` right away; one it
+    // did not leaves it `pending`, and the stream dies at the first seek.
+    // BotGuard runs vary, so one fresh token is worth a try.
+    if (
+      options.poToken &&
+      opened.stream.protection_status !== "ok" &&
+      options.refreshPoToken
+    ) {
+      LOGGER.info(
+        `SABR: PoToken not accepted (${opened.stream.protection_status}), minting a fresh one`,
+      );
+      await opened.segmentSource.close().catch(() => {});
+      opened = await open(await options.refreshPoToken());
+    }
+
+    const {formats, segmentSource} = opened;
+
+    if (opened.stream.protection_status !== "ok") {
+      LOGGER.info(
+        `SABR: stream protection ${opened.stream.protection_status} via ${options.client}; ` +
+          "the stream may stop after a seek",
+      );
+    }
+    const index = await Sabr.buildSabrHlsIndex(segmentSource);
 
     const {port} = await MediaServer.startServer();
     const token = randomToken();
@@ -181,9 +229,9 @@ export async function startSabrPlayback(
       },
     });
 
-    // Das Master liegt neben den Medien-Playlists, weil es sie mit relativem
-    // Namen referenziert; die Segmente liegen eine Ebene tiefer, damit ihr
-    // Präfix die Playlists nicht überdeckt.
+    // The master sits next to the media playlists because it references them
+    // by relative name; the segments live one level deeper so their prefix
+    // does not shadow the playlists.
     MediaServer.registerText(
       `${root}/master.m3u8`,
       manifest.master,
@@ -199,23 +247,23 @@ export async function startSabrPlayback(
     }
 
     const segmentRoot = `${root}/${SEGMENT_SEGMENT}/`;
-    const activeSource = source;
+    const activeSource = segmentSource;
     /**
-     * Fehlschläge in Folge.
+     * Consecutive failures.
      *
-     * Beim Gerätelauf beantwortete ein defekter Strom jede Anfrage mit 503;
-     * AVPlayer wiederholte dieselbe drei Minuten lang und gab erst dann mit
-     * `NSURLErrorDomain -1008` auf. Drei Minuten Stillstand sind schlimmer als
-     * ein sofortiger Abstieg auf die nächste Ladder-Stufe.
+     * In a device run a broken stream answered every request with 503;
+     * AVPlayer retried the same one for three minutes and only then gave up
+     * with `NSURLErrorDomain -1008`. Three minutes of standstill are worse than
+     * stepping down to the next ladder stage at once.
      */
     let consecutiveFailures = 0;
 
     subscription = MediaServer.addListener(
       "onSegmentRequest",
       ({requestId, path}) => {
-        // Jede Anfrage **muss** beantwortet werden, auch im Fehlerfall: sonst
-        // wartet die Verbindung den nativen Zeitablauf ab und der Player steht
-        // so lange still.
+        // Every request **must** be answered, even on failure: otherwise the
+        // connection waits for the native timeout and the player stands still
+        // that long.
         const answer = async () => {
           try {
             const request = parseSabrSegmentPath(segmentRoot, path);
@@ -253,9 +301,9 @@ export async function startSabrPlayback(
               );
             }
 
-            // 404 statt 503: ein 5xx lädt AVPlayer zum Wiederholen ein, ein 404
-            // sagt „gibt es nicht" und führt schneller zum Fehler — und damit
-            // zur nächsten Stufe.
+            // 404 rather than 503: a 5xx invites AVPlayer to retry, a 404 says
+            // "does not exist" and leads to the error faster — and with it to
+            // the next stage.
             MediaServer.failSegment(
               requestId,
               404,

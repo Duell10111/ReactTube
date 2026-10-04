@@ -1,7 +1,7 @@
 // @ts-ignore youtubei.js does not publish declarations for this internal type.
 import type {InnerTubeClient} from "youtubei.js/dist/src/types";
 
-/** Breite, gemessene Fallback-Kette ohne dauerhaft unbrauchbare Clients. */
+/** Broad, measured fallback chain without permanently unusable clients. */
 export const PLAYBACK_CLIENTS_DEFAULT = [
   "TV_SIMPLY",
   "IOS",
@@ -11,7 +11,7 @@ export const PLAYBACK_CLIENTS_DEFAULT = [
   "MWEB",
 ] as InnerTubeClient[];
 
-/** Clients mit YouTube-HLS-Manifest zuerst. */
+/** Clients with a YouTube HLS manifest first. */
 export const PLAYBACK_CLIENTS_PREFER_HLS = [
   "VISIONOS",
   "IOS",
@@ -21,30 +21,49 @@ export const PLAYBACK_CLIENTS_PREFER_HLS = [
   "MWEB",
 ] as InnerTubeClient[];
 
-/** Gemessen ungekappt für Byte-Range-Abrufe direkter Mediendateien. */
+/** Measured uncapped for byte-range requests of direct media files. */
 export const PLAYBACK_CLIENTS_FULL_BYTE_RANGE = [
   "VISIONOS",
 ] as InnerTubeClient[];
 
 /**
- * Clients, die der SABR-Endpunkt tatsächlich bedient.
+ * SABR clients for devices without a PoToken runtime (tvOS).
  *
- * Gemessen am 2026-09-26 gegen `server_abr_streaming_url` (Plan §0c/§6):
- * `VISIONOS` und `IOS` antworten mit HTTP 200 und echten Mediendaten,
- * `TV_SIMPLY` und `WEB` mit **403** — obwohl beide eine `ustreamer_config`
- * mitbringen. Die Liste ist also keine Vorliebe, sondern die Menge des
- * Möglichen.
+ * The order matters. `VISIONOS` reports `STREAM_PROTECTION_STATUS = OK`
+ * throughout. `IOS` starts at `ATTESTATION_PENDING` and demands
+ * `ATTESTATION_REQUIRED` after a seek; a web PoToken does not help it (measured
+ * 2026-10-04), so it stays a reserve.
  *
- * **Die Reihenfolge ist es dagegen schon.** `VISIONOS` meldet durchgehend
- * `STREAM_PROTECTION_STATUS = OK`; `IOS` startet bei `ATTESTATION_PENDING` und
- * verlangt nach einem Seek `ATTESTATION_REQUIRED` — ohne PoToken versiegt der
- * Strom dort also. `IOS` ist Reserve, bis Phase 2b/5 den Token liefert.
+ * Plan §0c measured 403 for `TV_SIMPLY` and `WEB`. Re-measured on 2026-10-04,
+ * that came from the unsolved `n` challenge in their streaming URL; deciphered,
+ * both are served but stop after a seek without a token, like `IOS`.
  */
 export const PLAYBACK_CLIENTS_SABR = ["VISIONOS", "IOS"] as InnerTubeClient[];
 
 /**
- * Das Musikprofil ist absichtlich anonym und besitzt eine echte Client-Ladder:
- * VISIONOS liefert direkte Dateien, die übrigen Clients sichern Audio/HLS ab.
+ * SABR clients when a PoToken can be minted (plan phase 5).
+ *
+ * With a content-bound web PoToken, `WEB` reports `OK` and survives seeks
+ * (measured 2026-10-04), so it ranks above `IOS`. `VISIONOS` stays first: it
+ * needs no token and therefore no BotGuard run.
+ */
+export const PLAYBACK_CLIENTS_SABR_WITH_PO_TOKEN = [
+  "VISIONOS",
+  "WEB",
+  "IOS",
+] as InnerTubeClient[];
+
+export function sabrPlaybackClients(
+  poTokenSupported: boolean,
+): InnerTubeClient[] {
+  return poTokenSupported
+    ? PLAYBACK_CLIENTS_SABR_WITH_PO_TOKEN
+    : PLAYBACK_CLIENTS_SABR;
+}
+
+/**
+ * The music profile is deliberately anonymous and has a real client ladder:
+ * VISIONOS delivers direct files, the other clients back up audio/HLS.
  */
 export const AUDIO_PLAYBACK_RESOLVER_PROFILE = {
   profile: "audio",
