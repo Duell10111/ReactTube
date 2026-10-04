@@ -1,10 +1,12 @@
 /**
  * App-wide PoToken access (plan phase 5).
  *
- * The BotGuard runtime is the invisible WebView mounted by
- * `PoTokenWebViewHost`; it registers itself here. tvOS has no WebView, so
- * nothing registers there and every request resolves to `undefined` at once —
- * the client chain simply keeps using clients that need no token.
+ * The BotGuard runtime is the invisible web view mounted by
+ * `PoTokenWebViewHost` (react-native-webview, or on tvOS the runtime-resolved
+ * WKWebView of `modules/botguard-webview`); it registers itself here. Where
+ * none registers — e.g. a tvOS version without WebKit — every request resolves
+ * to `undefined` at once and the client chain keeps to clients that need no
+ * token.
  */
 import {clientNeedsPoToken, PoTokenMinter} from "./PoTokenMinter";
 

@@ -3,8 +3,8 @@
  *
  * Mounted once at the app root. It registers itself as the runtime of
  * `poTokenMinter`; nothing runs until the first token is requested, which
- * happens only for clients that need one (`WEB`). tvOS has no WebView and uses
- * the empty `PoTokenWebViewHost.ios.tv.tsx` instead.
+ * happens only for clients that need one (`WEB`). tvOS has no
+ * react-native-webview and uses `PoTokenWebViewHost.ios.tv.tsx` instead.
  */
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import {StyleSheet, View} from "react-native";

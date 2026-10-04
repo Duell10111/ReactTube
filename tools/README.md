@@ -39,3 +39,37 @@ ist der Grund für die Zwei-Sessions-Architektur bei Musikdaten.
 
 Aufbau, Auswertung und Befunde: `YOUTUBE_MUSIC_IOS_TRAFFIC_ANALYSIS.md` im
 Repo-Root.
+
+## `potoken-page-probe.mjs`
+
+Fährt die BotGuard-Seite der App (`src/utils/potoken/botguardPage.ts`) samt
+Challenge-Parser und `GenerateIT`-Ablauf unter jsdom gegen YouTube und gibt
+einen content-gebundenen PoToken aus (Plan-Phase 5). jsdom kommt aus dem
+YouTube.js-Checkout.
+
+```
+TOKEN=$(node tools/potoken-page-probe.mjs bUHZ2k9DYHY)
+(cd ../../YouTube.js && POT_VALUE=$TOKEN node dev-scripts/phase6-verify.mjs bUHZ2k9DYHY WEB)
+```
+
+**Wozu:** Ob der Server einen Token annimmt, zeigt nur der SABR-Schutzstatus
+(`ok` statt `pending`). Unter jsdom liegt die Quote bei rund 4 von 5.
+
+## `botguard-webview-probe.swift`
+
+Prüft `modules/botguard-webview/ios/RuntimeWebView.swift` im tvOS-Simulator
+ohne App-Build: WebKit per `dlopen`, Seite laden, `evaluate`, Nachrichten aus
+der Seite und ein echter BotGuard-Lauf.
+
+```
+node tools/botguard-webview-probe-page.mjs bUHZ2k9DYHY /tmp/bg.html
+xcrun --sdk appletvsimulator swiftc -parse-as-library \
+  -target arm64-apple-tvos16.4-simulator -o /tmp/bg-probe \
+  tools/botguard-webview-probe.swift modules/botguard-webview/ios/RuntimeWebView.swift
+xcrun simctl boot "Apple TV 4K (3rd generation)"
+xcrun simctl spawn booted /tmp/bg-probe /tmp/bg.html
+```
+
+**Wozu:** tvOS hat kein WebView im SDK; das Modul lädt WebKit zur Laufzeit
+(privates API, Vorbild jvanakker/tvOSBrowser). Gemessen 2026-10-04: Lauf ≈ 1 s,
+6 von 6 Tokens vom SABR-Server angenommen.

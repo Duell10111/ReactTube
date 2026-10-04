@@ -1,22 +1,28 @@
 /**
- * Wiedergabe-Diagnose — Plan-Phase 0.1
+ * Playback diagnostics — plan phase 0.1
  *
- * Beantwortet auf dem echten Gerät die Fragen, die der Node-Lauf
- * (YouTube.js/dev-scripts/playback-matrix.mjs) nicht beantworten kann:
+ * Answers on the real device the questions the Node run
+ * (YouTube.js/dev-scripts/playback-matrix.mjs) cannot answer:
  *
- *  1. Kann die JS-Engine den Player-Code ausführen? Hermes unterstützt
- *     `eval`/`new Function` aus Strings nicht zwingend — genau darauf baut aber
- *     der Decipher-Pfad in src/ytjs/react-native.ts auf.
- *  2. Wurde überhaupt ein Player geladen?
- *  3. Welche InnerTube-Clients liefern auf diesem Gerät abrufbare Formate?
+ *  1. Can the JS engine execute the player code? Hermes does not necessarily
+ *     support `eval`/`new Function` from strings — yet the decipher path in
+ *     src/ytjs/react-native.ts builds on exactly that.
+ *  2. Was a player loaded at all?
+ *  3. Which InnerTube clients deliver fetchable formats on this device?
+ *  4. Does this device mint PoTokens the SABR server accepts (plan phase 5)?
  *
- * Bewusst ohne UI-Abhängigkeiten, damit die Prüfungen auch aus einem Test oder
- * einem Skript heraus laufen können.
+ * Deliberately free of UI dependencies so the checks can also run from a test
+ * or a script.
  */
 // @ts-ignore Ignore no type definitions found
 import {InnerTubeClient} from "youtubei.js/dist/src/types";
 
 import {Innertube, Misc, Sabr} from "@/utils/Youtube";
+import {
+  clientNeedsPoToken,
+  getContentPoToken,
+  poTokenMinter,
+} from "@/utils/potoken/PoTokenProvider";
 
 export interface EngineCheck {
   hermes: boolean;
@@ -61,19 +67,19 @@ export interface TvNamespaceCheck {
   videoFormats?: number;
   maxHeight?: number;
   plainUrls?: number;
-  /** Felder aus der /next-Antwort, die die TV-Oberfläche der App benötigt. */
+  /** Fields of the /next response the app's TV UI needs. */
   nextFields?: string[];
   error?: string;
 }
 
 /**
- * Ergebnis der SABR-Probe — Plan-Phase 6.
+ * Result of the SABR probe — plan phase 6.
  *
- * Beantwortet die Frage, die der Node-Lauf nicht beantworten kann: setzt `fetch`
- * unter Hermes einen POST mit Protobuf-Rumpf so ab, dass der SABR-Endpunkt ihn
- * annimmt, und lässt sich die UMP-Antwort auf dem Gerät zerlegen? `streamedBody`
- * ist dabei der interessante Nebenbefund — React Native liefert in der Regel
- * keinen lesbaren `response.body`, die Antwort landet also komplett im Speicher.
+ * Answers what the Node run cannot: does `fetch` under Hermes send a POST with
+ * a protobuf body the SABR endpoint accepts, and can the UMP response be taken
+ * apart on the device? `streamedBody` is the interesting side finding — React
+ * Native usually provides no readable `response.body`, so the whole response
+ * ends up in memory.
  */
 export interface SabrCheck {
   client: string;
@@ -81,23 +87,31 @@ export interface SabrCheck {
   hasUstreamerConfig: boolean;
   videoItag?: number;
   audioItag?: number;
-  /** Ob die Antwort strömend gelesen wurde oder ganz gepuffert werden musste. */
+  /** Whether the response was read as a stream or had to be buffered whole. */
   streamedBody?: boolean;
-  /** `STREAM_PROTECTION_STATUS` der Antwort. `required` heißt: PoToken nötig. */
+  /**
+   * `STREAM_PROTECTION_STATUS` of the response. With a PoToken anything but
+   * `ok` means the server did not accept it.
+   */
   protectionStatus?: string;
+  /**
+   * PoToken used for clients that need one (plan phase 5): how long minting
+   * took, or why there is none.
+   */
+  poToken?: {length?: number; ms: number; error?: string};
   formats?: {
     key: string;
     mimeType?: string;
     totalSegments: number;
     durationMs: number;
-    /** Größe des Init-Segments und seine mp4-Boxen (`ftyp moov …` erwartet). */
+    /** Size of the init segment and its mp4 boxes (`ftyp moov …` expected). */
     initBytes?: number;
     initBoxes?: string;
-    /** Erstes Mediensegment (`moof mdat` erwartet). */
+    /** First media segment (`moof mdat` expected). */
     segmentBytes?: number;
     segmentBoxes?: string;
   }[];
-  /** UMP-Parts, die die Implementierung nicht kennt — Hinweis auf Protokolldrift. */
+  /** UMP parts the implementation does not know — a hint at protocol drift. */
   unknownParts?: string[];
   error?: string;
   ms?: number;
@@ -107,10 +121,10 @@ export interface DiagnosticsResult {
   startedAt: string;
   videoId: string;
   /**
-   * Welche Innertube-Instanz geprüft wurde. Wichtig: der Login der App hängt an
-   * der TV-Instanz (useAccountData.ts nutzt useYoutubeTVContext), die
-   * Standard-Instanz bleibt anonym — ein TV-Ergebnis aus der falschen Instanz
-   * beantwortet die Auth-Frage nicht.
+   * Which Innertube instance was checked. Important: the app's login lives on
+   * the TV instance (useAccountData.ts uses useYoutubeTVContext), the default
+   * instance stays anonymous — a TV result from the wrong instance does not
+   * answer the auth question.
    */
   session: {
     label: string;
@@ -123,10 +137,15 @@ export interface DiagnosticsResult {
     error?: string;
   };
   clients: ClientCheck[];
-  /** Der Pfad, den die App für die TV-Wiedergabe tatsächlich benutzt. */
+  /** The path the app actually uses for TV playback. */
   tvNamespace?: TvNamespaceCheck;
-  /** Holt SABR auf diesem Gerät echte Segmente? */
+  /** Does SABR fetch real segments on this device? */
   sabr?: SabrCheck;
+  /**
+   * The same probe over `WEB` with a PoToken — only where this device can mint
+   * one (plan phase 5).
+   */
+  sabrWithPoToken?: SabrCheck;
 }
 
 export const DIAGNOSTICS_CLIENTS: InnerTubeClient[] = [
@@ -155,8 +174,8 @@ export function checkEngine(): EngineCheck {
   };
 
   try {
-    // Exakt der Mechanismus, den der Shim in src/ytjs/react-native.ts nutzt —
-    // hier bewusst aufgerufen, um genau das zu prüfen.
+    // Exactly the mechanism the shim in src/ytjs/react-native.ts uses —
+    // called here on purpose to check precisely that.
     // eslint-disable-next-line no-new-func
     const fn = new Function("return 1 + 1");
     if (fn() !== 2) {
@@ -181,9 +200,9 @@ export function checkEngine(): EngineCheck {
 /* ------------------------------------- sidx ----------------------------------- */
 
 /**
- * Liest die Anzahl der Subsegmente aus einer sidx-Box.
- * Kurzfassung des Parsers, den Plan-Phase 2.1 als src/utils/Mp4SidxParser.ts
- * in den Fork bringt — hier nur, um die Machbarkeit auf dem Gerät zu zeigen.
+ * Reads the number of subsegments from a sidx box.
+ * Short version of the parser plan phase 2.1 brings into the fork as
+ * src/utils/Mp4SidxParser.ts — here only to show feasibility on the device.
  */
 export function readSidxSegmentCount(bytes: Uint8Array): number {
   const u32 = (o: number) =>
@@ -228,7 +247,7 @@ export function readSidxSegmentCount(bytes: Uint8Array): number {
   throw new Error("keine sidx-Box gefunden");
 }
 
-/* ------------------------------------ Formate --------------------------------- */
+/* ------------------------------------ Formats --------------------------------- */
 
 function pickCandidates(info: any) {
   const adaptive = info.streaming_data?.adaptive_formats ?? [];
@@ -303,11 +322,11 @@ async function checkFormat(
 /* ------------------------------------- SABR ----------------------------------- */
 
 /**
- * Liest die Top-Level-Boxtypen eines mp4-Fragments.
+ * Reads the top-level box types of an mp4 fragment.
  *
- * Reicht als Echtheitsprüfung: ein Init-Segment beginnt mit `ftyp` und trägt
- * `moov`, ein Mediensegment `moof` + `mdat`. Was dazwischen an Bytes liegt, muss
- * hier niemand deuten.
+ * Enough as an authenticity check: an init segment starts with `ftyp` and
+ * carries `moov`, a media segment `moof` + `mdat`. Nobody needs to interpret
+ * the bytes in between here.
  */
 function readBoxTypes(data: Uint8Array, limit = 6): string {
   const types: string[] = [];
@@ -329,8 +348,8 @@ function readBoxTypes(data: Uint8Array, limit = 6): string {
       ),
     );
 
-    // 0 heißt „bis zum Ende", 1 heißt 64-Bit-Größe dahinter — beides beendet
-    // hier die Aufzählung, weil der erste Boxtyp die Frage schon beantwortet.
+    // 0 means "to the end", 1 means a 64-bit size follows — both end the
+    // enumeration here, because the first box type already answers the question.
     if (size < 8) {
       break;
     }
@@ -342,10 +361,10 @@ function readBoxTypes(data: Uint8Array, limit = 6): string {
 }
 
 /**
- * Wählt bewusst die **kleinsten** indizierten mp4-Formate.
+ * Deliberately picks the **smallest** indexed mp4 formats.
  *
- * Die Probe prüft den Mechanismus, nicht die Qualität — und eine Runde 2160p
- * kostet rund 2,5 MB Mobilfunk- oder WLAN-Verkehr für nichts.
+ * The probe checks the mechanism, not the quality — and a round of 2160p
+ * costs about 2.5 MB of cellular or Wi-Fi traffic for nothing.
  */
 function pickSmallestSabrFormats(info: any) {
   const adaptive = info.streaming_data?.adaptive_formats ?? [];
@@ -363,11 +382,11 @@ function pickSmallestSabrFormats(info: any) {
 }
 
 /**
- * Zieht über SABR ein Init- und ein Mediensegment je Spur.
+ * Fetches one init and one media segment per track over SABR.
  *
- * Gemessen (Plan §6) bedient der SABR-Endpunkt nur `VISIONOS` und `IOS`; bei
- * `IOS` verlangt der Server nach kurzer Zeit Attestierung. Deshalb ist
- * `VISIONOS` die Vorgabe.
+ * `VISIONOS` is the default: it stays at `OK` without a PoToken. For clients
+ * that need a token (`WEB`) the probe mints one and solves the URL's `n`
+ * challenge, as playback does (plan phase 5).
  */
 export async function checkSabr(
   youtube: Innertube,
@@ -380,10 +399,30 @@ export async function checkSabr(
     hasSabrUrl: false,
     hasUstreamerConfig: false,
   };
+  let poToken: string | undefined;
 
   try {
+    if (clientNeedsPoToken(client)) {
+      const mintStarted = Date.now();
+      poToken = await getContentPoToken(videoId);
+      check.poToken = {
+        length: poToken?.length,
+        ms: Date.now() - mintStarted,
+        error: poToken ? undefined : "kein Token (siehe Log POTOKEN)",
+      };
+
+      if (!poToken) {
+        check.error = "Auf diesem Gerät ließ sich kein PoToken erzeugen";
+        return check;
+      }
+    }
+
     const info = await youtube.getBasicInfo(videoId, {client} as any);
-    const streamingUrl = info.streaming_data?.server_abr_streaming_url;
+    const rawStreamingUrl = info.streaming_data?.server_abr_streaming_url;
+    const streamingUrl =
+      rawStreamingUrl && youtube.session.player
+        ? await youtube.session.player.decipher(rawStreamingUrl)
+        : rawStreamingUrl;
     const ustreamerConfig = (info as any).player_config?.media_common_config
       ?.media_ustreamer_request_config?.video_playback_ustreamer_config;
 
@@ -421,8 +460,9 @@ export async function checkSabr(
       video_format_id: toFormatId(video),
       audio_format_id: toFormatId(audio),
       video_id: videoId,
-      // Dieselbe fetch-Funktion wie der Rest der Session, damit Kopfzeilen und
-      // Netzwerkverhalten sich nicht von den übrigen Abrufen unterscheiden.
+      po_token: poToken,
+      // The same fetch function as the rest of the session, so headers and
+      // network behaviour do not differ from the other requests.
       fetch: youtube.session.http.fetch_function,
     });
 
@@ -466,7 +506,7 @@ export async function checkSabr(
   return check;
 }
 
-/* ------------------------------------- Lauf ----------------------------------- */
+/* ------------------------------------- Run ------------------------------------ */
 
 export async function runDiagnostics(
   youtube: Innertube,
@@ -476,13 +516,14 @@ export async function runDiagnostics(
     label?: string;
     includeTvNamespace?: boolean;
     /**
-     * Zieht zusätzlich echte Segmente über SABR (Plan-Phase 6).
+     * Additionally fetches real segments over SABR (plan phase 6), and where a
+     * PoToken can be minted, once more over `WEB` with one (plan phase 5).
      *
-     * Gemessen kostet die Probe einen zusätzlichen `/player`-Abruf und **eine**
-     * SABR-Anfrage mit rund 110 KB über die Leitung (80 KB davon Segmentdaten) —
-     * sie wählt dafür die kleinsten mp4-Formate. Sie gehört an die **anonyme**
-     * Instanz: eine angemeldete Session beantwortet Nicht-TV-Clients mit HTTP 400,
-     * und SABR braucht genau einen davon.
+     * Measured, each probe costs one extra `/player` request and **one** SABR
+     * request of about 110 KB on the wire (80 KB of it segment data) — it picks
+     * the smallest mp4 formats. It belongs on the **anonymous** instance: a
+     * signed-in session answers non-TV clients with HTTP 400, and SABR needs
+     * exactly one of those.
      */
     includeSabr?: boolean;
   },
@@ -558,15 +599,19 @@ export async function runDiagnostics(
 
   if (options?.includeSabr) {
     result.sabr = await checkSabr(youtube, videoId);
+
+    if (poTokenMinter.isSupported) {
+      result.sabrWithPoToken = await checkSabr(youtube, videoId, "WEB");
+    }
   }
 
   return result;
 }
 
 /**
- * Prüft `tv.getInfo()` — den Pfad, über den die App ihre TV-Wiedergabe holt.
- * `/player` und `/next` sind getrennte Anfragen: der TV-Client kann bei den
- * Metadaten vollständig sein und beim Player trotzdem UNPLAYABLE liefern.
+ * Checks `tv.getInfo()` — the path the app fetches its TV playback through.
+ * `/player` and `/next` are separate requests: the TV client can be complete
+ * in its metadata and still answer UNPLAYABLE for the player.
  */
 async function checkTvNamespace(
   youtube: Innertube,
@@ -600,7 +645,55 @@ async function checkTvNamespace(
   }
 }
 
-/** Kompakte Textfassung — für Logs und zum Kopieren in die Zwischenablage. */
+/** Text lines for one SABR probe. */
+function formatSabrCheck(sabr: SabrCheck): string[] {
+  const lines: string[] = [];
+  lines.push(`SABR (${sabr.client}):`);
+
+  if (sabr.poToken) {
+    lines.push(
+      sabr.poToken.length
+        ? `    PoToken ${sabr.poToken.length} Zeichen in ${sabr.poToken.ms}ms`
+        : `    PoToken FEHLT (${sabr.poToken.error}) · ${sabr.poToken.ms}ms`,
+    );
+  }
+
+  if (!sabr.hasSabrUrl || !sabr.hasUstreamerConfig) {
+    lines.push(
+      `    Eingaben fehlen — SABR-URL ${sabr.hasSabrUrl ? "ja" : "nein"}, ` +
+        `ustreamer-Konfiguration ${sabr.hasUstreamerConfig ? "ja" : "nein"}`,
+    );
+  }
+
+  if (sabr.error) {
+    lines.push(`    FEHLER ${sabr.error}`);
+  } else {
+    lines.push(
+      `    itag ${sabr.videoItag}+${sabr.audioItag} · ` +
+        `Antwort ${sabr.streamedBody ? "strömend" : "ganz gepuffert"} · ` +
+        `Schutz ${sabr.protectionStatus} · ${sabr.ms}ms`,
+    );
+
+    for (const format of sabr.formats ?? []) {
+      lines.push(
+        `    ${format.key} ${format.mimeType ?? ""} · ` +
+          `${format.totalSegments} Segmente · ${format.durationMs}ms`,
+      );
+      lines.push(
+        `        init ${format.initBytes}B [${format.initBoxes}] · ` +
+          `Segment 1 ${format.segmentBytes}B [${format.segmentBoxes}]`,
+      );
+    }
+
+    if (sabr.unknownParts?.length) {
+      lines.push(`    unbekannte UMP-Parts: ${sabr.unknownParts.join(", ")}`);
+    }
+  }
+
+  return lines;
+}
+
+/** Compact text form — for logs and for copying to the clipboard. */
 export function formatDiagnostics(result: DiagnosticsResult): string {
   const lines: string[] = [];
 
@@ -651,41 +744,11 @@ export function formatDiagnostics(result: DiagnosticsResult): string {
   }
 
   if (result.sabr) {
-    const sabr = result.sabr;
-    lines.push("");
-    lines.push(`SABR (${sabr.client}):`);
+    lines.push("", ...formatSabrCheck(result.sabr));
+  }
 
-    if (!sabr.hasSabrUrl || !sabr.hasUstreamerConfig) {
-      lines.push(
-        `    Eingaben fehlen — SABR-URL ${sabr.hasSabrUrl ? "ja" : "nein"}, ` +
-          `ustreamer-Konfiguration ${sabr.hasUstreamerConfig ? "ja" : "nein"}`,
-      );
-    }
-
-    if (sabr.error) {
-      lines.push(`    FEHLER ${sabr.error}`);
-    } else {
-      lines.push(
-        `    itag ${sabr.videoItag}+${sabr.audioItag} · ` +
-          `Antwort ${sabr.streamedBody ? "strömend" : "ganz gepuffert"} · ` +
-          `Schutz ${sabr.protectionStatus} · ${sabr.ms}ms`,
-      );
-
-      for (const format of sabr.formats ?? []) {
-        lines.push(
-          `    ${format.key} ${format.mimeType ?? ""} · ` +
-            `${format.totalSegments} Segmente · ${format.durationMs}ms`,
-        );
-        lines.push(
-          `        init ${format.initBytes}B [${format.initBoxes}] · ` +
-            `Segment 1 ${format.segmentBytes}B [${format.segmentBoxes}]`,
-        );
-      }
-
-      if (sabr.unknownParts?.length) {
-        lines.push(`    unbekannte UMP-Parts: ${sabr.unknownParts.join(", ")}`);
-      }
-    }
+  if (result.sabrWithPoToken) {
+    lines.push("", ...formatSabrCheck(result.sabrWithPoToken));
   }
 
   if (result.tvNamespace) {
@@ -705,12 +768,12 @@ export function formatDiagnostics(result: DiagnosticsResult): string {
   return lines.join("\n");
 }
 
-/* ---------------------------- Laufzeit-Protokollierung ------------------------ */
+/* --------------------------------- Runtime logging ---------------------------- */
 
 /**
- * Kompakte Beschreibung der Streaming-Daten einer Player-Antwort — Plan-Phase 0.4.
- * Wird bei jedem Videoabruf protokolliert, damit im Fehlerfall nachvollziehbar
- * ist, welcher Client welche Formate geliefert hat.
+ * Compact description of a player response's streaming data — plan phase 0.4.
+ * Logged on every video fetch so that, when something fails, it is traceable
+ * which client delivered which formats.
  */
 export function describeStreamingData(info: any, label: string): string {
   const streaming = info?.streaming_data;
