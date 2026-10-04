@@ -625,7 +625,7 @@ stopServer(): Promise<void>
 
 ---
 
-### Phase 5 — PoToken (BotGuard) *(✅ umgesetzt 2026-10-04 für iPhone/iPad/Android/Android TV; tvOS bewusst ohne)*
+### Phase 5 — PoToken (BotGuard) *(✅ umgesetzt 2026-10-04 für iPhone/iPad/Android/Android TV und — per privatem API — tvOS)*
 
 > **Neu eingeordnet nach Messung.** Der PoToken hebt weder die Byte-Range-Kappung
 > auf (§2, erneut bestätigt) noch hilft er `IOS`, `TV_SIMPLY` oder `MWEB` am
@@ -657,10 +657,30 @@ stopServer(): Promise<void>
 | 5.3 Token pro Client | Fork: `getPlayableInfo({po_token_for})` (`Innertube.ts`, `TV.ts`, `PlaybackResolver.ts`); App: `poTokenForClient()` nur für `WEB` |
 | 5.4 SABR | `SabrPlayback.ts`: URL über `Player#decipher`, Token im `StreamerContext`; ist der Status nach der ersten Runde nicht `OK`, **genau ein** Neuversuch mit frischem Token |
 | Client-Kette | `PLAYBACK_CLIENTS_SABR_WITH_PO_TOKEN = VISIONOS → WEB → IOS`, nur wo ein WebView existiert (`sabrPlaybackClients()`) |
-| tvOS | kein WebView ⇒ `PoTokenWebViewHost.ios.tv.tsx` rendert nichts, `react-native.config.js` nimmt `react-native-webview` im TV-Build aus dem iOS-Autolinking (Podspec kennt kein tvOS). Kette bleibt `VISIONOS → IOS`. |
+| tvOS | `modules/botguard-webview` (siehe unten); `react-native.config.js` nimmt `react-native-webview` im TV-Build aus dem iOS-Autolinking (Podspec kennt kein tvOS). |
+
+#### tvOS: WebKit zur Laufzeit *(privates API)*
+
+Das tvOS-SDK enthält kein WebKit, das Betriebssystem aber schon. Nach dem Vorbild von
+[jvanakker/tvOSBrowser](https://github.com/jvanakker/tvOSBrowser) (`BrowserWebView.m`) lädt
+`modules/botguard-webview/ios/RuntimeWebView.swift` das Framework per `dlopen` und spricht
+`WKWebView` über die Objective-C-Laufzeit an (KVC, `perform`, Nachrichten über
+`WKScriptMessageHandler`, Protokoll zur Laufzeit ergänzt). Der View hängt in keinem Fenster
+und kann deshalb den TV-Fokus nicht stören. **Nicht App-Store-tauglich** — für lokal gebaute
+Apps unkritisch.
+
+- Host: `src/components/potoken/PoTokenWebViewHost.ios.tv.tsx` — gleiche Seite, gleicher
+  Ablauf, Brücke über `evaluate` + `onMessage`; die Seite wird beim App-Start vorgeladen,
+  jeder weitere BotGuard-Lauf bekommt eine frische Seite.
+- Fehlt WebKit (künftige tvOS-Version), meldet sich kein Host an ⇒ Kette bleibt `VISIONOS → IOS`.
+- Gemessen im tvOS-Simulator (18.x): BotGuard-Lauf ≈ 1 s; ein Kaltstart direkt nach dem Boot
+  dauerte einmal 46 s (daher das Vorladen); **6/6 Tokens vom SABR-Server akzeptiert**.
+- Probe ohne App-Build: `tools/botguard-webview-probe.swift` (+ `tools/botguard-webview-probe-page.mjs`).
 
 #### Verifikation
 
+- Diagnose auf dem Gerät: *Einstellungen ▸ Playback diagnostics* mit SABR-Probe zeigt jetzt
+  zusätzlich `SABR (WEB)` mit PoToken-Dauer und Schutzstatus — `Schutz ok` heißt: Token angenommen.
 - `node --test test/potoken.test.mjs` — Parser, Cache, Ablauf, Cooldown, Zeitlimit, Ablehnung, Client-Liste (13 Tests).
 - `node tools/potoken-page-probe.mjs` fährt **dieselbe WebView-Seite** unter jsdom gegen YouTube; den Token prüft
   `POT_VALUE=<token> node dev-scripts/phase6-verify.mjs bUHZ2k9DYHY WEB` im Fork (4 von 5 Läufen `OK` + Seek).
@@ -668,8 +688,7 @@ stopServer(): Promise<void>
 
 #### Offen
 
-- **Gerätetest** auf iPhone und Android TV: läuft BotGuard im WKWebView/Android-WebView, und wie oft akzeptiert der Server den Token dort?
-- `PlaybackDiagnostics` zeigt den Token-Status noch nicht an.
+- **Gerätetest** auf iPhone, Apple TV und Android TV (über die Diagnose, siehe oben).
 
 ### Phase 6 — SABR *(✅ umgesetzt 2026-09-26; Apple-Pfad vollständig, Android in Phase 7)*
 
