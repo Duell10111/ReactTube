@@ -27,7 +27,7 @@ export const PLAYBACK_CLIENTS_FULL_BYTE_RANGE = [
 ] as InnerTubeClient[];
 
 /**
- * SABR clients for devices without a PoToken runtime (tvOS).
+ * SABR clients for devices without a PoToken runtime.
  *
  * The order matters. `VISIONOS` reports `STREAM_PROTECTION_STATUS = OK`
  * throughout. `IOS` starts at `ATTESTATION_PENDING` and demands
