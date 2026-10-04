@@ -14,6 +14,8 @@ export {
   PLAYBACK_CLIENTS_FULL_BYTE_RANGE,
   PLAYBACK_CLIENTS_PREFER_HLS,
   PLAYBACK_CLIENTS_SABR,
+  PLAYBACK_CLIENTS_SABR_WITH_PO_TOKEN,
+  sabrPlaybackClients,
 } from "@/utils/PlaybackClientProfiles";
 
 const LOGGER = Logger.extend("PLAYBACK");
@@ -31,8 +33,12 @@ interface PlaybackResolverOptions {
   profile: string;
   clients: InnerTubeClient[];
   accept: (info: YT.VideoInfo) => boolean;
-  /** Erzwingt einen `/player`-Abruf ohne OAuth-/Cookie-Zugangsdaten. */
+  /** Forces a `/player` request without OAuth/cookie credentials. */
   skipAuth?: boolean;
+  /** Per-client PoToken for the `/player` request (plan phase 5.3). */
+  poTokenFor?: (
+    client: InnerTubeClient,
+  ) => Promise<string | undefined> | string | undefined;
   clientsFallback?: InnerTubeClient[];
   acceptFallback?: ((info: YT.VideoInfo) => boolean) | null;
 }
@@ -57,10 +63,10 @@ function preferRecentClient(
 }
 
 /**
- * Die Bot-Sperre („Sign in to confirm you're not a bot"). Gemessen am 2026-09-26
- * hängt sie an der **IP**, nicht an der Session: sie trifft alle Clients
- * gleichzeitig, ein frisch geholtes `visitorData` löst sie nicht, und mit dem
- * Wechsel der IP verschwindet sie schlagartig (Plan §0c).
+ * The bot gate ("Sign in to confirm you're not a bot"). Measured on 2026-09-26
+ * it is tied to the **IP**, not the session: it hits all clients at once, a
+ * freshly fetched `visitorData` does not lift it, and it vanishes as soon as
+ * the IP changes (plan §0c).
  */
 const BOT_GATE_REASON = /confirm you.{0,3}re not a bot/i;
 
@@ -84,9 +90,9 @@ function recoverRejectedSession(
 }
 
 /**
- * Verwirft die Session-Identität nach einem `LOGIN_REQUIRED` — außer die Sperre
- * hängt an der IP. Dann bringt das Verwerfen nichts, und ein Muster aus „neue
- * Identität pro Abspielversuch" ist genau das, wonach die Bot-Erkennung sucht.
+ * Discards the session identity after a `LOGIN_REQUIRED` — unless the gate is
+ * tied to the IP. Then discarding achieves nothing, and a pattern of "new
+ * identity per playback attempt" is exactly what bot detection looks for.
  */
 export function resetRejectedPlaybackSession(
   profile: string,
@@ -110,9 +116,9 @@ export function resetRejectedPlaybackSession(
 }
 
 /**
- * Gemeinsame Basis für Video- und Audio-Auflösung. Sie hält Client-Fallback,
- * Diagnose, erfolgreiche Client-Präferenz und die Session-Selbstheilung an
- * einer Stelle; das jeweilige Profil definiert nur seine Annahmekriterien.
+ * Shared base for video and audio resolution. It keeps client fallback,
+ * diagnostics, the successful-client preference and session self-healing in
+ * one place; each profile only defines its acceptance criteria.
  */
 export async function resolvePlaybackInfo(
   youtube: Innertube,
@@ -125,12 +131,13 @@ export async function resolvePlaybackInfo(
     const resolved = await youtube.getPlayableInfo(target, {
       clients,
       skip_auth: options.skipAuth,
+      po_token_for: options.poTokenFor,
       accept: options.accept,
       clients_fallback: options.clientsFallback,
       accept_fallback: options.acceptFallback,
-      // Der `reason` gehört mit ins Log: er unterscheidet eine IP-weite
-      // Bot-Sperre von einem echten Session- oder Videoproblem. Ohne ihn sieht
-      // beides gleich aus (Plan §0c).
+      // The `reason` belongs in the log: it tells an IP-wide bot gate apart
+      // from a real session or video problem. Without it both look the same
+      // (plan §0c).
       on_attempt: attempt =>
         LOGGER.debug(
           `${options.profile}: Client ${attempt.client}: ${

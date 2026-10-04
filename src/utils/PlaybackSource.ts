@@ -1,71 +1,67 @@
 /**
- * Auflösung der Streaming-Daten über eine Client-Kette — Plan-Phase 1.4/1.8.
+ * Resolves streaming data through a client chain — plan phases 1.4/1.8.
  *
- * Vorher holte die App ihre Streams von genau einem Client (`TV` für die
- * TV-Oberfläche, `IOS` für HLS). Beides ist brüchig: `TV` liefert seit geraumer
- * Zeit für jedes Video `UNPLAYABLE`, und einzelne Clients fallen ohne Vorwarnung
- * aus. Hier wird stattdessen eine gemessene Reihenfolge durchprobiert, bis ein
- * Client abspielbare Formate liefert — dasselbe Vorgehen wie SmartTubes
- * `VideoInfoService#firstPlayable`.
+ * The app used to fetch its streams from exactly one client (`TV` for the TV
+ * UI, `IOS` for HLS). Both are brittle: `TV` has answered `UNPLAYABLE` for
+ * every video for a while, and individual clients fail without warning. Here a
+ * measured order is tried instead until a client delivers playable formats —
+ * the same approach as SmartTube's `VideoInfoService#firstPlayable`.
  *
- * Die Reihenfolge stammt aus `YouTube.js/docs/playback-matrix.md`
- * (`npm run matrix` im Fork erneuert sie).
+ * The order comes from `YouTube.js/docs/playback-matrix.md`
+ * (`npm run matrix` in the fork refreshes it).
  */
 import Logger from "@/utils/Logger";
 import {
   PLAYBACK_CLIENTS_DEFAULT,
   PLAYBACK_CLIENTS_FULL_BYTE_RANGE,
   PLAYBACK_CLIENTS_PREFER_HLS,
-  PLAYBACK_CLIENTS_SABR,
   resolvePlaybackInfo,
+  sabrPlaybackClients,
 } from "@/utils/PlaybackResolver";
 import {Innertube, YT, YTNodes} from "@/utils/Youtube";
+import {poTokenForClient, poTokenMinter} from "@/utils/potoken/PoTokenProvider";
 
 const LOGGER = Logger.extend("PLAYBACK");
 
 /**
- * Welche Auslieferungsform die Wiedergabe anstrebt.
+ * Which delivery form playback aims for.
  *
- * - `generated`: eigenes Manifest aus den adaptiven Formaten (Plan-Phase 2c) —
- *   2160p in av01 und getrennte Tonspuren, setzt einen ungekappten Client voraus.
- * - `youtube-hls`: YouTubes eigenes Manifest (Phase 2a) — verlässlich, aber auf
- *   AVPlayer nur avc1 bis 1080p mit gemuxtem Ton.
- * - `progressive`: der alte Weg über eine einzelne Datei-URL. Bricht bei den
- *   gekappten Clients nach wenigen Sekunden ab und bleibt nur zum Vergleichen.
- * - `sabr`: Segmente über `server_abr_streaming_url` (Phase 6). Unabhängig von
- *   der Byte-Range-Gunst einzelner Clients — aber nur `VISIONOS` und `IOS`
- *   werden am SABR-Endpunkt überhaupt bedient (Plan §0c), und die Segmente
- *   brauchen einen lokalen Server, der sie an AVPlayer ausliefert (Phase 6.5).
- *   Solange der fehlt, fällt der Modus auf `generated` zurück.
+ * - `generated`: the app's own manifest from the adaptive formats (plan phase
+ *   2c) — 2160p in av01 and separate audio tracks; needs an uncapped client.
+ * - `youtube-hls`: YouTube's own manifest (phase 2a) — reliable, but on
+ *   AVPlayer only avc1 up to 1080p with muxed audio.
+ * - `progressive`: the old single-file URL path. Breaks off after a few
+ *   seconds on capped clients and only remains for comparison.
+ * - `sabr`: segments via `server_abr_streaming_url` (phase 6). Independent of
+ *   individual clients' byte-range behaviour; the segments are served to
+ *   AVPlayer by the local media server (phase 6.5). `WEB` joins the chain
+ *   only where a PoToken can be minted (phase 5).
  */
 export type PlaybackMode = "generated" | "youtube-hls" | "progressive" | "sabr";
 
 export interface StreamingSource {
   info: YT.VideoInfo;
   client: string;
-  /** `fallback`, wenn kein Client die Hauptbedingung erfüllte. */
+  /** `fallback` when no client met the primary condition. */
   satisfied: "primary" | "fallback";
-  /** Ob die Quelle ein HLS-Manifest von YouTube mitbringt. */
+  /** Whether the source carries a YouTube HLS manifest. */
   hasHlsManifest: boolean;
   /**
-   * Ob sich aus dieser Quelle ein eigenes Manifest bauen lässt: ungekappter
-   * Client **und** indizierte mp4-Formate.
+   * Whether the app's own manifest can be built from this source: an uncapped
+   * client **and** indexed mp4 formats.
    */
   canGenerateHls: boolean;
   /**
-   * Ob die Quelle die beiden Eingaben für SABR mitbringt und von einem Client
-   * kommt, den der SABR-Endpunkt bedient.
-   *
-   * Sagt **nichts** darüber, ob SABR abgespielt werden kann: dazu fehlt der
-   * lokale Segment-Server aus Phase 6.5.
+   * Whether the source carries both SABR inputs and comes from a client the
+   * SABR endpoint serves. It does not guarantee that the stream starts.
    */
   canUseSabr: boolean;
 }
 
 /**
- * Die beiden Eingaben, ohne die SABR nicht anfangen kann — beide stammen aus
- * derselben `/player`-Antwort. Fehlt sie, fehlen auch sie; das ist der Grund,
- * warum SABR gegen `LOGIN_REQUIRED` nichts ausrichtet (Plan §0c).
+ * The two inputs SABR cannot start without — both come from the same
+ * `/player` response. If that response is missing, so are they; which is why
+ * SABR does nothing against `LOGIN_REQUIRED` (plan §0c).
  */
 function hasSabrInputs(info: YT.VideoInfo): boolean {
   const ustreamer = (info as any).player_config?.media_common_config
@@ -75,9 +71,9 @@ function hasSabrInputs(info: YT.VideoInfo): boolean {
 }
 
 /**
- * Indizierte mp4-Formate sind die Voraussetzung für den eigenen Generator:
- * nur mp4 trägt eine `sidx`-Box (VP9 liegt in WebM und indexiert über Cues),
- * und ohne `index_range` gibt es keine Segmentliste.
+ * Indexed mp4 formats are the prerequisite for the app's own generator: only
+ * mp4 carries a `sidx` box (VP9 lives in WebM and indexes via cues), and
+ * without `index_range` there is no segment list.
  */
 function hasIndexedMp4Formats(info: YT.VideoInfo): boolean {
   const formats = info.streaming_data?.adaptive_formats ?? [];
@@ -96,15 +92,15 @@ function hasIndexedMp4Formats(info: YT.VideoInfo): boolean {
 }
 
 /**
- * Holt die Streaming-Daten über die Client-Kette.
+ * Fetches the streaming data through the client chain.
  *
- * @param youtube - **Anonyme** Instanz. Eine angemeldete Session beantwortet
- *   Anfragen für Nicht-TV-Clients mit HTTP 400, weil sie ihre Zugangsdaten
- *   mitschickt.
- * @param target - Video-ID oder Navigations-Endpunkt.
- * @param options.mode - Welche Auslieferungsform angestrebt wird. Die erste
- *   Runde nimmt nur Clients an, die sie bedienen können; erst wenn keiner es
- *   tut, greift die zweite Runde auf irgendetwas Abspielbares zurück.
+ * @param youtube - **Anonymous** instance. A signed-in session answers
+ *   requests for non-TV clients with HTTP 400 because it sends its
+ *   credentials along.
+ * @param target - Video id or navigation endpoint.
+ * @param options.mode - Which delivery form to aim for. The first pass only
+ *   accepts clients that can serve it; only if none does, the second pass
+ *   falls back to anything playable.
  */
 export async function resolveStreamingSource(
   youtube: Innertube,
@@ -112,12 +108,18 @@ export async function resolveStreamingSource(
   options?: {mode?: PlaybackMode},
 ): Promise<StreamingSource | undefined> {
   const mode = options?.mode ?? "generated";
+  const sabrClients = sabrPlaybackClients(poTokenMinter.isSupported);
+  const videoId =
+    typeof target === "string"
+      ? target
+      : (target.payload?.videoId as string | undefined);
 
   const resolved = await resolvePlaybackInfo(youtube, target, {
     profile: mode,
+    poTokenFor: videoId ? poTokenForClient(videoId) : undefined,
     clients:
       mode === "sabr"
-        ? PLAYBACK_CLIENTS_SABR
+        ? sabrClients
         : mode === "generated"
           ? PLAYBACK_CLIENTS_FULL_BYTE_RANGE
           : mode === "youtube-hls"
@@ -146,14 +148,14 @@ export async function resolveStreamingSource(
                     format.has_video &&
                     (format.url || format.signature_cipher || format.cipher),
                 ),
-    // Scheitert der eigene Generator an der Quelle, ist YouTubes Manifest die
-    // nächstbeste Stufe — deshalb steht die ganze HLS-Kette als Reserve bereit.
-    // Für SABR gilt dasselbe: liefert kein SABR-Client, bleibt der Phase-2-Weg.
+    // If the app's own generator fails on the source, YouTube's manifest is
+    // the next best stage — so the whole HLS chain stands by as a reserve. The
+    // same holds for SABR: if no SABR client delivers, the phase 2 path stays.
     clientsFallback:
       mode === "generated" || mode === "sabr"
         ? PLAYBACK_CLIENTS_PREFER_HLS
         : undefined,
-    // Zweite Runde: irgendein Client mit brauchbaren Formaten.
+    // Second pass: any client with usable formats.
     acceptFallback: info =>
       info.playability_status?.status === "OK" &&
       !!info.streaming_data &&
@@ -173,7 +175,7 @@ export async function resolveStreamingSource(
       client => client === resolved.client,
     ) && hasIndexedMp4Formats(resolved.info);
   const canUseSabr =
-    PLAYBACK_CLIENTS_SABR.some(client => client === resolved.client) &&
+    sabrClients.some(client => client === resolved.client) &&
     hasSabrInputs(resolved.info);
 
   const form = canGenerateHls
@@ -216,11 +218,11 @@ export async function resolveStreamingSource(
 }
 
 /**
- * Leitet aus den App-Einstellungen ab, welcher Weg gefahren wird.
+ * Derives from the app settings which path is taken.
  *
- * Alt-Schlüssel (Plan-Phase 2.5): `localHlsEnabled` stand früher für einen
- * lokalen Server, der nie gebaut wurde, und trägt jetzt den eigenen Generator.
- * `hlsEnabled: false` bleibt der Notausgang auf den progressiven Weg.
+ * Legacy keys (plan phase 2.5): `localHlsEnabled` used to stand for a local
+ * server that was never built and now carries the app's own generator.
+ * `hlsEnabled: false` remains the emergency exit to the progressive path.
  */
 export function playbackModeFromSettings(settings: {
   hlsEnabled?: boolean;
