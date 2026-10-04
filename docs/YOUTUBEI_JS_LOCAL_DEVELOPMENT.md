@@ -5,7 +5,7 @@ that is published as `@duell10111/youtubei.js` and aliased to the package name
 `youtubei.js`:
 
 ```json
-"youtubei.js": "npm:@duell10111/youtubei.js@18.0.0-beta.2"
+"youtubei.js": "npm:@duell10111/youtubei.js@18.0.0-beta.3"
 ```
 
 `main` always uses a published version so that a fresh clone builds with nothing
