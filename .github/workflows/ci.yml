@@ -8,7 +8,7 @@ on:
       - main
 
 jobs:
-  lint:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,3 +22,6 @@ jobs:
 
       - name: Typecheck files
         run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
