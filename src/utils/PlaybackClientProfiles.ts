@@ -62,6 +62,17 @@ export function sabrPlaybackClients(
 }
 
 /**
+ * Clients for the signed-in fallback that plays the user's private videos.
+ *
+ * `TV_DOWNGRADED` is the only client that returns them (see
+ * `privatePlayback.ts`); its byte ranges are uncapped there, so the app's own
+ * HLS generator can serve them.
+ */
+export const PLAYBACK_CLIENTS_SIGNED_IN = [
+  "TV_DOWNGRADED",
+] as InnerTubeClient[];
+
+/**
  * The music profile is deliberately anonymous and has a real client ladder:
  * VISIONOS delivers direct files, the other clients back up audio/HLS.
  */

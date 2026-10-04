@@ -126,8 +126,12 @@ async function generateIfPossible(
 ) {
   // Only build it when it is selected. Otherwise it costs one and a half
   // seconds of startup time and then sits unused in the ladder — with
-  // "YouTube HLS" it is the wrong first step.
-  if (mode !== "generated" || !streaming.canGenerateHls) {
+  // "YouTube HLS" it is the wrong first step. A private video is the
+  // exception: it has neither YouTube HLS nor SABR, so this is its only path.
+  if (
+    !streaming.canGenerateHls ||
+    (mode !== "generated" && !streaming.authenticated)
+  ) {
     return undefined;
   }
 
@@ -211,6 +215,7 @@ export default function useVideoDetails(
         youtube
           ? resolveStreamingSource(youtube, videoId, {
               mode: playbackMode,
+              signedInYoutube: tvYoutube,
             })
           : undefined,
       ])
@@ -293,6 +298,7 @@ export default function useVideoDetails(
       youtube &&
         resolveStreamingSource(youtube, videoId, {
           mode: playbackMode,
+          signedInYoutube: tvYoutube,
         })
           .then(async streaming => {
             if (!streaming) {
