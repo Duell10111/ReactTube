@@ -8,6 +8,7 @@ import {
 } from "@/utils/InnertubeSession";
 import Logger from "@/utils/Logger";
 import {Innertube, YT, YTNodes} from "@/utils/Youtube";
+import {failedAsPrivateVideo} from "@/utils/privatePlayback";
 
 export {
   PLAYBACK_CLIENTS_DEFAULT,
@@ -15,6 +16,7 @@ export {
   PLAYBACK_CLIENTS_PREFER_HLS,
   PLAYBACK_CLIENTS_SABR,
   PLAYBACK_CLIENTS_SABR_WITH_PO_TOKEN,
+  PLAYBACK_CLIENTS_SIGNED_IN,
   sabrPlaybackClients,
 } from "@/utils/PlaybackClientProfiles";
 
@@ -41,6 +43,10 @@ interface PlaybackResolverOptions {
   ) => Promise<string | undefined> | string | undefined;
   clientsFallback?: InnerTubeClient[];
   acceptFallback?: ((info: YT.VideoInfo) => boolean) | null;
+  /** Requests only `/player`; see `player_only` in the fork. */
+  playerOnly?: boolean;
+  /** Receives the attempts when no client delivered, to decide what next. */
+  onFailure?: (attempts: {status?: string; reason?: string}[]) => void;
 }
 
 export function rememberSuccessfulClient(profile: string, client: string) {
@@ -83,6 +89,12 @@ function recoverRejectedSession(
   );
 
   if (!rejected?.length) {
+    return;
+  }
+
+  // A private video rejects every anonymous client; the session is fine.
+  if (failedAsPrivateVideo(rejected)) {
+    LOGGER.info(`${profile}: video is private, session identity kept`);
     return;
   }
 
@@ -132,6 +144,7 @@ export async function resolvePlaybackInfo(
       clients,
       skip_auth: options.skipAuth,
       po_token_for: options.poTokenFor,
+      player_only: options.playerOnly,
       accept: options.accept,
       clients_fallback: options.clientsFallback,
       accept_fallback: options.acceptFallback,
@@ -162,6 +175,7 @@ export async function resolvePlaybackInfo(
     };
   } catch (error: any) {
     recoverRejectedSession(options.profile, error?.attempts);
+    options.onFailure?.(error?.attempts ?? []);
     LOGGER.warn(
       `${options.profile}: Kein Client lieferte Streams: ${String(
         error?.message ?? error,
