@@ -17,6 +17,25 @@
 * create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
 * update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
 
+## [0.4.1](https://github.com/Duell10111/ReactTube/compare/v0.4.0...v0.4.1) (2026-10-04)
+
+
+### 🐛 Bugfixes
+
+* blur search bar after submission to improve suggestion handling ([254f280](https://github.com/Duell10111/ReactTube/commit/254f280923dc6c8d9d9884e01c01cb4f294c1c61))
+* refactor navigation structure to ensure proper context handling and safe area integration ([859a31a](https://github.com/Duell10111/ReactTube/commit/859a31a067bb25c8ac9c81c947f54fc326e5adb2))
+* repair video and optimize for android tv ([cdeb70b](https://github.com/Duell10111/ReactTube/commit/cdeb70bdae0ce23945a999e7a613d827384e248b))
+
+
+### 🔧 Chore
+
+* add experimental sabr player resultion support ([#84](https://github.com/Duell10111/ReactTube/issues/84)) ([0f16a60](https://github.com/Duell10111/ReactTube/commit/0f16a60e5f682009064ed487a43bb1e704ef87aa))
+
+
+### 🚀 Continuous Integration
+
+* add test execution step in CI configuration ([1bb3960](https://github.com/Duell10111/ReactTube/commit/1bb39604ce80862831ba151d2a65da58bcd6a0c3))
+
 ## [0.4.0](https://github.com/Duell10111/ReactTube/compare/v0.3.2...v0.4.0) (2026-10-02)
 
 
