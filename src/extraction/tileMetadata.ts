@@ -1,3 +1,4 @@
+import {getResolutionBadge, type ResolutionBadge} from "./lockupMetadata.ts";
 import type {Helpers, Misc, YTNodes} from "../utils/Youtube";
 
 /**
@@ -77,4 +78,16 @@ export function parseTileMetadataLines(
     count: parts.length > 1 ? parts[0].text : undefined,
     published: parts.length > 1 ? parts[1].text : parts[0]?.text,
   };
+}
+
+/**
+ * The resolution a tile labels its video with. The badge is a line item of its
+ * own that carries a badge instead of text.
+ */
+export function getTileResolutionBadge(
+  lines?: Helpers.ObservedArray<YTNodes.Line>,
+): ResolutionBadge | undefined {
+  return getResolutionBadge(
+    (lines ?? []).flatMap(line => line.items.map(item => item.badge?.label)),
+  );
 }

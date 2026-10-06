@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  getLockupResolutionBadge,
+  getResolutionBadge,
   isDurationLabel,
   parseLockupMetadataRows,
   parseLockupThumbnailBadges,
@@ -159,4 +161,36 @@ test("tells a duration apart from the other badge texts", () => {
   assert.ok(!isDurationLabel("LIVE"));
   assert.ok(!isDurationLabel("20 videos"));
   assert.ok(!isDurationLabel(undefined));
+});
+
+test("picks the highest resolution badge", () => {
+  assert.equal(getResolutionBadge(["4K"]), "4K");
+  assert.equal(getResolutionBadge([" 4k "]), "4K");
+  assert.equal(getResolutionBadge(["8K"]), "8K");
+  assert.equal(getResolutionBadge(["4K", "8K"]), "8K");
+  assert.equal(getResolutionBadge(["HD", "CC", undefined]), undefined);
+});
+
+test("reads the resolution from metadata rows and the thumbnail", () => {
+  assert.equal(
+    getLockupResolutionBadge([
+      ...rows(["Alex Goot"], ["6.5M", "14y ago"]),
+      {metadata_parts: [], badges: [{text: "4K"}]},
+    ]),
+    "4K",
+  );
+  assert.equal(
+    getLockupResolutionBadge(undefined, [
+      {badges: [{text: "8K"}, {text: "4:46"}]},
+    ]),
+    "8K",
+  );
+  assert.equal(
+    getLockupResolutionBadge(
+      [{metadata_parts: [], badges: [{text: "Auto-dubbed"}]}],
+      [{badges: [{text: "4:46"}]}],
+    ),
+    undefined,
+  );
+  assert.equal(getLockupResolutionBadge(undefined, undefined), undefined);
 });

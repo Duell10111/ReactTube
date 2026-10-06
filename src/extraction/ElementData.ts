@@ -16,10 +16,12 @@ import {
   VideoData,
 } from "./Types";
 import {
+  getLockupResolutionBadge,
+  getResolutionBadge,
   parseLockupMetadataRows,
   parseLockupThumbnailBadges,
 } from "./lockupMetadata";
-import {parseTileMetadataLines} from "./tileMetadata";
+import {getTileResolutionBadge, parseTileMetadataLines} from "./tileMetadata";
 import Logger from "../utils/Logger";
 import {Helpers, YTNodes, Parser} from "../utils/Youtube";
 
@@ -110,6 +112,9 @@ export function getVideoData(
       type: "video",
       duration: duration?.startsWith("N/A") ? undefined : duration,
       livestream: ytNode.is_live,
+      resolutionBadge: getResolutionBadge(
+        ytNode.badges?.map(badge => badge.label) ?? [],
+      ),
       thumbnailOverlays: parseThumbnailOverlays(ytNode.thumbnail_overlays),
       originalNode: ytNode,
     } as VideoData;
@@ -294,6 +299,9 @@ export function getVideoData(
         author: authorObject,
         short_views: views,
         publishDate: published,
+        resolutionBadge: getTileResolutionBadge(
+          ytNode.metadata?.lines?.filterType(YTNodes.Line),
+        ),
         contextMenu: ytNode.on_long_press_endpoint.payload?.menu?.menuRenderer
           ?.items
           ? _.chain(
@@ -583,6 +591,10 @@ export function getVideoData(
         publishDate: published,
         duration: badges.duration,
         livestream: badges.livestream,
+        resolutionBadge: getLockupResolutionBadge(
+          ytNode.metadata?.metadata?.metadata_rows,
+          thumbnailView?.overlays,
+        ),
         thumbnailOverlays:
           badges.progress !== undefined
             ? {videoProgress: badges.progress}

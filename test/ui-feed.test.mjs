@@ -104,6 +104,31 @@ test("adds mix and download badges next to the duration", () => {
   );
 });
 
+test("shows the resolution badge before the duration and drops it otherwise", () => {
+  const uhd = createMediaCardViewModel(
+    video({duration: "12:04", resolutionBadge: "4K"}),
+    {translate: t},
+  );
+  const eightK = createMediaCardViewModel(
+    video({duration: "12:04", resolutionBadge: "8K"}),
+    {translate: t},
+  );
+  const hd = createMediaCardViewModel(video({duration: "12:04"}), {
+    translate: t,
+  });
+
+  assert.deepEqual(
+    uhd.badges.map(badge => ({id: badge.id, label: badge.label})),
+    [
+      {id: "resolution", label: "4K"},
+      {id: "duration", label: "12:04"},
+    ],
+  );
+  assert.equal(eightK.badges[0].label, "8K");
+  assert.ok(uhd.accessibilityLabel.includes("4K"));
+  assert.ok(!hd.badges.some(badge => badge.id === "resolution"));
+});
+
 test("clamps the watch progress and drops it when there is none", () => {
   const started = createMediaCardViewModel(
     video({thumbnailOverlays: {videoProgress: 0.42}}),

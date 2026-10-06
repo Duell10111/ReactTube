@@ -160,6 +160,8 @@ export const de = {
   "media.badge.live": "Live",
   "media.badge.mix": "Mix",
   "media.badge.downloaded": "Heruntergeladen",
+  "media.badge.4k": "4K",
+  "media.badge.8k": "8K",
   "media.progress": "{percent}% angesehen",
   "media.hint.video": "Öffnet das Video",
   "media.hint.playlist": "Öffnet die Playlist",
