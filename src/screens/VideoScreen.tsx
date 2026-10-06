@@ -22,6 +22,7 @@ import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {ErrorState} from "@/ui/components";
 import {VideoDetailSkeleton, createVideoDetailViewModel} from "@/ui/patterns";
 import {useTVRemoteEvent} from "@/ui/tv";
+import {formatResolutionLabel} from "@/utils/PlaybackSize";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -160,7 +161,7 @@ export default function VideoScreen({route, navigation}: Props) {
                 // Phase 4.3: expose the active source, fallback step, and
                 // resolution so playback issues are visible without Xcode.
                 resolution:
-                  `${infos.height}p` +
+                  formatResolutionLabel(infos) +
                   (playbackSource
                     ? ` · ${playbackSource.label}` +
                       (playbackLadderSize > 1
@@ -301,7 +302,7 @@ export default function VideoScreen({route, navigation}: Props) {
             }
           }}
           onPlaybackInfoUpdate={infos => {
-            setPlaybackInfos({resolution: infos.height.toString() + "p"});
+            setPlaybackInfos({resolution: formatResolutionLabel(infos)});
           }}
         />
       )}

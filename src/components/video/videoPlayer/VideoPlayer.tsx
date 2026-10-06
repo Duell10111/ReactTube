@@ -27,6 +27,7 @@ import {usePanResponders} from "./usePanResponders";
 import {isEndscreenShown} from "@/components/video/endcard/endscreenModel";
 import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
 import {useTVRemoteEvent} from "@/ui/tv";
+import {formatResolutionLabel, PlaybackSize} from "@/utils/PlaybackSize";
 import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
 
 export const PausePlayerEvent = "PlayerPauseVideo";
@@ -73,6 +74,8 @@ export interface VideoComponentType<T> {
   onError: (errorData: OnVideoErrorData) => void;
   onEnd: () => void;
   onAudioTracks: (audioTracks: OnAudioTracksData) => void;
+  /** Rendered size on load and after every adaptive variant switch. */
+  onPlaybackSizeChange?: (size: PlaybackSize) => void;
   // Additional props
   props: T;
 }
@@ -197,8 +200,6 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         setControlTimeout();
       }
 
-      setResolution(`${data.naturalSize.height}p`);
-
       // if (typeof onLoad === 'function') {
       //   onLoad(data);
       // }
@@ -224,7 +225,6 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
         //   onProgress(data);
         // }
       }
-      // setResolution()
     }
 
     const _onSeek = (data: OnSeekData) => {
@@ -525,6 +525,9 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           onEnd={_onEnd}
           onSeek={_onSeek}
           onError={() => {}}
+          onPlaybackSizeChange={size =>
+            setResolution(formatResolutionLabel(size))
+          }
           onAudioTracks={tracks => {
             setLanguages(tracks.audioTracks);
           }}
