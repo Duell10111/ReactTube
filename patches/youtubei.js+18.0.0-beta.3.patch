@@ -1,0 +1,35 @@
+diff --git a/node_modules/youtubei.js/dist/src/parser/classes/LineItem.d.ts b/node_modules/youtubei.js/dist/src/parser/classes/LineItem.d.ts
+index 15659a2..abc1c96 100644
+--- a/node_modules/youtubei.js/dist/src/parser/classes/LineItem.d.ts
++++ b/node_modules/youtubei.js/dist/src/parser/classes/LineItem.d.ts
+@@ -1,8 +1,10 @@
+ import { YTNode } from '../helpers.js';
+ import { type RawNode } from '../index.js';
++import MetadataBadge from './MetadataBadge.js';
+ import Text from './misc/Text.js';
+ export default class LineItem extends YTNode {
+     static type: string;
+     text: Text;
++    badge: MetadataBadge | null;
+     constructor(data: RawNode);
+ }
+diff --git a/node_modules/youtubei.js/dist/src/parser/classes/LineItem.js b/node_modules/youtubei.js/dist/src/parser/classes/LineItem.js
+index 94ae80b..7b3ffdf 100644
+--- a/node_modules/youtubei.js/dist/src/parser/classes/LineItem.js
++++ b/node_modules/youtubei.js/dist/src/parser/classes/LineItem.js
+@@ -1,11 +1,15 @@
+ import { YTNode } from '../helpers.js';
++import { Parser } from '../index.js';
++import MetadataBadge from './MetadataBadge.js';
+ import Text from './misc/Text.js';
+ export default class LineItem extends YTNode {
+     static type = 'LineItem';
+     text;
++    badge;
+     constructor(data) {
+         super();
+         this.text = new Text(data.text);
++        this.badge = Parser.parseItem(data.badge, MetadataBadge);
+     }
+ }
+ //# sourceMappingURL=LineItem.js.map

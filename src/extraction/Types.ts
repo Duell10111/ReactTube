@@ -12,6 +12,7 @@ import {
 } from "../utils/Youtube";
 
 import {HorizontalData} from "@/extraction/ShelfExtraction";
+import type {ResolutionBadge} from "@/extraction/lockupMetadata";
 
 export interface Thumbnail {
   url: string;
@@ -39,6 +40,8 @@ export interface VideoData {
   author?: Author;
   quality?: string;
   livestream?: boolean;
+  /** The highest resolution the feed labels the video with. */
+  resolutionBadge?: ResolutionBadge;
   // Progress of video
   thumbnailOverlays?: ThumbnailOverlays;
   music?: boolean;

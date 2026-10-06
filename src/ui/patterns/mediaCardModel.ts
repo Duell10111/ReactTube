@@ -18,7 +18,7 @@ export type MediaCardShape = "wide" | "portrait" | "circle";
 export type MediaCardBadgeTone = "neutral" | "live";
 
 export interface MediaCardBadge {
-  id: "duration" | "live" | "mix" | "videoCount" | "downloaded";
+  id: "duration" | "live" | "mix" | "videoCount" | "downloaded" | "resolution";
   label: string;
   tone: MediaCardBadgeTone;
   /** Material icon name, set where the badge is more readable with one. */
@@ -175,6 +175,18 @@ function getBadges(
       return badges;
     default:
       break;
+  }
+
+  // Trailing badges render in order, so the resolution sits just before the
+  // duration.
+  if (element.resolutionBadge) {
+    badges.push({
+      id: "resolution",
+      label: translate(
+        element.resolutionBadge === "8K" ? "media.badge.8k" : "media.badge.4k",
+      ),
+      tone: "neutral",
+    });
   }
 
   if (element.livestream) {

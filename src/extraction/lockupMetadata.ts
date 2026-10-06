@@ -18,6 +18,22 @@ export function isDurationLabel(text?: string): boolean {
   return Boolean(text && durationPattern.test(text));
 }
 
+export type ResolutionBadge = "4K" | "8K";
+
+/** Highest first, so a video carrying both is labeled by the higher one. */
+const resolutionBadges: ResolutionBadge[] = ["8K", "4K"];
+
+/**
+ * The resolution badge ("4K", "8K") among a video's badge texts. YouTube sends
+ * these labels untranslated in every locale, so they are matched literally.
+ */
+export function getResolutionBadge(
+  texts: (string | undefined)[],
+): ResolutionBadge | undefined {
+  const labels = texts.map(text => text?.trim().toUpperCase());
+  return resolutionBadges.find(badge => labels.includes(badge));
+}
+
 interface TextLike {
   text?: string;
 }
@@ -28,6 +44,7 @@ interface MetadataPartLike {
 
 interface MetadataRowLike {
   metadata_parts?: MetadataPartLike[];
+  badges?: {text?: string}[];
 }
 
 export interface LockupMetadata {
@@ -112,9 +129,26 @@ export interface LockupThumbnailBadges {
 }
 
 /**
+ * The resolution a lockup labels its video with. Depending on the surface the
+ * badge sits in a metadata row or on the thumbnail, so both are checked.
+ */
+export function getLockupResolutionBadge(
+  rows?: MetadataRowLike[],
+  overlays?: OverlayLike[],
+): ResolutionBadge | undefined {
+  return getResolutionBadge([
+    ...(rows ?? []).flatMap(row => row.badges ?? []).map(badge => badge.text),
+    ...(overlays ?? [])
+      .flatMap(overlay => overlay.badges ?? [])
+      .map(badge => badge.text),
+  ]);
+}
+
+/**
  * The badges a lockup draws on its thumbnail. Which ones it has says what the
  * lockup is: a duration or "LIVE" for a video, an entry count for a playlist.
- * Everything else ("New", "4K") is decoration and is dropped.
+ * Everything else ("New", "4K") is not part of the shape and is dropped here;
+ * the resolution is read by `getLockupResolutionBadge`.
  */
 export function parseLockupThumbnailBadges(
   overlays?: OverlayLike[],

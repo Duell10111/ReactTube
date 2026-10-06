@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {parseTileMetadataLines} from "../src/extraction/tileMetadata.ts";
+import {
+  getTileResolutionBadge,
+  parseTileMetadataLines,
+} from "../src/extraction/tileMetadata.ts";
 
 /** A line item that carries text, like an author, a date, or a separator. */
 function text(value, accessibilityLabel) {
@@ -21,8 +24,8 @@ function count(value, accessibilityLabel) {
 }
 
 /** A badge ("4K", "CC") is a line item of its own that carries no text. */
-function badge() {
-  return {text: {text: undefined}};
+function badge(label = "CC") {
+  return {text: {text: undefined}, badge: {label}};
 }
 
 function lines(...rows) {
@@ -120,4 +123,25 @@ test("treats a lone part as the author", () => {
 test("returns nothing for a tile without metadata lines", () => {
   assert.deepEqual(parseTileMetadataLines(undefined), {});
   assert.deepEqual(parseTileMetadataLines(lines([badge()])), {});
+});
+
+test("reads the resolution badge among the other line items", () => {
+  assert.equal(
+    getTileResolutionBadge(
+      lines(
+        [text("Linus Tech Tips")],
+        [badge("4K"), badge("CC"), count("2.9M views")],
+      ),
+    ),
+    "4K",
+  );
+  assert.equal(
+    getTileResolutionBadge(lines([text("Linus Tech Tips")], [badge("8K")])),
+    "8K",
+  );
+  assert.equal(
+    getTileResolutionBadge(lines([text("Linus Tech Tips")], [badge("CC")])),
+    undefined,
+  );
+  assert.equal(getTileResolutionBadge(undefined), undefined);
 });
