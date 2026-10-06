@@ -18,17 +18,18 @@ import {
 } from "./videoPlayer/VideoPlayer";
 
 import Logger from "@/utils/Logger";
+import {PlaybackSize, toPlaybackSize} from "@/utils/PlaybackSize";
 
 const LOGGER = Logger.extend("PLAYBACK");
 
 /**
- * So lange darf ein Ladevorgang ohne Ergebnis bleiben, bevor die Quelle als
- * gescheitert gilt — Plan-Phase 4.1.
+ * How long a load may stay without a result before the source counts as
+ * failed — plan phase 4.1.
  *
- * `onError` allein genügt nicht: fehlt dem Gerät der Decoder, meldet AVPlayer
- * gar nichts und bleibt stumm im Ladezustand stehen (gemessen mit einem
- * Manifest, das nur AV1 anbot — der Media-Server-Prozess starb, `onLoad` kam
- * nie).
+ * `onError` alone is not enough: when the device lacks the decoder, AVPlayer
+ * reports nothing and silently stays in the loading state (measured with a
+ * manifest that only offered AV1 — the media server process died, `onLoad`
+ * never arrived).
  */
 const STALL_TIMEOUT_MS = 20_000;
 
@@ -43,6 +44,16 @@ const VideoPlayerNative = forwardRef<
 
   const onPlaybackFailure: ((reason: string) => void) | undefined =
     props.props.onPlaybackFailure;
+  const onPlaybackInfoUpdate: ((size: PlaybackSize) => void) | undefined =
+    props.props.onPlaybackInfoUpdate;
+
+  const reportPlaybackSize = (data?: {width?: number; height?: number}) => {
+    const size = toPlaybackSize(data);
+    if (size) {
+      props.onPlaybackSizeChange?.(size);
+      onPlaybackInfoUpdate?.(size);
+    }
+  };
 
   const stallTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -53,7 +64,7 @@ const VideoPlayerNative = forwardRef<
     }
   }, []);
 
-  // Jede neue Quelle bekommt einen frischen Wächter.
+  // Every new source gets a fresh watchdog.
   useEffect(() => {
     clearStallTimer();
     stallTimer.current = setTimeout(() => {
@@ -65,13 +76,13 @@ const VideoPlayerNative = forwardRef<
     return clearStallTimer;
   }, [clearStallTimer, onPlaybackFailure, props.props.url]);
 
-  // Plan-Phase 0.4: Fehler des nativen Players mit Quelle protokollieren —
-  // Grundlage für die Fehler-Ladder aus Phase 4.
+  // Plan phase 0.4: log native player errors together with the source —
+  // the basis for the error ladder from phase 4.
   const onError = useCallback(
     (errorData: OnVideoErrorData) => {
       const uri: string | undefined = props.props.url;
-      // Die Quelle steht schon fest, wenn sie hier ankommt (useVideoDetails
-      // entscheidet); der Name dient nur dem Protokoll.
+      // The source is already decided when it arrives here (useVideoDetails
+      // decides); the name only serves the log.
       const source = uri?.startsWith("data:")
         ? "eigenes HLS"
         : uri?.includes(".m3u8")
@@ -127,12 +138,18 @@ const VideoPlayerNative = forwardRef<
       }
       onLoad={data => {
         clearStallTimer();
+        reportPlaybackSize(data.naturalSize);
         props.onLoad?.(data);
       }}
+      // Android only emits bandwidth events when asked to.
+      reportBandwidth
+      // HLS variant switches after the load event arrive here with the newly
+      // rendered size.
+      onBandwidthUpdate={data => reportPlaybackSize(data)}
       onSeek={props.onSeek}
       onError={onError}
       onProgress={data => {
-        // Es läuft — der Wächter wird nicht mehr gebraucht.
+        // Playback runs — the watchdog is no longer needed.
         clearStallTimer();
         props.onProgress?.(data);
       }}

@@ -107,6 +107,108 @@ index e16ac96..2d4b4ab 100644
          }
      }
  
+diff --git a/node_modules/react-native-video/ios/Video/Features/RCTPlayerObserver.swift b/node_modules/react-native-video/ios/Video/Features/RCTPlayerObserver.swift
+index 339932f..c54bcec 100644
+--- a/node_modules/react-native-video/ios/Video/Features/RCTPlayerObserver.swift
++++ b/node_modules/react-native-video/ios/Video/Features/RCTPlayerObserver.swift
+@@ -27,6 +27,7 @@ protocol RCTPlayerObserverHandler: RCTPlayerObserverHandlerObjc {
+     func handleExternalPlaybackActiveChange(player: AVPlayer, change: NSKeyValueObservedChange<Bool>)
+     func handleViewControllerOverlayViewFrameChange(overlayView: UIView, change: NSKeyValueObservedChange<CGRect>)
+     func handleTracksChange(playerItem: AVPlayerItem, change: NSKeyValueObservedChange<[AVPlayerItemTrack]>)
++    func handlePresentationSizeChange(playerItem: AVPlayerItem, change: NSKeyValueObservedChange<CGSize>)
+     func handleLegibleOutput(strings: [NSAttributedString])
+     func handlePictureInPictureEnter()
+     func handlePictureInPictureExit()
+@@ -114,6 +115,7 @@ class RCTPlayerObserver: NSObject, AVPlayerItemMetadataOutputPushDelegate, AVPla
+     private var _playerLayerReadyForDisplayObserver: NSKeyValueObservation?
+     private var _playerViewControllerOverlayFrameObserver: NSKeyValueObservation?
+     private var _playerTracksObserver: NSKeyValueObservation?
++    private var _playerPresentationSizeObserver: NSKeyValueObservation?
+     private var _restoreUserInterfaceForPIPStopCompletionHandler: ((Bool) -> Void)?
+ 
+     deinit {
+@@ -178,6 +180,13 @@ class RCTPlayerObserver: NSObject, AVPlayerItemMetadataOutputPushDelegate, AVPla
+             options: [.new, .old],
+             changeHandler: _handlers.handleTracksChange
+         )
++
++        // HLS variant switches change the rendered size without a new load event.
++        _playerPresentationSizeObserver = playerItem.observe(
++            \.presentationSize,
++            options: [.new],
++            changeHandler: _handlers.handlePresentationSizeChange
++        )
+     }
+ 
+     func removePlayerItemObservers() {
+@@ -186,6 +195,7 @@ class RCTPlayerObserver: NSObject, AVPlayerItemMetadataOutputPushDelegate, AVPla
+         _playerPlaybackLikelyToKeepUpObserver?.invalidate()
+         _playerTimedMetadataObserver?.invalidate()
+         _playerTracksObserver?.invalidate()
++        _playerPresentationSizeObserver?.invalidate()
+     }
+ 
+     func addPlayerViewControllerObservers() {
+diff --git a/node_modules/react-native-video/ios/Video/RCTVideo.swift b/node_modules/react-native-video/ios/Video/RCTVideo.swift
+index 5f2f5f6..be03607 100644
+--- a/node_modules/react-native-video/ios/Video/RCTVideo.swift
++++ b/node_modules/react-native-video/ios/Video/RCTVideo.swift
+@@ -63,6 +63,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
+     var _showNotificationControls = false
+     // Buffer last bitrate value received. Initialized to -2 to ensure -1 (sometimes reported by AVPlayer) is not missed
+     private var _lastBitrate = -2.0
++    private var _lastPresentationSize = CGSize.zero
+     private var _enterPictureInPictureOnLeave = false {
+         didSet {
+             if isPictureInPictureActive() { return }
+@@ -558,6 +559,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
+ 
+         _player?.pause()
+         _playerItem = playerItem
++        _lastPresentationSize = .zero
+         _playerObserver.playerItem = _playerItem
+         setPreferredForwardBufferDuration(_preferredForwardBufferDuration)
+         setPlaybackRange(playerItem, withCropStart: _source?.cropStart, withCropEnd: _source?.cropEnd)
+@@ -1804,10 +1806,30 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
+         guard let lastEvent = accessLog.events.last else { return }
+         if lastEvent.indicatedBitrate != _lastBitrate {
+             _lastBitrate = lastEvent.indicatedBitrate
+-            onVideoBandwidthUpdate?(["bitrate": _lastBitrate, "target": reactTag as Any])
++            sendBandwidthUpdate()
+         }
+     }
+ 
++    func handlePresentationSizeChange(playerItem: AVPlayerItem, change _: NSKeyValueObservedChange<CGSize>) {
++        guard onVideoBandwidthUpdate != nil else { return }
++        let size = playerItem.presentationSize
++        guard size.width > 0, size.height > 0, size != _lastPresentationSize else { return }
++        _lastPresentationSize = size
++        sendBandwidthUpdate()
++    }
++
++    // iOS only reported the bitrate before; width/height let JS show the
++    // resolution that is actually rendered after an HLS variant switch.
++    private func sendBandwidthUpdate() {
++        var event: [String: Any] = ["bitrate": max(_lastBitrate, 0), "target": reactTag as Any]
++        let size = _playerItem?.presentationSize ?? .zero
++        if size.width > 0, size.height > 0 {
++            event["width"] = Float(size.width)
++            event["height"] = Float(size.height)
++        }
++        onVideoBandwidthUpdate?(event)
++    }
++
+     func handleTracksChange(playerItem _: AVPlayerItem, change _: NSKeyValueObservedChange<[AVPlayerItemTrack]>) {
+         guard let source = _source else { return }
+         if onTextTracks != nil {
+@@ -2013,6 +2035,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
+             }
+ 
+             _playerItem = playerItem
++            _lastPresentationSize = .zero
+             _playerObserver.playerItem = _playerItem
+ 
+             setPreferredForwardBufferDuration(_preferredForwardBufferDuration)
 diff --git a/node_modules/react-native-video/lib/Video.js b/node_modules/react-native-video/lib/Video.js
 index 2dbeed3..d47c8e6 100644
 --- a/node_modules/react-native-video/lib/Video.js
