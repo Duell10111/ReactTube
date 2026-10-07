@@ -1,3 +1,34 @@
+diff --git a/node_modules/youtubei.js/dist/src/core/managers/InteractionManager.js b/node_modules/youtubei.js/dist/src/core/managers/InteractionManager.js
+index e1d1b7e..de20002 100644
+--- a/node_modules/youtubei.js/dist/src/core/managers/InteractionManager.js
++++ b/node_modules/youtubei.js/dist/src/core/managers/InteractionManager.js
+@@ -18,7 +18,7 @@ export default class InteractionManager {
+         const like_endpoint = new NavigationEndpoint({
+             likeEndpoint: {
+                 status: 'LIKE',
+-                target: video_id
++                target: { videoId: video_id }
+             }
+         });
+         return like_endpoint.call(this.#actions, { client: 'TV' });
+@@ -34,7 +34,7 @@ export default class InteractionManager {
+         const dislike_endpoint = new NavigationEndpoint({
+             likeEndpoint: {
+                 status: 'DISLIKE',
+-                target: video_id
++                target: { videoId: video_id }
+             }
+         });
+         return dislike_endpoint.call(this.#actions, { client: 'TV' });
+@@ -50,7 +50,7 @@ export default class InteractionManager {
+         const remove_like_endpoint = new NavigationEndpoint({
+             likeEndpoint: {
+                 status: 'INDIFFERENT',
+-                target: video_id
++                target: { videoId: video_id }
+             }
+         });
+         return remove_like_endpoint.call(this.#actions, { client: 'TV' });
 diff --git a/node_modules/youtubei.js/dist/src/parser/classes/LineItem.d.ts b/node_modules/youtubei.js/dist/src/parser/classes/LineItem.d.ts
 index 15659a2..abc1c96 100644
 --- a/node_modules/youtubei.js/dist/src/parser/classes/LineItem.d.ts
@@ -33,3 +64,29 @@ index 94ae80b..7b3ffdf 100644
      }
  }
  //# sourceMappingURL=LineItem.js.map
+diff --git a/node_modules/youtubei.js/dist/src/parser/yttv/PlaylistsFeed.js b/node_modules/youtubei.js/dist/src/parser/yttv/PlaylistsFeed.js
+index 0eaae55..712aa9c 100644
+--- a/node_modules/youtubei.js/dist/src/parser/yttv/PlaylistsFeed.js
++++ b/node_modules/youtubei.js/dist/src/parser/yttv/PlaylistsFeed.js
+@@ -1,4 +1,4 @@
+-import { GridContinuation, Parser } from '../index.js';
++import { GridContinuation, Parser, TvSurfaceContentContinuation } from '../index.js';
+ import { observe } from '../helpers.js';
+ import { InnertubeError } from '../../utils/Utils.js';
+ import Grid from '../classes/Grid.js';
+@@ -16,8 +16,13 @@ export default class PlaylistsFeed {
+             this.#continuation = grid.continuation ?? undefined;
+         }
+         if (this.#page.continuation_contents) {
+-            const data = this.#page.continuation_contents?.as(GridContinuation);
+-            if (!data.contents) {
++            // The TV client answers later pages either with a plain grid
++            // continuation or with the grid nested in a surface continuation.
++            const continuation = this.#page.continuation_contents;
++            const data = continuation.is(TvSurfaceContentContinuation)
++                ? continuation.content?.as(Grid)
++                : continuation.as(GridContinuation);
++            if (!data?.contents) {
+                 throw new InnertubeError('No contents found in the response');
+             }
+             this.contents = data.contents;

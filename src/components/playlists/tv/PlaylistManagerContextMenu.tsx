@@ -14,7 +14,12 @@ import {Checkbox} from "react-native-paper";
 
 import {VideoMenuContainer} from "@/components/general/VideoMenuContainer";
 import {ElementData} from "@/extraction/Types";
+import {
+  diffPlaylistSelection,
+  normalizePlaylistId,
+} from "@/hooks/playlist/playlistSelection";
 import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
+import {useVideoPlaylistMembership} from "@/hooks/playlist/useVideoPlaylistMembership";
 import usePlaylistDetails from "@/hooks/tv/usePlaylistDetails";
 import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
@@ -27,9 +32,18 @@ const LOGGER = Logger.extend("PLAYLIST_MANAGER_CONTEXT");
 export function PlaylistManagerContextMenu({
   route,
 }: NativeStackScreenProps<RootStackParamList, "PlaylistManagerContextMenu">) {
-  const {playlists, fetchPlaylists, fetchMorePlaylists, saveVideoToPlaylist} =
-    usePlaylistManager();
-  const [playlistIds, setPlaylistIds] = useState<string[]>();
+  const {videoId} = route.params;
+  const {
+    playlists,
+    fetchPlaylists,
+    fetchMorePlaylists,
+    saveVideoToPlaylist,
+    removeVideoFromPlaylist,
+  } = usePlaylistManager();
+  const membership = useVideoPlaylistMembership(videoId);
+  /** Playlists that contained the video when the dialog opened. */
+  const [initialIds, setInitialIds] = useState<string[]>([]);
+  const [playlistIds, setPlaylistIds] = useState<string[]>([]);
   const {t} = useTranslation();
   const {theme} = useAppTheme();
 
@@ -37,45 +51,56 @@ export function PlaylistManagerContextMenu({
     fetchPlaylists().catch(LOGGER.warn);
   }, []);
 
+  const markContained = useCallback((ids: string[]) => {
+    const normalized = ids.map(normalizePlaylistId);
+    setInitialIds(previous => _.uniq([...previous, ...normalized]));
+    setPlaylistIds(previous => _.uniq([...previous, ...normalized]));
+  }, []);
+
+  useEffect(() => {
+    if (membership.containing) {
+      markContained([...membership.containing]);
+    }
+  }, [markContained, membership.containing]);
+
   useFocusEffect(
     useCallback(() => {
       return () => {
-        // Save item on leave
+        const {add, remove} = diffPlaylistSelection(initialIds, playlistIds);
         LOGGER.debug(
-          `Saving video ${route.params.videoId} to playlists ${playlistIds}`,
+          `Video ${videoId}: adding to ${add}, removing from ${remove}`,
         );
-        playlistIds &&
-          Promise.all(
-            playlistIds.map((id: string) => {
-              return saveVideoToPlaylist([route.params.videoId], id);
-            }),
-          ).catch(LOGGER.warn);
+        Promise.all([
+          ...add.map(id => saveVideoToPlaylist([videoId], id)),
+          ...remove.map(id => removeVideoFromPlaylist([videoId], id)),
+        ]).catch(LOGGER.warn);
       };
-    }, [playlistIds]),
+    }, [initialIds, playlistIds, videoId]),
   );
 
   const renderItem = useCallback<ListRenderItem<ElementData>>(
     ({item}) => {
+      const id = normalizePlaylistId(item.id);
       return (
         <PlaylistManagerItem
           data={item}
-          videoIdToSave={route.params.videoId}
-          checked={playlistIds?.includes(item.id)}
+          videoIdToSave={videoId}
+          // Only when YouTube's own answer is unavailable: scanning every
+          // playlist costs a request per row and only sees its first page.
+          fallbackCheck={membership.failed}
+          onContained={() => markContained([id])}
+          checked={playlistIds.includes(id)}
           onCheck={checked => {
-            if (checked) {
-              setPlaylistIds(previous => {
-                return _.uniq([...(previous ?? []), item.id]);
-              });
-            } else {
-              setPlaylistIds(previous => {
-                return [...(previous ?? []).filter(v => v !== item.id)];
-              });
-            }
+            setPlaylistIds(previous =>
+              checked
+                ? _.uniq([...previous, id])
+                : previous.filter(v => v !== id),
+            );
           }}
         />
       );
     },
-    [playlistIds],
+    [markContained, membership.failed, playlistIds, videoId],
   );
 
   return (
@@ -99,6 +124,8 @@ export function PlaylistManagerContextMenu({
 interface PlaylistManagerItemProps {
   data: ElementData;
   videoIdToSave: string;
+  fallbackCheck: boolean;
+  onContained: () => void;
   checked?: boolean;
   onCheck?: (check: boolean) => void;
 }
@@ -106,18 +133,13 @@ interface PlaylistManagerItemProps {
 function PlaylistManagerItem({
   data,
   videoIdToSave,
+  fallbackCheck,
+  onContained,
   checked,
   onCheck,
 }: PlaylistManagerItemProps) {
-  const {data: playlistData} = usePlaylistDetails(data.id);
   const [focus, setFocus] = useState(false);
   const {theme} = useAppTheme();
-
-  useEffect(() => {
-    if (playlistData.find(p => p.id === videoIdToSave)) {
-      onCheck?.(true);
-    }
-  }, [playlistData, onCheck]);
 
   return (
     <View
@@ -155,8 +177,40 @@ function PlaylistManagerItem({
           </View>
         </View>
       </Pressable>
+      {fallbackCheck ? (
+        <PlaylistContentCheck
+          playlistId={data.id}
+          videoId={videoIdToSave}
+          onContained={onContained}
+        />
+      ) : null}
     </View>
   );
+}
+
+interface PlaylistContentCheckProps {
+  playlistId: string;
+  videoId: string;
+  onContained: () => void;
+}
+
+/** Fallback membership check: looks for the video in the playlist's first page. */
+function PlaylistContentCheck({
+  playlistId,
+  videoId,
+  onContained,
+}: PlaylistContentCheckProps) {
+  const {data: playlistData} = usePlaylistDetails(playlistId);
+  const contained = playlistData.some(p => p.id === videoId);
+
+  useEffect(() => {
+    if (contained) {
+      onContained();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contained]);
+
+  return null;
 }
 
 const styles = StyleSheet.create({
