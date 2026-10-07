@@ -288,6 +288,14 @@ export const de = {
   "video.player.speed": "Wiedergabegeschwindigkeit",
   "video.player.speeds": "Wiedergabegeschwindigkeiten",
   "video.player.language": "Audiosprache",
+  "video.player.subtitles": "Untertitel",
+  "video.player.subtitles.off": "Aus",
+  "video.player.subtitles.none": "Dieses Video hat keine Untertitel.",
+  "video.player.subtitles.translated":
+    "{language} (automatisch übersetzt aus {source})",
+  "video.player.subtitles.loadError": "Untertitel konnten nicht geladen werden",
+  "video.player.subtitles.rateLimited":
+    "YouTube begrenzt Untertitel-Anfragen gerade. Bitte später erneut versuchen.",
   "video.player.channel": "Kanal öffnen",
   "video.panel.close": "Panel schließen",
   "video.endscreen.browse": "Empfehlungen",

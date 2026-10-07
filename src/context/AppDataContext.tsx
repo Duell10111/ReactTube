@@ -32,6 +32,13 @@ export interface AppSettings {
   languageSelected?: string;
   uiLanguage?: UILanguage;
   trackingEnabled?: boolean;
+  /** Whether subtitles are shown, remembered across videos. */
+  subtitlesEnabled?: boolean;
+  /**
+   * The subtitle language last chosen in the player. Separate from both the
+   * YouTube content language and the UI language.
+   */
+  subtitleLanguage?: string;
 }
 
 interface AppDataContext {

@@ -13,6 +13,7 @@ import {
 
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 import type {ResolutionBadge} from "@/extraction/lockupMetadata";
+import type {SubtitleTrackList} from "@/utils/Subtitles";
 
 export interface Thumbnail {
   url: string;
@@ -149,13 +150,15 @@ export interface YTVideoInfo {
   // Playback urls
   hls_manifest_url?: string;
   /**
-   * `file://`-URI des selbst gebauten HLS-Manifests (Plan-Phase 2c).
-   * Hat Vorrang vor `hls_manifest_url`: 2160p in av01 statt avc1 bis 1080p,
-   * und getrennte Tonspuren statt gemuxtem Ton.
+   * URI of the self-built HLS manifest (plan phase 2c).
+   * Takes precedence over `hls_manifest_url`: 2160p in av01 instead of avc1 up
+   * to 1080p, and separate audio tracks instead of muxed audio.
    */
   generated_hls_url?: string;
-  /** Master des lokalen SABR-Servers (Plan-Phase 6.5). */
+  /** Master playlist of the local SABR server (plan phase 6.5). */
   sabr_hls_url?: string;
+  /** Caption tracks of the stream client; the TV metadata client has none. */
+  subtitles?: SubtitleTrackList;
   best_format?: YTFormat;
   expires?: Date;
   // Playability Status
@@ -225,9 +228,9 @@ export interface YTTrackInfo {
   // Music Properties
   durationSeconds?: number;
   localPlaylistId?: string;
-  /** Lokale Datei, falls der Titel heruntergeladen wurde. */
+  /** Local file, if the track was downloaded. */
   localFileUrl?: string;
-  /** Bereits aufgelöste, abspielbare Audioquelle für RNTP. */
+  /** Already resolved, playable audio source for RNTP. */
   audioSource?: AudioPlaybackSource;
 }
 

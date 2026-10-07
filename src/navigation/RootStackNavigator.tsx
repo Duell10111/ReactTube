@@ -14,6 +14,7 @@ import {VideoSidePanelScreen} from "@/components/video/tv/VideoSidePanelScreen";
 import {VideoPlayerLanguage} from "@/components/video/videoPlayer/settings/VideoPlayerLanguage";
 import {VideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettings";
 import {VideoPlayerSpeed} from "@/components/video/videoPlayer/settings/VideoPlayerSpeed";
+import {VideoPlayerSubtitles} from "@/components/video/videoPlayer/settings/VideoPlayerSubtitles";
 import {ElementData} from "@/extraction/Types";
 import useAppInit from "@/hooks/general/useAppInit";
 import {useTranslation} from "@/localization";
@@ -61,6 +62,7 @@ export type RootStackParamList = {
   VideoPlayerInfo: undefined;
   VideoPlayerPlaySpeed: undefined;
   VideoPlayerLanguage: undefined;
+  VideoPlayerSubtitles: undefined;
   // Downloads
   ActiveDownloadScreen: undefined;
   ActiveUploadScreen: undefined;
@@ -148,6 +150,11 @@ export default function RootStackNavigator() {
               <Stack.Screen
                 name={"VideoPlayerLanguage"}
                 component={VideoPlayerLanguage}
+                options={{presentation: "transparentModal"}}
+              />
+              <Stack.Screen
+                name={"VideoPlayerSubtitles"}
+                component={VideoPlayerSubtitles}
                 options={{presentation: "transparentModal"}}
               />
             </>

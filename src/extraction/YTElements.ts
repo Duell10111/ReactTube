@@ -46,16 +46,17 @@ import {
   parseObservedArray,
 } from "@/extraction/ArrayExtraction";
 import {parseHorizontalNode} from "@/extraction/ShelfExtraction";
+import {getSubtitleTrackList} from "@/utils/Subtitles";
 
 /**
- * Wählt ein Format, das sich als **eine** URL abspielen lässt.
+ * Chooses a format that can be played as **one** URL.
  *
- * `chooseFormat` wirft, wenn nichts passt — der frühere `??`-Ausdruck kam deshalb
- * nie beim Audio-Zweig an, sobald es (wie inzwischen üblich) keine muxed Formate
- * mehr gibt. Jeder Versuch steht jetzt für sich.
+ * `chooseFormat` throws when nothing matches, so the former `??` expression
+ * never reached the audio branch once there were no muxed formats anymore (as
+ * is common now). Each attempt now stands on its own.
  *
- * Bleibt ohne Ergebnis, wenn die Antwort nur adaptive Formate enthält: getrennte
- * Video- und Audiospuren brauchen ein Manifest, keine Einzel-URL.
+ * Stays empty when the response only contains adaptive formats: separate video
+ * and audio tracks need a manifest, not a single URL.
  */
 function chooseBestSingleUrlFormat(
   videoInfo: YT.VideoInfo | YTTV.VideoInfo,
@@ -67,7 +68,7 @@ function chooseBestSingleUrlFormat(
     try {
       return videoInfo.chooseFormat(options);
     } catch {
-      // Nächste Möglichkeit versuchen.
+      // Try the next option.
     }
   }
 
@@ -133,10 +134,11 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
         }
       : undefined,
     hls_manifest_url: videoInfo.streaming_data?.hls_manifest_url,
-    // Grundlage der Auffrischung vor Ablauf (Plan-Phase 4.2): ohne dieses Feld
-    // bleibt `expires` undefiniert und der Timer in `useVideoDetails` läuft nie an.
+    // Basis for refreshing before expiry (plan phase 4.2): without this field
+    // `expires` stays undefined and the timer in `useVideoDetails` never starts.
     expires: videoInfo.streaming_data?.expires,
     best_format: best_format ? parseFormat(best_format) : undefined,
+    subtitles: getSubtitleTrackList(videoInfo.captions),
   } as YTVideoInfo;
 }
 

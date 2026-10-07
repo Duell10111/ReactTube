@@ -9,6 +9,7 @@ import {StyleSheet} from "react-native";
 import Video, {
   OnVideoErrorData,
   ResizeMode,
+  SelectedTrackType,
   VideoRef,
 } from "react-native-video";
 
@@ -32,6 +33,8 @@ const LOGGER = Logger.extend("PLAYBACK");
  * never arrived).
  */
 const STALL_TIMEOUT_MS = 20_000;
+
+const NO_TEXT_TRACK = {type: SelectedTrackType.DISABLED};
 
 const VideoPlayerNative = forwardRef<
   VideoComponentRefType,
@@ -136,6 +139,9 @@ const VideoPlayerNative = forwardRef<
             }
           : undefined
       }
+      // The overlay draws subtitles itself; renditions in the generated
+      // manifest would otherwise be rendered a second time by AVPlayer.
+      selectedTextTrack={NO_TEXT_TRACK}
       onLoad={data => {
         clearStallTimer();
         reportPlaybackSize(data.naturalSize);

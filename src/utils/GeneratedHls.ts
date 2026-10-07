@@ -1,66 +1,83 @@
 /**
- * Eigenes HLS-Manifest aus den adaptiven Formaten — Plan-Phase 2c.
+ * Self-built HLS manifest from the adaptive formats — plan phase 2c.
  *
- * YouTubes eigenes Manifest (Phase 2a) liefert auf AVPlayer höchstens avc1 in
- * 1080p, mit gemuxtem Ton und ohne Sprachwahl. Die adaptiven Formate tragen
- * beides — 2160p in av01 und getrennte Tonspuren —, brauchen aber eine
- * ausgeschriebene Segmentliste: AVPlayer löst einen `sidx`-Index nicht selbst
- * auf, anders als ExoPlayer bei DASH. Der Fork erzeugt die Liste
- * (`YouTube.js/src/utils/HlsManifest.ts`), hier wird sie abgelegt.
+ * YouTube's own manifest (phase 2a) gives AVPlayer at most avc1 in 1080p,
+ * with muxed audio and no language choice. The adaptive formats carry both —
+ * 2160p in av01 and separate audio tracks — but need a written-out segment
+ * list: AVPlayer does not resolve a `sidx` index itself, unlike ExoPlayer with
+ * DASH. The fork generates the list (`YouTube.js/src/utils/HlsManifest.ts`);
+ * it is stored here.
  *
- * **Wie es zum Player kommt (Spike 2.0, gemessen):** AVPlayer weigert sich, ein
- * HLS-Master über `file://` zu laden — der Versuch endet in
+ * **How it reaches the player (spike 2.0, measured):** AVPlayer refuses to
+ * load an HLS master over `file://` — the attempt ends in
  * `AVFoundationErrorDomain -11800 / OSStatus -16913`
- * (`assetProperty_MediaPlaybackValidation`), ohne dass ein Fehler beim Player
- * ankommt. Dieselben Dateien über `http://` ausgeliefert laden anstandslos;
- * nachgemessen mit AVFoundation auf dem Mac.
+ * (`assetProperty_MediaPlaybackValidation`) without any error reaching the
+ * player. The same files served over `http://` load fine; verified with
+ * AVFoundation on the Mac.
  *
- * Es ist aber **nur das Master** betroffen. Als `data:`-URI übergeben wird es
- * angenommen — und darf von dort aus die Medien-Playlists per absolutem
- * `file://` referenzieren. Also: die großen Playlists bleiben Dateien im Cache,
- * das Master (knapp 4 KB) wandert als `data:`-URI direkt in die Quelle des
- * Players. Damit braucht die App **keinen lokalen Server**; Phase 3 bleibt SABR
- * vorbehalten.
+ * Only **the master** is affected, though. Passed as a `data:` URI it is
+ * accepted — and may reference the media playlists from there via absolute
+ * `file://` URIs. So the large playlists stay files in the cache, and the
+ * master (about 4 KB) goes into the player's source directly as a `data:`
+ * URI. The app therefore needs **no local server**; phase 3 stays reserved
+ * for SABR.
  *
- * **Dafür ist ein Patch nötig** (`patches/react-native-video+6.19.2.patch`):
- * `react-native-video` teilt Quellen anhand des Schemas in „Netzwerk", „Asset"
- * und „alles andere" ein, und `data:` fiel in die dritte Gruppe. Dort sucht es
- * die URI als Bundle-Ressource und landet bei einem leeren Pfad —
- * `AVFoundationErrorDomain -11828 „Cannot Open"`. Der Patch ergänzt `data` in
- * der Asset-Erkennung, womit die URI unverändert an `AVURLAsset` durchgereicht
- * wird. Zwei Zeilen, `lib/Video.js` und `src/Video.tsx`.
+ * **This needs a patch** (`patches/react-native-video+6.19.2.patch`):
+ * `react-native-video` sorts sources by scheme into "network", "asset" and
+ * "everything else", and `data:` fell into the third group. There it looks up
+ * the URI as a bundle resource and ends up with an empty path —
+ * `AVFoundationErrorDomain -11828 "Cannot Open"`. The patch adds `data` to the
+ * asset detection, so the URI reaches `AVURLAsset` unchanged. Two lines,
+ * `lib/Video.js` and `src/Video.tsx`.
  *
- * **Client-Bedingung:** Die Byte-Range-Auslieferung ist für die meisten
- * InnerTube-Clients nach rund 0,37 MB gekappt (HTTP 403). Gemessen wird
- * `VISIONOS` vollständig bedient, `IOS`, `TV_SIMPLY` und `ANDROID_VR` nicht —
- * siehe `YouTube.js/docs/byte-range-cap.md`. Die Streaming-Daten müssen also von
- * einem ungekappten Client stammen; darum kümmert sich `PlaybackSource.ts`.
+ * **Client requirement:** byte-range delivery is capped after about 0.37 MB
+ * (HTTP 403) for most InnerTube clients. As measured, `VISIONOS` is served
+ * completely, `IOS`, `TV_SIMPLY` and `ANDROID_VR` are not — see
+ * `YouTube.js/docs/byte-range-cap.md`. The streaming data must therefore come
+ * from an uncapped client; `PlaybackSource.ts` takes care of that.
+ *
+ * Subtitle tracks are added as WebVTT renditions (verified with AVFoundation
+ * on the Mac: every rendition shows up in the legible group with its `NAME`).
  */
 import {Directory, File, Paths} from "expo-file-system";
 
 import Logger from "@/utils/Logger";
+import {
+  addSubtitlesToMasterPlaylist,
+  buildSubtitleMediaPlaylist,
+  HlsSubtitleRendition,
+  SubtitleTrack,
+} from "@/utils/Subtitles";
 import {YT} from "@/utils/Youtube";
 
 const LOGGER = Logger.extend("PLAYBACK");
 
 const ROOT_DIRECTORY = "generated-hls";
 
-/** Nach dieser Zeit sind die Segment-URLs ohnehin abgelaufen. */
+/** After this time the segment URLs have expired anyway. */
 const MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
 export interface GeneratedHlsOptions {
   /**
-   * AV1-Varianten mit anbieten.
+   * Also offer AV1 variants.
    *
-   * Ohne AV1 endet die Leiter bei 1080p — mehr gibt YouTube in avc1 nicht her.
-   * Mit AV1 kommen 1440p und 2160p dazu, aber nur Apple TV 4K (3. Gen)
-   * dekodiert sie in Hardware. Fehlt der Decoder, bleibt der Player im
-   * Ladezustand stehen, **ohne** einen Fehler zu melden — die Ladder greift
-   * dann nicht. Deshalb ist es eine bewusste Entscheidung, keine Vorgabe.
+   * Without AV1 the ladder ends at 1080p — YouTube offers no more in avc1.
+   * AV1 adds 1440p and 2160p, but only Apple TV 4K (3rd gen) decodes them in
+   * hardware. Without a decoder the player stays in the loading state
+   * **without** reporting an error — the ladder then does not kick in. So it
+   * is a deliberate choice, not a default.
    */
   allowAv1?: boolean;
-  /** Höchste angebotene Videohöhe in Pixeln. */
+  /** Highest offered video height in pixels. */
   maxHeight?: number;
+  /**
+   * Subtitle tracks to offer as HLS renditions, so the native player lists
+   * them in its own subtitle menu. `label` names them in that menu.
+   */
+  subtitles?: {
+    tracks: SubtitleTrack[];
+    label: (track: SubtitleTrack) => string;
+  };
 }
 
 function rootDirectory() {
@@ -68,10 +85,10 @@ function rootDirectory() {
 }
 
 /**
- * Räumt alte Manifeste weg.
+ * Removes old manifests.
  *
- * Die Segment-URLs in einem Manifest laufen ab; ein liegengebliebenes
- * Verzeichnis ist nur noch Ballast im Cache.
+ * The segment URLs in a manifest expire; a leftover directory is just
+ * ballast in the cache.
  */
 function pruneOldManifests(keep: string) {
   try {
@@ -88,8 +105,8 @@ function pruneOldManifests(keep: string) {
         continue;
       }
 
-      // Der Zeitstempel steckt im Verzeichnisnamen (`<videoId>-<ms>`), weil
-      // expo-file-system keine Änderungszeit für Verzeichnisse herausgibt.
+      // The timestamp is part of the directory name (`<videoId>-<ms>`)
+      // because expo-file-system exposes no modification time for directories.
       const created = Number(entry.name.split("-").pop());
 
       if (!Number.isFinite(created) || now - created > MAX_AGE_MS) {
@@ -102,10 +119,10 @@ function pruneOldManifests(keep: string) {
 }
 
 /**
- * Ersetzt die Dateinamen im Master durch absolute `file://`-URIs.
+ * Replaces the file names in the master with absolute `file://` URIs.
  *
- * Nötig, weil das Master als `data:`-URI keine Basis hat, gegen die sich ein
- * relativer Name auflösen ließe.
+ * Needed because the master, as a `data:` URI, has no base a relative name
+ * could resolve against.
  */
 function withAbsoluteReferences(
   master: string,
@@ -121,19 +138,19 @@ function withAbsoluteReferences(
         });
       }
 
-      // Die Zeile hinter einem EXT-X-STREAM-INF ist der blanke Dateiname.
+      // The line after an EXT-X-STREAM-INF is the bare file name.
       return uriByName.get(line) ?? line;
     })
     .join("\n");
 }
 
 /**
- * Baut das Manifest, legt die Medien-Playlists im Cache ab und verpackt das
- * Master als `data:`-URI.
+ * Builds the manifest, stores the media playlists in the cache and wraps the
+ * master as a `data:` URI.
  *
- * @returns Quelle für den Player, oder `undefined`, wenn sich aus den Formaten
- *   keins bauen lässt (SABR-only, kein mp4, kein Index). Der Aufrufer fällt dann
- *   auf YouTubes eigenes Manifest zurück.
+ * @returns Source for the player, or `undefined` if the formats do not allow
+ *   building one (SABR-only, no mp4, no index). The caller then falls back to
+ *   YouTube's own manifest.
  */
 export async function buildGeneratedHls(
   info: YT.VideoInfo,
@@ -146,15 +163,15 @@ export async function buildGeneratedHls(
     const manifest = await info.toHLS({
       manifest_options: {
         mode: "byterange",
-        // avc1 bildet immer die Grundleiter; AV1 steuert nur die Höhen bei, die
-        // avc1 nicht erreicht.
+        // avc1 always forms the base ladder; AV1 only adds the heights avc1
+        // does not reach.
         codec_preference: options?.allowAv1 ? ["avc1", "av01"] : ["avc1"],
         max_height: options?.maxHeight,
       },
     });
 
-    // Frisches Verzeichnis je Aufruf: die Segment-URLs der vorigen Runde sind
-    // an eine abgelaufene Session gebunden und dürfen nicht weiterleben.
+    // A fresh directory per call: the previous round's segment URLs are bound
+    // to an expired session and must not live on.
     const name = `${videoId.replace(/[^a-zA-Z0-9_-]/g, "_")}-${started}`;
     const directory = new Directory(rootDirectory(), name);
 
@@ -169,11 +186,29 @@ export async function buildGeneratedHls(
       uriByName.set(playlist.name, file.uri);
     }
 
-    const master = withAbsoluteReferences(manifest.master, uriByName);
+    const renditions: HlsSubtitleRendition[] = [];
+    const duration = info.basic_info.duration ?? 0;
+    if (duration > 0) {
+      options?.subtitles?.tracks.forEach((track, index) => {
+        const file = new File(directory, `subtitles-${index}.m3u8`);
+        file.create({overwrite: true});
+        file.write(buildSubtitleMediaPlaylist(track, duration));
+        renditions.push({
+          name: options.subtitles?.label(track) ?? track.name,
+          languageCode: track.languageCode,
+          uri: file.uri,
+        });
+      });
+    }
 
-    // Bewusst prozentkodiert statt base64: `encodeURIComponent` ist UTF-8-sicher
-    // (Spurnamen können Umlaute tragen) und braucht keine zusätzliche
-    // Abhängigkeit. Von AVFoundation geprüft, wird angenommen.
+    const master = addSubtitlesToMasterPlaylist(
+      withAbsoluteReferences(manifest.master, uriByName),
+      renditions,
+    );
+
+    // Percent-encoded on purpose instead of base64: `encodeURIComponent` is
+    // UTF-8 safe (track names can contain umlauts) and needs no extra
+    // dependency. Checked with AVFoundation; it is accepted.
     const source = `data:application/vnd.apple.mpegurl,${encodeURIComponent(master)}`;
 
     pruneOldManifests(name);
@@ -193,6 +228,7 @@ export async function buildGeneratedHls(
     LOGGER.info(
       `Eigenes HLS gebaut: ${variants.length} Varianten bis ${top}p ` +
         `(${codecs.join(", ")}) · ${manifest.playlists.length} Playlists · ` +
+        `${renditions.length} subtitle tracks · ` +
         `Master ${source.length} Zeichen · ${Date.now() - started} ms`,
     );
 

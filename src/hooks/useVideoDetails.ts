@@ -12,6 +12,10 @@ import {
 } from "@/extraction/YTElements";
 import {resolveVideoDetailFallback} from "@/extraction/videoInfoFallback";
 import {
+  useSubtitleLabel,
+  useSubtitleTranslationLanguages,
+} from "@/hooks/video/useSubtitleChoices";
+import {
   buildGeneratedHls,
   type GeneratedHlsOptions,
 } from "@/utils/GeneratedHls";
@@ -29,6 +33,7 @@ import {
   type StreamingSource,
 } from "@/utils/PlaybackSource";
 import {startSabrPlayback, type SabrPlaybackSource} from "@/utils/SabrPlayback";
+import {getSubtitleChoices, getSubtitleTrackList} from "@/utils/Subtitles";
 import {Innertube, YT, YTTV, YTNodes} from "@/utils/Youtube";
 import {
   clientNeedsPoToken,
@@ -177,6 +182,29 @@ export default function useVideoDetails(
    */
   const sabrRef = useRef<SabrPlaybackSource | undefined>(undefined);
 
+  // Read through a ref: choosing a subtitle changes the preferred language,
+  // which must not reload the video.
+  const subtitleLabel = useSubtitleLabel();
+  const subtitleLanguages = useSubtitleTranslationLanguages();
+  const subtitleOptionsRef = useRef({
+    label: subtitleLabel,
+    languages: subtitleLanguages,
+  });
+  useEffect(() => {
+    subtitleOptionsRef.current = {
+      label: subtitleLabel,
+      languages: subtitleLanguages,
+    };
+  }, [subtitleLabel, subtitleLanguages]);
+  /** Subtitle renditions for the generated manifest's native subtitle menu. */
+  const nativeSubtitleOptions = (streaming: StreamingSource) => ({
+    tracks: getSubtitleChoices(
+      getSubtitleTrackList(streaming.info.captions),
+      subtitleOptionsRef.current.languages,
+    ),
+    label: subtitleOptionsRef.current.label,
+  });
+
   const replaceSabrSource = useCallback(
     (next: SabrPlaybackSource | undefined) => {
       const previous = sabrRef.current;
@@ -242,6 +270,8 @@ export default function useVideoDetails(
               // The TV response contains no formats — the playback format has
               // to come from the stream client's response.
               parsedDataTV.best_format = parsed.best_format;
+              // Caption tracks are missing from the TV response as well.
+              parsedDataTV.subtitles = parsed.subtitles;
               // The duration decides whether a resume marker still applies —
               // if the TV response has none (it is UNPLAYABLE and carries no
               // streaming_data), it comes from the stream client.
@@ -263,7 +293,10 @@ export default function useVideoDetails(
               parsedDataTV.generated_hls_url = await generateIfPossible(
                 streaming,
                 playbackMode,
-                {allowAv1: appSettings.av1Enabled},
+                {
+                  allowAv1: appSettings.av1Enabled,
+                  subtitles: nativeSubtitleOptions(streaming),
+                },
               );
               // `youtube` is necessarily present here — the streams come from
               // this instance — but only the check makes that visible to the
@@ -315,7 +348,10 @@ export default function useVideoDetails(
             parsedData.generated_hls_url = await generateIfPossible(
               streaming,
               playbackMode,
-              {allowAv1: appSettings.av1Enabled},
+              {
+                allowAv1: appSettings.av1Enabled,
+                subtitles: nativeSubtitleOptions(streaming),
+              },
             );
             parsedData.sabr_hls_url = replaceSabrSource(
               await startSabrIfPossible(streaming, playbackMode, {
