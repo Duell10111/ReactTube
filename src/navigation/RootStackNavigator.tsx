@@ -25,7 +25,6 @@ import LoadingScreen from "@/screens/LoadingScreen";
 import LoginScreen from "@/screens/LoginScreen";
 import PlaylistScreen from "@/screens/PlaylistScreen";
 import SearchScreen from "@/screens/SearchScreen";
-import VideoScreen from "@/screens/VideoScreen";
 import {ActiveDownloadScreen} from "@/screens/phone/ActiveDownloadScreen";
 import {ActiveUploadScreen} from "@/screens/phone/ActiveUploadScreen";
 import {MusicAlbumScreen} from "@/screens/phone/MusicAlbumScreen";
@@ -35,6 +34,7 @@ import {MusicPlayerScreen} from "@/screens/phone/MusicPlayerScreen";
 import {MusicPlaylistScreen} from "@/screens/phone/MusicPlaylistScreen";
 import {MusicSearchScreen} from "@/screens/phone/MusicSearchScreen";
 import VideoScreenWrapper from "@/screens/phone/VideoScreenWrapper";
+import TVVideoScreenWrapper from "@/screens/tv/VideoScreenWrapper";
 import {useAppTheme} from "@/ui/theme";
 import {YTNodes} from "@/utils/Youtube";
 
@@ -102,7 +102,9 @@ export default function RootStackNavigator() {
           />
           <Stack.Screen
             name={"VideoScreen"}
-            component={Platform.isTV ? VideoScreen : VideoScreenWrapper}
+            component={
+              Platform.isTV ? TVVideoScreenWrapper : VideoScreenWrapper
+            }
             options={{title: t("navigation.video")}}
           />
           <Stack.Screen

@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 
+import type {VideoSidePanelTab} from "@/components/video/tv/VideoSidePanel";
 import type {ElementData} from "@/extraction/Types";
 import type {VideoDetailViewModel} from "@/ui/patterns";
 
@@ -14,6 +15,8 @@ export interface VideoSidePanelData {
   videoId: string;
   model: VideoDetailViewModel;
   queueEntries: ElementData[];
+  /** Tab the panel opens on; the description when left out. */
+  initialTab?: VideoSidePanelTab;
 }
 
 interface VideoSidePanelContextValue {
