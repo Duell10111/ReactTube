@@ -18,6 +18,7 @@ import {
 
 import BottomControls from "./BottomControls";
 import EndCardContainer from "./EndCardContainer";
+import {PlaybackTimeContext} from "./PlaybackTimeContext";
 import SubtitleOverlay from "./SubtitleOverlay";
 import {useAnimations} from "./hooks/useAnimations";
 import {useControlTimeout} from "./hooks/useControlTimeout";
@@ -572,7 +573,9 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
             })}
           </EndCardContainer>
         ) : null}
-        <>
+        {/* The playing position, not a scrub preview: the panel below the
+         * controls marks what is playing, which a scrub has not changed yet. */}
+        <PlaybackTimeContext.Provider value={currentTime}>
           {/* @ts-ignore Ignore missing props for the moment */}
           <BottomControls
             animations={animations}
@@ -599,7 +602,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
             restoreFocusOnHide={remoteActive && !endscreenBrowsing}
             onJumpToStart={() => _videoRef.current?.seek(0)}
           />
-        </>
+        </PlaybackTimeContext.Provider>
       </View>
     );
   },
