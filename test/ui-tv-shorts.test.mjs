@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   appendShortIds,
+  getShortsWindow,
   interpretShortsRemoteEvent,
   shortIdFromEndpoint,
   shouldPrefetchShorts,
@@ -82,4 +83,20 @@ test("counts an Android TV key only once, on release", () => {
     ),
     "next",
   );
+});
+
+test("keeps the neighbours of the active short mounted", () => {
+  assert.deepEqual(getShortsWindow(["a", "b", "c", "d"], 1), [
+    {videoId: "a", role: "previous"},
+    {videoId: "b", role: "active"},
+    {videoId: "c", role: "next"},
+  ]);
+});
+
+test("leaves out neighbours beyond the ends of the queue", () => {
+  assert.deepEqual(getShortsWindow(["a", "b"], 0), [
+    {videoId: "a", role: "active"},
+    {videoId: "b", role: "next"},
+  ]);
+  assert.deepEqual(getShortsWindow(["a"], 0), [{videoId: "a", role: "active"}]);
 });

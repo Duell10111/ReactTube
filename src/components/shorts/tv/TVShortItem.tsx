@@ -5,6 +5,7 @@ import React, {useEffect, useMemo, useRef, useState} from "react";
 import {
   Animated,
   Easing,
+  Platform,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -13,6 +14,7 @@ import {
 import {ResizeMode} from "react-native-video";
 
 import VideoComponent from "@/components/VideoComponent";
+import type {ShortRole} from "@/components/shorts/tv/shortsQueueModel";
 import {useAppData} from "@/context/AppDataContext";
 import {useVideoSidePanel} from "@/context/VideoSidePanelContext";
 import {useSubscriptionToggle} from "@/hooks/channel/useSubscriptionToggle";
@@ -41,6 +43,8 @@ export type ShortEntrance = -1 | 0 | 1;
 
 interface Props {
   videoId: string;
+  /** Neighbours stay mounted hidden so switching to them is instant. */
+  role: ShortRole;
   entrance: ShortEntrance;
   paused: boolean;
   onTogglePause: () => void;
@@ -57,15 +61,27 @@ const ENTRANCE_DURATION_MS = 260;
 const HINT_SPACE = 56;
 /** Seconds between watch-time reports, matching the regular TV player. */
 const WATCH_TIME_INTERVAL_SECONDS = 30;
+/**
+ * Whether the next short already gets a (paused) player that buffers ahead.
+ * Android renders video into a SurfaceView, which ignores the opacity that
+ * hides a preloaded short, so it only preloads metadata and streams there.
+ */
+const PRELOAD_NEXT_PLAYER = Platform.OS === "ios";
 
 /**
  * One short in the TV shorts player: the vertical video as a card in the
  * middle of the screen and its metadata and actions to the right, modelled on
- * the YouTube TV app. It is keyed by video id, so moving to another short
- * mounts a fresh instance and plays its entrance animation.
+ * the YouTube TV app.
+ *
+ * The screen keeps the previous and next short mounted next to the active one,
+ * keyed by video id. A hidden item already resolves its streams, and the next
+ * one also buffers in a paused player, so moving to it only reveals it. The
+ * player therefore sits at a fixed place in the tree that does not depend on
+ * the role; focusable controls exist only while the item is active.
  */
 export function TVShortItem({
   videoId,
+  role,
   entrance,
   paused,
   onTogglePause,
@@ -106,15 +122,25 @@ export function TVShortItem({
   const cardHeight = height - overscan.top - overscan.bottom - 2 * HINT_SPACE;
   const cardWidth = Math.round(cardHeight * SHORT_ASPECT_RATIO);
 
+  const active = role === "active";
+  const mountPlayer = active || (role === "next" && PRELOAD_NEXT_PLAYER);
+
   const entranceValue = useRef(new Animated.Value(entrance)).current;
   useEffect(() => {
+    if (!active) {
+      return;
+    }
+    // Read once on activation: the entrance belongs to this step, not to
+    // later re-renders.
+    entranceValue.setValue(entrance);
     Animated.timing(entranceValue, {
       toValue: 0,
       duration: ENTRANCE_DURATION_MS,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [entranceValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, entranceValue]);
 
   const detailModel = useMemo(
     () =>
@@ -141,9 +167,9 @@ export function TVShortItem({
   };
 
   const toggleRating = (target: "like" | "dislike") => {
-    const active =
+    const rated =
       target === "like" ? YTVideoInfo?.liked : YTVideoInfo?.disliked;
-    (active ? removeRating : target === "like" ? like : dislike)().catch(
+    (rated ? removeRating : target === "like" ? like : dislike)().catch(
       LOGGER.warn,
     );
   };
@@ -188,13 +214,19 @@ export function TVShortItem({
   });
 
   return (
-    <View style={StyleSheet.absoluteFill}>
-      <Image
-        blurRadius={60}
-        contentFit={"cover"}
-        source={{uri: thumbnailUrl}}
-        style={StyleSheet.absoluteFill}
-      />
+    <View
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? "auto" : "no-hide-descendants"}
+      pointerEvents={active ? "box-none" : "none"}
+      style={[StyleSheet.absoluteFill, active ? styles.active : styles.hidden]}>
+      {active ? (
+        <Image
+          blurRadius={60}
+          contentFit={"cover"}
+          source={{uri: thumbnailUrl}}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       <View style={[StyleSheet.absoluteFill, styles.backdropScrim]} />
       <Animated.View
         style={[
@@ -214,24 +246,15 @@ export function TVShortItem({
             icon={"keyboard-arrow-up"}
             visible={hasPrevious}
           />
-          <Pressable
-            accessibilityHint={t("shorts.player.hint")}
-            accessibilityLabel={YTVideoInfo?.title ?? t("video.loading")}
-            accessibilityRole={"button"}
-            hasTVPreferredFocus={focusSlot === "video"}
-            onBlur={() => setCardFocused(false)}
-            onFocus={() => {
-              setCardFocused(true);
-              onFocusSlot("video");
-            }}
-            onPress={onTogglePause}
+          <View
             style={[
               styles.card,
               {
                 width: cardWidth,
                 height: cardHeight,
                 borderRadius: theme.radii.panel,
-                borderColor: cardFocused ? darkColors.focus : "transparent",
+                borderColor:
+                  active && cardFocused ? darkColors.focus : "transparent",
               },
             ]}>
             <View
@@ -241,7 +264,7 @@ export function TVShortItem({
                 source={{uri: thumbnailUrl}}
                 style={StyleSheet.absoluteFill}
               />
-              {videoUrl && YTVideoInfo ? (
+              {mountPlayer && videoUrl && YTVideoInfo ? (
                 <VideoComponent
                   url={videoUrl}
                   videoInfo={YTVideoInfo}
@@ -257,7 +280,7 @@ export function TVShortItem({
                   }}
                   style={StyleSheet.absoluteFill}
                   fullscreen={false}
-                  paused={paused || !isFocused}
+                  paused={!active || paused || !isFocused}
                   controls={false}
                   repeat
                   resizeMode={ResizeMode.COVER}
@@ -269,7 +292,7 @@ export function TVShortItem({
                     {unavailableReason}
                   </AppText>
                 </View>
-              ) : paused ? (
+              ) : active && paused ? (
                 <View
                   accessibilityLabel={t("shorts.player.paused")}
                   style={[StyleSheet.absoluteFill, styles.cardOverlay]}>
@@ -289,7 +312,22 @@ export function TVShortItem({
                 />
               </View>
             </View>
-          </Pressable>
+            {active ? (
+              <Pressable
+                accessibilityHint={t("shorts.player.hint")}
+                accessibilityLabel={YTVideoInfo?.title ?? t("video.loading")}
+                accessibilityRole={"button"}
+                hasTVPreferredFocus={focusSlot === "video"}
+                onBlur={() => setCardFocused(false)}
+                onFocus={() => {
+                  setCardFocused(true);
+                  onFocusSlot("video");
+                }}
+                onPress={onTogglePause}
+                style={StyleSheet.absoluteFill}
+              />
+            ) : null}
+          </View>
           <NavigationHint
             accessibilityLabel={t("shorts.next")}
             icon={"keyboard-arrow-down"}
@@ -297,74 +335,80 @@ export function TVShortItem({
           />
         </View>
         <View style={[styles.side, styles.info, {gap: theme.spacing.lg}]}>
-          <AppText
-            numberOfLines={3}
-            style={styles.onMedia}
-            variant={"titleLarge"}>
-            {YTVideoInfo?.title ?? ""}
-          </AppText>
-          <View style={[styles.channel, {gap: theme.spacing.md}]}>
-            <Image
-              contentFit={"cover"}
-              source={
-                parsedChannel?.thumbnail?.url
-                  ? {uri: parsedChannel.thumbnail.url}
-                  : undefined
-              }
-              style={styles.avatar}
-            />
-            <AppText style={styles.onMedia} variant={"titleSmall"}>
-              {YTVideoInfo?.channel?.name ?? YTVideoInfo?.author?.name ?? ""}
-            </AppText>
-          </View>
-          {/* One row on purpose: up and down switch the short, so no
+          {active ? (
+            <>
+              <AppText
+                numberOfLines={3}
+                style={styles.onMedia}
+                variant={"titleLarge"}>
+                {YTVideoInfo?.title ?? ""}
+              </AppText>
+              <View style={[styles.channel, {gap: theme.spacing.md}]}>
+                <Image
+                  contentFit={"cover"}
+                  source={
+                    parsedChannel?.thumbnail?.url
+                      ? {uri: parsedChannel.thumbnail.url}
+                      : undefined
+                  }
+                  style={styles.avatar}
+                />
+                <AppText style={styles.onMedia} variant={"titleSmall"}>
+                  {YTVideoInfo?.channel?.name ??
+                    YTVideoInfo?.author?.name ??
+                    ""}
+                </AppText>
+              </View>
+              {/* One row on purpose: up and down switch the short, so no
               focusable control may sit above or below another. */}
-          <View style={[styles.actions, {gap: theme.spacing.md}]}>
-            <AppButton
-              label={
-                subscription.subscribed
-                  ? t("video.subscribed")
-                  : t("video.subscribe")
-              }
-              onPress={subscription.toggle}
-              variant={subscription.subscribed ? "secondary" : "primary"}
-              {...slotProps("subscribe")}
-            />
-            <AppIconButton
-              accessibilityLabel={t("video.action.like")}
-              icon={"thumb-up"}
-              onPress={() => toggleRating("like")}
-              selected={Boolean(YTVideoInfo?.liked)}
-              {...slotProps("like")}
-            />
-            <AppIconButton
-              accessibilityLabel={t("video.action.dislike")}
-              icon={"thumb-down"}
-              onPress={() => toggleRating("dislike")}
-              selected={Boolean(YTVideoInfo?.disliked)}
-              {...slotProps("dislike")}
-            />
-            <AppIconButton
-              accessibilityLabel={t("video.action.comments")}
-              icon={"comment"}
-              onPress={() => openSidePanel("comments")}
-              {...slotProps("comments")}
-            />
-            <AppIconButton
-              accessibilityLabel={t("video.action.save")}
-              icon={"playlist-add"}
-              onPress={() =>
-                navigation.navigate("PlaylistManagerContextMenu", {videoId})
-              }
-              {...slotProps("save")}
-            />
-            <AppIconButton
-              accessibilityLabel={t("video.player.details")}
-              icon={"more-vert"}
-              onPress={() => openSidePanel("details")}
-              {...slotProps("details")}
-            />
-          </View>
+              <View style={[styles.actions, {gap: theme.spacing.md}]}>
+                <AppButton
+                  label={
+                    subscription.subscribed
+                      ? t("video.subscribed")
+                      : t("video.subscribe")
+                  }
+                  onPress={subscription.toggle}
+                  variant={subscription.subscribed ? "secondary" : "primary"}
+                  {...slotProps("subscribe")}
+                />
+                <AppIconButton
+                  accessibilityLabel={t("video.action.like")}
+                  icon={"thumb-up"}
+                  onPress={() => toggleRating("like")}
+                  selected={Boolean(YTVideoInfo?.liked)}
+                  {...slotProps("like")}
+                />
+                <AppIconButton
+                  accessibilityLabel={t("video.action.dislike")}
+                  icon={"thumb-down"}
+                  onPress={() => toggleRating("dislike")}
+                  selected={Boolean(YTVideoInfo?.disliked)}
+                  {...slotProps("dislike")}
+                />
+                <AppIconButton
+                  accessibilityLabel={t("video.action.comments")}
+                  icon={"comment"}
+                  onPress={() => openSidePanel("comments")}
+                  {...slotProps("comments")}
+                />
+                <AppIconButton
+                  accessibilityLabel={t("video.action.save")}
+                  icon={"playlist-add"}
+                  onPress={() =>
+                    navigation.navigate("PlaylistManagerContextMenu", {videoId})
+                  }
+                  {...slotProps("save")}
+                />
+                <AppIconButton
+                  accessibilityLabel={t("video.player.details")}
+                  icon={"more-vert"}
+                  onPress={() => openSidePanel("details")}
+                  {...slotProps("details")}
+                />
+              </View>
+            </>
+          ) : null}
         </View>
       </Animated.View>
     </View>
@@ -397,6 +441,13 @@ function NavigationHint({
 const styles = StyleSheet.create({
   // The shorts surface stays dark in either theme: its text sits on a dimmed
   // video thumbnail, not on the app background.
+  active: {
+    zIndex: 1,
+  },
+  hidden: {
+    opacity: 0,
+    zIndex: 0,
+  },
   backdropScrim: {
     backgroundColor: "rgba(15, 15, 15, 0.7)",
   },
