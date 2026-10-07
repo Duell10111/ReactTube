@@ -12,6 +12,13 @@ import {
 } from "@/extraction/YTElements";
 import {resolveVideoDetailFallback} from "@/extraction/videoInfoFallback";
 import {
+  DISLIKE_OVERRIDE,
+  LIKE_OVERRIDE,
+  NO_RATING_OVERRIDE,
+  type RatingOverride,
+  resolveRating,
+} from "@/hooks/video/ratingOverride";
+import {
   useSubtitleLabel,
   useSubtitleTranslationLanguages,
 } from "@/hooks/video/useSubtitleChoices";
@@ -627,64 +634,83 @@ export default function useVideoDetails(
   // Actions:
 
   // const [actionVideoData, setActionVideoData] = useState<YT.VideoInfo>();
-  const [actionDataOverride, setActionDataOverride] = useState<ActionData>({});
+  const [actionDataOverride, setActionDataOverride] = useState<RatingOverride>(
+    {},
+  );
+  // The override a pending request has to compare against: a later press
+  // must not be rolled back by an earlier request that failed.
+  const overrideRef = useRef<RatingOverride>({});
 
-  // const fetchActionsVideoData = useCallback(() => {
-  //   youtube
-  //     ?.getInfo(videoId, appSettings.hlsEnabled ? "IOS" : undefined)
-  //     .then(setActionVideoData)
-  //     .catch(LOGGER.warn);
-  // }, [videoId, appSettings.hlsEnabled, youtube]);
+  const updateOverride = useCallback((next: RatingOverride) => {
+    overrideRef.current = next;
+    setActionDataOverride(next);
+  }, []);
 
-  const actionData = useMemo(() => {
-    const data = videoInfo;
-    if (data && actionDataOverride?.like !== undefined) {
-      data.liked = actionDataOverride.like;
-    }
-    if (data && actionDataOverride?.dislike !== undefined) {
-      data.disliked = actionDataOverride.dislike;
-    }
-    return data;
-  }, [videoInfo, actionDataOverride]);
+  // A rating belongs to one video.
+  useEffect(() => {
+    updateOverride({});
+  }, [updateOverride, videoInfo?.id]);
 
-  const like = useCallback(async () => {
-    console.log("like: ");
-    if (actionData?.id) {
-      setActionDataOverride({
-        ...actionDataOverride,
-        like: true,
-        dislike: false,
-      });
-      // Use interaction manager as this uses the TV endpoints
-      await tvYoutube?.interact.like(actionData.id);
-    }
-    // await actionData?.originalData?.like();
-    // fetchActionsVideoData();
-  }, [actionData, actionDataOverride, tvYoutube]);
+  const actionData = useMemo(
+    () =>
+      videoInfo
+        ? {...videoInfo, ...resolveRating(videoInfo, actionDataOverride)}
+        : undefined,
+    [videoInfo, actionDataOverride],
+  );
 
-  const dislike = useCallback(async () => {
-    if (actionData?.id) {
-      setActionDataOverride({
-        ...actionDataOverride,
-        dislike: true,
-        like: false,
-      });
-      // Use interaction manager as this uses the TV endpoints
-      await tvYoutube?.interact?.dislike(actionData.id);
-    }
-    // await actionData?.originalData?.dislike();
-    // fetchActionsVideoData();
-  }, [actionData, actionDataOverride, tvYoutube]);
+  /**
+   * Shows `next` right away and sends the request. When it fails, the rating
+   * from before the press comes back, so the buttons never claim a rating
+   * YouTube did not store. The error still reaches the caller.
+   */
+  const applyRating = useCallback(
+    async (
+      next: RatingOverride,
+      request: (videoId: string) => Promise<unknown> | undefined,
+    ) => {
+      const id = videoInfo?.id;
+      if (!id) {
+        return;
+      }
 
-  const removeRating = useCallback(async () => {
-    if (actionData?.id) {
-      setActionDataOverride({dislike: false, like: false});
-      // Use interaction manager as this uses the TV endpoints
-      await tvYoutube?.interact?.removeRating(actionData.id);
-    }
-    // await actionData?.originalData?.removeRating();
-    // fetchActionsVideoData();
-  }, [actionData, tvYoutube]);
+      const previous = overrideRef.current;
+      updateOverride(next);
+      try {
+        const pending = request(id);
+        if (!pending) {
+          throw new Error("No signed-in session to rate the video with");
+        }
+        await pending;
+      } catch (reason) {
+        if (overrideRef.current === next) {
+          updateOverride(previous);
+        }
+        throw reason;
+      }
+    },
+    [updateOverride, videoInfo?.id],
+  );
+
+  // The TV session rates through the interaction manager, which uses the TV
+  // endpoints.
+  const like = useCallback(
+    () => applyRating(LIKE_OVERRIDE, id => tvYoutube?.interact.like(id)),
+    [applyRating, tvYoutube],
+  );
+
+  const dislike = useCallback(
+    () => applyRating(DISLIKE_OVERRIDE, id => tvYoutube?.interact.dislike(id)),
+    [applyRating, tvYoutube],
+  );
+
+  const removeRating = useCallback(
+    () =>
+      applyRating(NO_RATING_OVERRIDE, id =>
+        tvYoutube?.interact.removeRating(id),
+      ),
+    [applyRating, tvYoutube],
+  );
 
   const addToWatchHistory = useCallback(
     async (seconds?: number) => {
@@ -728,9 +754,4 @@ export default function useVideoDetails(
       setRefresh(previous => !previous);
     },
   };
-}
-
-interface ActionData {
-  like?: boolean;
-  dislike?: boolean;
 }
