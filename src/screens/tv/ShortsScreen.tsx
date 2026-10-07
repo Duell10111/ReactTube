@@ -9,6 +9,7 @@ import {
   TVShortItem,
 } from "@/components/shorts/tv/TVShortItem";
 import {
+  getShortsWindow,
   interpretShortsRemoteEvent,
   shouldPrefetchShorts,
   stepShortIndex,
@@ -73,21 +74,26 @@ export default function ShortsScreen({route}: Props) {
     }, []),
   );
 
-  const currentId = videoIds[index] ?? videoId;
+  const shortsWindow = getShortsWindow(videoIds, index);
 
   return (
     <View style={styles.root}>
-      <TVShortItem
-        key={currentId}
-        entrance={entrance}
-        focusSlot={focusSlot}
-        hasNext={index < videoIds.length - 1 || hasMore}
-        hasPrevious={index > 0}
-        onFocusSlot={setFocusSlot}
-        onTogglePause={() => setPaused(previous => !previous)}
-        paused={paused}
-        videoId={currentId}
-      />
+      {/* Keyed by video id: a short keeps its instance, and with it its
+          loaded streams and buffered player, while its role changes. */}
+      {shortsWindow.map(({videoId: id, role}) => (
+        <TVShortItem
+          key={id}
+          entrance={entrance}
+          focusSlot={focusSlot}
+          hasNext={index < videoIds.length - 1 || hasMore}
+          hasPrevious={index > 0}
+          onFocusSlot={setFocusSlot}
+          onTogglePause={() => setPaused(previous => !previous)}
+          paused={paused}
+          role={role}
+          videoId={id}
+        />
+      ))}
     </View>
   );
 }

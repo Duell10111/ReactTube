@@ -8,6 +8,13 @@ export const SHORTS_PREFETCH_DISTANCE = 3;
 
 export type ShortsRemoteIntent = "next" | "previous" | "togglePlay";
 
+export type ShortRole = "previous" | "active" | "next";
+
+export interface ShortsWindowEntry {
+  videoId: string;
+  role: ShortRole;
+}
+
 interface EndpointLike {
   payload?: Record<string, unknown>;
 }
@@ -65,6 +72,33 @@ export function stepShortIndex(
   const next = current + (intent === "next" ? 1 : -1);
 
   return Math.min(Math.max(next, 0), length - 1);
+}
+
+/**
+ * The shorts kept mounted around the active one. The next one preloads so
+ * "down" is instant; the previous one stays so going back does not reload what
+ * was just watched. Everything further away is unmounted to bound the number
+ * of players and stream resolutions in flight.
+ */
+export function getShortsWindow(
+  videoIds: readonly string[],
+  index: number,
+): ShortsWindowEntry[] {
+  const entries: ShortsWindowEntry[] = [];
+  const roles: [number, ShortRole][] = [
+    [index - 1, "previous"],
+    [index, "active"],
+    [index + 1, "next"],
+  ];
+
+  for (const [position, role] of roles) {
+    const videoId = videoIds[position];
+    if (videoId) {
+      entries.push({videoId, role});
+    }
+  }
+
+  return entries;
 }
 
 export function shouldPrefetchShorts(
