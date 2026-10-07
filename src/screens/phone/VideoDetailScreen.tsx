@@ -138,8 +138,10 @@ export default function VideoDetailScreen({route}: Props) {
     }
 
     const handlers: Record<string, () => void> = {
-      like: () => (actionData?.liked ? removeRating() : like()),
-      dislike: () => (actionData?.disliked ? removeRating() : dislike()),
+      like: () =>
+        (actionData?.liked ? removeRating() : like()).catch(LOGGER.warn),
+      dislike: () =>
+        (actionData?.disliked ? removeRating() : dislike()).catch(LOGGER.warn),
       save: () => save([YTVideoInfo.id]),
       download: () => download?.(YTVideoInfo.id)?.catch(LOGGER.warn),
       description: () => setPanel("description"),

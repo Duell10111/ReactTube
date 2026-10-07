@@ -55,6 +55,7 @@ export default function VideoScreen({route, navigation}: Props) {
     removeRating,
     addToWatchHistory,
     refresh,
+    actionData,
   } = useVideoDetails(navEndpoint ?? videoId, "TV", route.params.startSeconds);
   const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id ?? "");
   const nativeTextTrack = useNativeTextTrackSelection(
@@ -191,13 +192,13 @@ export default function VideoScreen({route, navigation}: Props) {
               }),
             views: YTVideoInfo.short_views ?? "Unknown views",
             videoDate: YTVideoInfo.publishDate ?? "Unknown",
-            liked: YTVideoInfo.liked,
-            disliked: YTVideoInfo.disliked,
+            liked: actionData?.liked,
+            disliked: actionData?.disliked,
             onLike: () => {
-              (YTVideoInfo.liked ? removeRating : like)().catch(LOGGER.warn);
+              (actionData?.liked ? removeRating : like)().catch(LOGGER.warn);
             },
             onDislike: () => {
-              (YTVideoInfo?.disliked ? removeRating : dislike)().catch(
+              (actionData?.disliked ? removeRating : dislike)().catch(
                 LOGGER.warn,
               );
             },
