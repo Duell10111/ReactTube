@@ -149,8 +149,83 @@ index 339932f..c54bcec 100644
      }
  
      func addPlayerViewControllerObservers() {
+diff --git a/node_modules/react-native-video/ios/Video/Features/RCTVideoTVUtils.swift b/node_modules/react-native-video/ios/Video/Features/RCTVideoTVUtils.swift
+index 8788d83..6407ab0 100644
+--- a/node_modules/react-native-video/ios/Video/Features/RCTVideoTVUtils.swift
++++ b/node_modules/react-native-video/ios/Video/Features/RCTVideoTVUtils.swift
+@@ -8,18 +8,20 @@ import Foundation
+ 
+ #if os(tvOS)
+     enum RCTVideoTVUtils {
+-        static func makeNavigationMarkerGroups(_ chapters: [Chapter]) -> [AVNavigationMarkersGroup] {
++        /// Builds the chapter markers. `artwork` maps a chapter image URI to its
++        /// loaded image data; chapters whose image is not in it get no artwork.
++        static func makeNavigationMarkerGroups(_ chapters: [Chapter], artwork: [String: Data] = [:]) -> [AVNavigationMarkersGroup] {
+             var metadataGroups = [AVTimedMetadataGroup]()
+ 
+             // Iterate over the defined chapters and build a timed metadata group object for each.
+             for chapter in chapters {
+-                metadataGroups.append(makeTimedMetadataGroup(for: chapter))
++                metadataGroups.append(makeTimedMetadataGroup(for: chapter, artwork: artwork))
+             }
+ 
+             return [AVNavigationMarkersGroup(title: nil, timedNavigationMarkers: metadataGroups)]
+         }
+ 
+-        static func makeTimedMetadataGroup(for chapter: Chapter) -> AVTimedMetadataGroup {
++        static func makeTimedMetadataGroup(for chapter: Chapter, artwork: [String: Data]) -> AVTimedMetadataGroup {
+             var metadata = [AVMetadataItem]()
+ 
+             // Create a metadata item that contains the chapter title.
+@@ -33,16 +35,40 @@ import Foundation
+             let timeRange = CMTimeRangeFromTimeToTime(start: startTime, end: endTime)
+ 
+             // Image
+-            if let imgUri = chapter.uri,
+-               let uri = URL(string: imgUri),
+-               let imgData = try? Data(contentsOf: uri),
+-               let image = UIImage(data: imgData),
+-               let pngData = image.pngData() {
+-                let imageItem = RCTVideoUtils.createMetadataItem(for: .commonIdentifierArtwork, value: pngData)
++            if let imgUri = chapter.uri, let imageData = artwork[imgUri] {
++                let imageItem = RCTVideoUtils.createMetadataItem(for: .commonIdentifierArtwork, value: imageData)
+                 metadata.append(imageItem)
+             }
+ 
+             return AVTimedMetadataGroup(items: metadata, timeRange: timeRange)
+         }
++
++        /// Loads all chapter images in parallel. The images used to be fetched
++        /// one after another while the player item was prepared, which held
++        /// back the start of playback by one request per chapter.
++        static func loadChapterArtwork(_ chapters: [Chapter]) async -> [String: Data] {
++            let uris = Set(chapters.compactMap(\.uri))
++
++            return await withTaskGroup(of: (String, Data?).self) { group in
++                for imgUri in uris {
++                    group.addTask {
++                        guard let url = URL(string: imgUri),
++                              let (data, _) = try? await URLSession.shared.data(from: url),
++                              let pngData = UIImage(data: data)?.pngData() else {
++                            return (imgUri, nil)
++                        }
++                        return (imgUri, pngData)
++                    }
++                }
++
++                var artwork = [String: Data]()
++                for await (imgUri, data) in group {
++                    if let data {
++                        artwork[imgUri] = data
++                    }
++                }
++                return artwork
++            }
++        }
+     }
+ #endif
 diff --git a/node_modules/react-native-video/ios/Video/RCTVideo.swift b/node_modules/react-native-video/ios/Video/RCTVideo.swift
-index 5f2f5f6..be03607 100644
+index 5f2f5f6..fe83862 100644
 --- a/node_modules/react-native-video/ios/Video/RCTVideo.swift
 +++ b/node_modules/react-native-video/ios/Video/RCTVideo.swift
 @@ -63,6 +63,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
@@ -169,15 +244,36 @@ index 5f2f5f6..be03607 100644
          _playerObserver.playerItem = _playerItem
          setPreferredForwardBufferDuration(_preferredForwardBufferDuration)
          setPlaybackRange(playerItem, withCropStart: _source?.cropStart, withCropEnd: _source?.cropEnd)
-@@ -1804,10 +1806,30 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
+@@ -756,7 +758,20 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
+ 
+         #if os(tvOS)
+             if let chapters = _chapters {
++                // Markers go up without images so playback is not held back by
++                // them; the artwork is attached to this item once it has loaded.
+                 playerItem.navigationMarkerGroups = RCTVideoTVUtils.makeNavigationMarkerGroups(chapters)
++                if let item = playerItem, chapters.contains(where: { $0.uri != nil }) {
++                    // Holding the item until the images arrive is harmless; a
++                    // replaced item just receives artwork nobody sees.
++                    Task.detached(priority: .utility) { [item] in
++                        let artwork = await RCTVideoTVUtils.loadChapterArtwork(chapters)
++                        guard !artwork.isEmpty else { return }
++                        await MainActor.run {
++                            item.navigationMarkerGroups = RCTVideoTVUtils.makeNavigationMarkerGroups(chapters, artwork: artwork)
++                        }
++                    }
++                }
+             }
+         #endif
+ 
+@@ -1804,8 +1819,28 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
          guard let lastEvent = accessLog.events.last else { return }
          if lastEvent.indicatedBitrate != _lastBitrate {
              _lastBitrate = lastEvent.indicatedBitrate
 -            onVideoBandwidthUpdate?(["bitrate": _lastBitrate, "target": reactTag as Any])
 +            sendBandwidthUpdate()
-         }
-     }
- 
++        }
++    }
++
 +    func handlePresentationSizeChange(playerItem: AVPlayerItem, change _: NSKeyValueObservedChange<CGSize>) {
 +        guard onVideoBandwidthUpdate != nil else { return }
 +        let size = playerItem.presentationSize
@@ -194,14 +290,12 @@ index 5f2f5f6..be03607 100644
 +        if size.width > 0, size.height > 0 {
 +            event["width"] = Float(size.width)
 +            event["height"] = Float(size.height)
-+        }
+         }
 +        onVideoBandwidthUpdate?(event)
-+    }
-+
+     }
+ 
      func handleTracksChange(playerItem _: AVPlayerItem, change _: NSKeyValueObservedChange<[AVPlayerItemTrack]>) {
-         guard let source = _source else { return }
-         if onTextTracks != nil {
-@@ -2013,6 +2035,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
+@@ -2013,6 +2048,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
              }
  
              _playerItem = playerItem

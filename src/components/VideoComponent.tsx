@@ -251,5 +251,8 @@ function mapChapters(chapter: YTChapter) {
     title: chapter.title,
     startTime: chapter.startDuration,
     endTime: chapter.endDuration,
+    // Artwork for the chapter list of the native tvOS player. The patched
+    // library loads it after playback has started.
+    uri: chapter.thumbnailImage?.url,
   } as Chapters;
 }
