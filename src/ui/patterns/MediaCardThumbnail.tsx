@@ -30,6 +30,11 @@ interface MediaCardThumbnailProps {
    * requested; without it the card asks for whatever size the feed delivered.
    */
   targetWidth?: number;
+  /**
+   * Accent badge ahead of the leading badges, for the entry that is playing
+   * in the list the card sits in.
+   */
+  highlightLabel?: string;
 }
 
 /**
@@ -40,6 +45,7 @@ export function MediaCardThumbnail({
   model,
   scale,
   targetWidth,
+  highlightLabel,
 }: MediaCardThumbnailProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
@@ -119,12 +125,39 @@ export function MediaCardThumbnail({
           />
         </View>
       )}
-      {leading.length > 0 ? (
+      {leading.length > 0 || highlightLabel ? (
         <View
           style={[
             styles.badgeRow,
+            highlightLabel ? styles.highlightBadgeRow : undefined,
             {start: inset, bottom: inset, gap: theme.spacing.xs},
           ]}>
+          {highlightLabel ? (
+            <View
+              style={[
+                styles.badge,
+                styles.highlightBadge,
+                {
+                  backgroundColor: theme.colors.mediaProgress,
+                  borderRadius: theme.radii.control,
+                  paddingHorizontal: theme.spacing.sm,
+                  paddingVertical: theme.spacing.xs / 2,
+                  gap: theme.spacing.xs,
+                },
+              ]}>
+              <MaterialIcons
+                color={theme.colors.textPrimary}
+                name={"play-arrow"}
+                size={tv ? 20 : 14}
+              />
+              <AppText
+                numberOfLines={1}
+                style={styles.highlightText}
+                variant={tv ? "label" : "labelSmall"}>
+                {highlightLabel}
+              </AppText>
+            </View>
+          ) : null}
           {leading.map(badge => (
             <Badge badge={badge} key={badge.id} tv={tv} />
           ))}
@@ -229,9 +262,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  // The trailing duration badge shares the line; the highlight gives way.
+  highlightBadgeRow: {
+    maxWidth: "70%",
+  },
   badge: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  highlightBadge: {
+    flexShrink: 1,
+  },
+  highlightText: {
+    flexShrink: 1,
   },
   progressTrack: {
     position: "absolute",

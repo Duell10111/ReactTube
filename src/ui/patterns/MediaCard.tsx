@@ -28,6 +28,16 @@ export interface MediaCardProps {
   onOverflow?: () => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  /**
+   * Marks the entry that is playing in the list the card sits in, with an
+   * accent badge carrying `selectedLabel` on the thumbnail.
+   */
+  selected?: boolean;
+  selectedLabel?: string;
+  /** Reports focus on TV, where a row keeps its playing entry in view. */
+  onFocusChange?: (focused: boolean) => void;
+  /** The pressable itself, e.g. as a TV focus guide destination. */
+  focusRef?: React.Ref<View>;
 }
 
 const avatarSize = 36;
@@ -44,6 +54,9 @@ function MediaCardTouch({
   onOverflow,
   style,
   testID,
+  selected = false,
+  selectedLabel,
+  focusRef,
 }: MediaCardProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
@@ -57,8 +70,13 @@ function MediaCardTouch({
   return (
     <Pressable
       accessibilityHint={model.accessibilityHint}
-      accessibilityLabel={model.accessibilityLabel}
+      accessibilityLabel={
+        selected && selectedLabel
+          ? `${selectedLabel}. ${model.accessibilityLabel}`
+          : model.accessibilityLabel
+      }
       accessibilityRole={"button"}
+      accessibilityState={selected ? {selected} : undefined}
       onLongPress={onLongPress}
       onPress={onPress ?? defaultPress}
       style={({pressed}) => [
@@ -67,8 +85,10 @@ function MediaCardTouch({
         pressed && {backgroundColor: theme.colors.surfacePressed},
         style,
       ]}
+      ref={focusRef}
       testID={testID ?? "media-card"}>
       <MediaCardThumbnail
+        highlightLabel={selected ? selectedLabel : undefined}
         model={model}
         scale={"touch"}
         targetWidth={typeof width === "number" ? width : undefined}

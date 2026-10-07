@@ -28,6 +28,16 @@ export interface MediaCardProps {
   onOverflow?: () => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  /**
+   * Marks the entry that is playing in the list the card sits in, with an
+   * accent badge carrying `selectedLabel` on the thumbnail.
+   */
+  selected?: boolean;
+  selectedLabel?: string;
+  /** Reports focus on TV, where a row keeps its playing entry in view. */
+  onFocusChange?: (focused: boolean) => void;
+  /** The pressable itself, e.g. as a TV focus guide destination. */
+  focusRef?: React.Ref<View>;
 }
 
 /**
@@ -47,6 +57,10 @@ function MediaCardTV({
   onLongPress,
   style,
   testID,
+  selected = false,
+  selectedLabel,
+  onFocusChange,
+  focusRef,
 }: MediaCardProps) {
   const {theme, reduceMotion} = useAppTheme();
   const {t} = useTranslation();
@@ -105,19 +119,27 @@ function MediaCardTV({
   return (
     <Pressable
       accessibilityHint={model.accessibilityHint}
-      accessibilityLabel={model.accessibilityLabel}
+      accessibilityLabel={
+        selected && selectedLabel
+          ? `${selectedLabel}. ${model.accessibilityLabel}`
+          : model.accessibilityLabel
+      }
       accessibilityRole={"button"}
+      accessibilityState={selected ? {selected} : undefined}
       onBlur={() => {
         setFocused(false);
+        onFocusChange?.(false);
         animateTo(1);
       }}
       onFocus={() => {
         setFocused(true);
+        onFocusChange?.(true);
         animateTo(theme.motion.tvFocusScale);
         onElementFocused?.();
       }}
       onLongPress={openMenu}
       onPress={onPress ?? defaultPress}
+      ref={focusRef}
       style={[
         styles.container,
         {width, paddingHorizontal: insetX, paddingVertical: insetY},
@@ -140,13 +162,20 @@ function MediaCardTV({
             borderColor: focused
               ? theme.colors.focus
               : theme.colors.focusResting,
+            // The playing entry stays raised while the remote is elsewhere;
+            // focus raises it further, so both states remain distinguishable.
             backgroundColor: focused
-              ? theme.colors.surfaceRaised
-              : "transparent",
+              ? selected
+                ? theme.colors.surfacePressed
+                : theme.colors.surfaceRaised
+              : selected
+                ? theme.colors.surfaceRaised
+                : "transparent",
             transform: [{scale}],
           },
         ]}>
         <MediaCardThumbnail
+          highlightLabel={selected ? selectedLabel : undefined}
           model={model}
           scale={"tv"}
           targetWidth={typeof width === "number" ? width : undefined}

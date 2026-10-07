@@ -241,6 +241,7 @@ export const en = {
   "demo.loading": "Loading preview",
   "demo.languageAction": "Change language",
   "video.upNext": "Up next",
+  "video.playlist": "Playlist",
   "video.related": "Related videos",
   "video.chapters": "Chapters",
   "video.chapters.position": "Chapter {index} of {total}",

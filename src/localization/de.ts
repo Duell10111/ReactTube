@@ -249,6 +249,7 @@ export const de = {
   "demo.loading": "Vorschau wird geladen",
   "demo.languageAction": "Sprache wechseln",
   "video.upNext": "Als Nächstes",
+  "video.playlist": "Playlist",
   "video.related": "Ähnliche Videos",
   "video.chapters": "Kapitel",
   "video.chapters.position": "Kapitel {index} von {total}",
