@@ -22,6 +22,11 @@ export function VideoPlayerSettings() {
       screen: "VideoPlayerLanguage" as const,
       iconName: "audiotrack" as const,
     },
+    {
+      title: t("video.player.subtitles"),
+      screen: "VideoPlayerSubtitles" as const,
+      iconName: "closed-caption" as const,
+    },
   ];
 
   const renderItem = ({item}: {item: (typeof options)[number]}) => {

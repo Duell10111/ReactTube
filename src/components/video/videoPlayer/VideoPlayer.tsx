@@ -18,6 +18,7 @@ import {
 
 import BottomControls from "./BottomControls";
 import EndCardContainer from "./EndCardContainer";
+import SubtitleOverlay from "./SubtitleOverlay";
 import {useAnimations} from "./hooks/useAnimations";
 import {useControlTimeout} from "./hooks/useControlTimeout";
 import useTVSeekControl from "./hooks/useTVSeekControl";
@@ -29,6 +30,7 @@ import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/Vi
 import {useTVRemoteEvent} from "@/ui/tv";
 import {formatResolutionLabel, PlaybackSize} from "@/utils/PlaybackSize";
 import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
+import {SubtitleTrackList} from "@/utils/Subtitles";
 
 export const PausePlayerEvent = "PlayerPauseVideo";
 
@@ -102,6 +104,8 @@ interface VideoPlayerProps<T> {
   /** The creator's end cards; left out when the video has none. */
   renderEndscreen?: (state: EndscreenRenderState) => React.ReactNode;
   endCardStartSeconds?: number;
+  /** Caption tracks offered in the player settings. */
+  subtitles?: SubtitleTrackList;
   // Callbacks
   onAuthorClick?: () => void;
   onProgress?: (progressData: OnProgressData) => void;
@@ -132,6 +136,7 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       onProgress,
       onEnd,
       remoteEnabled = true,
+      subtitles,
       ...props
     },
     ref,
@@ -512,7 +517,20 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
       _videoRef.current?.seek ?? sponsorSeekReplacement,
     );
 
-    const {speed, selectedLanguage, setLanguages} = useVideoPlayerSettings();
+    const {
+      speed,
+      selectedLanguage,
+      setLanguages,
+      setSubtitles,
+      selectedSubtitle,
+    } = useVideoPlayerSettings();
+
+    // The settings menu is a separate route, so the tracks go through the
+    // shared player settings. Unmounting clears them for the next video.
+    useEffect(() => {
+      setSubtitles(subtitles);
+      return () => setSubtitles(undefined);
+    }, [setSubtitles, subtitles]);
 
     return (
       <View style={{flex: 1}}>
@@ -534,6 +552,12 @@ const VideoPlayer = forwardRef<VideoPlayerRefs, VideoPlayerProps<any>>(
           props={props.VideoComponentProps}
           // @ts-ignore
           ref={_videoRef}
+        />
+        <SubtitleOverlay
+          track={selectedSubtitle}
+          // The playing position, not a scrub preview.
+          currentTime={currentTime}
+          raised={showControls}
         />
         {renderEndscreen ? (
           <EndCardContainer

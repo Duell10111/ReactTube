@@ -17,6 +17,7 @@ import {BottomMetadata} from "@/components/video/tv/BottomMetadata";
 import {useAppData} from "@/context/AppDataContext";
 import {useVideoSidePanel} from "@/context/VideoSidePanelContext";
 import useChannelDetails from "@/hooks/useChannelDetails";
+import {useNativeTextTrackSelection} from "@/hooks/video/useNativeTextTrackSelection";
 import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {ErrorState} from "@/ui/components";
@@ -56,6 +57,10 @@ export default function VideoScreen({route, navigation}: Props) {
     refresh,
   } = useVideoDetails(navEndpoint ?? videoId, "TV", route.params.startSeconds);
   const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id ?? "");
+  const nativeTextTrack = useNativeTextTrackSelection(
+    YTVideoInfo?.subtitles,
+    playbackSource?.kind,
+  );
   const [playbackInfos, setPlaybackInfos] = useState<PlaybackInformation>();
   const [showEndCard, setShowEndCard] = useState(false);
   // TODO: Workaround maybe replace with two components
@@ -270,6 +275,7 @@ export default function VideoScreen({route, navigation}: Props) {
               : undefined
           }
           endCardStartSeconds={YTVideoInfo.endscreen?.startDuration}
+          subtitles={YTVideoInfo.subtitles}
         />
       ) : (
         <VideoComponent
@@ -277,6 +283,7 @@ export default function VideoScreen({route, navigation}: Props) {
           startPositionSeconds={startTime}
           onPlaybackFailure={reportPlaybackFailure}
           videoInfo={YTVideoInfo}
+          selectedTextTrack={nativeTextTrack}
           onProgress={data => {
             reportProgress(data.currentTime);
             if (

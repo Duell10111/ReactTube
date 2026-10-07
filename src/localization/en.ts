@@ -277,6 +277,14 @@ export const en = {
   "video.player.speed": "Playback speed",
   "video.player.speeds": "Playback speeds",
   "video.player.language": "Audio language",
+  "video.player.subtitles": "Subtitles",
+  "video.player.subtitles.off": "Off",
+  "video.player.subtitles.none": "This video has no subtitles.",
+  "video.player.subtitles.translated":
+    "{language} (auto-translated from {source})",
+  "video.player.subtitles.loadError": "Subtitles could not be loaded",
+  "video.player.subtitles.rateLimited":
+    "YouTube is limiting subtitle requests right now. Try again later.",
   "video.player.channel": "Open channel",
   "video.panel.close": "Close panel",
   "video.endscreen.browse": "Recommendations",

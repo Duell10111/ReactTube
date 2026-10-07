@@ -11,6 +11,7 @@ import Video, {
   Chapters,
   OnProgressData,
   ResizeMode,
+  SelectedTrack,
   VideoRef,
 } from "react-native-video";
 
@@ -61,6 +62,11 @@ interface Props {
   repeat?: boolean;
   resizeMode?: ResizeMode;
   onProgress?: (data: OnProgressData) => void;
+  /**
+   * Subtitle track to start with; the user can still change it in the native
+   * controls. Left out, the system decides.
+   */
+  selectedTextTrack?: SelectedTrack;
 }
 
 export default function VideoComponent({
@@ -74,6 +80,7 @@ export default function VideoComponent({
   controls,
   repeat,
   resizeMode,
+  selectedTextTrack,
   ...callbacks
 }: Props) {
   const playerRef = useRef<VideoRef>(undefined);
@@ -160,6 +167,7 @@ export default function VideoComponent({
         repeat={repeat}
         resizeMode={resizeMode ?? ResizeMode.CONTAIN}
         chapters={parsedChapters}
+        selectedTextTrack={selectedTextTrack}
         playInBackground={Platform.isTV ? undefined : true}
         pictureInPicture
         // @ts-ignore type error?

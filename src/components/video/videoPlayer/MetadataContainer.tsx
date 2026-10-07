@@ -5,6 +5,7 @@ import {StyleSheet, TVFocusGuideView, View} from "react-native";
 import {VideoMetadata} from "./VideoPlayer";
 
 import {MetadataButton} from "@/components/video/videoPlayer/metadata/MetadataButton";
+import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
 import {useTranslation} from "@/localization";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
 import {AppText} from "@/ui/components";
@@ -33,6 +34,7 @@ export default function MetadataContainer({
   const {theme} = useAppTheme();
   const {t} = useTranslation();
   const overscan = useTVOverscanInsets();
+  const {subtitles, selectedSubtitle} = useVideoPlayerSettings();
 
   const subtitle = [
     metadata.author,
@@ -127,6 +129,15 @@ export default function MetadataContainer({
             icon={"refresh"}
             onPress={metadata.onRefresh}
           />
+          {subtitles ? (
+            <MetadataButton
+              onFocus={onControlFocus}
+              accessibilityLabel={t("video.player.subtitles")}
+              active={selectedSubtitle !== undefined}
+              icon={selectedSubtitle ? "closed-caption" : "closed-caption-off"}
+              onPress={() => navigation.navigate("VideoPlayerSubtitles")}
+            />
+          ) : null}
           <MetadataButton
             onFocus={onControlFocus}
             accessibilityLabel={t("video.player.settings")}
