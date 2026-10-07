@@ -104,6 +104,7 @@ export function TVShortItem({
     videoUrl,
     reportPlaybackFailure,
     reportProgress,
+    actionData,
     like,
     dislike,
     removeRating,
@@ -166,9 +167,13 @@ export function TVShortItem({
     navigation.navigate("VideoPlayerInfo");
   };
 
+  // `actionData` carries the optimistic rating, so the buttons switch on the
+  // press instead of waiting for the request.
+  const liked = Boolean(actionData?.liked);
+  const disliked = Boolean(actionData?.disliked);
+
   const toggleRating = (target: "like" | "dislike") => {
-    const rated =
-      target === "like" ? YTVideoInfo?.liked : YTVideoInfo?.disliked;
+    const rated = target === "like" ? liked : disliked;
     (rated ? removeRating : target === "like" ? like : dislike)().catch(
       LOGGER.warn,
     );
@@ -374,16 +379,18 @@ export function TVShortItem({
                 />
                 <AppIconButton
                   accessibilityLabel={t("video.action.like")}
-                  icon={"thumb-up"}
+                  icon={liked ? "thumb-up" : "thumb-up-off-alt"}
                   onPress={() => toggleRating("like")}
-                  selected={Boolean(YTVideoInfo?.liked)}
+                  selected={liked}
+                  variant={liked ? "accent" : "surface"}
                   {...slotProps("like")}
                 />
                 <AppIconButton
                   accessibilityLabel={t("video.action.dislike")}
-                  icon={"thumb-down"}
+                  icon={disliked ? "thumb-down" : "thumb-down-off-alt"}
                   onPress={() => toggleRating("dislike")}
-                  selected={Boolean(YTVideoInfo?.disliked)}
+                  selected={disliked}
+                  variant={disliked ? "accent" : "surface"}
                   {...slotProps("dislike")}
                 />
                 <AppIconButton

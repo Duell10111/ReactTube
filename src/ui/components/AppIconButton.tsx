@@ -7,9 +7,11 @@ import {useAppTheme} from "@/ui/theme";
 /**
  * `surface` is the quiet circle used in a header or a toolbar. `filled` is the
  * one action a surface is built around — the play button of a music hero — and
- * inverts the circle so it reads before the title does.
+ * inverts the circle so it reads before the title does. `accent` marks a
+ * toggle that is on, such as a given like, in the brand color: unlike
+ * `selected`, it stays recognizable while the button has focus.
  */
-type IconButtonVariant = "surface" | "filled";
+type IconButtonVariant = "surface" | "filled" | "accent";
 
 interface AppIconButtonProps
   extends Omit<PressableProps, "accessibilityLabel" | "children" | "style"> {
@@ -38,6 +40,7 @@ export function AppIconButton({
   const {theme} = useAppTheme();
   const [focused, setFocused] = useState(false);
   const filled = variant === "filled";
+  const accent = variant === "accent";
   const diameter = Math.round(
     theme.controls.minTarget * (size === "large" ? largeScale : 1),
   );
@@ -64,16 +67,18 @@ export function AppIconButton({
         {
           backgroundColor: filled
             ? theme.colors.textPrimary
-            : pressed || focused || selected
-              ? theme.colors.surfacePressed
-              : theme.colors.surface,
+            : accent
+              ? theme.colors.brand
+              : pressed || focused || selected
+                ? theme.colors.surfacePressed
+                : theme.colors.surface,
           borderColor: focused ? theme.colors.focus : theme.colors.focusResting,
           borderRadius: theme.radii.round,
           borderWidth: theme.controls.focusBorderWidth,
           width: diameter,
           height: diameter,
         },
-        filled && pressed && styles.pressed,
+        (filled || accent) && pressed && styles.pressed,
         disabled && styles.disabled,
       ]}
       {...props}>
@@ -83,7 +88,9 @@ export function AppIconButton({
             ? theme.colors.textDisabled
             : filled
               ? theme.colors.background
-              : theme.colors.textPrimary
+              : accent
+                ? theme.colors.onBrand
+                : theme.colors.textPrimary
         }
         name={icon}
         size={iconSize}

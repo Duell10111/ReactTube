@@ -4,6 +4,7 @@ import {YTTV} from "youtubei.js";
 import {useYoutubeTVContext} from "@/context/YoutubeContext";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import {ElementData} from "@/extraction/Types";
+import {appendUniqueById} from "@/hooks/playlist/playlistMerge";
 import Logger from "@/utils/Logger";
 import {YTNodes} from "@/utils/Youtube";
 
@@ -39,30 +40,46 @@ export default function useYTServerPlaylistManager() {
   // };
 
   const playlistFeed = useRef<YTTV.PlaylistsFeed>(undefined);
+  // `onEndReached` fires repeatedly while a page is still loading.
+  const loadingContinuation = useRef(false);
 
   const fetchPlaylists = async () => {
     await youtube?.tv.getPlaylists().then(response => {
       LOGGER.debug("PLAYLISTS: ", JSON.stringify(response.contents, null, 2));
 
       playlistFeed.current = response;
-      response.contents && setPlaylists(parseObservedArray(response.contents));
+      response.contents &&
+        setPlaylists(
+          appendUniqueById([], parseObservedArray(response.contents)),
+        );
     });
   };
 
   const fetchPlaylistsContinuation = async () => {
-    if (playlistFeed.current?.has_continuation) {
-      playlistFeed.current.getContinuation().then(continuation => {
-        playlistFeed.current = continuation;
-        setPlaylists(prevState => {
-          if (!continuation.contents) {
-            return prevState;
-          }
-          return [
-            ...(prevState ?? []),
-            ...parseObservedArray(continuation.contents),
-          ];
-        });
+    const feed = playlistFeed.current;
+    if (!feed?.has_continuation || loadingContinuation.current) {
+      return;
+    }
+
+    loadingContinuation.current = true;
+    try {
+      const continuation = await feed.getContinuation();
+      playlistFeed.current = continuation;
+      setPlaylists(prevState => {
+        if (!continuation.contents) {
+          return prevState;
+        }
+        return appendUniqueById(
+          prevState ?? [],
+          parseObservedArray(continuation.contents),
+        );
       });
+    } catch (error) {
+      // Callers fire this from list scroll events without awaiting it, so a
+      // failed page must not surface as an unhandled rejection.
+      LOGGER.warn("Loading more playlists failed: ", error);
+    } finally {
+      loadingContinuation.current = false;
     }
   };
 
@@ -85,8 +102,28 @@ export default function useYTServerPlaylistManager() {
     videoIds: string[],
     playlistId: string,
   ) => {
-    LOGGER.debug(`Removing videos ${videoIds} to playlist ${playlistId}`);
-    await youtube?.playlist?.removeVideos(playlistId, videoIds);
+    playlistId = parsePlaylistID(playlistId);
+    LOGGER.debug(`Removing videos ${videoIds} from playlist ${playlistId}`);
+    if (!youtube?.actions) {
+      throw new Error("No YouTube session to remove videos with");
+    }
+    // Removed by video id, as the TV app does. `playlist.removeVideos` first
+    // browses the whole playlist for each entry's set-video id, and that
+    // browse request fails with status 400 on the TV session.
+    const response = await new YTNodes.NavigationEndpoint({
+      playlistEditEndpoint: {
+        playlistId,
+        actions: videoIds.map(id => ({
+          action: "ACTION_REMOVE_VIDEO_BY_VIDEO_ID",
+          removedVideoId: id,
+        })),
+      },
+    }).call(youtube.actions, {client: "TV"});
+    if (!response.success) {
+      throw new Error(
+        `Removing from playlist failed with status ${response.status_code}`,
+      );
+    }
   };
 
   const addPlaylistToLibrary = async (playlistId: string) => {
