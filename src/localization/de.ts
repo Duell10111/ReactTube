@@ -313,4 +313,9 @@ export const de = {
   "video.upNext.startsIn": "Startet in {seconds} s",
   "video.upNext.stopped": "Automatische Wiedergabe angehalten",
   "video.upNext.playNow": "Jetzt abspielen",
+  "shorts.player.hint":
+    "Spielt das Short ab oder pausiert es. Nach oben oder unten drücken für das vorherige oder nächste Short.",
+  "shorts.player.paused": "Pausiert",
+  "shorts.previous": "Vorheriges Short",
+  "shorts.next": "Nächstes Short",
 } as const satisfies Record<TranslationKey, string>;

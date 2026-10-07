@@ -13,7 +13,9 @@ type Props = NativeStackScreenProps<RootStackParamList, "VideoPlayerInfo">;
 /** Native-stack modal that isolates the detail panel from the player controls. */
 export function VideoSidePanelScreen({navigation}: Props) {
   const {data, clear} = useVideoSidePanel();
-  const [tab, setTab] = useState<VideoSidePanelTab>("details");
+  const [tab, setTab] = useState<VideoSidePanelTab>(
+    data?.initialTab ?? "details",
+  );
   const comments = useVideoComments(
     data?.videoId ?? "",
     Boolean(data) && tab === "comments",

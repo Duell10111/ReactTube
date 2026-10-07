@@ -302,6 +302,11 @@ export const en = {
   "video.upNext.startsIn": "Starts in {seconds} s",
   "video.upNext.stopped": "Autoplay stopped",
   "video.upNext.playNow": "Play now",
+  "shorts.player.hint":
+    "Plays or pauses the short. Press up or down for the previous or next short.",
+  "shorts.player.paused": "Paused",
+  "shorts.previous": "Previous short",
+  "shorts.next": "Next short",
 } as const;
 
 export type TranslationKey = keyof typeof en;
