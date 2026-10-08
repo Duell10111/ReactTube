@@ -19,6 +19,7 @@ import useMusicLibrary from "@/hooks/music/useMusicLibrary";
 import {getMusicPlaylistDetails} from "@/hooks/music/useMusicPlaylistDetails";
 import {resolveStreamingSource} from "@/utils/PlaybackSource";
 import {YT} from "@/utils/Youtube";
+import {getLoudnessDb} from "@/utils/music/LoudnessNormalization";
 
 const LOGGER = Logger.extend("WATCH_YT_API");
 
@@ -47,6 +48,8 @@ interface YoutubeVideoResponse {
   downloadURL?: string;
   validUntil: number;
   coverUrl: string;
+  /** Offset from the YouTube loudness reference in dB, if known. */
+  loudnessDb?: number;
 }
 
 interface YoutubePlaylistRequest {
@@ -189,6 +192,7 @@ export async function handleWatchMessage(
       validUntil,
       format?.approx_duration_ms ??
         (streaming.info.basic_info.duration ?? 0) * 1000,
+      getLoudnessDb(streaming.info, format),
     );
   } else if (request.request === "playlist") {
     const playlist = await getMusicPlaylistDetails(request.playlistId, youtube);
@@ -276,6 +280,7 @@ function toVideoResponse(
   streamURL: string,
   validUntil: number,
   duration_ms: number,
+  loudnessDb: number | undefined,
 ) {
   return {
     type: "videoResponse",
@@ -287,6 +292,8 @@ function toVideoResponse(
     streamURL,
     ...(downloadURL ? {downloadURL} : {}),
     validUntil,
+    // `undefined` cannot be sent to the watch, so the key is omitted instead.
+    ...(loudnessDb !== undefined ? {loudnessDb} : {}),
   } as YoutubeVideoResponse;
 }
 

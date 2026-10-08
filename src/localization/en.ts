@@ -76,6 +76,12 @@ export const en = {
     "This sign-in belongs to {name} only. To watch age-restricted videos and switch between your channels, sign out and sign in again with your primary Google account.",
   "settings.channel.hint":
     "The app acts as the selected channel, as in the browser. Age-restricted videos keep working because the primary account stays signed in.",
+  "settings.loudnessNormalization": "Normalize music volume",
+  "settings.loudness.off": "Off",
+  "settings.loudness.standard": "Standard (default)",
+  "settings.loudness.strong": "Strong — more headroom for quiet songs",
+  "settings.loudness.hint":
+    "Uses YouTube loudness data to play loud songs more quietly. Songs can only be turned down, so the overall volume drops slightly; raise the device volume once to compensate.",
   "settings.value.true": "On",
   "settings.value.false": "Off",
   "you.account": "Account",

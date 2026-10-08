@@ -29,6 +29,17 @@ struct SettingsScreen: View {
               Text(mode.label).tag(mode)
             }
           }
+          Picker("Normalize Volume", selection: Binding(
+            get: { musicManager.preferences.loudnessNormalization },
+            set: {
+              musicManager.preferences.setLoudnessNormalization($0)
+              musicManager.applyLoudnessNormalization()
+            }
+          )) {
+            ForEach(LoudnessNormalizationMode.allCases) { mode in
+              Text(mode.label).tag(mode)
+            }
+          }
         }
         Section("Library") {
           Button("Refresh Home") {

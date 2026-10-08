@@ -7,6 +7,7 @@ import SettingsItem, {
   SettingsButton,
 } from "../components/settings/SettingsItem";
 import SettingsSection from "../components/settings/SettingsSection";
+import {getLoudnessNormalizationLabel} from "../components/settings/screens/LoudnessNormalizationSelector";
 import {getPlayerResolutionLabel} from "../components/settings/screens/PlayerResolutionSelector";
 import {getPlayerTypeLabel} from "../components/settings/screens/PlayerSelector";
 import {useAppData} from "../context/AppDataContext";
@@ -88,6 +89,13 @@ export default function SettingsScreen({navigation}: Props) {
               : "settings.value.false",
           )}
           onPress={() => navigate("TrackingSelector")}
+        />
+        <SettingsItem
+          icon={"volume-2"}
+          iconBackground={theme.colors.success}
+          label={t("settings.loudnessNormalization")}
+          value={t(getLoudnessNormalizationLabel(appSettings))}
+          onPress={() => navigate("LoudnessNormalizationSelector")}
         />
         {signedIn ? (
           <SettingsItem

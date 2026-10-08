@@ -259,6 +259,7 @@ function mapVideoToTrackInfo(videoData: Video): YTTrackInfo {
     localFileUrl: videoData.fileUrl
       ? getAbsoluteVideoURL(videoData.fileUrl)
       : undefined,
+    localLoudnessDb: videoData.loudnessDb ?? undefined,
     // @ts-ignore Ignore issue with no height and width for cover available
     thumbnailImage: videoData.coverUrl
       ? {

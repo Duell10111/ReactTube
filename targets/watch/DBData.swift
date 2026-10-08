@@ -21,6 +21,8 @@ final class Video {
     var fileURL: String?
     var coverURL: String?
     var temp: Bool?
+    /// Offset from the YouTube loudness reference in dB, sent by the iPhone.
+    var loudnessDb: Double?
 
   init(id: String, durationMillis: Int, title: String? = nil, downloaded: Bool = false) {
         self.id = id

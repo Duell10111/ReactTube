@@ -7,6 +7,7 @@ import PlayerTypeSelectorScreen from "../components/settings/screens/PlayerSelec
 import SettingsScreen from "../screens/SettingsScreen";
 
 import ChannelSelectorScreen from "@/components/settings/screens/ChannelSelector";
+import LoudnessNormalizationSelectorScreen from "@/components/settings/screens/LoudnessNormalizationSelector";
 import TrackingSelector from "@/components/settings/screens/TrackingSelector";
 import UILanguageSelectorScreen from "@/components/settings/screens/UILanguageSelector";
 
@@ -17,6 +18,7 @@ export type SettingsStackParamList = {
   PlayerSelector: undefined;
   PlayerResolutionSelector: undefined;
   TrackingSelector: undefined;
+  LoudnessNormalizationSelector: undefined;
   PlaybackDiagnostics: undefined;
   ChannelSelector: undefined;
 };
@@ -44,6 +46,10 @@ export default function SettingsNavigator() {
         component={PlayerResolutionSelectorScreen}
       />
       <Stack.Screen name={"TrackingSelector"} component={TrackingSelector} />
+      <Stack.Screen
+        name={"LoudnessNormalizationSelector"}
+        component={LoudnessNormalizationSelectorScreen}
+      />
       <Stack.Screen
         name={"ChannelSelector"}
         component={ChannelSelectorScreen}

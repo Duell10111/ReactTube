@@ -66,7 +66,7 @@ func removeURLPrefix(url: String, prefix: String) -> String {
 }
 
 // TODO: Rename to VideoData?
-func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, artist: String? = nil, downloaded: Bool? = nil, duration: Int, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil) {
+func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, artist: String? = nil, downloaded: Bool? = nil, duration: Int, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil, loudnessDb: Double? = nil) {
 
   do {
     let descriptor = FetchDescriptor<Video>(
@@ -110,6 +110,10 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
     
     if let downloadURL = downloadURL {
       video.downloadURL = downloadURL
+    }
+
+    if let loudnessDb = loudnessDb {
+      video.loudnessDb = loudnessDb
     }
 
     if !existingEntry {

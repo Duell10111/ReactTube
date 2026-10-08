@@ -1,0 +1,1 @@
+ALTER TABLE `video` ADD `loudnessDb` real;

@@ -43,6 +43,10 @@ import {
   resolveAudioStreamingSource,
 } from "@/utils/music/AudioPlaybackSource";
 import {
+  getLoudnessGain,
+  parseLoudnessNormalizationMode,
+} from "@/utils/music/LoudnessNormalization";
+import {
   getNextPlaylistItem,
   getPreviousPlaylistItem,
   RepeatOption,
@@ -497,6 +501,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
 
         const resolved = await resolveAudioStreamingSource(youtube, id, {
           localUrl: localTrack.localFileUrl,
+          localLoudnessDb: localTrack.localLoudnessDb,
         });
         if (!resolved) {
           throw new Error("Downloaded audio source is not playable");
@@ -531,6 +536,7 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
             track.audioSource.kind === "local"
               ? track.audioSource.url
               : undefined,
+          localLoudnessDb: track.audioSource.loudnessDb,
         });
 
         if (
@@ -603,6 +609,21 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
     },
     [youtube],
   );
+
+  const loudnessNormalization = parseLoudnessNormalizationMode(
+    appSettings.musicLoudnessNormalization,
+  );
+  const trackLoudnessDb = currentVideoData?.audioSource?.loudnessDb;
+
+  // Declared before the loading effect so the gain is applied before playback
+  // of a new track starts.
+  useEffect(() => {
+    const gain = getLoudnessGain(trackLoudnessDb, loudnessNormalization);
+    LOGGER.debug(
+      `Loudness ${trackLoudnessDb ?? "unknown"} dB (${loudnessNormalization}) -> volume ${gain.toFixed(2)}`,
+    );
+    TrackPlayer.setVolume(gain);
+  }, [loudnessNormalization, trackLoudnessDb]);
 
   useEffect(() => {
     const generation = ++playbackGeneration.current;

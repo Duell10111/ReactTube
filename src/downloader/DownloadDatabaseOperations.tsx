@@ -128,6 +128,7 @@ export async function insertVideo(
   dirURL?: string,
   playlistID?: string,
   author?: string,
+  loudnessDb?: number,
 ) {
   // await db
   //   .insert(schema.videos)
@@ -166,6 +167,7 @@ export async function insertVideo(
         fileUrl: dirURL,
         duration,
         author,
+        loudnessDb,
       })
       .onConflictDoUpdate({
         target: schema.videos.id,
@@ -176,6 +178,7 @@ export async function insertVideo(
           fileUrl: dirURL,
           duration,
           author,
+          loudnessDb,
         },
       });
     if (playlistID) {

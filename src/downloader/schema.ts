@@ -1,4 +1,10 @@
-import {sqliteTable, text, integer, primaryKey} from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  primaryKey,
+  real,
+} from "drizzle-orm/sqlite-core";
 
 export const videos = sqliteTable("video", {
   id: text("id").primaryKey(),
@@ -10,6 +16,8 @@ export const videos = sqliteTable("video", {
   album: text("album"),
   coverUrl: text("coverUrl"),
   fileUrl: text("fileUrl"),
+  /** Offset from the YouTube loudness reference in dB of the downloaded file. */
+  loudnessDb: real("loudnessDb"),
 });
 
 export type Video = typeof videos.$inferSelect; // return type when queried

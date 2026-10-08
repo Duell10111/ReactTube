@@ -21,7 +21,10 @@ export default function useVideoDataGenerator() {
         const resolvedSource = await resolveAudioStreamingSource(
           youtube,
           target,
-          {localUrl: localData.localFileUrl},
+          {
+            localUrl: localData.localFileUrl,
+            localLoudnessDb: localData.localLoudnessDb,
+          },
         );
 
         if (!resolvedSource) {
@@ -45,8 +48,8 @@ export default function useVideoDataGenerator() {
         throw new Error("No playable audio source available");
       }
 
-      // Metadaten kommen aus YouTube Music, Streaming-Daten ausschließlich aus
-      // der anonymen, gehärteten Audio-Client-Kette.
+      // Metadata comes from YouTube Music, streaming data exclusively from the
+      // anonymous, hardened audio client chain.
       info.streaming_data = resolvedSource.info.streaming_data;
 
       const element = getElementDataFromTrackInfo(info);

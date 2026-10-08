@@ -40,6 +40,44 @@ enum PlayerRepeatMode: Int, CaseIterable, Identifiable {
   }
 }
 
+/// Volume normalization from the YouTube loudness metadata. AVPlayer cannot
+/// amplify, so tracks are only attenuated: the target sits `headroomDb` below
+/// the YouTube reference, which leaves room to attenuate quiet tracks less.
+/// Mirrors `src/utils/music/LoudnessNormalization.ts` on the iPhone.
+enum LoudnessNormalizationMode: String, CaseIterable, Identifiable {
+  case off
+  case standard
+  case strong
+
+  var id: String { rawValue }
+
+  var label: String {
+    switch self {
+    case .off: return "Off"
+    case .standard: return "Standard"
+    case .strong: return "Strong"
+    }
+  }
+
+  private var headroomDb: Double? {
+    switch self {
+    case .off: return nil
+    case .standard: return 4
+    case .strong: return 8
+    }
+  }
+
+  /// Player volume (0...1) for a track. Tracks without metadata are assumed to
+  /// sit at the reference so they do not jump out next to normalized tracks.
+  func gain(loudnessDb: Double?) -> Float {
+    guard let headroomDb else { return 1 }
+    let offset = loudnessDb.flatMap { $0.isFinite ? $0 : nil } ?? 0
+    let gain = pow(10, (-offset - headroomDb) / 20)
+    // The lower bound keeps extreme metadata from making a track inaudible.
+    return Float(min(1, max(0.1, gain)))
+  }
+}
+
 /// Where playback stopped the last time. Kept in one place so the value can move
 /// into a shared app group container once a complication target exists.
 struct ResumeState: Codable, Equatable {
@@ -62,6 +100,7 @@ final class PlayerPreferences {
     static let shuffle = "player.shuffleEnabled"
     static let repeatMode = "player.repeatMode"
     static let resumeState = "player.resumeState"
+    static let loudnessNormalization = "player.loudnessNormalization"
   }
 
   private let defaults: UserDefaults
@@ -72,11 +111,14 @@ final class PlayerPreferences {
   private(set) var shuffleEnabled: Bool
   private(set) var repeatMode: PlayerRepeatMode
   private(set) var resumeState: ResumeState?
+  private(set) var loudnessNormalization: LoudnessNormalizationMode
 
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
     self.shuffleEnabled = defaults.bool(forKey: Key.shuffle)
     self.repeatMode = PlayerRepeatMode(rawValue: defaults.integer(forKey: Key.repeatMode)) ?? .off
+    self.loudnessNormalization = defaults.string(forKey: Key.loudnessNormalization)
+      .flatMap(LoudnessNormalizationMode.init(rawValue:)) ?? .standard
     if let data = defaults.data(forKey: Key.resumeState) {
       self.resumeState = try? JSONDecoder().decode(ResumeState.self, from: data)
     }
@@ -90,6 +132,11 @@ final class PlayerPreferences {
   func setRepeatMode(_ mode: PlayerRepeatMode) {
     repeatMode = mode
     defaults.set(mode.rawValue, forKey: Key.repeatMode)
+  }
+
+  func setLoudnessNormalization(_ mode: LoudnessNormalizationMode) {
+    loudnessNormalization = mode
+    defaults.set(mode.rawValue, forKey: Key.loudnessNormalization)
   }
 
   func storeResumeState(_ state: ResumeState) {

@@ -78,6 +78,12 @@ export const de = {
     "Diese Anmeldung gehört nur zu {name}. Um altersbeschränkte Videos zu sehen und zwischen deinen Kanälen zu wechseln, melde dich ab und mit deinem Google-Hauptkonto neu an.",
   "settings.channel.hint":
     "Die App tritt als der gewählte Kanal auf, wie im Browser. Altersbeschränkte Videos funktionieren weiter, weil das Hauptkonto angemeldet bleibt.",
+  "settings.loudnessNormalization": "Musiklautstärke angleichen",
+  "settings.loudness.off": "Aus",
+  "settings.loudness.standard": "Standard (Voreinstellung)",
+  "settings.loudness.strong": "Stark — mehr Reserve für leise Songs",
+  "settings.loudness.hint":
+    "Nutzt die Lautheitsdaten von YouTube, um laute Songs leiser abzuspielen. Songs können nur leiser gemacht werden, daher sinkt die Gesamtlautstärke etwas; stelle das Gerät einmal etwas lauter.",
   "settings.value.true": "Ein",
   "settings.value.false": "Aus",
   "you.account": "Konto",
