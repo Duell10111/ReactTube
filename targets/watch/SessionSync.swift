@@ -186,7 +186,7 @@ extension SessionSync: WCSessionDelegate {
         processYoutubeAPIMessage(session, message: payload)
       } else if type == WatchLibraryProtocol.commandType {
         Task { @MainActor in
-          LibrarySync.shared.handleCommand(message)
+          await RemoteLibraryCommands.shared.handle(message)
         }
       }
     }

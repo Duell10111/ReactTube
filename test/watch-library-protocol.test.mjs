@@ -2,12 +2,20 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  addWatchLibraryPendingCommand,
+  applyPendingCommands,
+  applyWatchLibraryCommandResult,
   applyWatchLibrarySnapshot,
   buildWatchLibraryViewModel,
+  createDownloadVideosArgs,
   createEmptyWatchLibraryCache,
   createWatchLibraryCommand,
+  discardWatchLibraryPendingCommand,
   formatByteSize,
+  isWatchLibraryCommandStale,
   isWatchLibrarySnapshotOutdated,
+  markWatchLibraryCommandFailed,
+  resendWatchLibraryPendingCommand,
   parseWatchLibraryCache,
   parseWatchLibraryCommandResult,
   parseWatchLibrarySnapshot,
@@ -246,4 +254,175 @@ test("formats byte sizes with locale-aware decimals", () => {
   assert.equal(formatByteSize(3_400_000, "de"), "3,4 MB");
   assert.equal(formatByteSize(812_000_000, "en"), "812 MB");
   assert.equal(formatByteSize(4_900_000_000, "de"), "4,9 GB");
+});
+
+function cacheWithCommand(op, args, revision = 3) {
+  const cache = applyWatchLibrarySnapshot(
+    createEmptyWatchLibraryCache(),
+    parseWatchLibrarySnapshot(snapshot({revision})),
+    1,
+  );
+  return addWatchLibraryPendingCommand(
+    cache,
+    createWatchLibraryCommand(op, args, "cmd-1", 10),
+    10,
+  );
+}
+
+function result(status, revision, error) {
+  return {commandId: "cmd-1", status, revision, error};
+}
+
+test("keeps an acknowledged command until a snapshot contains its revision", () => {
+  let cache = cacheWithCommand("deleteDownload", {videoIds: ["a"]});
+  assert.equal(cache.pendingCommands[0].state, "pending");
+
+  cache = applyWatchLibraryCommandResult(cache, result("ok", 5));
+  assert.equal(cache.pendingCommands[0].state, "applied");
+  assert.equal(cache.pendingCommands[0].revision, 5);
+
+  cache = applyWatchLibrarySnapshot(
+    cache,
+    parseWatchLibrarySnapshot(snapshot({revision: 4})),
+    20,
+  );
+  assert.equal(cache.pendingCommands.length, 1);
+
+  cache = applyWatchLibrarySnapshot(
+    cache,
+    parseWatchLibrarySnapshot(snapshot({revision: 5})),
+    30,
+  );
+  assert.deepEqual(cache.pendingCommands, []);
+});
+
+test("drops an acknowledged command at once if the snapshot is already newer", () => {
+  const cache = applyWatchLibraryCommandResult(
+    cacheWithCommand("deleteDownload", {videoIds: ["a"]}, 8),
+    result("ok", 6),
+  );
+  assert.deepEqual(cache.pendingCommands, []);
+});
+
+test("keeps pending commands when a snapshot arrives before the acknowledgement", () => {
+  const cache = applyWatchLibrarySnapshot(
+    cacheWithCommand("deleteDownload", {videoIds: ["a"]}),
+    parseWatchLibrarySnapshot(snapshot({revision: 99})),
+    20,
+  );
+  assert.equal(cache.pendingCommands.length, 1);
+});
+
+test("marks rejected, unsupported and undeliverable commands as failed", () => {
+  const failed = applyWatchLibraryCommandResult(
+    cacheWithCommand("deleteDownload", {videoIds: ["a"]}),
+    result("failed", 4, "disk error"),
+  ).pendingCommands[0];
+  assert.equal(failed.state, "failed");
+  assert.equal(failed.error, "disk error");
+  assert.equal(failed.unsupported, undefined);
+
+  const unsupported = applyWatchLibraryCommandResult(
+    cacheWithCommand("clearAllDownloads", {}),
+    result("unsupported", 4),
+  ).pendingCommands[0];
+  assert.equal(unsupported.unsupported, true);
+
+  const undeliverable = markWatchLibraryCommandFailed(
+    cacheWithCommand("deleteDownload", {videoIds: ["a"]}),
+    "cmd-1",
+    "not reachable",
+  ).pendingCommands[0];
+  assert.equal(undeliverable.state, "failed");
+});
+
+test("resends a command under a new id and discards on request", () => {
+  const failed = markWatchLibraryCommandFailed(
+    cacheWithCommand("deleteDownload", {videoIds: ["a"]}),
+    "cmd-1",
+    "boom",
+  );
+  const resent = resendWatchLibraryPendingCommand(failed, "cmd-1", "cmd-2", 50);
+  assert.deepEqual(resent.pendingCommands, [
+    {
+      command: {
+        ...failed.pendingCommands[0].command,
+        commandId: "cmd-2",
+        issuedAt: 50,
+      },
+      state: "pending",
+      sentAt: 50,
+    },
+  ]);
+  assert.deepEqual(
+    discardWatchLibraryPendingCommand(resent, "cmd-2").pendingCommands,
+    [],
+  );
+});
+
+test("flags commands without an answer as stale after a while", () => {
+  const [pending] = cacheWithCommand("deleteDownload", {
+    videoIds: ["a"],
+  }).pendingCommands;
+  assert.equal(isWatchLibraryCommandStale(pending, 10 + 60_000), false);
+  assert.equal(isWatchLibraryCommandStale(pending, 10 + 31 * 60_000), true);
+});
+
+test("persists pending commands in the cache", () => {
+  const cache = applyWatchLibraryCommandResult(
+    cacheWithCommand("downloadVideos", {videoIds: ["c"]}),
+    result("failed", 4, "boom"),
+  );
+  // Undefined optional fields disappear in JSON, so compare the JSON forms.
+  const json = JSON.stringify(cache);
+  assert.equal(JSON.stringify(parseWatchLibraryCache(json)), json);
+  assert.equal(parseWatchLibraryCache(json).pendingCommands[0].error, "boom");
+});
+
+test("marks rows affected by unconfirmed commands and skips failed ones", () => {
+  const base = parseWatchLibrarySnapshot(snapshot());
+  const command = (op, args, id) => ({
+    command: createWatchLibraryCommand(op, args, id, 1),
+    state: "pending",
+    sentAt: 1,
+  });
+
+  const viewModel = applyPendingCommands(base, [
+    command("deleteDownload", {videoIds: ["a"]}, "1"),
+    command("cancelDownloads", {videoIds: ["b"]}, "2"),
+    command(
+      "downloadVideos",
+      {videoIds: ["new"], videos: [{id: "new", title: "Fresh"}]},
+      "3",
+    ),
+    {...command("removeVideos", {videoIds: ["c"]}, "4"), state: "failed"},
+  ]);
+
+  const byId = Object.fromEntries(
+    viewModel.downloads.map(row => [row.id, row]),
+  );
+  assert.equal(byId.a.pendingOp, "deleteDownload");
+  assert.equal(byId.b.pendingOp, "cancelDownloads");
+  assert.equal(byId.c.pendingOp, undefined);
+  assert.equal(byId.new.state, "queued");
+  assert.equal(byId.new.title, "Fresh");
+  assert.equal(byId.new.pendingOp, "downloadVideos");
+
+  const cleared = applyPendingCommands(base, [
+    command("clearAllDownloads", {}, "5"),
+  ]);
+  assert.ok(
+    cleared.downloads.every(row => row.pendingOp === "clearAllDownloads"),
+  );
+});
+
+test("builds download arguments with property-list friendly metadata", () => {
+  const args = createDownloadVideosArgs(
+    ["b", "unknown"],
+    parseWatchLibrarySnapshot(snapshot()),
+  );
+  assert.deepEqual(args, {
+    videoIds: ["b", "unknown"],
+    videos: [{id: "b", durationMillis: 1000, title: "Beta"}],
+  });
 });

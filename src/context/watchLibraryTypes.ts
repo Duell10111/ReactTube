@@ -1,7 +1,15 @@
 import type {
+  WatchLibraryCommandOp,
+  WatchLibraryPendingCommand,
   WatchLibrarySnapshot,
   WatchLibraryStatus,
 } from "@/hooks/watchSync/WatchLibraryProtocol";
+
+/** Commands the phone can send; snapshot requests are handled internally. */
+export type WatchLibraryUserCommandOp = Exclude<
+  WatchLibraryCommandOp,
+  "requestSnapshot"
+>;
 
 export interface WatchLibraryContextValue {
   /** True if this device can manage an installed watch app at all. */
@@ -16,6 +24,14 @@ export interface WatchLibraryContextValue {
   /** True while a requested snapshot has not arrived yet. */
   waitingForSnapshot: boolean;
   requestSnapshot: () => void;
+  /** Commands not yet confirmed by a snapshot, oldest first. */
+  pendingCommands: WatchLibraryPendingCommand[];
+  sendCommand: (
+    op: WatchLibraryUserCommandOp,
+    args?: Record<string, unknown>,
+  ) => void;
+  retryCommand: (commandId: string) => void;
+  discardCommand: (commandId: string) => void;
 }
 
 export const unavailableWatchLibrary: WatchLibraryContextValue = {
@@ -26,4 +42,8 @@ export const unavailableWatchLibrary: WatchLibraryContextValue = {
   lastSyncAt: null,
   waitingForSnapshot: false,
   requestSnapshot: () => {},
+  pendingCommands: [],
+  sendCommand: () => {},
+  retryCommand: () => {},
+  discardCommand: () => {},
 };
