@@ -4,6 +4,7 @@ import React from "react";
 import {Pressable, StyleSheet, View} from "react-native";
 
 import {useAccountContext} from "@/context/AccountContext";
+import {useWatchLibrary} from "@/context/WatchLibraryContext";
 import {useTranslation} from "@/localization";
 import type {RootNavProp} from "@/navigation/RootStackNavigator";
 import {AppButton, AppText, Divider, Screen} from "@/ui/components";
@@ -82,6 +83,7 @@ export default function YouScreen() {
   const {loginData} = useAccountContext();
   const navigation = useNavigation<RootNavProp>();
   const signedIn = loginData.accounts.length > 0;
+  const watchLibrary = useWatchLibrary();
 
   return (
     <Screen edges={["left", "right", "bottom"]} scroll>
@@ -138,6 +140,13 @@ export default function YouScreen() {
           label={t("navigation.activeUploads")}
           onPress={() => navigation.navigate("ActiveUploadScreen")}
         />
+        {watchLibrary.available ? (
+          <YouRow
+            icon={"watch"}
+            label={t("navigation.watchLibrary")}
+            onPress={() => navigation.navigate("WatchLibraryScreen")}
+          />
+        ) : null}
       </YouSection>
       <YouSection title={t("you.app")}>
         <YouRow

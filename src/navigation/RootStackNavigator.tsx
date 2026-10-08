@@ -34,6 +34,7 @@ import {MusicPlayerScreen} from "@/screens/phone/MusicPlayerScreen";
 import {MusicPlaylistScreen} from "@/screens/phone/MusicPlaylistScreen";
 import {MusicSearchScreen} from "@/screens/phone/MusicSearchScreen";
 import VideoScreenWrapper from "@/screens/phone/VideoScreenWrapper";
+import {WatchLibraryScreen} from "@/screens/phone/WatchLibraryScreen";
 import TVVideoScreenWrapper from "@/screens/tv/VideoScreenWrapper";
 import {useAppTheme} from "@/ui/theme";
 import {YTNodes} from "@/utils/Youtube";
@@ -66,6 +67,7 @@ export type RootStackParamList = {
   // Downloads
   ActiveDownloadScreen: undefined;
   ActiveUploadScreen: undefined;
+  WatchLibraryScreen: undefined;
   DownloadPlayer: {id: string};
   // Music Screens
   MusicPlaylistScreen: {playlistId: string};
@@ -191,6 +193,11 @@ export default function RootStackNavigator() {
             name={"ActiveUploadScreen"}
             component={ActiveUploadScreen}
             options={{headerTitle: t("navigation.activeUploads")}}
+          />
+          <Stack.Screen
+            name={"WatchLibraryScreen"}
+            component={WatchLibraryScreen}
+            options={{headerTitle: t("navigation.watchLibrary")}}
           />
           {/* Music Screens*/}
           <Stack.Screen
