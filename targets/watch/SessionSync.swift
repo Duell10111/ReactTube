@@ -117,10 +117,20 @@ extension SessionSync: WCSessionDelegate {
   func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
     print("WCSession activationDidCompleteWith activationState:\(activationState) error:\(String(describing: error))")
     status.update(from: session, activationError: error)
+    if activationState == .activated {
+      Task { @MainActor in
+        LibrarySync.shared.publishStatus()
+      }
+    }
   }
 
   func sessionReachabilityDidChange(_ session: WCSession) {
     status.setReachable(session.isReachable)
+    if session.isReachable {
+      Task { @MainActor in
+        LibrarySync.shared.sendSnapshotIfOutdated()
+      }
+    }
   }
 
   func sessionCompanionAppInstalledDidChange(_ session: WCSession) {
@@ -174,6 +184,10 @@ extension SessionSync: WCSessionDelegate {
         }
       } else if type == "youtubeAPI", let payload = message["payload"] as? [String: Any] {
         processYoutubeAPIMessage(session, message: payload)
+      } else if type == WatchLibraryProtocol.commandType {
+        Task { @MainActor in
+          LibrarySync.shared.handleCommand(message)
+        }
       }
     }
   }
@@ -199,6 +213,10 @@ extension SessionSync: WCSessionDelegate {
 
   func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: (any Error)?) {
     print("WCSession didFinish FileTranfer fileURL:\(fileTransfer.file.fileURL)")
+
+    if LibrarySync.handleFinishedTransfer(fileTransfer, error: error) {
+      return
+    }
     
     if let id = fileTransfer.file.metadata?["id"] as? String, let title = fileTransfer.file.metadata?["title"] as? String, let duration = fileTransfer.file.metadata?["duration"] as? Int {
       let file = saveDownloadFile(id: id, filePath: fileTransfer.file.fileURL)

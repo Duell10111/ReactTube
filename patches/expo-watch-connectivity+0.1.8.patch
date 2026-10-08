@@ -43,7 +43,7 @@ index 48c971c..72d6547 100644
  export type ApplicationContextPayload = {
      [key: string]: any;
 diff --git a/node_modules/expo-watch-connectivity/build/index.d.ts b/node_modules/expo-watch-connectivity/build/index.d.ts
-index 9592d86..6716386 100644
+index 9592d86..e3a68f7 100644
 --- a/node_modules/expo-watch-connectivity/build/index.d.ts
 +++ b/node_modules/expo-watch-connectivity/build/index.d.ts
 @@ -1,5 +1,5 @@
@@ -53,7 +53,7 @@ index 9592d86..6716386 100644
  export declare const isSupported: boolean;
  export declare function isPaired(): Promise<boolean>;
  export declare function isWatchAppInstalled(): Promise<boolean>;
-@@ -9,12 +9,20 @@ export declare function getCurrentFileTransfers(): Promise<FileTransferInfo[]>;
+@@ -9,13 +9,26 @@ export declare function getCurrentFileTransfers(): Promise<FileTransferInfo[]>;
  export declare function sendMessage(message: {
      [key: string]: any;
  }): Promise<boolean>;
@@ -72,9 +72,15 @@ index 9592d86..6716386 100644
 + */
 +export declare function addUserInfoTransferFinishedListener(listener: (event: UserInfoTransferFinishedPayload) => void): Subscription;
  export declare function getApplicationContext(): Promise<ApplicationContextPayload | null>;
++/**
++ * Returns the most recent application context received from the watch.
++ * `getApplicationContext` returns the context this device sent last.
++ */
++export declare function getReceivedApplicationContext(): Promise<ApplicationContextPayload>;
  export declare function updateApplicationContext(value: ApplicationContextPayload): Promise<void>;
  export declare function addApplicationContextListener(listener: (event: ApplicationContextPayload) => void): Subscription;
-@@ -25,5 +33,5 @@ export declare function addActivationListener(listener: (activationState: Activa
+ export declare function isInstalledListener(listener: (isInstalled: boolean) => void): Subscription;
+@@ -25,5 +38,5 @@ export declare function addActivationListener(listener: (activationState: Activa
  export declare function useInstalled(): boolean;
  export declare function useReachable(): boolean;
  export declare function usePaired(): boolean;
@@ -82,7 +88,7 @@ index 9592d86..6716386 100644
 +export { ActivationState, NewFilePayload, FileTransferFinishedPayload, FileTransferInfo, NewMessagePayload, ApplicationContextPayload, TransferMetadata, UserInfoTransferFinishedPayload, };
  //# sourceMappingURL=index.d.ts.map
 diff --git a/node_modules/expo-watch-connectivity/build/index.js b/node_modules/expo-watch-connectivity/build/index.js
-index 729632c..b98bc9b 100644
+index 729632c..905666c 100644
 --- a/node_modules/expo-watch-connectivity/build/index.js
 +++ b/node_modules/expo-watch-connectivity/build/index.js
 @@ -23,6 +23,9 @@ export async function getCurrentFileTransfers() {
@@ -95,7 +101,7 @@ index 729632c..b98bc9b 100644
  export async function sendFile(fileURL, metadata) {
      return ExpoWatchConnectivityModule.sendFile(fileURL, metadata);
  }
-@@ -36,6 +39,13 @@ export function addFileListener(listener) {
+@@ -36,9 +39,23 @@ export function addFileListener(listener) {
  export function addFileTransferFinishedListener(listener) {
      return emitter.addListener("finishedFileTransfer", listener);
  }
@@ -109,8 +115,18 @@ index 729632c..b98bc9b 100644
  export function getApplicationContext() {
      return ExpoWatchConnectivityModule.getApplicationContext();
  }
++/**
++ * Returns the most recent application context received from the watch.
++ * `getApplicationContext` returns the context this device sent last.
++ */
++export function getReceivedApplicationContext() {
++    return ExpoWatchConnectivityModule.getReceivedApplicationContext();
++}
+ export function updateApplicationContext(value) {
+     return ExpoWatchConnectivityModule.updateApplicationContext(value);
+ }
 diff --git a/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift b/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift
-index 76726f4..4c7ecfb 100644
+index 76726f4..983b427 100644
 --- a/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift
 +++ b/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift
 @@ -17,7 +17,7 @@ public class ExpoWatchConnectivityModule: Module {
@@ -154,7 +170,18 @@ index 76726f4..4c7ecfb 100644
            }
        }
  
-@@ -71,7 +87,32 @@ public class ExpoWatchConnectivityModule: Module {
+@@ -58,6 +74,10 @@ public class ExpoWatchConnectivityModule: Module {
+           promise.resolve(SessionSyncStruct.shared.session.applicationContext)
+       }
+ 
++      AsyncFunction("getReceivedApplicationContext") { (promise: Promise) in
++          promise.resolve(SessionSyncStruct.shared.session.receivedApplicationContext)
++      }
++
+       AsyncFunction("updateApplicationContext") { (context: [String: Any], promise: Promise) in
+           do {
+               try SessionSyncStruct.shared.session.updateApplicationContext(context)
+@@ -71,7 +91,32 @@ public class ExpoWatchConnectivityModule: Module {
          SessionSyncStruct.module = self
      }
  
@@ -402,7 +429,7 @@ index d122dc4..e120899 100644
  
  export type ApplicationContextPayload = { [key: string]: any };
 diff --git a/node_modules/expo-watch-connectivity/src/index.ts b/node_modules/expo-watch-connectivity/src/index.ts
-index a9e8990..19fe2ec 100644
+index a9e8990..981b63b 100644
 --- a/node_modules/expo-watch-connectivity/src/index.ts
 +++ b/node_modules/expo-watch-connectivity/src/index.ts
 @@ -10,7 +10,9 @@ import {
@@ -429,7 +456,7 @@ index a9e8990..19fe2ec 100644
  export async function sendFile(
    fileURL: string,
    metadata: {
-@@ -77,6 +85,19 @@ export function addFileTransferFinishedListener(
+@@ -77,10 +85,31 @@ export function addFileTransferFinishedListener(
    );
  }
  
@@ -449,7 +476,19 @@ index a9e8990..19fe2ec 100644
  export function getApplicationContext(): Promise<ApplicationContextPayload | null> {
    return ExpoWatchConnectivityModule.getApplicationContext();
  }
-@@ -189,4 +210,6 @@ export {
+ 
++/**
++ * Returns the most recent application context received from the watch.
++ * `getApplicationContext` returns the context this device sent last.
++ */
++export function getReceivedApplicationContext(): Promise<ApplicationContextPayload> {
++  return ExpoWatchConnectivityModule.getReceivedApplicationContext();
++}
++
+ export function updateApplicationContext(value: ApplicationContextPayload): Promise<void> {
+   return ExpoWatchConnectivityModule.updateApplicationContext(value);
+ }
+@@ -189,4 +218,6 @@ export {
    FileTransferInfo,
    NewMessagePayload,
    ApplicationContextPayload,

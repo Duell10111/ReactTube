@@ -18,6 +18,11 @@ struct watchApp: App {
   
     @Environment(\.scenePhase) var scenePhase
     let session = SessionSyncStruct.shared
+
+    init() {
+      LibrarySync.shared.start()
+    }
+
     var body: some Scene {
         WindowGroup {
           ContentView()

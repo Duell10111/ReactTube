@@ -27,6 +27,7 @@ import {VideoPlayerSettingsContext} from "@/components/video/videoPlayer/setting
 import {DownloaderContext} from "@/context/DownloaderContext";
 import {MusicPlayerContext} from "@/context/MusicPlayerContext";
 import {VideoSidePanelProvider} from "@/context/VideoSidePanelContext";
+import {WatchLibraryProvider} from "@/context/WatchLibraryContext";
 import {LocalizationProvider} from "@/localization";
 import {appStatusBarStyle} from "@/ui/layout/appShell";
 import {paperTheme, useAppTheme} from "@/ui/theme";
@@ -65,27 +66,29 @@ function ThemedApp() {
               <AccountContextProvider>
                 <MusicPlayerContext>
                   <DownloaderContext>
-                    <StatusBar
-                      barStyle={appStatusBarStyle}
-                      backgroundColor={theme.colors.background}
-                    />
-                    <VideoPlayerSettingsContext>
-                      <VideoSidePanelProvider>
-                        <VideoProvider>
-                          <Navigation />
-                        </VideoProvider>
-                      </VideoSidePanelProvider>
-                    </VideoPlayerSettingsContext>
-                    <FlashMessage
-                      backgroundColor={theme.colors.surfaceRaised}
-                      color={theme.colors.textPrimary}
-                      position={"top"}
-                      statusBarHeight={safeAreaTop}
-                      style={{borderRadius: theme.radii.control}}
-                      textStyle={theme.typography.bodySmall}
-                      titleStyle={theme.typography.label}
-                    />
-                    <PoTokenWebViewHost />
+                    <WatchLibraryProvider>
+                      <StatusBar
+                        barStyle={appStatusBarStyle}
+                        backgroundColor={theme.colors.background}
+                      />
+                      <VideoPlayerSettingsContext>
+                        <VideoSidePanelProvider>
+                          <VideoProvider>
+                            <Navigation />
+                          </VideoProvider>
+                        </VideoSidePanelProvider>
+                      </VideoPlayerSettingsContext>
+                      <FlashMessage
+                        backgroundColor={theme.colors.surfaceRaised}
+                        color={theme.colors.textPrimary}
+                        position={"top"}
+                        statusBarHeight={safeAreaTop}
+                        style={{borderRadius: theme.radii.control}}
+                        textStyle={theme.typography.bodySmall}
+                        titleStyle={theme.typography.label}
+                      />
+                      <PoTokenWebViewHost />
+                    </WatchLibraryProvider>
                   </DownloaderContext>
                 </MusicPlayerContext>
               </AccountContextProvider>

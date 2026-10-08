@@ -31,6 +31,7 @@ export const de = {
   "navigation.playlist": "Playlist",
   "navigation.activeDownloads": "Aktive Downloads",
   "navigation.activeUploads": "Aktive Uploads",
+  "navigation.watchLibrary": "Apple Watch",
   "navigation.musicLibrary": "Musikmediathek",
   "navigation.musicSearch": "Musiksuche",
   "navigation.musicPlaylist": "Musikplaylist",
@@ -223,6 +224,38 @@ export const de = {
   "watch.playlistFailed": "Playlist konnte nicht an die Watch gesendet werden",
   "watch.fileFailed": "Datei konnte nicht an die Watch gesendet werden",
   "watch.uploadComplete": "Auf die Watch geladen",
+  "watchLibrary.connection.reachable": "Verbunden",
+  "watchLibrary.connection.unreachable": "Nicht erreichbar",
+  "watchLibrary.lastSync": "Aktualisiert {time}",
+  "watchLibrary.neverSynced": "Noch nicht synchronisiert",
+  "watchLibrary.waiting": "Warte auf die Uhr …",
+  "watchLibrary.outdated":
+    "Auf der Uhr gibt es neuere Änderungen. Sie erscheinen, sobald die Watch-App ihren Bestand sendet.",
+  "watchLibrary.refresh": "Aktualisieren",
+  "watchLibrary.storage.title": "Speicher",
+  "watchLibrary.storage.summary":
+    "{used} durch Downloads belegt · {available} frei",
+  "watchLibrary.storage.accessibility":
+    "Downloads belegen {percent} % des verfügbaren Speichers der Uhr",
+  "watchLibrary.tabs.downloads": "Downloads ({count})",
+  "watchLibrary.tabs.playlists": "Playlists ({count})",
+  "watchLibrary.untitled": "Unbekannter Titel",
+  "watchLibrary.download.queued": "In Warteschlange",
+  "watchLibrary.download.progress": "{percent} %",
+  "watchLibrary.playlist.summary": "{count} Titel · {downloaded} geladen",
+  "watchLibrary.playlist.autoDownload": "Lädt neue Titel automatisch",
+  "watchLibrary.downloads.empty.title": "Keine Downloads auf der Uhr",
+  "watchLibrary.downloads.empty.message":
+    "Auf der Uhr geladene Titel erscheinen hier.",
+  "watchLibrary.playlists.empty.title": "Keine Playlists auf der Uhr",
+  "watchLibrary.playlists.empty.message":
+    "An die Uhr gesendete Playlists erscheinen hier.",
+  "watchLibrary.noSnapshot.title": "Noch keine Daten von der Uhr",
+  "watchLibrary.noSnapshot.message":
+    "Öffne ReactTube auf deiner Apple Watch, damit sie ihren Bestand melden kann.",
+  "watchLibrary.unavailable.title": "Watch-App nicht installiert",
+  "watchLibrary.unavailable.message":
+    "Installiere ReactTube auf deiner Apple Watch, um sie von hier aus zu verwalten.",
   "sponsorBlock.skipping": "{category} wird übersprungen",
   "menu.channel": "Kanal öffnen",
   "search.empty.title": "YouTube durchsuchen",
