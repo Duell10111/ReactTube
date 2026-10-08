@@ -120,6 +120,10 @@ export interface YTVideoInfo {
   duration?: string;
   short_views: string;
   publishDate?: string;
+  /** Raw view count, for when no formatted `short_views` text exists. */
+  viewCount?: number;
+  /** ISO publish date, for when no formatted `publishDate` text exists. */
+  publishedAt?: string;
   quality?: string;
   livestream?: boolean;
   author?: Author;

@@ -45,7 +45,7 @@ type PanelId = "description" | "comments" | "queue";
 export default function VideoDetailScreen({route}: Props) {
   const {videoId, navEndpoint} = route.params;
   const {theme} = useAppTheme();
-  const {t} = useTranslation();
+  const {t, formatNumber, formatDate} = useTranslation();
   const {layout} = useAppChrome();
   const focused = useIsFocused();
 
@@ -104,13 +104,23 @@ export default function VideoDetailScreen({route}: Props) {
       YTVideoInfo
         ? createVideoDetailViewModel(YTVideoInfo, {
             translate: t,
+            formatNumber,
+            formatDate,
             liked: actionData?.liked,
             disliked: actionData?.disliked,
             canDownload: Boolean(download),
             canOpenComments: true,
           })
         : undefined,
-    [YTVideoInfo, actionData?.disliked, actionData?.liked, download, t],
+    [
+      YTVideoInfo,
+      actionData?.disliked,
+      actionData?.liked,
+      download,
+      formatDate,
+      formatNumber,
+      t,
+    ],
   );
 
   const onSubscribe = useCallback(

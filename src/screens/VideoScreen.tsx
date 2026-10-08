@@ -69,16 +69,18 @@ export default function VideoScreen({route, navigation}: Props) {
 
   const {appSettings} = useAppData();
   const {prepare: prepareSidePanel} = useVideoSidePanel();
-  const {t} = useTranslation();
+  const {t, formatNumber, formatDate} = useTranslation();
   const detailModel = useMemo(
     () =>
       YTVideoInfo
         ? createVideoDetailViewModel(YTVideoInfo, {
             translate: t,
+            formatNumber,
+            formatDate,
             canOpenComments: true,
           })
         : undefined,
-    [YTVideoInfo, t],
+    [YTVideoInfo, formatDate, formatNumber, t],
   );
   const videoPlayerRef = useRef<VideoPlayerRefs>(undefined);
   const currentTimeRef = useRef<number>(undefined);

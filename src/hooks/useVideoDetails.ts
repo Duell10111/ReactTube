@@ -289,9 +289,7 @@ export default function useVideoDetails(
                 parsedDataTV,
                 parsed,
               );
-              parsedDataTV.description = detailFallback.description;
-              parsedDataTV.commentsEntryPointHeader =
-                detailFallback.commentsEntryPointHeader;
+              Object.assign(parsedDataTV, detailFallback);
             }
             // Before publishing the metadata: otherwise the player would get
             // YouTube's manifest first and ours half a second later — a

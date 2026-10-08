@@ -13,6 +13,7 @@ import useVideoElementData from "../../hooks/video/useVideoElementData";
 
 import {RelatedVideos} from "@/components/video/tv/RelatedVideos";
 import {YTVideoInfo} from "@/extraction/Types";
+import {useTranslation} from "@/localization";
 import {NativeStackProp} from "@/navigation/types";
 import {AppText} from "@/ui/components";
 import {
@@ -50,6 +51,7 @@ export default function EndCard({
 }: Props) {
   const navigation = useNavigation<NativeStackProp>();
   const {theme} = useAppTheme();
+  const {t, formatNumber, formatDate} = useTranslation();
   const overscan = useTVOverscanInsets();
   const {metrics, contentPadding} = useFeedGeometry();
 
@@ -71,10 +73,17 @@ export default function EndCard({
 
   const metadataLine = useMemo(
     () =>
-      [...getVideoDetailMetadata(video), currentResolution]
+      [
+        ...getVideoDetailMetadata(video, {
+          translate: t,
+          formatNumber,
+          formatDate,
+        }),
+        currentResolution,
+      ]
         .filter(Boolean)
         .join(metadataSeparator),
-    [currentResolution, video],
+    [currentResolution, formatDate, formatNumber, t, video],
   );
 
   if (!video.originalData.watch_next_feed) {

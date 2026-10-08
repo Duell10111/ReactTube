@@ -92,9 +92,16 @@ export function VideoSidePanel({
       <TVFocusGuideView
         autoFocus
         style={[styles.header, {gap: theme.spacing.md}]}>
-        <AppText numberOfLines={2} style={styles.title} variant={"titleSmall"}>
-          {model.title}
-        </AppText>
+        <View style={styles.title}>
+          <AppText numberOfLines={2} variant={"titleSmall"}>
+            {model.title}
+          </AppText>
+          {model.metadataLine ? (
+            <AppText color={"textSecondary"} variant={"bodySmall"}>
+              {model.metadataLine}
+            </AppText>
+          ) : null}
+        </View>
         <AppIconButton
           accessibilityLabel={t("video.panel.close")}
           focusable

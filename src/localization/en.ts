@@ -240,6 +240,7 @@ export const en = {
   "demo.states": "States",
   "demo.loading": "Loading preview",
   "demo.languageAction": "Change language",
+  "video.views": "{count} views",
   "video.upNext": "Up next",
   "video.playlist": "Playlist",
   "video.related": "Related videos",

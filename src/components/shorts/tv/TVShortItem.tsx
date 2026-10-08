@@ -92,7 +92,7 @@ export function TVShortItem({
 }: Props) {
   const navigation = useNavigation<RootNavProp>();
   const isFocused = useIsFocused();
-  const {t} = useTranslation();
+  const {t, formatNumber, formatDate} = useTranslation();
   const {theme} = useAppTheme();
   const {appSettings} = useAppData();
   const {prepare: prepareSidePanel} = useVideoSidePanel();
@@ -148,10 +148,12 @@ export function TVShortItem({
       YTVideoInfo
         ? createVideoDetailViewModel(YTVideoInfo, {
             translate: t,
+            formatNumber,
+            formatDate,
             canOpenComments: true,
           })
         : undefined,
-    [YTVideoInfo, t],
+    [YTVideoInfo, formatDate, formatNumber, t],
   );
 
   const openSidePanel = (tab: "details" | "comments") => {

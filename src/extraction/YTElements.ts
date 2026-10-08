@@ -48,6 +48,16 @@ import {
 import {parseHorizontalNode} from "@/extraction/ShelfExtraction";
 import {getSubtitleTrackList} from "@/utils/Subtitles";
 
+/** Publish date from the player microformat, which `/player` alone carries. */
+function getPublishedAt(
+  videoInfo: YT.VideoInfo | YTTV.VideoInfo,
+): string | undefined {
+  const microformat = videoInfo.page[0]?.microformat;
+  return microformat?.is(YTNodes.PlayerMicroformat)
+    ? microformat.publish_date || undefined
+    : undefined;
+}
+
 /**
  * Chooses a format that can be played as **one** URL.
  *
@@ -101,6 +111,8 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
       videoInfo.primary_info?.view_count?.short_view_count?.text ??
       videoInfo?.primary_info?.view_count?.original_view_count,
     publishDate: videoInfo.primary_info?.relative_date.text,
+    viewCount: videoInfo.basic_info.view_count,
+    publishedAt: getPublishedAt(videoInfo),
     chapters,
     channel_id:
       videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
@@ -165,6 +177,8 @@ export function getElementDataFromTVVideoInfo(videoInfo: YTTV.VideoInfo) {
       videoInfo.primary_info?.view_count?.short_view_count?.text ??
       videoInfo?.primary_info?.view_count?.original_view_count,
     publishDate: videoInfo.primary_info?.date_text?.text,
+    viewCount: videoInfo.basic_info.view_count,
+    publishedAt: getPublishedAt(videoInfo),
     channel_id:
       videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
     channel: videoInfo.basic_info.channel,

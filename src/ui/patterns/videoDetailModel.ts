@@ -48,8 +48,20 @@ export interface VideoDetailViewModel {
   accessibilityLabel: string;
 }
 
+/**
+ * Formats raw values in the UI language. Only needed for videos whose
+ * response carries no formatted views or date text, such as most shorts on TV.
+ */
+export interface VideoMetadataFormatters {
+  translate: Translate;
+  formatNumber: (value: number) => string;
+  formatDate: (value: Date) => string;
+}
+
 export interface VideoDetailOptions {
   translate: Translate;
+  formatNumber?: VideoMetadataFormatters["formatNumber"];
+  formatDate?: VideoMetadataFormatters["formatDate"];
   /** Rating as the action endpoints report it, which can lag the video info. */
   liked?: boolean;
   disliked?: boolean;
@@ -82,11 +94,30 @@ const actionLabelKeys = {
   queue: "video.action.queue",
 } as const satisfies Record<VideoActionId, TranslationKey>;
 
-export function getVideoDetailMetadata(info: {
-  short_views?: string;
-  publishDate?: string;
-}): string[] {
-  return [info.short_views, info.publishDate].filter(
+export function getVideoDetailMetadata(
+  info: {
+    short_views?: string;
+    publishDate?: string;
+    viewCount?: number;
+    publishedAt?: string;
+  },
+  formatters?: VideoMetadataFormatters,
+): string[] {
+  const views =
+    info.short_views ||
+    (formatters && info.viewCount !== undefined
+      ? formatters.translate("video.views", {
+          count: formatters.formatNumber(info.viewCount),
+        })
+      : undefined);
+  const publishedAt = info.publishedAt ? new Date(info.publishedAt) : undefined;
+  const date =
+    info.publishDate ||
+    (formatters && publishedAt && !Number.isNaN(publishedAt.getTime())
+      ? formatters.formatDate(publishedAt)
+      : undefined);
+
+  return [views, date].filter(
     (part): part is string => Boolean(part) && part !== "",
   );
 }
@@ -128,8 +159,21 @@ export function createVideoDetailViewModel(
   info: YTVideoInfo,
   options: VideoDetailOptions,
 ): VideoDetailViewModel {
-  const {translate, liked, disliked, canDownload, canOpenComments} = options;
-  const metadata = getVideoDetailMetadata(info);
+  const {
+    translate,
+    formatNumber,
+    formatDate,
+    liked,
+    disliked,
+    canDownload,
+    canOpenComments,
+  } = options;
+  const metadata = getVideoDetailMetadata(
+    info,
+    formatNumber && formatDate
+      ? {translate, formatNumber, formatDate}
+      : undefined,
+  );
   const description = info.description?.trim() ? info.description : undefined;
   const queue = buildQueue(info, translate);
   const isLiked = liked ?? info.liked ?? false;

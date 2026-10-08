@@ -248,6 +248,7 @@ export const de = {
   "demo.states": "Zustände",
   "demo.loading": "Vorschau wird geladen",
   "demo.languageAction": "Sprache wechseln",
+  "video.views": "{count} Aufrufe",
   "video.upNext": "Als Nächstes",
   "video.playlist": "Playlist",
   "video.related": "Ähnliche Videos",
