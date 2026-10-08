@@ -308,6 +308,16 @@ class MusicPlayerManager {
 
   // MARK: - Repeat
 
+  /// Sets the player volume from the loudness of the current title. Independent
+  /// of the system volume the Digital Crown controls.
+  func applyLoudnessNormalization() {
+    guard let player else { return }
+    let loudnessDb = currentVideo?.loudnessDb
+    let gain = preferences.loudnessNormalization.gain(loudnessDb: loudnessDb)
+    player.volume = gain
+    WatchLog.shared.info("Player", "Loudness \(loudnessDb.map { String(format: "%.2f", $0) } ?? "unknown") dB -> volume \(String(format: "%.2f", gain))")
+  }
+
   /// Applies the persisted repeat mode to the running player.
   func applyRepeatMode() {
     player?.repeatMode = preferences.repeatMode.audioPlayerMode
@@ -383,6 +393,7 @@ class MusicPlayerManager {
       self.currentTime = self.pendingSeek ?? 0
       self.duration = 0
       self.lastPersistedPosition = self.currentTime
+      self.applyLoudnessNormalization()
       self.refreshDuration()
       self.updateNowPlayingMetadata()
       self.storeResumeState()

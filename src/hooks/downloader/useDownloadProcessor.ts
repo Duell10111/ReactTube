@@ -23,6 +23,7 @@ import {
   resolvePlaybackInfo,
 } from "@/utils/PlaybackResolver";
 import {choosePreferredAudioFormat} from "@/utils/music/AudioPlaybackSource";
+import {getLoudnessDb} from "@/utils/music/LoudnessNormalization";
 
 const downloadDir = new Directory(Paths.document, "downloads");
 
@@ -119,7 +120,7 @@ export default function useDownloadProcessor() {
       LOGGER.info(
         `Downloading ${downloadId} from ${resolved.client} · itag ${format.itag}`,
       );
-      return {url, format};
+      return {url, format, loudnessDb: getLoudnessDb(resolved.info, format)};
     }
 
     async function downloadResolvedAudio(
@@ -200,6 +201,7 @@ export default function useDownloadProcessor() {
         value.fileURL[0],
         undefined,
         trackInfo.author?.name,
+        source.loudnessDb,
       );
       DeviceEventEmitter.emit(getVideoDownloadEventUpdate(downloadId), 1);
       delete downloadRefs.current[downloadId];

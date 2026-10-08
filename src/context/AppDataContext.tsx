@@ -2,6 +2,7 @@ import React, {createContext, useCallback, useContext, useState} from "react";
 import {createMMKV} from "react-native-mmkv";
 
 import type {UILanguage} from "@/localization/types";
+import type {LoudnessNormalizationMode} from "@/utils/music/LoudnessNormalization";
 
 const storage = createMMKV({id: "settings"});
 
@@ -39,6 +40,11 @@ export interface AppSettings {
    * YouTube content language and the UI language.
    */
   subtitleLanguage?: string;
+  /**
+   * Music loudness normalization from YouTube loudness metadata, see
+   * `LoudnessNormalizationMode`. Unset means the default mode.
+   */
+  musicLoudnessNormalization?: LoudnessNormalizationMode;
   /** Sort order of the download list in the Apple Watch screen. */
   watchLibraryDownloadSort?: "added" | "name" | "size";
 }

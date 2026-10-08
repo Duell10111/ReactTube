@@ -3,6 +3,7 @@ import Logger from "@/utils/Logger";
 import {AUDIO_PLAYBACK_RESOLVER_PROFILE} from "@/utils/PlaybackClientProfiles";
 import {resolvePlaybackInfo} from "@/utils/PlaybackResolver";
 import {Innertube, Misc, YT, YTNodes} from "@/utils/Youtube";
+import {getLoudnessDb} from "@/utils/music/LoudnessNormalization";
 
 export {audioSourceToMediaItem} from "./MediaItemAdapter";
 
@@ -10,12 +11,14 @@ const LOGGER = Logger.extend("MUSIC_SOURCE");
 
 export interface ResolvedAudioStreamingSource {
   source: AudioPlaybackSource;
-  /** Fehlt ausschließlich beim lokalen Download. */
+  /** Only missing for a local download. */
   info?: YT.VideoInfo;
 }
 
 interface ResolveAudioStreamingSourceOptions {
   localUrl?: string;
+  /** Loudness stored with the local download. */
+  localLoudnessDb?: number;
 }
 
 function hasFetchableUrl(format: Misc.Format): boolean {
@@ -29,8 +32,8 @@ function isOriginalAudio(format: Misc.Format): boolean {
 }
 
 /**
- * Bevorzugt AAC/MP4 in Originalsprache ohne DRC/Voice Boost. Jede Stufe bleibt
- * ein Fallback, damit abweichende ältere Antworten trotzdem abspielbar sind.
+ * Prefers AAC/MP4 in the original language without DRC/voice boost. Every tier
+ * stays a fallback so that differing older responses remain playable.
  */
 export function choosePreferredAudioFormat(
   info: YT.VideoInfo,
@@ -74,10 +77,9 @@ function validExpiry(expires: Date | undefined): Date | undefined {
 }
 
 /**
- * Löst genau eine RNTP-taugliche Audioquelle auf. Lokale Dateien gewinnen vor
- * Netzwerkquellen; online wird zuerst der ungekappt ausliefernde VISIONOS-Client
- * versucht und YouTube-HLS nur verwendet, wenn keine Audio-Datei entschlüsselt
- * werden kann.
+ * Resolves exactly one audio source RNTP can play. Local files win over network
+ * sources; online, the VISIONOS client (which serves without throttling) is
+ * tried first and YouTube HLS is only used when no audio file can be deciphered.
  */
 export async function resolveAudioStreamingSource(
   youtube: Innertube | undefined,
@@ -90,6 +92,7 @@ export async function resolveAudioStreamingSource(
         kind: "local",
         url: options.localUrl,
         mimeType: "audio/mp4",
+        loudnessDb: options.localLoudnessDb,
       },
     };
   }
@@ -134,6 +137,7 @@ export async function resolveAudioStreamingSource(
             client: resolved.client,
             expires,
             formatItag: format.itag,
+            loudnessDb: getLoudnessDb(resolved.info, format),
           },
         };
       }
@@ -157,6 +161,7 @@ export async function resolveAudioStreamingSource(
         mimeType: "application/x-mpegURL",
         client: resolved.client,
         expires,
+        loudnessDb: getLoudnessDb(resolved.info, undefined),
       },
     };
   }

@@ -193,6 +193,8 @@ export interface AudioPlaybackSource {
   client?: string;
   expires?: Date;
   formatItag?: number;
+  /** Offset from the YouTube loudness reference in dB, if known. */
+  loudnessDb?: number;
 }
 
 // Make YTTrackInfo extend from VideoInfo or BasicVideoInfoType?
@@ -230,6 +232,8 @@ export interface YTTrackInfo {
   localPlaylistId?: string;
   /** Local file, if the track was downloaded. */
   localFileUrl?: string;
+  /** Stored loudness of the downloaded file in dB. */
+  localLoudnessDb?: number;
   /** Already resolved, playable audio source for RNTP. */
   audioSource?: AudioPlaybackSource;
 }
