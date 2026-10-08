@@ -29,7 +29,7 @@ struct PlaylistListView: View {
           musicPlayerManager.preferences.setShuffleEnabled(true)
           musicPlayerManager.updatePlaylist(playlist: playlist, shuffle: true)
         }
-        ForEach(Array(playlist.videos.enumerated()), id: \.element) { index, video in
+        ForEach(Array(playlist.orderedVideos.enumerated()), id: \.element) { index, video in
           MusicListItemView(video: video) {
             print("Playlist: ", playlist.videoIDs)
             musicPlayerManager.updatePlaylist(playlist: playlist, index: index)

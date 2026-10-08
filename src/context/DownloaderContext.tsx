@@ -23,6 +23,8 @@ export interface WatchFileTransferInfo {
   process: number;
   transferring: boolean;
   paused: boolean;
+  /** Metadata passed to `sendFile`, used to map a transfer to its video. */
+  metadata?: Record<string, unknown>;
 }
 
 interface DownloaderContextValue {

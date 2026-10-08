@@ -28,6 +28,10 @@ struct watchApp: App {
         }.backgroundTask(.urlSession) { id in
           debugPrint("handleEventsForBackgroundURLSession: \(id)")
           // TODO: Adapt for DownloadManager
+        }.backgroundTask(.watchConnectivity) {
+          // Lets queued phone commands (transferUserInfo) run without the app
+          // being in the foreground, as far as watchOS allows.
+          await SessionSyncStruct.shared.waitForPendingContent()
         }
     }
 }

@@ -4,7 +4,14 @@ import {
   showMessage as nativeShowMessage,
 } from "react-native-flash-message";
 
-export function showMessage(options: MessageOptions) {
+import {describeError} from "./describeError";
+
+type ShowMessageOptions = Omit<MessageOptions, "description"> & {
+  // Callers often forward caught errors; they are converted to text here.
+  description?: unknown;
+};
+
+export function showMessage({description, ...options}: ShowMessageOptions) {
   nativeShowMessage({
     // Keep the string position: a custom object position skips the safe-area
     // inset that the root FlashMessage applies via `statusBarHeight`.
@@ -20,5 +27,6 @@ export function showMessage(options: MessageOptions) {
         }
       : undefined,
     ...options,
+    description: describeError(description),
   });
 }

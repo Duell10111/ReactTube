@@ -28,7 +28,7 @@
       [
         "@react-native-tvos/config-tv",
         {
-          "isTV": true,
+          "isTV": false,
           "showVerboseWarnings": false,
           "tvosDeploymentTarget": "16.4",
           "removeFlipperOnAndroid": false,
@@ -57,7 +57,7 @@
         "@duell10111/apple-targets",
         {
           "appleTeamId": "XXXXXXXXXX",
-          "isTV": true
+          "isTV": false
         }
       ],
       [
