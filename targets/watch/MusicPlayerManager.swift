@@ -143,10 +143,6 @@ class MusicPlayerManager {
     updatePlaylist(newPlaylist: [video])
   }
 
-  func updateVolume(volume: Double) {
-    player?.volume = Float(volume)
-  }
-
   private func setupPlayer() {
       if player != nil {
         deinitPlayer()
@@ -250,13 +246,15 @@ class MusicPlayerManager {
       return MPRemoteCommandHandlerStatus.success
     }
 
-    self.volume = Double(AVAudioSession.sharedInstance().outputVolume)
+    // setupPlayer can run on the background queue, but `volume` drives the UI.
+    let initialVolume = Double(AVAudioSession.sharedInstance().outputVolume)
+    onMain { self.volume = initialVolume }
 
-    volumeObserver = AVAudioSession.sharedInstance().observe(\.outputVolume) { session, _ in
-          print("Output volume: \(session.outputVolume)")
-          self.onMain {
-            self.volume = Double(session.outputVolume)
-          }
+    volumeObserver = AVAudioSession.sharedInstance().observe(\.outputVolume) { [weak self] session, _ in
+      let outputVolume = Double(session.outputVolume)
+      self?.onMain {
+        self?.volume = outputVolume
+      }
     }
 
   }

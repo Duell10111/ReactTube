@@ -102,18 +102,6 @@ struct MusikPlayer: View {
           .ignoresSafeArea()
         }
       }
-//      .focusable(true)
-//      .digitalCrownRotation(
-//            $musicManager.volume,
-//            from: 0.0, through: 1.0,
-//            by: 0.01,
-//            sensitivity: .low,
-//            isContinuous: false,
-//            isHapticFeedbackEnabled: true
-//      )
-//      .onChange(of: musicManager.volume, initial: false) {
-//        musicManager.updateVolume(volume: musicManager.volume)
-//      }
     }
 }
 
