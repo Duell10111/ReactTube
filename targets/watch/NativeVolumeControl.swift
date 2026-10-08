@@ -14,6 +14,6 @@ struct NativeVolumeControl: WKInterfaceObjectRepresentable {
       }
 
       func updateWKInterfaceObject(_ wkInterfaceObject: WKInterfaceVolumeControl, context: Context) {
-          // Keine weiteren Updates nötig
+          // No further updates needed
       }
 }
