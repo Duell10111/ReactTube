@@ -17,6 +17,34 @@
 * create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
 * update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
 
+## [0.5.0](https://github.com/Duell10111/ReactTube/compare/v0.4.1...v0.5.0) (2026-10-08)
+
+
+### ✨ Features
+
+* add channel selection for signed-in users and support for age-restricted videos ([761bfcc](https://github.com/Duell10111/ReactTube/commit/761bfcce6355543c720ac99d113cf28747286eb8))
+* add playback size tracking and resolution formatting for video components ([bafd570](https://github.com/Duell10111/ReactTube/commit/bafd570235df50569eeaa3f7e56027b6977901e9))
+* add resolution badges for videos and tiles ([e067671](https://github.com/Duell10111/ReactTube/commit/e067671bf2889de1abc194ca82cc7534006901f9))
+* add shorts preloading for TV shorts player ([af23f51](https://github.com/Duell10111/ReactTube/commit/af23f51a8d4e8f3b026573491a46822a8a1053a2))
+* add subtitle support with selection and overlay for video player ([95e6789](https://github.com/Duell10111/ReactTube/commit/95e6789b4ba48152f11753e8f13f4f8a2409b4c0))
+* implement BotGuard runtime for tvOS with headless WKWebView support ([42bc6b1](https://github.com/Duell10111/ReactTube/commit/42bc6b1b4ae1b9047a2af2e3b53436bc2438d13f))
+* implement playback support for signed-in users' private videos via TV_DOWNGRADED client ([3e0170d](https://github.com/Duell10111/ReactTube/commit/3e0170dd41f0d4cd40b569f7aa1fff219dc6317f))
+* implement PoToken minting with BotGuard integration for streaming clients ([6d40717](https://github.com/Duell10111/ReactTube/commit/6d40717954a419ec22dadf1075fad92904edcd04))
+* implement rating override functionality for video interactions on error cases ([e615bdb](https://github.com/Duell10111/ReactTube/commit/e615bdb7cbae9e121e18946867e8db1eb8b23303))
+* implement TV shorts player with navigation and subscription features ([e8ef4e6](https://github.com/Duell10111/ReactTube/commit/e8ef4e6a575e32fa319ae54e6e72a2b6086c74b6))
+
+
+### 🐛 Bugfixes
+
+* enhance chapter navigation with asynchronous artwork loading for tvOS ([6dfc9be](https://github.com/Duell10111/ReactTube/commit/6dfc9be5f9a242310d853c499d3c2910d2e3cbba))
+* fix playlist management with unique handling and membership checks ([2b43f8f](https://github.com/Duell10111/ReactTube/commit/2b43f8fc510ecf2240cc660d5a065a97c7bf8d56))
+
+
+### 🔧 Chore
+
+* enhance video current playlist component with current index tracking and localization support ([1fc0bce](https://github.com/Duell10111/ReactTube/commit/1fc0bce728afbd108cef421a7961643e2967427d))
+* implement video chapter navigation with progress tracking and accessibility support ([668625e](https://github.com/Duell10111/ReactTube/commit/668625ef0bf977f28f4f77148c18d8b70e125da6))
+
 ## [0.4.1](https://github.com/Duell10111/ReactTube/compare/v0.4.0...v0.4.1) (2026-10-04)
 
 
