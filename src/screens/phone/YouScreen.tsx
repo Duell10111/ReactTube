@@ -135,11 +135,6 @@ export default function YouScreen() {
           label={t("navigation.activeDownloads")}
           onPress={() => navigation.navigate("ActiveDownloadScreen")}
         />
-        <YouRow
-          icon={"upload"}
-          label={t("navigation.activeUploads")}
-          onPress={() => navigation.navigate("ActiveUploadScreen")}
-        />
         {watchLibrary.available ? (
           <YouRow
             icon={"watch"}

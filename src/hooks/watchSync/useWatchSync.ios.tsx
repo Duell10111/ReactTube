@@ -1,25 +1,17 @@
 import {
   addMessageListener,
-  addFileTransferFinishedListener,
-  sendFile,
-  getCurrentFileTransfers,
   transferUserInfo,
   updateApplicationContext,
   useInstalled,
-  FileTransferInfo,
 } from "expo-watch-connectivity";
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef} from "react";
 
 import {handleWatchMessage} from "./WatchYoutubeAPI";
-import {getAbsoluteVideoURL} from "../downloader/useDownloadProcessor";
 
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {useYoutubeContext} from "@/context/YoutubeContext";
-import {useVideos} from "@/downloader/DownloadDatabaseOperations";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
-import {useTranslation} from "@/localization";
 import Logger from "@/utils/Logger";
-import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 interface WatchApplicationContext {
   source?: "phone";
@@ -29,19 +21,20 @@ interface WatchApplicationContext {
 
 const LOGGER = Logger.extend("WATCH_SYNC");
 
+/**
+ * Playback state and YouTube API requests between phone and watch. The watch
+ * library (snapshots, commands, file transfers) lives in WatchLibraryContext.
+ */
 export default function useWatchSync() {
-  const {t} = useTranslation();
-  const videos = useVideos();
   const innertube = useYoutubeContext();
   const {currentItem, next, previous, pause, play, playing} =
     useMusikPlayerContext();
-  const [watchTransfers, setWatchTransfers] = useState<FileTransferInfo[]>([]);
   const installed = useInstalled();
 
   // Hook data providing hybrid data access
   const library = useMusicLibrary();
-  const watchDataRef = useRef({library, videos});
-  watchDataRef.current = {library, videos};
+  const watchDataRef = useRef({library});
+  watchDataRef.current = {library};
 
   useEffect(() => {
     // TODO: Add check if app is installed/paired
@@ -92,15 +85,6 @@ export default function useWatchSync() {
         //   .catch(console.warn)
         //   .then(() => console.log("Handled watch data"));
       } else if (
-        messageFromWatch.type === "requestDownload" &&
-        messageFromWatch.id
-      ) {
-        console.log("Received download message from watch: ", messageFromWatch);
-        sendDownloadToWatch(
-          messageFromWatch.id,
-          watchDataRef.current.videos,
-        ).catch(console.warn);
-      } else if (
         messageFromWatch.type === "youtubeAPI" &&
         messageFromWatch.payload
       ) {
@@ -126,53 +110,6 @@ export default function useWatchSync() {
     });
     return () => sub.remove();
   }, [innertube, musicPlayerAction]);
-
-  const upload = (id: string) => {
-    sendDownloadToWatch(id, videos)
-      .then(() => {
-        showMessage({
-          type: "success",
-          message: t("watch.uploadStarted"),
-        });
-      })
-      .catch(error => {
-        showMessage({
-          type: "warning",
-          message: t("watch.uploadFailed"),
-          description: error,
-        });
-        LOGGER.warn(error);
-      });
-  };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // TODO: Add UI to show progress
-      checkTransfers().then(setWatchTransfers).catch(LOGGER.warn);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const sub = addFileTransferFinishedListener(info => {
-      LOGGER.debug(`Finished file transfer with info: ${info}`);
-      if (info.error) {
-        showMessage({
-          type: "danger",
-          message: t("watch.fileFailed"),
-          description: info.error,
-        });
-      } else {
-        showMessage({
-          type: "success",
-          message: t("watch.uploadComplete"),
-        });
-      }
-    });
-    return () => sub.remove();
-  }, [t]);
-
-  return {watchTransfers, upload};
 }
 
 async function sendYTAPIMessage(response: any) {
@@ -210,44 +147,4 @@ function sanitizeWatchPayload(value: any): any {
     );
   }
   return value;
-}
-
-async function sendDownloadToWatch(
-  id: string,
-  videos: ReturnType<typeof useVideos>,
-) {
-  const video = videos.find(v => v.id === id);
-
-  if (!video) {
-    LOGGER.warn(
-      "You must specify a video ID which is contained in the database",
-    );
-    return;
-  }
-
-  if (!video.fileUrl) {
-    LOGGER.warn("You must specify a video with a fileURL to watch");
-    return;
-  }
-
-  const metadata = {
-    id,
-    title: video.name,
-    duration: video.duration,
-  };
-  LOGGER.debug("Starting file transfer");
-  LOGGER.debug(`Uploading file ${getAbsoluteVideoURL(video.fileUrl)}`);
-  await sendFile(getAbsoluteVideoURL(video.fileUrl), metadata);
-
-  LOGGER.debug(`Finished file transfer for video ${id}`);
-
-  // Check transfers
-
-  checkTransfers();
-}
-
-async function checkTransfers(): Promise<FileTransferInfo[]> {
-  const fileTransfers = await getCurrentFileTransfers();
-  LOGGER.debug("File Transfers: ", fileTransfers);
-  return fileTransfers;
 }

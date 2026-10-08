@@ -178,11 +178,7 @@ extension SessionSync: WCSessionDelegate {
         await self.overrideDatabaseCommand(session, message: message)
       }
     } else if let type = message["type"] as? String {
-      if(type == "uploadFile") {
-        Task {
-          await self.receiveFileUploadData(session, message: message)
-        }
-      } else if type == "youtubeAPI", let payload = message["payload"] as? [String: Any] {
+      if type == "youtubeAPI", let payload = message["payload"] as? [String: Any] {
         processYoutubeAPIMessage(session, message: payload)
       } else if type == WatchLibraryProtocol.commandType {
         Task { @MainActor in
@@ -207,31 +203,32 @@ extension SessionSync: WCSessionDelegate {
   }
 
   func session(_ session: WCSession, didReceive file: WCSessionFile) {
-    // TODO: Do sth?
     print("WCSession didReceive File fileURL:\(file.fileURL)")
-  }
-
-  func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: (any Error)?) {
-    print("WCSession didFinish FileTranfer fileURL:\(fileTransfer.file.fileURL)")
-
-    if LibrarySync.handleFinishedTransfer(fileTransfer, error: error) {
+    let metadata = file.metadata ?? [:]
+    // Older phone apps sent video files without a type, so only the id is required.
+    guard let id = metadata["id"] as? String, !id.isEmpty else {
+      WatchLog.shared.warning("Transfer", "Received file without video id ignored")
       return
     }
-    
-    if let id = fileTransfer.file.metadata?["id"] as? String, let title = fileTransfer.file.metadata?["title"] as? String, let duration = fileTransfer.file.metadata?["duration"] as? Int {
-      let file = saveDownloadFile(id: id, filePath: fileTransfer.file.fileURL)
-      if let f = file {
-        Task {
-          await self.receiveFileUpload(session, id: id, title: title, fileURL: f, duration: duration)
-        }
+    // WatchConnectivity deletes the file as soon as this method returns, so it
+    // has to be moved into the download directory synchronously.
+    if metadata["type"] as? String == WatchLibraryProtocol.videoCoverType {
+      let savedPath = saveDownloadFile(id: id, filePath: file.fileURL, fileExtension: metadata["fileExtension"] as? String, fileName: "cover")
+      Task { @MainActor in
+        RemoteLibraryCommands.shared.handleReceivedCover(id: id, savedPath: savedPath)
       }
-      // Add Data before receiving file
-    } else {
-      print("File Upload missing metadata")
+      return
     }
+    let savedPath = saveDownloadFile(id: id, filePath: file.fileURL, fileExtension: metadata["fileExtension"] as? String)
+    Task { @MainActor in
+      await RemoteLibraryCommands.shared.handleReceivedVideoFile(metadata: metadata, savedPath: savedPath)
+    }
+  }
 
-    // Update fileURL for Download URL use metadata
-    // Use fileTransfer.file.metadata id to update DB and set downloaded flag
+  /// Called for transfers this watch started; only library snapshots are sent as files.
+  func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: (any Error)?) {
+    print("WCSession didFinish FileTranfer fileURL:\(fileTransfer.file.fileURL)")
+    _ = LibrarySync.handleFinishedTransfer(fileTransfer, error: error)
   }
 
   @MainActor
@@ -253,25 +250,6 @@ extension SessionSync: WCSessionDelegate {
     } else {
       print("Json Decode issues")
     }
-  }
-
-  @MainActor
-  func receiveFileUploadData(_ session: WCSession, message: [String: Any]) {
-    if let id = message["id"] as? String, let title = message["title"] as? String, let duration = message["duration"] as? Int {
-      print("Received File Upload Data: id: \(id)")
-      addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: duration)
-      // Add Data before receiving file
-      
-      // TODO: Request download if not already downloaded?
-      send(["type": "requestDownload", "id": id], as: .guaranteed)
-    } else {
-      print("File Upload data incomplete")
-    }
-  }
-  
-  @MainActor
-  func receiveFileUpload(_ session: WCSession, id: String, title: String, fileURL: String, duration: Int) {
-    addDownloadData(DataController.shared.container.mainContext, id: id, title: title, downloaded: true, duration: duration, fileURL: fileURL)
   }
 
 }

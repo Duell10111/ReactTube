@@ -19,7 +19,7 @@ test("keeps phase 5 secondary-surface copy localized", () => {
     "downloads.active.empty.title",
     "music.library.empty.title",
     "settings.diagnostics.run",
-    "watch.uploadComplete",
+    "watch.uploadStarted",
   ];
 
   for (const key of keys) {

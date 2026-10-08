@@ -57,7 +57,14 @@ class DownloadManager {
       progressDownloads.removeValue(forKey: id)
     }
     activeDownloads.removeAll { ids.contains($0.id) }
+    notifyProgress()
     checkDownloads()
+  }
+
+  private func notifyProgress() {
+    Task { @MainActor in
+      LibrarySync.shared.downloadProgressChanged()
+    }
   }
 
   func cancelAll() {
@@ -67,6 +74,7 @@ class DownloadManager {
     downloadKeys.removeAll()
     progressDownloads.removeAll()
     activeDownloads.removeAll()
+    notifyProgress()
   }
 
   func downloadPlaylist(_ playlist: Playlist) {
@@ -90,6 +98,7 @@ class DownloadManager {
       let key = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
         print("Progrss: \(progress)")
         self.progressDownloads[video.id] = Double(progress)
+        self.notifyProgress()
       }) { error, fileUrl in
         if let error = error {
           WatchLog.shared.error("Download", "Failed for \(video.title ?? video.id): \(error.localizedDescription)")
@@ -111,6 +120,7 @@ class DownloadManager {
         }
         self.progressDownloads.removeValue(forKey: video.id)
         self.downloadKeys.removeValue(forKey: video.id)
+        self.notifyProgress()
         // Keep draining the queue even when the video has no cover or the
         // optional cover download fails.
         self.checkDownloads()
@@ -119,6 +129,7 @@ class DownloadManager {
         downloadKeys[video.id] = key
       }
       activeDownloads.append(ActiveDownload(id: video.id))
+      notifyProgress()
       didStartAudioDownload = true
     } else {
       WatchLog.shared.warning("Download", "No download URL for \(video.title ?? video.id)")

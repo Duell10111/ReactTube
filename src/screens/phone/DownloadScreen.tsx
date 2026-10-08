@@ -4,6 +4,7 @@ import React, {useCallback, useEffect} from "react";
 import {FlatList, ListRenderItem} from "react-native";
 
 import {DownloadListItem} from "@/components/downloader/DownloadListItem";
+import {useWatchLibrary} from "@/context/WatchLibraryContext";
 import {useDownloadedVideos} from "@/downloader/DBData";
 import {ElementData} from "@/extraction/Types";
 import {useTranslation} from "@/localization";
@@ -21,16 +22,22 @@ export function DownloadScreen({navigation}: Props) {
   const videos = useDownloadedVideos();
   const {t} = useTranslation();
   const {theme} = useAppTheme();
+  const {available: watchAvailable} = useWatchLibrary();
 
   useEffect(() => {
     navigation.setOptions({
-      headerLeft: () => (
-        <AppIconButton
-          accessibilityLabel={t("uploads.activeAction")}
-          icon={"upload"}
-          onPress={() => navigation.navigate("ActiveUploadScreen")}
-        />
-      ),
+      // Transfers to the watch live in the Apple Watch screen.
+      headerLeft: watchAvailable
+        ? () => (
+            <AppIconButton
+              accessibilityLabel={t("watchLibrary.transfersAction")}
+              icon={"watch"}
+              onPress={() =>
+                navigation.navigate("WatchLibraryScreen", {tab: "transfers"})
+              }
+            />
+          )
+        : undefined,
       headerRight: () => (
         <AppIconButton
           accessibilityLabel={t("downloads.activeAction")}
@@ -39,7 +46,7 @@ export function DownloadScreen({navigation}: Props) {
         />
       ),
     });
-  }, [navigation, t]);
+  }, [navigation, t, watchAvailable]);
 
   const renderItem = useCallback<ListRenderItem<ElementData>>(({item}) => {
     return <DownloadListItem data={item} />;

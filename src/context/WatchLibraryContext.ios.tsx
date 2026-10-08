@@ -2,10 +2,13 @@ import {File, Paths} from "expo-file-system";
 import {
   addApplicationContextListener,
   addFileListener,
+  addFileTransferFinishedListener,
   addMessageListener,
   addUserInfoTransferFinishedListener,
+  getCurrentFileTransfers,
   getReceivedApplicationContext,
   isSupported,
+  sendFile,
   transferUserInfo,
   useInstalled,
   useReachable,
@@ -27,30 +30,42 @@ import {
   type WatchLibraryUserCommandOp,
 } from "./watchLibraryTypes";
 
+import {useVideos} from "@/downloader/DownloadDatabaseOperations";
+import {getAbsoluteVideoURL} from "@/hooks/downloader/useDownloadProcessor";
 import {
   addWatchLibraryPendingCommand,
   applyWatchPlaylistChange,
   applyWatchLibraryCommandResult,
   applyWatchLibrarySnapshot,
   createEmptyWatchLibraryCache,
+  createVideoCoverMetadata,
+  createVideoFileMetadata,
   createWatchLibraryCommand,
   discardWatchLibraryPendingCommand,
+  getFileExtension,
+  getLocalCoverPath,
+  getWatchLibraryCommandVideoIds,
   isWatchLibrarySnapshotOutdated,
   markWatchLibraryCommandFailed,
   parseWatchLibraryCache,
   parseWatchLibraryCommandResult,
   parseWatchLibrarySnapshotJSON,
   parseWatchLibraryStatus,
+  parseWatchDownloadProgress,
   parseWatchPlaylistChanged,
   parseWatchPlaylistDeleted,
   removeLinkedPlaylist,
   resendWatchLibraryPendingCommand,
   WATCH_LIBRARY_COMMAND_TYPE,
+  WATCH_LIBRARY_LIVE_PROGRESS_MAX_AGE_MS,
   WATCH_LIBRARY_SNAPSHOT_TYPE,
+  WATCH_LIBRARY_VIDEO_FILE_TYPE,
+  type PhoneFileTransfer,
   type WatchLibraryCache,
   type WatchLibraryCommand,
   type WatchLibraryCommandOp,
   type WatchLibrarySnapshot,
+  type WatchLiveProgress,
 } from "@/hooks/watchSync/WatchLibraryProtocol";
 import useLinkedPlaylists from "@/hooks/watchSync/useLinkedPlaylists";
 import Logger from "@/utils/Logger";
@@ -61,6 +76,8 @@ const LOGGER = Logger.extend("WATCH_LIBRARY");
 const SNAPSHOT_REQUEST_COOLDOWN_MS = 15_000;
 // Stop showing a spinner if the watch does not answer; the request stays queued.
 const SNAPSHOT_WAIT_TIMEOUT_MS = 20_000;
+// Polling interval of outgoing file transfers while the transfers list is shown.
+const FILE_TRANSFER_POLL_MS = 2000;
 
 const cacheFile = new File(Paths.document, "watch-library.json");
 
@@ -113,6 +130,25 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
     [],
   );
   const getCache = useCallback(() => cacheRef.current, []);
+
+  const phoneVideos = useVideos();
+  const phoneVideosRef = useRef(phoneVideos);
+  phoneVideosRef.current = phoneVideos;
+  const phoneDownloadedIds = useMemo(
+    () =>
+      new Set(
+        (phoneVideos ?? [])
+          .filter(video => video.fileUrl)
+          .map(video => video.id),
+      ),
+    [phoneVideos],
+  );
+
+  const [fileTransfers, setFileTransfers] = useState<PhoneFileTransfer[]>([]);
+  const [transferObservers, setTransferObservers] = useState(0);
+  const [liveProgress, setLiveProgress] = useState<WatchLiveProgress | null>(
+    null,
+  );
 
   useEffect(() => {
     // The cache file is the whole state; skip rewriting what was just loaded.
@@ -189,6 +225,113 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       });
   }, []);
 
+  const refreshFileTransfers = useCallback(() => {
+    getCurrentFileTransfers()
+      .then(setFileTransfers)
+      .catch(error => LOGGER.warn("Reading file transfers failed", error));
+  }, []);
+
+  /** Sends a video downloaded on the phone as a file; the watch acknowledges it. */
+  const sendVideoFile = useCallback(
+    (command: WatchLibraryCommand) => {
+      const [id] = getWatchLibraryCommandVideoIds(command);
+      const video = phoneVideosRef.current?.find(item => item.id === id);
+      if (!video?.fileUrl) {
+        setCache(current =>
+          markWatchLibraryCommandFailed(
+            current,
+            command.commandId,
+            "Video is not downloaded on the phone",
+          ),
+        );
+        return;
+      }
+      // The cover goes first: it is small and lets the watch list show the
+      // artwork as soon as the audio arrives. Without network on the watch it
+      // could not load the remote image anyway.
+      const coverPath = getLocalCoverPath(video);
+      if (coverPath && new File(getAbsoluteVideoURL(coverPath)).exists) {
+        sendFile(
+          getAbsoluteVideoURL(coverPath),
+          createVideoCoverMetadata(video.id, getFileExtension(coverPath)),
+        ).catch(error =>
+          LOGGER.warn(`Sending the cover of ${video.id} failed`, error),
+        );
+      }
+      const metadata = createVideoFileMetadata(
+        command.commandId,
+        video,
+        getFileExtension(video.fileUrl),
+      );
+      sendFile(getAbsoluteVideoURL(video.fileUrl), metadata)
+        .then(refreshFileTransfers)
+        .catch(error => {
+          setCache(current =>
+            markWatchLibraryCommandFailed(
+              current,
+              command.commandId,
+              String(error),
+            ),
+          );
+        });
+    },
+    [refreshFileTransfers, setCache],
+  );
+
+  const transferVideos = useCallback(
+    (videoIds: string[]) => {
+      if (!available) {
+        return 0;
+      }
+      let started = 0;
+      for (const id of new Set(videoIds)) {
+        if (!phoneDownloadedIds.has(id)) {
+          continue;
+        }
+        const now = Date.now();
+        const command = createWatchLibraryCommand(
+          "transferVideo",
+          {videoIds: [id]},
+          Crypto.randomUUID(),
+          now,
+        );
+        setCache(current =>
+          addWatchLibraryPendingCommand(current, command, now),
+        );
+        sendVideoFile(command);
+        started += 1;
+      }
+      return started;
+    },
+    [available, phoneDownloadedIds, sendVideoFile, setCache],
+  );
+
+  const observeFileTransfers = useCallback(() => {
+    setTransferObservers(count => count + 1);
+    return () => setTransferObservers(count => count - 1);
+  }, []);
+
+  useEffect(() => {
+    if (!isSupported || transferObservers <= 0) {
+      return;
+    }
+    refreshFileTransfers();
+    const interval = setInterval(refreshFileTransfers, FILE_TRANSFER_POLL_MS);
+    return () => clearInterval(interval);
+  }, [refreshFileTransfers, transferObservers]);
+
+  useEffect(() => {
+    if (!liveProgress) {
+      return;
+    }
+    // Without updates the watch is no longer reachable; fall back to the snapshot.
+    const timeout = setTimeout(
+      () => setLiveProgress(null),
+      WATCH_LIBRARY_LIVE_PROGRESS_MAX_AGE_MS,
+    );
+    return () => clearTimeout(timeout);
+  }, [liveProgress]);
+
   const queueCommand = useCallback(
     (op: WatchLibraryCommandOp, args: Record<string, unknown>) => {
       if (!available) {
@@ -239,14 +382,22 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       setCache(current =>
         resendWatchLibraryPendingCommand(current, commandId, newCommandId, now),
       );
-      transferCommand({
+      const command = {
         ...pending.command,
         commandId: newCommandId,
         issuedAt: now,
-      });
+      };
+      if (command.op === "transferVideo") {
+        sendVideoFile(command);
+      } else {
+        transferCommand(command);
+      }
     },
-    [available, transferCommand],
+    [available, sendVideoFile, setCache, transferCommand],
   );
+
+  const transferVideosRef = useRef(transferVideos);
+  transferVideosRef.current = transferVideos;
 
   const discardCommand = useCallback((commandId: string) => {
     setCache(current => discardWatchLibraryPendingCommand(current, commandId));
@@ -310,7 +461,33 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       if (deletedId) {
         // Deleted on the watch: only the link ends, the phone playlist stays.
         setCache(current => removeLinkedPlaylist(current, deletedId));
+        return;
       }
+      const progress = parseWatchDownloadProgress(message);
+      if (progress) {
+        setLiveProgress({receivedAt: Date.now(), downloads: progress});
+        return;
+      }
+      if (
+        message.type === "requestDownload" &&
+        typeof message.id === "string"
+      ) {
+        // The watch asks for a title the phone has downloaded.
+        transferVideosRef.current([message.id]);
+      }
+    });
+    const fileTransferSub = addFileTransferFinishedListener(event => {
+      const commandId = event.metadata?.commandId;
+      if (
+        event.error &&
+        event.metadata?.type === WATCH_LIBRARY_VIDEO_FILE_TYPE &&
+        typeof commandId === "string"
+      ) {
+        setCache(current =>
+          markWatchLibraryCommandFailed(current, commandId, event.error!),
+        );
+      }
+      refreshFileTransfers();
     });
     const transferSub = addUserInfoTransferFinishedListener(event => {
       const {userInfo, error} = event;
@@ -355,9 +532,16 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       contextSub.remove();
       messageSub.remove();
       transferSub.remove();
+      fileTransferSub.remove();
       fileSub.remove();
     };
-  }, [receiveApplicationContext, receiveSnapshot, scheduleSync, setCache]);
+  }, [
+    receiveApplicationContext,
+    receiveSnapshot,
+    refreshFileTransfers,
+    scheduleSync,
+    setCache,
+  ]);
 
   // Fetch a snapshot whenever the watch reports a newer revision than cached.
   useEffect(() => {
@@ -387,6 +571,11 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       unlinkPlaylist,
       setLinkedPlaylistAutoDownload,
       syncLinkedPlaylists,
+      phoneDownloadedIds,
+      transferVideos,
+      fileTransfers,
+      observeFileTransfers,
+      liveProgress,
     }),
     [
       available,
@@ -401,6 +590,11 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       unlinkPlaylist,
       setLinkedPlaylistAutoDownload,
       syncLinkedPlaylists,
+      phoneDownloadedIds,
+      transferVideos,
+      fileTransfers,
+      observeFileTransfers,
+      liveProgress,
     ],
   );
 

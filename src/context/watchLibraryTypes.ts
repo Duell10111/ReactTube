@@ -1,15 +1,20 @@
 import type {
   LinkedPlaylist,
+  PhoneFileTransfer,
   WatchLibraryCommandOp,
   WatchLibraryPendingCommand,
   WatchLibrarySnapshot,
   WatchLibraryStatus,
+  WatchLiveProgress,
 } from "@/hooks/watchSync/WatchLibraryProtocol";
 
-/** Commands the phone can send; snapshot requests are handled internally. */
+/**
+ * Commands the phone can send via transferUserInfo. Snapshot requests are
+ * handled internally, video files go through `transferVideos`.
+ */
 export type WatchLibraryUserCommandOp = Exclude<
   WatchLibraryCommandOp,
-  "requestSnapshot"
+  "requestSnapshot" | "transferVideo"
 >;
 
 export interface WatchLibraryContextValue {
@@ -40,6 +45,16 @@ export interface WatchLibraryContextValue {
   unlinkPlaylist: (id: string, deleteDownloads: boolean) => void;
   setLinkedPlaylistAutoDownload: (id: string, enabled: boolean) => void;
   syncLinkedPlaylists: () => void;
+  /** Videos downloaded on the phone, which can be transferred as files. */
+  phoneDownloadedIds: ReadonlySet<string>;
+  /** Transfers phone downloads to the watch; returns how many were started. */
+  transferVideos: (videoIds: string[]) => number;
+  /** Outgoing file transfers; only refreshed while observed. */
+  fileTransfers: PhoneFileTransfer[];
+  /** Starts polling file transfers; call the returned function to stop. */
+  observeFileTransfers: () => () => void;
+  /** Download progress pushed by a reachable watch, newer than the snapshot. */
+  liveProgress: WatchLiveProgress | null;
 }
 
 export const unavailableWatchLibrary: WatchLibraryContextValue = {
@@ -59,4 +74,9 @@ export const unavailableWatchLibrary: WatchLibraryContextValue = {
   unlinkPlaylist: () => {},
   setLinkedPlaylistAutoDownload: () => {},
   syncLinkedPlaylists: () => {},
+  phoneDownloadedIds: new Set(),
+  transferVideos: () => 0,
+  fileTransfers: [],
+  observeFileTransfers: () => () => {},
+  liveProgress: null,
 };

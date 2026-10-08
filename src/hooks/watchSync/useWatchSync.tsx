@@ -1,14 +1,2 @@
-export default function useWatchSync() {
-  const upload = (id: string) => {};
-
-  const watchTransfers = [] as {
-    uri: string;
-    process: number;
-    transferring: boolean;
-    paused: boolean;
-  }[];
-
-  const watchAppInstalled = false;
-
-  return {upload, watchAppInstalled, watchTransfers};
-}
+// Watch sync is only available on iOS; see useWatchSync.ios.tsx.
+export default function useWatchSync() {}

@@ -6,6 +6,7 @@ import {AppState} from "react-native";
 import {
   createLinkedPlaylist,
   createUpsertPlaylistArgs,
+  getStoredDurationMillis,
   planLinkedPlaylistSync,
   removeLinkedPlaylist,
   setLinkedPlaylist,
@@ -68,7 +69,7 @@ async function loadPhonePlaylist(
         id: video.id,
         title: video.name ?? undefined,
         artist: video.author ?? undefined,
-        durationMillis: video.duration ? video.duration * 1000 : undefined,
+        durationMillis: getStoredDurationMillis(video),
         coverUrl: video.coverUrl ?? undefined,
       })),
     };
