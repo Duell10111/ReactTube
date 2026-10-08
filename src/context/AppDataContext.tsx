@@ -39,6 +39,8 @@ export interface AppSettings {
    * YouTube content language and the UI language.
    */
   subtitleLanguage?: string;
+  /** Sort order of the download list in the Apple Watch screen. */
+  watchLibraryDownloadSort?: "added" | "name" | "size";
 }
 
 interface AppDataContext {

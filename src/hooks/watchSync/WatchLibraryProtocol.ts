@@ -43,6 +43,8 @@ export interface WatchLibraryVideo {
   downloaded: boolean;
   sizeBytes?: number;
   coverUrl?: string;
+  /** Milliseconds since 1970 when the download finished on the watch. */
+  downloadedAt?: number;
 }
 
 export interface WatchLibraryPlaylist {
@@ -240,6 +242,7 @@ function parseVideo(value: unknown): WatchLibraryVideo | null {
     downloaded: value.downloaded === true,
     sizeBytes: finiteNumber(value.sizeBytes),
     coverUrl: nonEmptyString(value.coverUrl),
+    downloadedAt: finiteNumber(value.downloadedAt),
   };
 }
 
@@ -727,6 +730,7 @@ export interface WatchLibraryDownloadRow {
   state: WatchLibraryDownloadState;
   sizeBytes?: number;
   progress?: number;
+  downloadedAt?: number;
   /** Latest not yet confirmed command affecting this row. */
   pendingOp?: WatchLibraryCommandOp;
 }
@@ -835,6 +839,7 @@ export function applyPendingCommands(
       artist: video?.artist,
       state,
       sizeBytes: state === "downloaded" ? video?.sizeBytes : undefined,
+      downloadedAt: state === "downloaded" ? video?.downloadedAt : undefined,
       progress: state === "downloading" ? progress : undefined,
     };
   });
@@ -1463,4 +1468,72 @@ export function splitByPhoneAvailability(
     (phoneDownloadedIds.has(id) ? transfer : download).push(id),
   );
   return {transfer, download};
+}
+
+// Sorting and selection of the download list
+
+export const WATCH_LIBRARY_DOWNLOAD_SORTS = ["added", "name", "size"] as const;
+export type WatchLibraryDownloadSort =
+  (typeof WATCH_LIBRARY_DOWNLOAD_SORTS)[number];
+
+export function normalizeWatchLibraryDownloadSort(
+  value: unknown,
+): WatchLibraryDownloadSort {
+  return WATCH_LIBRARY_DOWNLOAD_SORTS.find(sort => sort === value) ?? "added";
+}
+
+/**
+ * Sorts the download list. Running and queued downloads stay on top in their
+ * existing order; finished downloads follow the chosen order. Missing sizes or
+ * dates go last, ties are broken by name.
+ */
+export function sortWatchLibraryDownloads(
+  rows: readonly WatchLibraryDownloadRow[],
+  sort: WatchLibraryDownloadSort,
+  locale: string,
+): WatchLibraryDownloadRow[] {
+  const collator = new Intl.Collator(locale, {
+    numeric: true,
+    sensitivity: "base",
+  });
+  const byName = (a: WatchLibraryDownloadRow, b: WatchLibraryDownloadRow) =>
+    collator.compare(a.title ?? a.id, b.title ?? b.id);
+  const descending = (a?: number, b?: number) => {
+    if (a === undefined || b === undefined) {
+      return a === b ? 0 : a === undefined ? 1 : -1;
+    }
+    return b - a;
+  };
+
+  const active = rows.filter(row => row.state !== "downloaded");
+  const finished = rows
+    .filter(row => row.state === "downloaded")
+    .sort((a, b) => {
+      const order =
+        sort === "size"
+          ? descending(a.sizeBytes, b.sizeBytes)
+          : sort === "added"
+            ? descending(a.downloadedAt, b.downloadedAt)
+            : 0;
+      return order !== 0 ? order : byName(a, b);
+    });
+  return [...active, ...finished];
+}
+
+/**
+ * Commands for removing a selection: finished downloads are deleted, running
+ * or queued ones are cancelled.
+ */
+export function planSelectionRemoval(
+  rows: readonly WatchLibraryDownloadRow[],
+  selectedIds: ReadonlySet<string>,
+): {deleteIds: string[]; cancelIds: string[]} {
+  const deleteIds: string[] = [];
+  const cancelIds: string[] = [];
+  rows
+    .filter(row => selectedIds.has(row.id))
+    .forEach(row =>
+      (row.state === "downloaded" ? deleteIds : cancelIds).push(row.id),
+    );
+  return {deleteIds, cancelIds};
 }

@@ -15,6 +15,7 @@ interface AppListItemProps {
   destructive?: boolean;
   disabled?: boolean;
   onPress?: () => void;
+  onLongPress?: () => void;
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
   style?: ViewStyle;
@@ -30,6 +31,7 @@ export function AppListItem({
   destructive = false,
   disabled = false,
   onPress,
+  onLongPress,
   leading,
   trailing,
   style,
@@ -50,6 +52,7 @@ export function AppListItem({
       disabled={disabled || !onPress}
       onBlur={() => setFocused(false)}
       onFocus={() => setFocused(true)}
+      onLongPress={onLongPress}
       onPress={onPress}
       style={({pressed}) => [
         styles.row,
