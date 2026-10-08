@@ -1,7 +1,9 @@
+import {BottomSheetTextInput} from "@gorhom/bottom-sheet";
 import {useState} from "react";
 import {StyleSheet, View} from "react-native";
 import {Button, TextInput} from "react-native-paper";
 
+import {footerClearance} from "@/components/playlists/PlaylistManagerList";
 import {useTranslation} from "@/localization";
 
 interface PlaylistManagerCreatePanelProps {
@@ -21,6 +23,8 @@ export function PlaylistManagerCreatePanel({
         mode={"flat"}
         onChangeText={setName}
         value={name}
+        // Lets the sheet move above the keyboard while the name is typed.
+        render={props => <BottomSheetTextInput {...props} />}
       />
       <Button
         style={styles.createButton}
@@ -35,8 +39,10 @@ export function PlaylistManagerCreatePanel({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     width: "100%",
+    // The sheet sizes itself to this content, so it has to leave room for the
+    // floating back button in the sheet footer.
+    paddingBottom: footerClearance,
   },
   createButton: {
     marginTop: 20,

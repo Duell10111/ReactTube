@@ -38,7 +38,9 @@ export default function useLocalPlaylistManager() {
     const id = `LC-${Crypto.randomUUID()}`;
     await createPlaylistDB(id, name);
     if (videoIds.length > 0) {
-      await insertVideosIntoPlaylist(id, videoIds);
+      // Goes through `saveVideoToPlaylist`, which first stores the video rows
+      // that the playlist entries point to.
+      await saveVideoToPlaylist(videoIds, id);
     }
   };
 

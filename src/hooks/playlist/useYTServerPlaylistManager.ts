@@ -85,7 +85,23 @@ export default function useYTServerPlaylistManager() {
   };
 
   const createPlaylist = async (name: string, videoIds: string[]) => {
-    await youtube?.playlist?.create(name, videoIds);
+    if (!youtube?.actions) {
+      throw new Error("No YouTube session to create the playlist with");
+    }
+    // Called directly instead of `playlist.create`, which always uses the WEB
+    // client and is rejected with status 400 for the TV session.
+    const response = await new YTNodes.NavigationEndpoint({
+      createPlaylistServiceEndpoint: {
+        title: name,
+        privacyStatus: "PRIVATE",
+        videoIds,
+      },
+    }).call(youtube.actions, {client: "TV"});
+    if (!response.success) {
+      throw new Error(
+        `Creating the playlist failed with status ${response.status_code}`,
+      );
+    }
   };
 
   const saveVideoToPlaylist = async (

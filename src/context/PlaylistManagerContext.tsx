@@ -104,14 +104,24 @@ export function PlaylistManagerContext({
                 <PlaylistManagerCreatePanel
                   onPlaylistCreate={name => {
                     setCreatePanel(false);
-                    createPlaylist(name, []).catch(error => {
-                      LOGGER.warn(error);
-                      showMessage({
-                        type: "warning",
-                        message: t("playlist.manager.createError"),
-                        description: error,
+                    // The sheet saves `videoIDs`, so the new playlist starts
+                    // with them like YouTube's own "New playlist" action.
+                    createPlaylist(name, videoIDs)
+                      .then(() => bottomSheetModalRef.current?.close())
+                      .then(() => {
+                        showMessage({
+                          type: "success",
+                          message: t("playlist.manager.created"),
+                        });
+                      })
+                      .catch(error => {
+                        LOGGER.warn(error);
+                        showMessage({
+                          type: "warning",
+                          message: t("playlist.manager.createError"),
+                          description: error,
+                        });
                       });
-                    });
                   }}
                 />
               </BottomSheetView>
