@@ -1,4 +1,5 @@
 import type {
+  LinkedPlaylist,
   WatchLibraryCommandOp,
   WatchLibraryPendingCommand,
   WatchLibrarySnapshot,
@@ -32,6 +33,13 @@ export interface WatchLibraryContextValue {
   ) => void;
   retryCommand: (commandId: string) => void;
   discardCommand: (commandId: string) => void;
+  /** Playlists linked between phone and watch, by playlist id. */
+  linkedPlaylists: Record<string, LinkedPlaylist>;
+  linkPlaylist: (id: string, autoDownload: boolean) => void;
+  /** Removes the playlist from the watch; downloads only if requested. */
+  unlinkPlaylist: (id: string, deleteDownloads: boolean) => void;
+  setLinkedPlaylistAutoDownload: (id: string, enabled: boolean) => void;
+  syncLinkedPlaylists: () => void;
 }
 
 export const unavailableWatchLibrary: WatchLibraryContextValue = {
@@ -46,4 +54,9 @@ export const unavailableWatchLibrary: WatchLibraryContextValue = {
   sendCommand: () => {},
   retryCommand: () => {},
   discardCommand: () => {},
+  linkedPlaylists: {},
+  linkPlaylist: () => {},
+  unlinkPlaylist: () => {},
+  setLinkedPlaylistAutoDownload: () => {},
+  syncLinkedPlaylists: () => {},
 };

@@ -283,7 +283,8 @@ export async function removeVideosIntoPlaylist(
 ) {
   await Promise.all(
     videoIds.map(videoId => {
-      db.delete(schema.playlistVideos)
+      return db
+        .delete(schema.playlistVideos)
         .where(
           and(
             eq(schema.playlistVideos.playlistId, playlistID),
@@ -293,6 +294,26 @@ export async function removeVideosIntoPlaylist(
         .execute();
     }),
   );
+}
+
+/**
+ * Rewrites the order of a local playlist. Playlists are listed by descending
+ * `playlistOrder`, so the first id gets the highest value.
+ */
+export async function setPlaylistOrder(playlistID: string, videoIds: string[]) {
+  // Drizzle's expo-sqlite driver only supports synchronous transactions.
+  for (const [index, videoId] of videoIds.entries()) {
+    await db
+      .update(schema.playlistVideos)
+      .set({playlistOrder: videoIds.length - 1 - index})
+      .where(
+        and(
+          eq(schema.playlistVideos.playlistId, playlistID),
+          eq(schema.playlistVideos.videoId, videoId),
+        ),
+      )
+      .execute();
+  }
 }
 
 export async function insertPlaylist(

@@ -29,6 +29,17 @@ export function combineLocalWithServerPlaylistManager(
         await server.removeVideoFromPlaylist(videoIds, playlistId);
       }
     },
+    moveVideo: async (
+      playlistId: string,
+      movedId: string,
+      predecessorId: string,
+    ) => {
+      if (isLocalPlaylist(playlistId)) {
+        await local.moveVideo(playlistId, movedId, predecessorId);
+      } else {
+        await server.moveVideo(playlistId, movedId, predecessorId);
+      }
+    },
     // Redirect to server component
     createPlaylist: server.createPlaylist,
     fetchMorePlaylists: server.fetchMorePlaylists,

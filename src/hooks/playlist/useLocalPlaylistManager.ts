@@ -9,12 +9,15 @@ import {
   findVideo,
   insertVideo,
   deletePlaylist,
+  getPlaylistVideos,
+  setPlaylistOrder,
 } from "@/downloader/DownloadDatabaseOperations";
 import {
   getElementDataFromTrackInfo,
   getElementDataFromYTPlaylist,
 } from "@/extraction/YTElements";
 import useDownloadProcessor from "@/hooks/downloader/useDownloadProcessor";
+import {notifyPlaylistChanged} from "@/hooks/playlist/playlistChangeEvents";
 import Logger from "@/utils/Logger";
 import {YTNodes} from "@/utils/Youtube";
 
@@ -68,6 +71,7 @@ export default function useLocalPlaylistManager() {
 
     LOGGER.debug(`Adding videos ${videoIds} to playlist ${playlistId}`);
     await insertVideosIntoPlaylist(playlistId, videoIds);
+    notifyPlaylistChanged(playlistId);
   };
 
   const removeVideoFromPlaylist = async (
@@ -76,6 +80,23 @@ export default function useLocalPlaylistManager() {
   ) => {
     LOGGER.debug(`Removing videos ${videoIds} to playlist ${playlistId}`);
     await removeVideosIntoPlaylist(playlistId, videoIds);
+    notifyPlaylistChanged(playlistId);
+  };
+
+  /** Moves a video directly behind `predecessorId`. */
+  const moveVideo = async (
+    playlistId: string,
+    movedId: string,
+    predecessorId: string,
+  ) => {
+    const ids = (await getPlaylistVideos(playlistId)).map(video => video.id);
+    if (!ids.includes(movedId) || !ids.includes(predecessorId)) {
+      throw new Error(`Cannot move ${movedId} in playlist ${playlistId}`);
+    }
+    const order = ids.filter(id => id !== movedId);
+    order.splice(order.indexOf(predecessorId) + 1, 0, movedId);
+    await setPlaylistOrder(playlistId, order);
+    notifyPlaylistChanged(playlistId);
   };
 
   const addPlaylistToLibrary = async (playlistId: string) => {
@@ -158,6 +179,7 @@ export default function useLocalPlaylistManager() {
     createPlaylist,
     saveVideoToPlaylist,
     removeVideoFromPlaylist,
+    moveVideo,
     addPlaylistToLibrary,
     removePlaylistFromLibrary,
     executeNavEndpoint,

@@ -290,8 +290,16 @@ func checkPlaylist(_ playlist: Playlist) {
 }
 
 func addVideoToPlaylist(_ playlist: Playlist, video: Video) {
+  guard !playlist.videoIDs.contains(video.id) else { return }
   playlist.videoIDs.append(video.id)
   playlist.videos.append(video)
+  notifyLocalPlaylistEdit(playlist)
+}
+
+private func notifyLocalPlaylistEdit(_ playlist: Playlist) {
+  Task { @MainActor in
+    LibrarySync.shared.playlistEditedLocally(playlist)
+  }
 }
 
 func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
@@ -304,6 +312,8 @@ func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
   // Check if video is contained in any other playlist otherwise delete
   do {
     if let modelContext = playlist.modelContext, try !checkIfVideoExistsInOtherPlaylist(modelContext, oldPlaylist: playlist, video: video) {
+      // Free the download as well, otherwise the file stays without an entry.
+      if video.downloaded { deleteDownloadedVideoFile(id: video.id) }
       modelContext.delete(video)
       print("Deleted video not contained in any playlist")
     } else {
@@ -312,6 +322,7 @@ func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
   } catch {
     print("Error checking other playlist that contain the video: \(error)")
   }
+  notifyLocalPlaylistEdit(playlist)
 }
 
 /// Deletes the downloaded file of a video and resets its download state, so the

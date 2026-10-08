@@ -49,9 +49,8 @@ enum LibrarySnapshotBuilder {
         videoIds: playlist.videoIDs,
         autoDownload: playlist.download,
         temp: playlist.temp ?? false,
-        // Playlist linking is introduced together with the sync engine.
-        linked: false,
-        syncVersion: 0
+        linked: playlist.linked,
+        syncVersion: playlist.syncVersion
       )
     }
 
@@ -139,6 +138,7 @@ final class LibrarySync {
   private var saveObserver: NSObjectProtocol?
   private var revisionTask: Task<Void, Never>?
   private var snapshotTask: Task<Void, Never>?
+  private var playlistChangeTasks: [String: Task<Void, Never>] = [:]
 
   private var session: WCSession { WCSession.default }
   private var modelContext: ModelContext { DataController.shared.container.mainContext }
@@ -185,6 +185,40 @@ final class LibrarySync {
       bumpRevision()
     }
     return revision
+  }
+
+  /// Reports an edit made on the watch to a linked playlist. Always sends the
+  /// complete ordered list; the phone merges it against the last synced state.
+  func playlistEditedLocally(_ playlist: Playlist) {
+    guard playlist.linked else { return }
+    let id = playlist.id
+    // Batch quick successive edits (e.g. several swipes) into one message.
+    playlistChangeTasks[id]?.cancel()
+    playlistChangeTasks[id] = Task { @MainActor in
+      try? await Task.sleep(for: .milliseconds(500))
+      guard !Task.isCancelled else { return }
+      self.playlistChangeTasks[id] = nil
+      let descriptor = FetchDescriptor<Playlist>(predicate: #Predicate { $0.id == id })
+      guard let playlist = try? self.modelContext.fetch(descriptor).first, playlist.linked else { return }
+      send([
+        "type": WatchLibraryProtocol.playlistChangedType,
+        "protocolVersion": WatchLibraryProtocol.version,
+        "id": id,
+        "title": playlist.title ?? "",
+        "videoIds": playlist.videoIDs,
+        "baseSyncVersion": playlist.syncVersion,
+      ], as: .guaranteed)
+    }
+  }
+
+  /// Ends the link on the phone; the phone playlist itself stays.
+  func linkedPlaylistDeletedLocally(id: String) {
+    playlistChangeTasks.removeValue(forKey: id)?.cancel()
+    send([
+      "type": WatchLibraryProtocol.playlistDeletedType,
+      "protocolVersion": WatchLibraryProtocol.version,
+      "id": id,
+    ], as: .guaranteed)
   }
 
   /// Sends a snapshot shortly after a change; bursts of commands produce one snapshot.
