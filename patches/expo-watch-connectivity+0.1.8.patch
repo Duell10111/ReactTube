@@ -1,8 +1,59 @@
+diff --git a/node_modules/expo-watch-connectivity/build/ExpoWatchConnectivity.types.d.ts b/node_modules/expo-watch-connectivity/build/ExpoWatchConnectivity.types.d.ts
+index 48c971c..72d6547 100644
+--- a/node_modules/expo-watch-connectivity/build/ExpoWatchConnectivity.types.d.ts
++++ b/node_modules/expo-watch-connectivity/build/ExpoWatchConnectivity.types.d.ts
+@@ -1,20 +1,37 @@
+ export type NewMessagePayload = {
+     [key: string]: any;
+ };
++export type TransferMetadata = {
++    [key: string]: any;
++};
+ export type NewFilePayload = {
++    /**
++     * `file://` URI of the received file. The native side moves it into
++     * `Caches/watch-inbox/` before emitting, so it stays valid after the event.
++     * The receiver is responsible for deleting it once processed.
++     */
+     uri: string;
+-    metadata?: Record<string, any>;
++    metadata?: TransferMetadata;
+ };
+ export type FileTransferFinishedPayload = {
+     uri: string;
+-    metadata?: Record<string, any>;
++    metadata?: TransferMetadata;
++    error?: string;
++};
++export type UserInfoTransferFinishedPayload = {
++    userInfo: {
++        [key: string]: any;
++    };
++    /** Set if the transfer failed. */
+     error?: string;
+ };
+ export type FileTransferInfo = {
+     uri: string;
++    /** Fraction completed between 0 and 1. */
+     process: number;
+     transferring: boolean;
+     paused: boolean;
++    metadata?: TransferMetadata;
+ };
+ export type ApplicationContextPayload = {
+     [key: string]: any;
 diff --git a/node_modules/expo-watch-connectivity/build/index.d.ts b/node_modules/expo-watch-connectivity/build/index.d.ts
-index 9592d86..7b0d2a7 100644
+index 9592d86..6716386 100644
 --- a/node_modules/expo-watch-connectivity/build/index.d.ts
 +++ b/node_modules/expo-watch-connectivity/build/index.d.ts
-@@ -9,6 +9,9 @@ export declare function getCurrentFileTransfers(): Promise<FileTransferInfo[]>;
+@@ -1,5 +1,5 @@
+ import { Subscription } from "expo-modules-core";
+-import { ActivationState, ApplicationContextPayload, FileTransferFinishedPayload, FileTransferInfo, NewFilePayload, NewMessagePayload } from "./ExpoWatchConnectivity.types";
++import { ActivationState, ApplicationContextPayload, FileTransferFinishedPayload, FileTransferInfo, NewFilePayload, NewMessagePayload, TransferMetadata, UserInfoTransferFinishedPayload } from "./ExpoWatchConnectivity.types";
+ export declare const isSupported: boolean;
+ export declare function isPaired(): Promise<boolean>;
+ export declare function isWatchAppInstalled(): Promise<boolean>;
+@@ -9,12 +9,20 @@ export declare function getCurrentFileTransfers(): Promise<FileTransferInfo[]>;
  export declare function sendMessage(message: {
      [key: string]: any;
  }): Promise<boolean>;
@@ -12,8 +63,26 @@ index 9592d86..7b0d2a7 100644
  export declare function sendFile(fileURL: string, metadata: {
      [key: string]: any;
  }): Promise<void>;
+ export declare function addMessageListener(listener: (event: NewMessagePayload) => void): Subscription;
+ export declare function addFileListener(listener: (event: NewFilePayload) => void): Subscription;
+ export declare function addFileTransferFinishedListener(listener: (event: FileTransferFinishedPayload) => void): Subscription;
++/**
++ * Called when a `transferUserInfo` call finished. Failed transfers carry `error`,
++ * including immediate deliveries that could not be queued as a fallback.
++ */
++export declare function addUserInfoTransferFinishedListener(listener: (event: UserInfoTransferFinishedPayload) => void): Subscription;
+ export declare function getApplicationContext(): Promise<ApplicationContextPayload | null>;
+ export declare function updateApplicationContext(value: ApplicationContextPayload): Promise<void>;
+ export declare function addApplicationContextListener(listener: (event: ApplicationContextPayload) => void): Subscription;
+@@ -25,5 +33,5 @@ export declare function addActivationListener(listener: (activationState: Activa
+ export declare function useInstalled(): boolean;
+ export declare function useReachable(): boolean;
+ export declare function usePaired(): boolean;
+-export { ActivationState, NewFilePayload, FileTransferFinishedPayload, FileTransferInfo, NewMessagePayload, ApplicationContextPayload, };
++export { ActivationState, NewFilePayload, FileTransferFinishedPayload, FileTransferInfo, NewMessagePayload, ApplicationContextPayload, TransferMetadata, UserInfoTransferFinishedPayload, };
+ //# sourceMappingURL=index.d.ts.map
 diff --git a/node_modules/expo-watch-connectivity/build/index.js b/node_modules/expo-watch-connectivity/build/index.js
-index 729632c..36d38b5 100644
+index 729632c..b98bc9b 100644
 --- a/node_modules/expo-watch-connectivity/build/index.js
 +++ b/node_modules/expo-watch-connectivity/build/index.js
 @@ -23,6 +23,9 @@ export async function getCurrentFileTransfers() {
@@ -26,11 +95,34 @@ index 729632c..36d38b5 100644
  export async function sendFile(fileURL, metadata) {
      return ExpoWatchConnectivityModule.sendFile(fileURL, metadata);
  }
+@@ -36,6 +39,13 @@ export function addFileListener(listener) {
+ export function addFileTransferFinishedListener(listener) {
+     return emitter.addListener("finishedFileTransfer", listener);
+ }
++/**
++ * Called when a `transferUserInfo` call finished. Failed transfers carry `error`,
++ * including immediate deliveries that could not be queued as a fallback.
++ */
++export function addUserInfoTransferFinishedListener(listener) {
++    return emitter.addListener("finishedUserInfoTransfer", listener);
++}
+ export function getApplicationContext() {
+     return ExpoWatchConnectivityModule.getApplicationContext();
+ }
 diff --git a/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift b/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift
-index 76726f4..f2ea4c7 100644
+index 76726f4..4c7ecfb 100644
 --- a/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift
 +++ b/node_modules/expo-watch-connectivity/ios/ExpoWatchConnectivityModule.swift
-@@ -36,7 +36,14 @@ public class ExpoWatchConnectivityModule: Module {
+@@ -17,7 +17,7 @@ public class ExpoWatchConnectivityModule: Module {
+ 
+     // Defines event names that the module can send to JavaScript.
+     Events("installedState", "reachableState", "pairedState", "onChange", "sessionStatus",
+-           "newMessage", "newFile", "finishedFileTransfer", "applicationContext")
++           "newMessage", "newFile", "finishedFileTransfer", "finishedUserInfoTransfer", "applicationContext")
+ 
+       AsyncFunction("isPaired") {
+           return SessionSyncStruct.shared.session.isPaired
+@@ -36,12 +36,28 @@ public class ExpoWatchConnectivityModule: Module {
        }
  
        AsyncFunction("sendMessage") { (message: [String: Any]) in
@@ -46,78 +138,126 @@ index 76726f4..f2ea4c7 100644
        }
  
        AsyncFunction("getCurrentFileTransfers") {
-@@ -71,7 +79,16 @@ public class ExpoWatchConnectivityModule: Module {
+-          return SessionSyncStruct.shared.session.outstandingFileTransfers.map { transfer in
+-              return FileTransferInfo(uri: transfer.file.fileURL.absoluteString, process: transfer.progress.fractionCompleted, transferring: transfer.isTransferring, paused: transfer.progress.isPaused)
++          return SessionSyncStruct.shared.session.outstandingFileTransfers.map { transfer -> [String: Any] in
++              var info: [String: Any] = [
++                  "uri": transfer.file.fileURL.absoluteString,
++                  "process": transfer.progress.fractionCompleted,
++                  "transferring": transfer.isTransferring,
++                  "paused": transfer.progress.isPaused
++              ]
++              if let metadata = transfer.file.metadata {
++                  info["metadata"] = metadata
++              }
++              return info
+           }
+       }
+ 
+@@ -71,7 +87,32 @@ public class ExpoWatchConnectivityModule: Module {
          SessionSyncStruct.module = self
      }
  
 +    OnStartObserving("newMessage") {
-+        SessionSyncStruct.shared.startObservingMessages()
++        SessionSyncStruct.shared.startObserving("newMessage")
 +    }
 +
 +    OnStopObserving("newMessage") {
-+        SessionSyncStruct.shared.stopObservingMessages()
++        SessionSyncStruct.shared.stopObserving("newMessage")
++    }
++
++    OnStartObserving("newFile") {
++        SessionSyncStruct.shared.startObserving("newFile")
++    }
++
++    OnStopObserving("newFile") {
++        SessionSyncStruct.shared.stopObserving("newFile")
++    }
++
++    OnStartObserving("finishedUserInfoTransfer") {
++        SessionSyncStruct.shared.startObserving("finishedUserInfoTransfer")
++    }
++
++    OnStopObserving("finishedUserInfoTransfer") {
++        SessionSyncStruct.shared.stopObserving("finishedUserInfoTransfer")
 +    }
 +
      OnDestroy {
-+        SessionSyncStruct.shared.stopObservingMessages()
++        SessionSyncStruct.shared.stopObservingAll()
          SessionSyncStruct.module = nil
      }
    }
 diff --git a/node_modules/expo-watch-connectivity/ios/WatchSession.swift b/node_modules/expo-watch-connectivity/ios/WatchSession.swift
-index a97acaa..2c8782b 100644
+index a97acaa..e4b5357 100644
 --- a/node_modules/expo-watch-connectivity/ios/WatchSession.swift
 +++ b/node_modules/expo-watch-connectivity/ios/WatchSession.swift
-@@ -18,6 +18,9 @@ class WatchSession: NSObject, WCSessionDelegate {
+@@ -18,6 +18,13 @@ class WatchSession: NSObject, WCSessionDelegate {
      var session = WCSession.default
  
      var applicationContext : [String: Any] = [:]
-+    private let messageLock = NSLock()
-+    private var isObservingMessages = false
-+    private var pendingMessages: [[String: Any]] = []
++    private let eventLock = NSLock()
++    private var observedEvents = Set<String>()
++    private var pendingEvents: [String: [[String: Any]]] = [:]
++
++    static let inboxDirectoryName = "watch-inbox"
++    // Caps buffered events per name in case JS never subscribes to one of them.
++    private static let maxPendingEventsPerName = 200
  
      override init() {
          super.init()
-@@ -68,10 +71,84 @@ class WatchSession: NSObject, WCSessionDelegate {
+@@ -68,23 +75,141 @@ class WatchSession: NSObject, WCSessionDelegate {
  
      // Data updates
  
--    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
-+    func startObservingMessages() {
++    // Events that carry data are buffered until JS subscribes, so nothing is lost
++    // when the app is launched or woken by WatchConnectivity before JS is ready.
++
++    func startObserving(_ eventName: String) {
 +        while true {
-+            messageLock.lock()
-+            guard !pendingMessages.isEmpty else {
-+                isObservingMessages = true
-+                messageLock.unlock()
++            eventLock.lock()
++            let events = pendingEvents.removeValue(forKey: eventName) ?? []
++            guard !events.isEmpty else {
++                observedEvents.insert(eventName)
++                eventLock.unlock()
 +                return
 +            }
-+            let messages = pendingMessages
-+            pendingMessages.removeAll()
-+            messageLock.unlock()
++            eventLock.unlock()
 +
-+            messages.forEach { message in
-+                SessionSyncStruct.module?.sendEvent("newMessage", message)
++            events.forEach { payload in
++                SessionSyncStruct.module?.sendEvent(eventName, payload)
 +            }
 +        }
 +    }
 +
-+    func stopObservingMessages() {
-+        messageLock.lock()
-+        isObservingMessages = false
-+        messageLock.unlock()
++    func stopObserving(_ eventName: String) {
++        eventLock.lock()
++        observedEvents.remove(eventName)
++        eventLock.unlock()
 +    }
 +
-+    private func deliverMessage(_ message: [String: Any]) {
-+        messageLock.lock()
-+        guard isObservingMessages else {
-+            pendingMessages.append(message)
-+            messageLock.unlock()
++    func stopObservingAll() {
++        eventLock.lock()
++        observedEvents.removeAll()
++        eventLock.unlock()
++    }
++
++    private func deliver(_ eventName: String, _ payload: [String: Any]) {
++        eventLock.lock()
++        guard observedEvents.contains(eventName), SessionSyncStruct.module != nil else {
++            var events = pendingEvents[eventName, default: []]
++            events.append(payload)
++            if events.count > Self.maxPendingEventsPerName {
++                events.removeFirst(events.count - Self.maxPendingEventsPerName)
++            }
++            pendingEvents[eventName] = events
++            eventLock.unlock()
 +            return
 +        }
-+        messageLock.unlock()
++        eventLock.unlock()
 +
-         SessionSyncStruct.module?.sendEvent("newMessage", message)
-     }
- 
++        SessionSyncStruct.module?.sendEvent(eventName, payload)
++    }
++
 +    func sendUserInfo(_ userInfo: [String: Any]) -> Bool {
 +        guard PropertyListSerialization.propertyList(userInfo, isValidFor: .binary) else {
 +            print("WCSession rejected non-property-list user info: \(userInfo)")
@@ -133,7 +273,12 @@ index a97acaa..2c8782b 100644
 +        if session.isReachable {
 +            session.sendMessage(userInfo, replyHandler: nil) { [weak self] error in
 +                print("Immediate WCSession delivery failed, queueing user info: \(error.localizedDescription)")
-+                guard let self, self.session.activationState == .activated else {
++                guard let self else { return }
++                guard self.session.activationState == .activated else {
++                    self.deliver("finishedUserInfoTransfer", [
++                        "userInfo": userInfo,
++                        "error": error.localizedDescription
++                    ])
 +                    return
 +                }
 +                self.session.transferUserInfo(userInfo)
@@ -144,12 +289,13 @@ index a97acaa..2c8782b 100644
 +        return true
 +    }
 +
-+    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
-+        deliverMessage(message)
+     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+-        SessionSyncStruct.module?.sendEvent("newMessage", message)
++        deliver("newMessage", message)
 +    }
 +
 +    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any]) {
-+        deliverMessage(userInfo)
++        deliver("newMessage", userInfo)
 +    }
 +
 +    func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
@@ -158,16 +304,119 @@ index a97acaa..2c8782b 100644
 +        } else {
 +            print("WCSession user info transfer finished: \(userInfoTransfer.userInfo)")
 +        }
++        var payload: [String: Any] = ["userInfo": userInfoTransfer.userInfo]
++        if let error {
++            payload["error"] = error.localizedDescription
++        }
++        deliver("finishedUserInfoTransfer", payload)
+     }
+ 
+     func session(_ session: WCSession, didReceive file: WCSessionFile) {
+-        SessionSyncStruct.module?.sendEvent("newFile", [
+-            "uri": file.fileURL,
+-            "metadata": file.metadata
+-        ])
++        // WatchConnectivity deletes the received file as soon as this delegate
++        // method returns, so it has to be moved synchronously before notifying JS.
++        do {
++            let inboxURL = try Self.inboxDirectory()
++            let destinationURL = inboxURL.appendingPathComponent("\(UUID().uuidString)-\(file.fileURL.lastPathComponent)")
++            try FileManager.default.moveItem(at: file.fileURL, to: destinationURL)
++
++            var payload: [String: Any] = ["uri": destinationURL.absoluteString]
++            if let metadata = file.metadata {
++                payload["metadata"] = metadata
++            }
++            deliver("newFile", payload)
++        } catch {
++            print("Failed to move received WatchConnectivity file: \(error.localizedDescription)")
++        }
 +    }
 +
-     func session(_ session: WCSession, didReceive file: WCSessionFile) {
-         SessionSyncStruct.module?.sendEvent("newFile", [
-             "uri": file.fileURL,
++    static func inboxDirectory() throws -> URL {
++        let cachesURL = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
++        let inboxURL = cachesURL.appendingPathComponent(inboxDirectoryName, isDirectory: true)
++        try FileManager.default.createDirectory(at: inboxURL, withIntermediateDirectories: true)
++        return inboxURL
+     }
+ 
+     func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: (any Error)?) {
+-        SessionSyncStruct.module?.sendEvent("finishedFileTransfer", [
+-            "uri": fileTransfer.file.fileURL,
+-            "metadata": fileTransfer.file.metadata,
+-            "error": error?.localizedDescription
+-        ])
++        var payload: [String: Any] = ["uri": fileTransfer.file.fileURL.absoluteString]
++        if let metadata = fileTransfer.file.metadata {
++            payload["metadata"] = metadata
++        }
++        if let error {
++            payload["error"] = error.localizedDescription
++        }
++        SessionSyncStruct.module?.sendEvent("finishedFileTransfer", payload)
+     }
+ 
+     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
+diff --git a/node_modules/expo-watch-connectivity/src/ExpoWatchConnectivity.types.ts b/node_modules/expo-watch-connectivity/src/ExpoWatchConnectivity.types.ts
+index d122dc4..e120899 100644
+--- a/node_modules/expo-watch-connectivity/src/ExpoWatchConnectivity.types.ts
++++ b/node_modules/expo-watch-connectivity/src/ExpoWatchConnectivity.types.ts
+@@ -1,21 +1,36 @@
+ export type NewMessagePayload = { [key: string]: any };
+ 
++export type TransferMetadata = { [key: string]: any };
++
+ export type NewFilePayload = {
++  /**
++   * `file://` URI of the received file. The native side moves it into
++   * `Caches/watch-inbox/` before emitting, so it stays valid after the event.
++   * The receiver is responsible for deleting it once processed.
++   */
+   uri: string;
+-  metadata?: Record<string, any>;
++  metadata?: TransferMetadata;
+ };
+ 
+ export type FileTransferFinishedPayload = {
+   uri: string;
+-  metadata?: Record<string, any>;
++  metadata?: TransferMetadata;
+   error?: string;
+-}
++};
++
++export type UserInfoTransferFinishedPayload = {
++  userInfo: { [key: string]: any };
++  /** Set if the transfer failed. */
++  error?: string;
++};
+ 
+ export type FileTransferInfo = {
+   uri: string;
++  /** Fraction completed between 0 and 1. */
+   process: number;
+   transferring: boolean;
+   paused: boolean;
++  metadata?: TransferMetadata;
+ };
+ 
+ export type ApplicationContextPayload = { [key: string]: any };
 diff --git a/node_modules/expo-watch-connectivity/src/index.ts b/node_modules/expo-watch-connectivity/src/index.ts
-index a9e8990..bf97b92 100644
+index a9e8990..19fe2ec 100644
 --- a/node_modules/expo-watch-connectivity/src/index.ts
 +++ b/node_modules/expo-watch-connectivity/src/index.ts
-@@ -43,6 +43,12 @@ export async function sendMessage(message: {
+@@ -10,7 +10,9 @@ import {
+   FileTransferInfo,
+   NewFilePayload,
+   NewMessagePayload,
+-  SessionStatePayload
++  SessionStatePayload,
++  TransferMetadata,
++  UserInfoTransferFinishedPayload,
+ } from "./ExpoWatchConnectivity.types";
+ import ExpoWatchConnectivityModule from "./ExpoWatchConnectivityModule";
+ import { useEffect, useState } from "react";
+@@ -43,6 +45,12 @@ export async function sendMessage(message: {
    return ExpoWatchConnectivityModule.sendMessage(message);
  }
  
@@ -180,3 +429,30 @@ index a9e8990..bf97b92 100644
  export async function sendFile(
    fileURL: string,
    metadata: {
+@@ -77,6 +85,19 @@ export function addFileTransferFinishedListener(
+   );
+ }
+ 
++/**
++ * Called when a `transferUserInfo` call finished. Failed transfers carry `error`,
++ * including immediate deliveries that could not be queued as a fallback.
++ */
++export function addUserInfoTransferFinishedListener(
++  listener: (event: UserInfoTransferFinishedPayload) => void,
++): Subscription {
++  return emitter.addListener<UserInfoTransferFinishedPayload>(
++    "finishedUserInfoTransfer",
++    listener,
++  );
++}
++
+ export function getApplicationContext(): Promise<ApplicationContextPayload | null> {
+   return ExpoWatchConnectivityModule.getApplicationContext();
+ }
+@@ -189,4 +210,6 @@ export {
+   FileTransferInfo,
+   NewMessagePayload,
+   ApplicationContextPayload,
++  TransferMetadata,
++  UserInfoTransferFinishedPayload,
+ };

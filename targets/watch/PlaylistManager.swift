@@ -22,8 +22,9 @@ class PlaylistManager {
   func setPlaylist(_ playlist: Playlist?, videos: [Video]? = nil, shuffle: Bool = false) {
     if let p = playlist {
       self.playlist = p
-      self.videos = p.videos
-      self.playlistItems = Array(repeating: nil, count: p.videos.count)
+      let orderedVideos = p.orderedVideos
+      self.videos = orderedVideos
+      self.playlistItems = Array(repeating: nil, count: orderedVideos.count)
     } else if let v = videos {
       self.playlist = nil
       self.videos = v

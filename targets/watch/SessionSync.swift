@@ -93,6 +93,24 @@ final class SessionSync: NSObject {
     }
   }
 
+  /// Keeps a WatchConnectivity background task alive until the session is
+  /// activated and all queued content has been delivered to the delegate.
+  /// watchOS ends the background task once this returns.
+  func waitForPendingContent(timeout: Duration = .seconds(25)) async {
+    guard WCSession.isSupported() else { return }
+    let clock = ContinuousClock()
+    let deadline = clock.now.advanced(by: timeout)
+    while clock.now < deadline {
+      if session.activationState == .activated && !session.hasContentPending {
+        break
+      }
+      try? await Task.sleep(for: .milliseconds(250))
+    }
+    // Delegate callbacks dispatch their work asynchronously; give them a moment
+    // to persist before the app is suspended again.
+    try? await Task.sleep(for: .seconds(1))
+  }
+
 }
 
 extension SessionSync: WCSessionDelegate {

@@ -45,6 +45,17 @@ final class Playlist {
         self.id = id
         self.title = title
     }
+
+    /// SwiftData does not preserve the order of to-many relationships, so the
+    /// order is derived from `videoIDs`. Videos missing from `videoIDs` go last.
+    var orderedVideos: [Video] {
+        let positions = Dictionary(videoIDs.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        return videos.enumerated().sorted { lhs, rhs in
+            let lhsPosition = positions[lhs.element.id] ?? Int.max
+            let rhsPosition = positions[rhs.element.id] ?? Int.max
+            return lhsPosition == rhsPosition ? lhs.offset < rhs.offset : lhsPosition < rhsPosition
+        }.map(\.element)
+    }
 }
 
 // TODO: Not used atm?!

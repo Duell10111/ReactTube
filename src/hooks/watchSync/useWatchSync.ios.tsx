@@ -162,6 +162,7 @@ export default function useWatchSync() {
           message: t("watch.playlistFailed"),
           description: error,
         });
+        LOGGER.warn(error);
       });
   };
 
@@ -285,13 +286,8 @@ async function sendDownloadToWatch(
   checkTransfers();
 }
 
-async function checkTransfers() {
+async function checkTransfers(): Promise<FileTransferInfo[]> {
   const fileTransfers = await getCurrentFileTransfers();
   LOGGER.debug("File Transfers: ", fileTransfers);
-
-  Object.entries(fileTransfers).map(([transferId, transferInfo]) => {
-    LOGGER.debug("TransferInfo: ", transferInfo);
-  });
-  // TODO: Fix once type fixed in library
-  return fileTransfers as any as FileTransferInfo[];
+  return fileTransfers;
 }

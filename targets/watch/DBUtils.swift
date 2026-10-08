@@ -166,8 +166,10 @@ func addPlaylistData(_ modelContext: ModelContext, id: String, title: String? = 
 
       print("VideoIds found for playlist: ", videos)
 
+      // The fetch above is unordered, so derive the order from videoIds.
+      let videosById = Dictionary(videos.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
       playlist.videoIDs = ids
-      playlist.videos = videos
+      playlist.videos = ids.compactMap { videosById[$0] }
     }
 
     if let cURL = coverURL {
@@ -312,7 +314,24 @@ func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
   }
 }
 
-func deleteDownloadedVideo(id: String) {
+/// Deletes the downloaded file of a video and resets its download state, so the
+/// entry no longer claims to be playable offline. The caller is responsible for saving.
+func deleteDownloadedVideo(_ modelContext: ModelContext, id: String) {
+  deleteDownloadedVideoFile(id: id)
+  do {
+    let descriptor = FetchDescriptor<Video>(
+      predicate: #Predicate { $0.id == id }
+    )
+    for video in try modelContext.fetch(descriptor) {
+      video.downloaded = false
+      video.fileURL = nil
+    }
+  } catch {
+    print("Error resetting download state of video \(id): \(error)")
+  }
+}
+
+private func deleteDownloadedVideoFile(id: String) {
   do {
     let path = getDownloadDirectory().appendingPathComponent(id)
     if FileManager.default.fileExists(atPath: path.path()) {
@@ -337,7 +356,7 @@ func deleteDownloadedPlaylist(_ modelContext: ModelContext, playlist: Playlist) 
     do {
       let otherPlaylists = try modelContext.fetch(descriptor)
       if !otherPlaylists.isEmpty { continue }
-      if video.downloaded { deleteDownloadedVideo(id: video.id) }
+      if video.downloaded { deleteDownloadedVideoFile(id: video.id) }
       
       modelContext.delete(video)
     } catch {
