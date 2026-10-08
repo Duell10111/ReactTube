@@ -59,6 +59,8 @@ struct LibrarySnapshotVideo: Codable {
   var downloaded: Bool
   var sizeBytes: Int64?
   var coverUrl: String?
+  /// Milliseconds since 1970 when the audio file arrived on the watch.
+  var downloadedAt: Int64?
 }
 
 struct LibrarySnapshotPlaylist: Codable {

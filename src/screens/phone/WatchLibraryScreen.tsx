@@ -4,10 +4,13 @@ import {
   Alert,
   FlatList,
   ListRenderItem,
+  Pressable,
   RefreshControl,
   View,
 } from "react-native";
+import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
+import {useAppData} from "@/context/AppDataContext";
 import {useWatchLibrary} from "@/context/WatchLibraryContext";
 import {isLocalPlaylist} from "@/downloader/DBData";
 import {
@@ -17,7 +20,12 @@ import {
   getWatchLibraryCommandVideoIds,
   isWatchLibraryCommandStale,
   isWatchLibrarySnapshotOutdated,
+  normalizeWatchLibraryDownloadSort,
+  planSelectionRemoval,
+  sortWatchLibraryDownloads,
+  WATCH_LIBRARY_DOWNLOAD_SORTS,
   type LinkedPlaylistStatus,
+  type WatchLibraryDownloadSort,
   type WatchLibraryCommand,
   type WatchLibraryCommandOp,
   type WatchLibraryDownloadRow,
@@ -51,6 +59,61 @@ function rowKey(item: Row) {
   return item.kind === "transfer"
     ? item.row.key
     : `${item.kind}-${item.row.id}`;
+}
+
+const SORT_LABELS: Record<WatchLibraryDownloadSort, TranslationKey> = {
+  added: "watchLibrary.sort.added",
+  name: "watchLibrary.sort.name",
+  size: "watchLibrary.sort.size",
+};
+
+interface SwipeToRemoveProps {
+  label: string;
+  enabled: boolean;
+  onRemove: () => void;
+  children: React.ReactNode;
+}
+
+/**
+ * Swipe a row to the left to reveal a remove button. The same action stays
+ * reachable through the row's action menu, which VoiceOver can use.
+ */
+function SwipeToRemove({
+  label,
+  enabled,
+  onRemove,
+  children,
+}: SwipeToRemoveProps) {
+  const {theme} = useAppTheme();
+  return (
+    <ReanimatedSwipeable
+      enabled={enabled}
+      friction={2}
+      overshootRight={false}
+      rightThreshold={40}
+      renderRightActions={(_progress, _translation, methods) => (
+        <Pressable
+          accessibilityLabel={label}
+          accessibilityRole={"button"}
+          onPress={() => {
+            methods.close();
+            onRemove();
+          }}
+          style={{
+            backgroundColor: theme.colors.error,
+            borderRadius: theme.radii.control,
+            justifyContent: "center",
+            marginLeft: theme.spacing.xs,
+            paddingHorizontal: theme.spacing.lg,
+          }}>
+          <AppText style={{color: theme.colors.onBrand}} variant={"label"}>
+            {label}
+          </AppText>
+        </Pressable>
+      )}>
+      {children}
+    </ReanimatedSwipeable>
+  );
 }
 
 function formatSyncTime(timestamp: number, language: string) {
@@ -261,7 +324,7 @@ function PendingCommands({
 
 /** Library stored on the paired Apple Watch, managed through queued commands. */
 export function WatchLibraryScreen() {
-  const {t, language} = useTranslation();
+  const {t, language, formatDate} = useTranslation();
   const {theme} = useAppTheme();
   const {
     available,
@@ -285,9 +348,21 @@ export function WatchLibraryScreen() {
     observeFileTransfers,
     liveProgress,
   } = useWatchLibrary();
+  const {appSettings, updateSettings} = useAppData();
+  const downloadSort = normalizeWatchLibraryDownloadSort(
+    appSettings.watchLibraryDownloadSort,
+  );
   const route = useRoute<RouteProp<RootStackParamList, "WatchLibraryScreen">>();
   const [tab, setTab] = useState<Tab>(route.params?.tab ?? "downloads");
   const [now, setNow] = useState(Date.now);
+  /** Selected download ids while selection mode is active, otherwise null. */
+  const [selection, setSelection] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (tab !== "downloads") {
+      setSelection(null);
+    }
+  }, [tab]);
 
   useEffect(() => {
     requestSnapshot();
@@ -326,6 +401,14 @@ export function WatchLibraryScreen() {
     [currentSnapshot, pendingCommands, status, linkedPlaylists],
   );
 
+  const sortedDownloads = useMemo(
+    () =>
+      viewModel
+        ? sortWatchLibraryDownloads(viewModel.downloads, downloadSort, language)
+        : [],
+    [downloadSort, language, viewModel],
+  );
+
   const transferRows = useMemo(
     () => buildWatchTransferRows(fileTransfers, currentSnapshot),
     [fileTransfers, currentSnapshot],
@@ -339,14 +422,76 @@ export function WatchLibraryScreen() {
       return [];
     }
     return tab === "downloads"
-      ? viewModel.downloads.map(row => ({kind: "download", row}))
+      ? sortedDownloads.map(row => ({kind: "download", row}))
       : viewModel.playlists.map(row => ({kind: "playlist", row}));
-  }, [tab, transferRows, viewModel]);
+  }, [sortedDownloads, tab, transferRows, viewModel]);
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelection(current => {
+      const next = new Set(current ?? []);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const chooseSort = useCallback(() => {
+    Alert.alert(t("watchLibrary.sort.title"), undefined, [
+      ...WATCH_LIBRARY_DOWNLOAD_SORTS.map(sort => ({
+        text: t(SORT_LABELS[sort]),
+        onPress: () => updateSettings({watchLibraryDownloadSort: sort}),
+      })),
+      {text: t("common.cancel"), style: "cancel" as const},
+    ]);
+  }, [t, updateSettings]);
+
+  /** Deletes finished downloads and cancels running ones among the given ids. */
+  const removeDownloads = useCallback(
+    (ids: ReadonlySet<string>) => {
+      const {deleteIds, cancelIds} = planSelectionRemoval(sortedDownloads, ids);
+      if (deleteIds.length > 0) {
+        sendCommand("deleteDownload", {videoIds: deleteIds});
+      }
+      if (cancelIds.length > 0) {
+        sendCommand("cancelDownloads", {videoIds: cancelIds});
+      }
+    },
+    [sendCommand, sortedDownloads],
+  );
+
+  const confirmSelectionRemoval = useCallback(() => {
+    if (!selection || selection.size === 0) {
+      return;
+    }
+    Alert.alert(
+      t("watchLibrary.select.confirmTitle", {count: selection.size}),
+      t("watchLibrary.select.confirmMessage"),
+      [
+        {text: t("common.cancel"), style: "cancel"},
+        {
+          text: t("watchLibrary.select.delete", {count: selection.size}),
+          style: "destructive",
+          onPress: () => {
+            removeDownloads(selection);
+            setSelection(null);
+          },
+        },
+      ],
+    );
+  }, [removeDownloads, selection, t]);
 
   const showDownloadActions = useCallback(
     (row: WatchLibraryDownloadRow) => {
       const title = row.title || t("watchLibrary.untitled");
       const cancel = {text: t("common.cancel"), style: "cancel" as const};
+      // Entry to selection mode without a long press, e.g. for VoiceOver.
+      const selectMultiple = {
+        text: t("watchLibrary.action.selectMultiple"),
+        onPress: () => setSelection(new Set([row.id])),
+      };
       if (row.state === "downloaded") {
         Alert.alert(title, row.artist, [
           {
@@ -354,6 +499,7 @@ export function WatchLibraryScreen() {
             style: "destructive",
             onPress: () => sendCommand("deleteDownload", {videoIds: [row.id]}),
           },
+          selectMultiple,
           cancel,
         ]);
       } else {
@@ -374,6 +520,7 @@ export function WatchLibraryScreen() {
             style: "destructive",
             onPress: () => sendCommand("cancelDownloads", {videoIds: [row.id]}),
           },
+          selectMultiple,
           cancel,
         ]);
       }
@@ -581,25 +728,66 @@ export function WatchLibraryScreen() {
             : row.sizeBytes !== undefined
               ? formatByteSize(row.sizeBytes, language)
               : undefined;
+      const selecting = selection !== null;
+      const selected = selection?.has(row.id) ?? false;
+      const subtitle = [
+        row.artist,
+        downloadSort === "added" && row.downloadedAt
+          ? t("watchLibrary.download.added", {
+              date: formatDate(row.downloadedAt),
+            })
+          : undefined,
+      ]
+        .filter(Boolean)
+        .join(" · ");
       return (
-        <AppListItem
-          icon={
-            pendingLabel
-              ? "hourglass-empty"
-              : row.state === "downloaded"
-                ? "download-done"
-                : row.state === "downloading"
-                  ? "downloading"
-                  : "schedule"
+        <SwipeToRemove
+          enabled={!selecting}
+          label={
+            row.state === "downloaded"
+              ? t("watchLibrary.swipe.delete")
+              : t("watchLibrary.swipe.stop")
           }
-          onPress={() => showDownloadActions(row)}
-          subtitle={row.artist}
-          title={row.title || t("watchLibrary.untitled")}
-          trailingText={trailingText}
-        />
+          onRemove={() => removeDownloads(new Set([row.id]))}>
+          <AppListItem
+            icon={
+              selecting
+                ? selected
+                  ? "check-box"
+                  : "check-box-outline-blank"
+                : pendingLabel
+                  ? "hourglass-empty"
+                  : row.state === "downloaded"
+                    ? "download-done"
+                    : row.state === "downloading"
+                      ? "downloading"
+                      : "schedule"
+            }
+            onLongPress={
+              selecting ? undefined : () => setSelection(new Set([row.id]))
+            }
+            onPress={() =>
+              selecting ? toggleSelected(row.id) : showDownloadActions(row)
+            }
+            selected={selected}
+            subtitle={subtitle || undefined}
+            title={row.title || t("watchLibrary.untitled")}
+            trailingText={trailingText}
+          />
+        </SwipeToRemove>
       );
     },
-    [language, showDownloadActions, showPlaylistActions, t],
+    [
+      downloadSort,
+      formatDate,
+      language,
+      removeDownloads,
+      selection,
+      showDownloadActions,
+      showPlaylistActions,
+      t,
+      toggleSelected,
+    ],
   );
 
   if (!available) {
@@ -690,13 +878,63 @@ export function WatchLibraryScreen() {
           selected={tab === "transfers"}
         />
       </View>
-      {tab === "downloads" && hasDownloads ? (
-        <View style={{alignItems: "flex-end"}}>
+      {tab === "downloads" && selection ? (
+        <View
+          style={{
+            alignItems: "center",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: theme.spacing.sm,
+          }}>
+          <AppText
+            accessibilityLiveRegion={"polite"}
+            style={{flexGrow: 1}}
+            variant={"label"}>
+            {t("watchLibrary.select.count", {count: selection.size})}
+          </AppText>
+          <Chip
+            label={t("watchLibrary.select.all")}
+            onPress={() =>
+              setSelection(new Set(sortedDownloads.map(row => row.id)))
+            }
+          />
+          <Chip
+            label={t("watchLibrary.select.done")}
+            onPress={() => setSelection(null)}
+          />
           <AppButton
-            label={t("watchLibrary.action.clearAll")}
-            onPress={confirmClearAll}
+            disabled={selection.size === 0}
+            label={t("watchLibrary.select.delete", {count: selection.size})}
+            onPress={confirmSelectionRemoval}
             variant={"danger"}
           />
+        </View>
+      ) : tab === "downloads" && sortedDownloads.length > 0 ? (
+        <View
+          style={{
+            alignItems: "center",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: theme.spacing.sm,
+          }}>
+          <Chip
+            label={t("watchLibrary.sort.label", {
+              mode: t(SORT_LABELS[downloadSort]),
+            })}
+            onPress={chooseSort}
+          />
+          <Chip
+            label={t("watchLibrary.select.start")}
+            onPress={() => setSelection(new Set())}
+          />
+          <View style={{flexGrow: 1}} />
+          {hasDownloads ? (
+            <AppButton
+              label={t("watchLibrary.action.clearAll")}
+              onPress={confirmClearAll}
+              variant={"danger"}
+            />
+          ) : null}
         </View>
       ) : null}
     </View>

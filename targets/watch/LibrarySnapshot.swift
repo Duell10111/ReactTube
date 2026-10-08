@@ -38,7 +38,8 @@ enum LibrarySnapshotBuilder {
           durationMillis: video.durationMillis,
           downloaded: video.downloaded,
           sizeBytes: sizes[video.id],
-          coverUrl: remoteURL(video.coverURL)
+          coverUrl: remoteURL(video.coverURL),
+          downloadedAt: video.downloaded ? downloadDate(video) : nil
         )
       }
 
@@ -108,6 +109,18 @@ enum LibrarySnapshotBuilder {
       total += Int64(values.totalFileAllocatedSize ?? values.fileSize ?? 0)
     }
     return total
+  }
+
+  /// Creation date of the downloaded audio file. Derived from the file system,
+  /// so it also exists for downloads made before the date was reported.
+  private static func downloadDate(_ video: Video) -> Int64? {
+    guard let fileURL = video.fileURL, !fileURL.isEmpty else { return nil }
+    let url = getDownloadDirectory().appending(path: fileURL)
+    guard let values = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey]),
+          let date = values.creationDate ?? values.contentModificationDate else {
+      return nil
+    }
+    return Int64(date.timeIntervalSince1970 * 1000)
   }
 
   static func availableBytes() -> Int64 {

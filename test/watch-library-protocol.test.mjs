@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  normalizeWatchLibraryDownloadSort,
+  planSelectionRemoval,
+  sortWatchLibraryDownloads,
   createVideoCoverMetadata,
   getLocalCoverPath,
   getStoredDurationMillis,
@@ -888,4 +891,107 @@ test("does not list cover transfers as uploads", () => {
     null,
   );
   assert.deepEqual(rows, []);
+});
+
+const sortRows = [
+  {id: "q", title: "Queued", state: "queued"},
+  {
+    id: "z",
+    title: "zebra",
+    state: "downloaded",
+    sizeBytes: 10,
+    downloadedAt: 300,
+  },
+  {
+    id: "a",
+    title: "Apple",
+    state: "downloaded",
+    sizeBytes: 30,
+    downloadedAt: 100,
+  },
+  {id: "n", title: "Ärger", state: "downloaded"},
+  {id: "d", title: "Track 10", state: "downloading", progress: 0.5},
+  {
+    id: "t",
+    title: "Track 9",
+    state: "downloaded",
+    sizeBytes: 30,
+    downloadedAt: 200,
+  },
+];
+const ids = rows => rows.map(row => row.id);
+
+test("keeps running downloads on top and sorts finished ones", () => {
+  assert.deepEqual(ids(sortWatchLibraryDownloads(sortRows, "name", "de")), [
+    "q",
+    "d",
+    "a",
+    "n",
+    "t",
+    "z",
+  ]);
+  // Equal sizes fall back to the name, missing sizes go last.
+  assert.deepEqual(ids(sortWatchLibraryDownloads(sortRows, "size", "en")), [
+    "q",
+    "d",
+    "a",
+    "t",
+    "z",
+    "n",
+  ]);
+  assert.deepEqual(ids(sortWatchLibraryDownloads(sortRows, "added", "en")), [
+    "q",
+    "d",
+    "z",
+    "t",
+    "a",
+    "n",
+  ]);
+});
+
+test("sorts titles naturally so 9 comes before 10", () => {
+  const rows = [
+    {id: "10", title: "Track 10", state: "downloaded"},
+    {id: "9", title: "Track 9", state: "downloaded"},
+  ];
+  assert.deepEqual(ids(sortWatchLibraryDownloads(rows, "name", "en")), [
+    "9",
+    "10",
+  ]);
+});
+
+test("falls back to date added for unknown sort settings", () => {
+  assert.equal(normalizeWatchLibraryDownloadSort("size"), "size");
+  assert.equal(normalizeWatchLibraryDownloadSort("bogus"), "added");
+  assert.equal(normalizeWatchLibraryDownloadSort(undefined), "added");
+});
+
+test("deletes finished and cancels running titles of a selection", () => {
+  assert.deepEqual(
+    planSelectionRemoval(sortRows, new Set(["a", "d", "q", "missing"])),
+    {deleteIds: ["a"], cancelIds: ["q", "d"]},
+  );
+});
+
+test("reads the download date from the snapshot", () => {
+  const parsed = parseWatchLibrarySnapshot(
+    snapshot({
+      videos: [
+        {
+          id: "a",
+          title: "Alpha",
+          durationMillis: 1,
+          downloaded: true,
+          downloadedAt: 1234,
+        },
+      ],
+      activeDownloads: [],
+      pendingDownloads: [],
+      playlists: [],
+    }),
+  );
+  assert.equal(
+    buildWatchLibraryViewModel(parsed).downloads[0].downloadedAt,
+    1234,
+  );
 });
