@@ -19,11 +19,17 @@
  * **One variant, no ladder.** With SABR the server adapts; a stream carries
  * exactly the formats it requested. The codec choice therefore happens here in
  * format selection, not in the manifest.
+ *
+ * **One stream per extra audio track.** For the same reason a video with dubs
+ * would offer only one language. Every further track therefore gets its own
+ * audio-only stream; the manifest lists them all as renditions, and AVPlayer
+ * only pulls segments from the one that is selected.
  */
 import MediaServer from "../../modules/media-server";
 
 import Logger from "@/utils/Logger";
 import {Sabr, YT} from "@/utils/Youtube";
+import {pickSabrAudioFormats} from "@/utils/sabrAudioTracks";
 import {parseSabrSegmentPath} from "@/utils/sabrSegmentPath";
 
 const LOGGER = Logger.extend("PLAYBACK");
@@ -62,7 +68,8 @@ function randomToken(): string {
 }
 
 /**
- * Picks the video and audio format for the stream.
+ * Picks the video format and one audio format per audio track; the first
+ * audio format is the default track.
  *
  * mp4 is mandatory (AVPlayer plays no WebM), and the codec order matches the
  * app's own manifest: avc1 first, av01 only when allowed.
@@ -93,16 +100,7 @@ function pickFormats(info: YT.VideoInfo, options: SabrPlaybackOptions) {
   );
   const video = videos.find(format => family(format) === primary);
 
-  const audio = adaptive
-    .filter(
-      (format: any) =>
-        format.has_audio &&
-        !format.has_video &&
-        format.mime_type?.includes("mp4"),
-    )
-    .sort((a: any, b: any) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
-
-  return {video, audio};
+  return {video, audios: pickSabrAudioFormats(adaptive)};
 }
 
 function toFormatId(format: any) {
@@ -151,14 +149,19 @@ export async function startSabrPlayback(
     return undefined;
   }
 
-  const {video, audio} = pickFormats(info, options);
+  const {video, audios} = pickFormats(info, options);
+  const [audio, ...extraAudios] = audios;
 
   if (!video || !audio) {
     LOGGER.debug("SABR: keine passenden mp4-Formate für Bild und Ton");
     return undefined;
   }
 
-  let source: InstanceType<typeof Sabr.SabrSegmentSource> | undefined;
+  type SegmentSource = InstanceType<typeof Sabr.SabrSegmentSource>;
+
+  let source: SegmentSource | undefined;
+  /** Audio-only sources of the extra tracks, closed together with `source`. */
+  const extraSources: SegmentSource[] = [];
   let subscription: {remove: () => void} | undefined;
 
   try {
@@ -190,7 +193,8 @@ export async function startSabrPlayback(
       return {stream, segmentSource, formats: await segmentSource.open()};
     };
 
-    let opened = await open(options.poToken);
+    let poToken = options.poToken;
+    let opened = await open(poToken);
 
     // A token the server accepted turns the status to `ok` right away; one it
     // did not leaves it `pending`, and the stream dies at the first seek.
@@ -204,7 +208,8 @@ export async function startSabrPlayback(
         `SABR: PoToken not accepted (${opened.stream.protection_status}), minting a fresh one`,
       );
       await opened.segmentSource.close().catch(() => {});
-      opened = await open(await options.refreshPoToken());
+      poToken = await options.refreshPoToken();
+      opened = await open(poToken);
     }
 
     const {formats, segmentSource} = opened;
@@ -216,6 +221,55 @@ export async function startSabrPlayback(
       );
     }
     const index = await Sabr.buildSabrHlsIndex(segmentSource);
+    const sourceByKey = new Map<string, SegmentSource>(
+      Object.keys(index).map(key => [key, segmentSource]),
+    );
+
+    // In parallel and individually fallible: a missing dub only drops that
+    // language, it must not cost the whole stream.
+    const extraTracks = await Promise.all(
+      extraAudios.map(async extra => {
+        const extraSource = new Sabr.SabrSegmentSource(
+          new Sabr.SabrStream({
+            server_abr_streaming_url: streamingUrl,
+            ustreamer_config: ustreamerConfig,
+            client_name: options.client,
+            client_version: options.clientVersion,
+            audio_format_id: toFormatId(extra),
+            enabled_track_types: Sabr.EnabledTrackTypes.AUDIO_ONLY,
+            video_id: options.videoId,
+            po_token: poToken,
+          }),
+        );
+        extraSources.push(extraSource);
+
+        try {
+          await extraSource.open();
+          return {
+            source: extraSource,
+            index: await Sabr.buildSabrHlsIndex(extraSource),
+          };
+        } catch (error: any) {
+          LOGGER.warn(
+            `SABR: audio track ${extra.audio_track?.id ?? extra.itag} unavailable: ` +
+              `${error?.message ?? error}`,
+          );
+          return undefined;
+        }
+      }),
+    );
+
+    for (const track of extraTracks) {
+      if (!track) {
+        continue;
+      }
+      for (const [key, schedule] of Object.entries(track.index)) {
+        if (!sourceByKey.has(key)) {
+          index[key] = schedule;
+          sourceByKey.set(key, track.source);
+        }
+      }
+    }
 
     const {port} = await MediaServer.startServer();
     const token = randomToken();
@@ -247,7 +301,8 @@ export async function startSabrPlayback(
     }
 
     const segmentRoot = `${root}/${SEGMENT_SEGMENT}/`;
-    const activeSource = segmentSource;
+    const sourceFor = (formatKey: string) =>
+      sourceByKey.get(formatKey) ?? segmentSource;
     /**
      * Consecutive failures.
      *
@@ -274,12 +329,14 @@ export async function startSabrPlayback(
             }
 
             if (request.kind === "init") {
-              const data = await activeSource.getInit(request.formatKey);
+              const data = await sourceFor(request.formatKey).getInit(
+                request.formatKey,
+              );
               MediaServer.respondToSegment(requestId, data, "video/mp4");
               return;
             }
 
-            const data = await activeSource.getSegment(
+            const data = await sourceFor(request.formatKey).getSegment(
               request.formatKey,
               request.sequenceNumber,
             );
@@ -320,7 +377,9 @@ export async function startSabrPlayback(
 
     LOGGER.info(
       `SABR bereit über ${options.client}: itag ${video.itag}+${audio.itag} · ` +
-        `${formats.length} Formate · Port ${port} · ${Date.now() - started}ms`,
+        `${formats.length} Formate · ` +
+        `${1 + extraTracks.filter(Boolean).length}/${audios.length} audio tracks · ` +
+        `Port ${port} · ${Date.now() - started}ms`,
     );
 
     const activeSubscription = subscription;
@@ -331,7 +390,11 @@ export async function startSabrPlayback(
       audioItag: audio.itag,
       stop: async () => {
         activeSubscription.remove();
-        await activeSource.close();
+        await Promise.all(
+          [segmentSource, ...extraSources].map(each =>
+            each.close().catch(() => {}),
+          ),
+        );
         await MediaServer.stopServer();
       },
     };
@@ -339,6 +402,7 @@ export async function startSabrPlayback(
     LOGGER.warn(`SABR nicht möglich: ${error?.message ?? error}`);
     subscription?.remove();
     await source?.close().catch(() => {});
+    await Promise.all(extraSources.map(each => each.close().catch(() => {})));
     return undefined;
   }
 }
