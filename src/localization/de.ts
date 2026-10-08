@@ -200,6 +200,7 @@ export const de = {
   "playlist.manager.name": "Name der Playlist",
   "playlist.manager.create": "Playlist erstellen",
   "playlist.manager.add": "Playlist hinzufügen",
+  "playlist.manager.created": "Playlist erstellt",
   "playlist.manager.createError": "Playlist konnte nicht erstellt werden",
   "playlist.manager.added": "Zur Playlist hinzugefügt",
   "playlist.manager.saveError":

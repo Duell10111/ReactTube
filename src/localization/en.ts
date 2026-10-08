@@ -195,6 +195,7 @@ export const en = {
   "playlist.manager.name": "Playlist name",
   "playlist.manager.create": "Create playlist",
   "playlist.manager.add": "Add playlist",
+  "playlist.manager.created": "Playlist created",
   "playlist.manager.createError": "Could not create playlist",
   "playlist.manager.added": "Added to playlist",
   "playlist.manager.saveError": "Could not save the video to the playlist",

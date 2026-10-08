@@ -14,7 +14,7 @@ interface PlaylistManagerListProps {
 }
 
 /** Room for the floating "add playlist" footer of the sheet. */
-const footerClearance = 100;
+export const footerClearance = 100;
 
 /**
  * The sheet's playlist list. `BottomSheetFlatList`, not `FlatList`: a plain
