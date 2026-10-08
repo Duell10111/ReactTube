@@ -29,6 +29,7 @@ import {
 
 import {
   addWatchLibraryPendingCommand,
+  applyWatchPlaylistChange,
   applyWatchLibraryCommandResult,
   applyWatchLibrarySnapshot,
   createEmptyWatchLibraryCache,
@@ -40,13 +41,18 @@ import {
   parseWatchLibraryCommandResult,
   parseWatchLibrarySnapshotJSON,
   parseWatchLibraryStatus,
+  parseWatchPlaylistChanged,
+  parseWatchPlaylistDeleted,
+  removeLinkedPlaylist,
   resendWatchLibraryPendingCommand,
   WATCH_LIBRARY_COMMAND_TYPE,
   WATCH_LIBRARY_SNAPSHOT_TYPE,
   type WatchLibraryCache,
   type WatchLibraryCommand,
+  type WatchLibraryCommandOp,
   type WatchLibrarySnapshot,
 } from "@/hooks/watchSync/WatchLibraryProtocol";
+import useLinkedPlaylists from "@/hooks/watchSync/useLinkedPlaylists";
 import Logger from "@/utils/Logger";
 
 const LOGGER = Logger.extend("WATCH_LIBRARY");
@@ -89,12 +95,24 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
   const reachable = useReachable();
   const available = isSupported && installed;
 
-  const [cache, setCache] = useState<WatchLibraryCache>(loadCache);
+  const [cache, setCacheState] = useState<WatchLibraryCache>(loadCache);
   const [waitingForSnapshot, setWaitingForSnapshot] = useState(false);
   const lastRequestAtRef = useRef(0);
   const loadedCacheRef = useRef(cache);
   const cacheRef = useRef(cache);
-  cacheRef.current = cache;
+  // Updates go through the ref, so asynchronous sync steps always build on the
+  // latest state instead of the one from their render.
+  const setCache = useCallback(
+    (update: (current: WatchLibraryCache) => WatchLibraryCache) => {
+      const next = update(cacheRef.current);
+      if (next !== cacheRef.current) {
+        cacheRef.current = next;
+        setCacheState(next);
+      }
+    },
+    [],
+  );
+  const getCache = useCallback(() => cacheRef.current, []);
 
   useEffect(() => {
     // The cache file is the whole state; skip rewriting what was just loaded.
@@ -171,8 +189,8 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       });
   }, []);
 
-  const sendCommand = useCallback(
-    (op: WatchLibraryUserCommandOp, args: Record<string, unknown> = {}) => {
+  const queueCommand = useCallback(
+    (op: WatchLibraryCommandOp, args: Record<string, unknown>) => {
       if (!available) {
         return;
       }
@@ -186,8 +204,27 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       setCache(current => addWatchLibraryPendingCommand(current, command, now));
       transferCommand(command);
     },
-    [available, transferCommand],
+    [available, setCache, transferCommand],
   );
+
+  const sendCommand = useCallback(
+    (op: WatchLibraryUserCommandOp, args: Record<string, unknown> = {}) =>
+      queueCommand(op, args),
+    [queueCommand],
+  );
+
+  const {
+    linkPlaylist,
+    unlinkPlaylist,
+    setLinkedPlaylistAutoDownload,
+    syncLinkedPlaylists,
+    scheduleSync,
+  } = useLinkedPlaylists({
+    available,
+    getCache,
+    updateCache: setCache,
+    queueCommand,
+  });
 
   const retryCommand = useCallback(
     (commandId: string) => {
@@ -261,6 +298,18 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
           result.error ?? "",
         );
         setCache(current => applyWatchLibraryCommandResult(current, result));
+        return;
+      }
+      const change = parseWatchPlaylistChanged(message);
+      if (change) {
+        setCache(current => applyWatchPlaylistChange(current, change));
+        scheduleSync(change.id);
+        return;
+      }
+      const deletedId = parseWatchPlaylistDeleted(message);
+      if (deletedId) {
+        // Deleted on the watch: only the link ends, the phone playlist stays.
+        setCache(current => removeLinkedPlaylist(current, deletedId));
       }
     });
     const transferSub = addUserInfoTransferFinishedListener(event => {
@@ -308,7 +357,7 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       transferSub.remove();
       fileSub.remove();
     };
-  }, [receiveApplicationContext, receiveSnapshot]);
+  }, [receiveApplicationContext, receiveSnapshot, scheduleSync, setCache]);
 
   // Fetch a snapshot whenever the watch reports a newer revision than cached.
   useEffect(() => {
@@ -333,6 +382,11 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       sendCommand,
       retryCommand,
       discardCommand,
+      linkedPlaylists: cache.linkedPlaylists,
+      linkPlaylist,
+      unlinkPlaylist,
+      setLinkedPlaylistAutoDownload,
+      syncLinkedPlaylists,
     }),
     [
       available,
@@ -343,6 +397,10 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       sendCommand,
       retryCommand,
       discardCommand,
+      linkPlaylist,
+      unlinkPlaylist,
+      setLinkedPlaylistAutoDownload,
+      syncLinkedPlaylists,
     ],
   );
 

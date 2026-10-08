@@ -17,7 +17,6 @@ import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {useYoutubeContext} from "@/context/YoutubeContext";
 import {useVideos} from "@/downloader/DownloadDatabaseOperations";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
-import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
 import {useTranslation} from "@/localization";
 import Logger from "@/utils/Logger";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
@@ -41,9 +40,8 @@ export default function useWatchSync() {
 
   // Hook data providing hybrid data access
   const library = useMusicLibrary();
-  const playlistManager = usePlaylistManager();
-  const watchDataRef = useRef({library, playlistManager, videos});
-  watchDataRef.current = {library, playlistManager, videos};
+  const watchDataRef = useRef({library, videos});
+  watchDataRef.current = {library, videos};
 
   useEffect(() => {
     // TODO: Add check if app is installed/paired
@@ -114,7 +112,6 @@ export default function useWatchSync() {
           innertube,
           messageFromWatch.payload,
           watchDataRef.current.library,
-          watchDataRef.current.playlistManager,
         )
           .then(async response => {
             if (Array.isArray(response)) {
@@ -148,24 +145,6 @@ export default function useWatchSync() {
       });
   };
 
-  const sendPlaylist = (id: string) => {
-    sendPlaylistToWatch(id, innertube, library)
-      .then(() => {
-        showMessage({
-          type: "success",
-          message: t("watch.playlistSent"),
-        });
-      })
-      .catch(error => {
-        showMessage({
-          type: "warning",
-          message: t("watch.playlistFailed"),
-          description: error,
-        });
-        LOGGER.warn(error);
-      });
-  };
-
   useEffect(() => {
     const interval = setInterval(() => {
       // TODO: Add UI to show progress
@@ -193,7 +172,7 @@ export default function useWatchSync() {
     return () => sub.remove();
   }, [t]);
 
-  return {watchTransfers, upload, sendPlaylist};
+  return {watchTransfers, upload};
 }
 
 async function sendYTAPIMessage(response: any) {
@@ -231,25 +210,6 @@ function sanitizeWatchPayload(value: any): any {
     );
   }
   return value;
-}
-
-async function sendPlaylistToWatch(
-  id: string,
-  innertube: ReturnType<typeof useYoutubeContext>,
-  library: ReturnType<typeof useMusicLibrary>,
-) {
-  // Reuse existing code
-  await sendYTAPIMessage(
-    await handleWatchMessage(
-      innertube,
-      {
-        request: "playlist",
-        playlistId: id,
-      },
-      library,
-      {} as any, // Not needed here
-    ),
-  );
 }
 
 async function sendDownloadToWatch(

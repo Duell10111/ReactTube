@@ -3,6 +3,16 @@ import test from "node:test";
 
 import {
   addWatchLibraryPendingCommand,
+  applyWatchPlaylistChange,
+  createLinkedPlaylist,
+  createUpsertPlaylistArgs,
+  getLinkedPlaylistStatus,
+  parseWatchPlaylistChanged,
+  parseWatchPlaylistDeleted,
+  planLinkedPlaylistSync,
+  removeLinkedPlaylist,
+  setLinkedPlaylist,
+  supersedePlaylistUpserts,
   applyPendingCommands,
   applyWatchLibraryCommandResult,
   applyWatchLibrarySnapshot,
@@ -425,4 +435,273 @@ test("builds download arguments with property-list friendly metadata", () => {
     videoIds: ["b", "unknown"],
     videos: [{id: "b", durationMillis: 1000, title: "Beta"}],
   });
+});
+
+function linked(overrides = {}) {
+  return {...createLinkedPlaylist("LC-1", false), ...overrides};
+}
+
+test("sends a newly linked playlist to the watch", () => {
+  const plan = planLinkedPlaylistSync(linked(), {
+    title: "Mix",
+    videoIds: ["a", "b"],
+  });
+  assert.deepEqual(plan, {
+    desired: {title: "Mix", videoIds: ["a", "b"]},
+    phoneUpdate: null,
+    sendToWatch: true,
+  });
+});
+
+test("does nothing when phone and last sent state agree", () => {
+  const state = {title: "Mix", videoIds: ["a", "b"]};
+  const plan = planLinkedPlaylistSync(
+    linked({syncVersion: 2, sent: state, acked: state, ackedVersion: 2}),
+    state,
+  );
+  assert.equal(plan.sendToWatch, false);
+  assert.equal(plan.phoneUpdate, null);
+});
+
+test("merges a watch edit and applies it to the phone first", () => {
+  const sent = {title: "Mix", videoIds: ["a", "b", "c"]};
+  const link = linked({
+    syncVersion: 3,
+    sent,
+    acked: sent,
+    ackedVersion: 3,
+    pendingWatchChange: {
+      title: "Mix",
+      videoIds: ["a", "c", "w"],
+      baseSyncVersion: 3,
+    },
+  });
+  // The phone added "p" meanwhile.
+  const plan = planLinkedPlaylistSync(link, {
+    title: "Mix",
+    videoIds: ["a", "b", "c", "p"],
+  });
+  assert.deepEqual(plan.desired.videoIds, ["a", "c", "w", "p"]);
+  assert.deepEqual(plan.phoneUpdate, {
+    add: ["w"],
+    remove: ["b"],
+    reorder: true,
+  });
+  assert.equal(plan.sendToWatch, true);
+});
+
+test("merges a stale watch edit against the acknowledged state", () => {
+  const acked = {title: "Mix", videoIds: ["a", "b"]};
+  const sent = {title: "Mix", videoIds: ["a", "b", "p"]};
+  const link = linked({
+    syncVersion: 5,
+    sent,
+    acked,
+    ackedVersion: 4,
+    // The watch edited version 4 and never saw "p".
+    pendingWatchChange: {title: "Mix", videoIds: ["b"], baseSyncVersion: 4},
+  });
+  const plan = planLinkedPlaylistSync(link, sent);
+  assert.deepEqual(plan.desired.videoIds, ["b", "p"]);
+});
+
+test("keeps the oldest base when several watch edits queue up", () => {
+  let cache = setLinkedPlaylist(createEmptyWatchLibraryCache(), linked());
+  cache = applyWatchPlaylistChange(cache, {
+    id: "LC-1",
+    title: "Mix",
+    videoIds: ["a"],
+    baseSyncVersion: 2,
+  });
+  cache = applyWatchPlaylistChange(cache, {
+    id: "LC-1",
+    title: "Mix",
+    videoIds: ["a", "b"],
+    baseSyncVersion: 3,
+  });
+  assert.deepEqual(cache.linkedPlaylists["LC-1"].pendingWatchChange, {
+    title: "Mix",
+    videoIds: ["a", "b"],
+    baseSyncVersion: 2,
+  });
+  // Edits of unlinked playlists are ignored.
+  assert.equal(
+    applyWatchPlaylistChange(cache, {
+      id: "other",
+      title: "",
+      videoIds: [],
+      baseSyncVersion: 0,
+    }),
+    cache,
+  );
+});
+
+test("records the acknowledged state of an upsert", () => {
+  const sent = {title: "Mix", videoIds: ["a"]};
+  let cache = setLinkedPlaylist(
+    createEmptyWatchLibraryCache(),
+    linked({syncVersion: 1, sent}),
+  );
+  cache = addWatchLibraryPendingCommand(
+    cache,
+    createWatchLibraryCommand(
+      "upsertPlaylist",
+      {id: "LC-1", title: "Mix", videoIds: ["a"], syncVersion: 1},
+      "cmd-1",
+      1,
+    ),
+    1,
+  );
+  assert.equal(
+    getLinkedPlaylistStatus(
+      cache.linkedPlaylists["LC-1"],
+      cache.pendingCommands,
+    ),
+    "waitingForWatch",
+  );
+
+  cache = applyWatchLibraryCommandResult(cache, {
+    commandId: "cmd-1",
+    status: "ok",
+    revision: 0,
+  });
+  const link = cache.linkedPlaylists["LC-1"];
+  assert.deepEqual(link.acked, sent);
+  assert.equal(link.ackedVersion, 1);
+  assert.equal(getLinkedPlaylistStatus(link, cache.pendingCommands), "synced");
+});
+
+test("derives the sync status of a linked playlist", () => {
+  const state = {title: "Mix", videoIds: []};
+  const synced = linked({syncVersion: 1, sent: state, ackedVersion: 1});
+  assert.equal(getLinkedPlaylistStatus(synced, []), "synced");
+  assert.equal(
+    getLinkedPlaylistStatus(
+      {
+        ...synced,
+        pendingWatchChange: {title: "", videoIds: [], baseSyncVersion: 1},
+      },
+      [],
+    ),
+    "waitingForPhone",
+  );
+  const failedCommand = {
+    command: createWatchLibraryCommand(
+      "setPlaylistAutoDownload",
+      {id: "LC-1", enabled: true},
+      "x",
+      1,
+    ),
+    state: "failed",
+    sentAt: 1,
+  };
+  assert.equal(getLinkedPlaylistStatus(synced, [failedCommand]), "failed");
+  assert.equal(
+    getLinkedPlaylistStatus({...synced, lastError: "offline"}, []),
+    "failed",
+  );
+});
+
+test("unlinking drops pending playlist commands and newer upserts replace older", () => {
+  let cache = setLinkedPlaylist(createEmptyWatchLibraryCache(), linked());
+  cache = addWatchLibraryPendingCommand(
+    cache,
+    createWatchLibraryCommand("upsertPlaylist", {id: "LC-1"}, "u1", 1),
+    1,
+  );
+  cache = addWatchLibraryPendingCommand(
+    cache,
+    createWatchLibraryCommand("deleteDownload", {videoIds: ["a"]}, "d1", 1),
+    1,
+  );
+
+  assert.deepEqual(
+    supersedePlaylistUpserts(cache, "LC-1").pendingCommands.map(
+      pending => pending.command.commandId,
+    ),
+    ["d1"],
+  );
+  const unlinked = removeLinkedPlaylist(cache, "LC-1");
+  assert.deepEqual(unlinked.linkedPlaylists, {});
+  assert.deepEqual(
+    unlinked.pendingCommands.map(pending => pending.command.commandId),
+    ["d1"],
+  );
+});
+
+test("sends metadata only for titles the watch does not know", () => {
+  const args = createUpsertPlaylistArgs(
+    linked({autoDownload: true}),
+    {title: "Mix", videoIds: ["a", "new"]},
+    4,
+    [
+      {id: "a", title: "Alpha"},
+      {
+        id: "new",
+        title: "Fresh",
+        durationMillis: 1500.4,
+        coverUrl: "file:///local.png",
+      },
+    ],
+    parseWatchLibrarySnapshot(snapshot()),
+  );
+  assert.deepEqual(args, {
+    id: "LC-1",
+    title: "Mix",
+    videoIds: ["a", "new"],
+    videos: [{id: "new", title: "Fresh", durationMillis: 1500}],
+    autoDownload: true,
+    syncVersion: 4,
+  });
+});
+
+test("parses playlist messages from the watch", () => {
+  assert.deepEqual(
+    parseWatchPlaylistChanged({
+      type: "playlistChanged",
+      id: "LC-1",
+      title: "Mix",
+      videoIds: ["a", 1],
+      baseSyncVersion: 2,
+    }),
+    {id: "LC-1", title: "Mix", videoIds: ["a"], baseSyncVersion: 2},
+  );
+  assert.equal(parseWatchPlaylistChanged({type: "playlistChanged"}), null);
+  assert.equal(
+    parseWatchPlaylistDeleted({type: "playlistDeleted", id: "LC-1"}),
+    "LC-1",
+  );
+});
+
+test("persists linked playlists in the cache", () => {
+  const cache = setLinkedPlaylist(
+    createEmptyWatchLibraryCache(),
+    linked({
+      syncVersion: 2,
+      sent: {title: "Mix", videoIds: ["a"]},
+      pendingWatchChange: {title: "Mix", videoIds: [], baseSyncVersion: 2},
+    }),
+  );
+  const json = JSON.stringify(cache);
+  assert.equal(JSON.stringify(parseWatchLibraryCache(json)), json);
+});
+
+test("shows link status and linked playlists the watch has not reported", () => {
+  const sent = {title: "Fresh", videoIds: ["x", "y"]};
+  const viewModel = applyPendingCommands(
+    parseWatchLibrarySnapshot(snapshot()),
+    [],
+    null,
+    {
+      PL1: linked({id: "PL1", syncVersion: 1, sent, ackedVersion: 1}),
+      "LC-2": linked({id: "LC-2", syncVersion: 1, sent}),
+    },
+  );
+  assert.deepEqual(
+    viewModel.playlists.map(row => [row.id, row.linkStatus, row.videoCount]),
+    [
+      ["PL1", "synced", 2],
+      ["LC-2", "waitingForWatch", 2],
+    ],
+  );
 });

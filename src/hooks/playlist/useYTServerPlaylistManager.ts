@@ -4,6 +4,7 @@ import {YTTV} from "youtubei.js";
 import {useYoutubeTVContext} from "@/context/YoutubeContext";
 import {parseObservedArray} from "@/extraction/ArrayExtraction";
 import {ElementData} from "@/extraction/Types";
+import {notifyPlaylistChanged} from "@/hooks/playlist/playlistChangeEvents";
 import {appendUniqueById} from "@/hooks/playlist/playlistMerge";
 import Logger from "@/utils/Logger";
 import {YTNodes} from "@/utils/Youtube";
@@ -96,6 +97,7 @@ export default function useYTServerPlaylistManager() {
     LOGGER.debug(`Adding videos ${videoIds} to playlist ${playlistId}`);
     // TODO: Check if TV endpoints are working everywhere
     await youtube?.playlist?.addVideos(playlistId, videoIds, "TV");
+    notifyPlaylistChanged(playlistId);
   };
 
   const removeVideoFromPlaylist = async (
@@ -124,6 +126,21 @@ export default function useYTServerPlaylistManager() {
         `Removing from playlist failed with status ${response.status_code}`,
       );
     }
+    notifyPlaylistChanged(playlistId);
+  };
+
+  /** Moves a video directly behind `predecessorId`; YouTube has no "move to front". */
+  const moveVideo = async (
+    playlistId: string,
+    movedId: string,
+    predecessorId: string,
+  ) => {
+    playlistId = parsePlaylistID(playlistId);
+    if (!youtube?.playlist) {
+      throw new Error("No YouTube session to reorder the playlist with");
+    }
+    await youtube.playlist.moveVideo(playlistId, movedId, predecessorId);
+    notifyPlaylistChanged(playlistId);
   };
 
   const addPlaylistToLibrary = async (playlistId: string) => {
@@ -161,6 +178,7 @@ export default function useYTServerPlaylistManager() {
     createPlaylist,
     saveVideoToPlaylist,
     removeVideoFromPlaylist,
+    moveVideo,
     addPlaylistToLibrary,
     removePlaylistFromLibrary,
     executeNavEndpoint,

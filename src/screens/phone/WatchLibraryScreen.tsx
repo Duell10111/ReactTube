@@ -8,6 +8,7 @@ import {
 } from "react-native";
 
 import {useWatchLibrary} from "@/context/WatchLibraryContext";
+import {isLocalPlaylist} from "@/downloader/DBData";
 import {
   applyPendingCommands,
   createDownloadVideosArgs,
@@ -15,6 +16,7 @@ import {
   getWatchLibraryCommandVideoIds,
   isWatchLibraryCommandStale,
   isWatchLibrarySnapshotOutdated,
+  type LinkedPlaylistStatus,
   type WatchLibraryCommand,
   type WatchLibraryCommandOp,
   type WatchLibraryDownloadRow,
@@ -93,6 +95,24 @@ function StorageBar({storage}: {storage: WatchLibraryStorageSummary}) {
   );
 }
 
+function linkStatusLabel(
+  id: string,
+  status: LinkedPlaylistStatus,
+): TranslationKey {
+  switch (status) {
+    case "synced":
+      return "watchLibrary.link.status.synced";
+    case "waitingForWatch":
+      return "watchLibrary.link.status.waitingForWatch";
+    case "waitingForPhone":
+      return isLocalPlaylist(id)
+        ? "watchLibrary.link.status.waitingForPhone"
+        : "watchLibrary.link.status.waitingForYouTube";
+    default:
+      return "watchLibrary.link.status.failed";
+  }
+}
+
 const PENDING_OP_LABELS: Partial<
   Record<WatchLibraryCommandOp, TranslationKey>
 > = {
@@ -119,6 +139,12 @@ function useCommandDescription() {
           return t("watchLibrary.command.removeVideos", {count});
         case "clearAllDownloads":
           return t("watchLibrary.command.clearAllDownloads");
+        case "upsertPlaylist":
+          return t("watchLibrary.command.upsertPlaylist");
+        case "deletePlaylist":
+          return t("watchLibrary.command.deletePlaylist");
+        case "setPlaylistAutoDownload":
+          return t("watchLibrary.command.setPlaylistAutoDownload");
         default:
           return t("watchLibrary.command.other");
       }
@@ -233,13 +259,19 @@ export function WatchLibraryScreen() {
     sendCommand,
     retryCommand,
     discardCommand,
+    linkedPlaylists,
+    unlinkPlaylist,
+    setLinkedPlaylistAutoDownload,
+    syncLinkedPlaylists,
   } = useWatchLibrary();
   const [tab, setTab] = useState<Tab>("downloads");
   const [now, setNow] = useState(Date.now);
 
   useEffect(() => {
     requestSnapshot();
-  }, [requestSnapshot]);
+    // YouTube playlists never push changes; opening the screen is a sync point.
+    syncLinkedPlaylists();
+  }, [requestSnapshot, syncLinkedPlaylists]);
 
   useEffect(() => {
     // Keeps "no answer since" hints current while the screen stays open.
@@ -249,8 +281,15 @@ export function WatchLibraryScreen() {
 
   const viewModel = useMemo(
     () =>
-      snapshot ? applyPendingCommands(snapshot, pendingCommands, status) : null,
-    [snapshot, pendingCommands, status],
+      snapshot
+        ? applyPendingCommands(
+            snapshot,
+            pendingCommands,
+            status,
+            linkedPlaylists,
+          )
+        : null,
+    [snapshot, pendingCommands, status, linkedPlaylists],
   );
 
   const rows = useMemo<Row[]>(() => {
@@ -289,35 +328,84 @@ export function WatchLibraryScreen() {
     [sendCommand, t],
   );
 
+  const confirmPlaylistRemoval = useCallback(
+    (row: WatchLibraryPlaylistRow, linked: boolean) => {
+      const remove = (deleteDownloads: boolean) =>
+        linked
+          ? unlinkPlaylist(row.id, deleteDownloads)
+          : sendCommand("deletePlaylist", {id: row.id, deleteDownloads});
+      Alert.alert(
+        t("watchLibrary.unlink.title"),
+        t("watchLibrary.unlink.message"),
+        [
+          {
+            text: t("watchLibrary.unlink.keepDownloads"),
+            onPress: () => remove(false),
+          },
+          {
+            text: t("watchLibrary.unlink.deleteDownloads"),
+            style: "destructive",
+            onPress: () => remove(true),
+          },
+          {text: t("common.cancel"), style: "cancel"},
+        ],
+      );
+    },
+    [sendCommand, t, unlinkPlaylist],
+  );
+
   const showPlaylistActions = useCallback(
     (row: WatchLibraryPlaylistRow) => {
+      const link = linkedPlaylists[row.id];
       const playlist = snapshot?.playlists.find(item => item.id === row.id);
-      if (!playlist) {
-        return;
-      }
-      const downloadedIds = new Set(
-        snapshot?.videos
-          .filter(video => video.downloaded)
-          .map(video => video.id) ?? [],
-      );
-      const missing = playlist.videoIds.filter(id => !downloadedIds.has(id));
-      const downloaded = playlist.videoIds.filter(id => downloadedIds.has(id));
       const buttons: Parameters<typeof Alert.alert>[2] = [];
-      if (missing.length > 0) {
-        buttons.push({
-          text: t("watchLibrary.action.downloadPlaylist"),
-          onPress: () =>
-            sendCommand(
-              "downloadVideos",
-              createDownloadVideosArgs(missing, snapshot),
-            ),
-        });
+      if (playlist) {
+        const downloadedIds = new Set(
+          snapshot?.videos
+            .filter(video => video.downloaded)
+            .map(video => video.id) ?? [],
+        );
+        const missing = playlist.videoIds.filter(id => !downloadedIds.has(id));
+        const downloaded = playlist.videoIds.filter(id =>
+          downloadedIds.has(id),
+        );
+        if (missing.length > 0) {
+          buttons.push({
+            text: t("watchLibrary.action.downloadPlaylist"),
+            onPress: () =>
+              sendCommand(
+                "downloadVideos",
+                createDownloadVideosArgs(missing, snapshot),
+              ),
+          });
+        }
+        if (downloaded.length > 0) {
+          buttons.push({
+            text: t("watchLibrary.action.deletePlaylistDownloads"),
+            style: "destructive",
+            onPress: () =>
+              sendCommand("deleteDownload", {videoIds: downloaded}),
+          });
+        }
       }
-      if (downloaded.length > 0) {
+      if (link) {
         buttons.push({
-          text: t("watchLibrary.action.deletePlaylistDownloads"),
+          text: link.autoDownload
+            ? t("watchLibrary.link.autoDownloadOff")
+            : t("watchLibrary.link.autoDownloadOn"),
+          onPress: () =>
+            setLinkedPlaylistAutoDownload(row.id, !link.autoDownload),
+        });
+        buttons.push({
+          text: t("watchLibrary.link.remove"),
           style: "destructive",
-          onPress: () => sendCommand("deleteDownload", {videoIds: downloaded}),
+          onPress: () => confirmPlaylistRemoval(row, true),
+        });
+      } else if (playlist) {
+        buttons.push({
+          text: t("watchLibrary.action.removePlaylist"),
+          style: "destructive",
+          onPress: () => confirmPlaylistRemoval(row, false),
         });
       }
       if (buttons.length === 0) {
@@ -326,7 +414,14 @@ export function WatchLibraryScreen() {
       buttons.push({text: t("common.cancel"), style: "cancel"});
       Alert.alert(row.title || t("watchLibrary.untitled"), undefined, buttons);
     },
-    [sendCommand, snapshot, t],
+    [
+      confirmPlaylistRemoval,
+      linkedPlaylists,
+      sendCommand,
+      setLinkedPlaylistAutoDownload,
+      snapshot,
+      t,
+    ],
   );
 
   const confirmClearAll = useCallback(() => {
@@ -350,7 +445,13 @@ export function WatchLibraryScreen() {
         const {row} = item;
         return (
           <AppListItem
-            icon={row.autoDownload ? "download-for-offline" : "queue-music"}
+            icon={
+              row.linkStatus
+                ? "link"
+                : row.autoDownload
+                  ? "download-for-offline"
+                  : "queue-music"
+            }
             onPress={() => showPlaylistActions(row)}
             subtitle={[
               t("watchLibrary.playlist.summary", {
@@ -358,6 +459,7 @@ export function WatchLibraryScreen() {
                 downloaded: row.downloadedCount,
               }),
               row.autoDownload ? t("watchLibrary.playlist.autoDownload") : "",
+              row.linkStatus ? t(linkStatusLabel(row.id, row.linkStatus)) : "",
             ]
               .filter(Boolean)
               .join(" · ")}

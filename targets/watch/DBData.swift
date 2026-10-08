@@ -40,6 +40,10 @@ final class Playlist {
     var temp: Bool?
     // If set videos should be checked if downloaded
     var download: Bool = false
+    /// Linked to the playlist with the same id on the iPhone; edits flow both ways.
+    var linked: Bool = false
+    /// Version of the last state received from the iPhone for a linked playlist.
+    var syncVersion: Int = 0
 
     init(id: String, title: String? = nil) {
         self.id = id

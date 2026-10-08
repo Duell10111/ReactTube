@@ -82,12 +82,6 @@ struct LibraryPlaylistListItem: View {
     }
     .swipeActions {
       Button {
-          print("Upload to phone")
-          sendPlaylistStateToPhone(playlist)
-      } label: {
-          Label("Update Playlist to Phone", systemImage: "square.and.arrow.up")
-      }
-      Button {
           self.deletePlaylist = true
       } label: {
           Label("Delete", systemImage: "trash.fill")
@@ -108,7 +102,12 @@ struct LibraryPlaylistListItem: View {
     }.alert("Delete \(playlist.title ?? "Playlist")", isPresented: $deletePlaylist) {
       Button(role: .destructive) {
         print("Delete Playlist")
+        let id = playlist.id
+        let linked = playlist.linked
         deleteDownloadedPlaylist(modelContext, playlist: playlist)
+        if linked {
+          LibrarySync.shared.linkedPlaylistDeletedLocally(id: id)
+        }
       } label: {
         Text("DELETE")
       }

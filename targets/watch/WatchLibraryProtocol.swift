@@ -14,6 +14,10 @@ enum WatchLibraryProtocol {
   static let snapshotType = "librarySnapshot"
   static let commandType = "libraryCommand"
   static let commandResultType = "libraryCommandResult"
+  /// Watch -> phone: a linked playlist was edited on the watch.
+  static let playlistChangedType = "playlistChanged"
+  /// Watch -> phone: a linked playlist was deleted on the watch, ending the link.
+  static let playlistDeletedType = "playlistDeleted"
   /// Key of the short status inside the watch -> phone application context.
   static let statusContextKey = "libraryStatus"
 

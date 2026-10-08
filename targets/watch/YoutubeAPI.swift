@@ -91,12 +91,6 @@ func pausePlayOnPhone() {
   send(["type": "PhonePausePlay"], as: .interactive)
 }
 
-// Update from watch to phone
-
-func sendPlaylistStateToPhone(_ playlist: Playlist) {
-  sendVideoAPIMessage(message: ["request": "playlist-sync", "playlistId": playlist.id, "videoIds": playlist.videoIDs])
-}
-
 func processYoutubeAPIMessage(_ session: WCSession, message: [String: Any]) {
   print("Process Youtube API")
   if let type = message["type"] as? String {
