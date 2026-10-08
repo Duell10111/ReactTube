@@ -1,3 +1,4 @@
+import {RouteProp, useRoute} from "@react-navigation/native";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {
   Alert,
@@ -23,8 +24,13 @@ import {
   type WatchLibraryPendingCommand,
   type WatchLibraryPlaylistRow,
   type WatchLibraryStorageSummary,
+  buildWatchTransferRows,
+  splitByPhoneAvailability,
+  withLiveProgress,
+  type WatchTransferRow,
 } from "@/hooks/watchSync/WatchLibraryProtocol";
 import {type TranslationKey, useTranslation} from "@/localization";
+import type {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {
   AppButton,
   AppListItem,
@@ -34,11 +40,18 @@ import {
 } from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
 
-type Tab = "downloads" | "playlists";
+type Tab = "downloads" | "playlists" | "transfers";
 
 type Row =
   | {kind: "download"; row: WatchLibraryDownloadRow}
-  | {kind: "playlist"; row: WatchLibraryPlaylistRow};
+  | {kind: "playlist"; row: WatchLibraryPlaylistRow}
+  | {kind: "transfer"; row: WatchTransferRow};
+
+function rowKey(item: Row) {
+  return item.kind === "transfer"
+    ? item.row.key
+    : `${item.kind}-${item.row.id}`;
+}
 
 function formatSyncTime(timestamp: number, language: string) {
   const date = new Date(timestamp);
@@ -117,6 +130,7 @@ const PENDING_OP_LABELS: Partial<
   Record<WatchLibraryCommandOp, TranslationKey>
 > = {
   downloadVideos: "watchLibrary.pendingOp.downloadVideos",
+  transferVideo: "watchLibrary.pendingOp.transferVideo",
   cancelDownloads: "watchLibrary.pendingOp.cancelDownloads",
   deleteDownload: "watchLibrary.pendingOp.deleteDownload",
   removeVideos: "watchLibrary.pendingOp.removeVideos",
@@ -131,6 +145,8 @@ function useCommandDescription() {
       switch (command.op) {
         case "downloadVideos":
           return t("watchLibrary.command.downloadVideos", {count});
+        case "transferVideo":
+          return t("watchLibrary.command.transferVideo", {count});
         case "cancelDownloads":
           return t("watchLibrary.command.cancelDownloads", {count});
         case "deleteDownload":
@@ -263,8 +279,14 @@ export function WatchLibraryScreen() {
     unlinkPlaylist,
     setLinkedPlaylistAutoDownload,
     syncLinkedPlaylists,
+    phoneDownloadedIds,
+    transferVideos,
+    fileTransfers,
+    observeFileTransfers,
+    liveProgress,
   } = useWatchLibrary();
-  const [tab, setTab] = useState<Tab>("downloads");
+  const route = useRoute<RouteProp<RootStackParamList, "WatchLibraryScreen">>();
+  const [tab, setTab] = useState<Tab>(route.params?.tab ?? "downloads");
   const [now, setNow] = useState(Date.now);
 
   useEffect(() => {
@@ -279,27 +301,47 @@ export function WatchLibraryScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    // Outgoing file transfers are only polled while their tab is visible.
+    return tab === "transfers" ? observeFileTransfers() : undefined;
+  }, [observeFileTransfers, tab]);
+
+  // Live progress from a reachable watch is newer than the snapshot.
+  const currentSnapshot = useMemo(
+    () =>
+      snapshot ? withLiveProgress(snapshot, liveProgress, Date.now()) : null,
+    [snapshot, liveProgress],
+  );
+
   const viewModel = useMemo(
     () =>
-      snapshot
+      currentSnapshot
         ? applyPendingCommands(
-            snapshot,
+            currentSnapshot,
             pendingCommands,
             status,
             linkedPlaylists,
           )
         : null,
-    [snapshot, pendingCommands, status, linkedPlaylists],
+    [currentSnapshot, pendingCommands, status, linkedPlaylists],
+  );
+
+  const transferRows = useMemo(
+    () => buildWatchTransferRows(fileTransfers, currentSnapshot),
+    [fileTransfers, currentSnapshot],
   );
 
   const rows = useMemo<Row[]>(() => {
+    if (tab === "transfers") {
+      return transferRows.map(row => ({kind: "transfer", row}));
+    }
     if (!viewModel) {
       return [];
     }
     return tab === "downloads"
       ? viewModel.downloads.map(row => ({kind: "download", row}))
       : viewModel.playlists.map(row => ({kind: "playlist", row}));
-  }, [tab, viewModel]);
+  }, [tab, transferRows, viewModel]);
 
   const showDownloadActions = useCallback(
     (row: WatchLibraryDownloadRow) => {
@@ -316,6 +358,17 @@ export function WatchLibraryScreen() {
         ]);
       } else {
         Alert.alert(title, row.artist, [
+          // Already downloaded on the phone: no network needed on the watch.
+          ...(phoneDownloadedIds.has(row.id)
+            ? [
+                {
+                  text: t("watchLibrary.action.transferFromPhone"),
+                  onPress: () => {
+                    transferVideos([row.id]);
+                  },
+                },
+              ]
+            : []),
           {
             text: t("watchLibrary.action.cancelDownload"),
             style: "destructive",
@@ -325,7 +378,7 @@ export function WatchLibraryScreen() {
         ]);
       }
     },
-    [sendCommand, t],
+    [phoneDownloadedIds, sendCommand, t, transferVideos],
   );
 
   const confirmPlaylistRemoval = useCallback(
@@ -369,13 +422,28 @@ export function WatchLibraryScreen() {
         const downloaded = playlist.videoIds.filter(id =>
           downloadedIds.has(id),
         );
-        if (missing.length > 0) {
+        // Two visibly separate ways: files the phone already has, and
+        // titles the watch downloads itself over Wi-Fi/LTE.
+        const split = splitByPhoneAvailability(missing, phoneDownloadedIds);
+        if (split.transfer.length > 0) {
           buttons.push({
-            text: t("watchLibrary.action.downloadPlaylist"),
+            text: t("watchLibrary.action.transferPlaylist", {
+              count: split.transfer.length,
+            }),
+            onPress: () => {
+              transferVideos(split.transfer);
+            },
+          });
+        }
+        if (split.download.length > 0) {
+          buttons.push({
+            text: t("watchLibrary.action.downloadPlaylistOnWatch", {
+              count: split.download.length,
+            }),
             onPress: () =>
               sendCommand(
                 "downloadVideos",
-                createDownloadVideosArgs(missing, snapshot),
+                createDownloadVideosArgs(split.download, snapshot),
               ),
           });
         }
@@ -417,10 +485,12 @@ export function WatchLibraryScreen() {
     [
       confirmPlaylistRemoval,
       linkedPlaylists,
+      phoneDownloadedIds,
       sendCommand,
       setLinkedPlaylistAutoDownload,
       snapshot,
       t,
+      transferVideos,
     ],
   );
 
@@ -441,6 +511,35 @@ export function WatchLibraryScreen() {
 
   const renderItem = useCallback<ListRenderItem<Row>>(
     ({item}) => {
+      if (item.kind === "transfer") {
+        const {row} = item;
+        const percent =
+          row.progress !== undefined ? Math.round(row.progress * 100) : null;
+        return (
+          <AppListItem
+            icon={
+              row.kind === "upload"
+                ? "upload"
+                : percent !== null
+                  ? "downloading"
+                  : "schedule"
+            }
+            subtitle={
+              row.kind === "upload"
+                ? t("watchLibrary.transfer.fromPhone")
+                : t("watchLibrary.transfer.onWatch")
+            }
+            title={row.title || t("watchLibrary.untitled")}
+            trailingText={
+              row.kind === "upload" && row.paused
+                ? t("watchLibrary.transfer.paused")
+                : percent !== null
+                  ? t("watchLibrary.download.progress", {percent})
+                  : t("watchLibrary.download.queued")
+            }
+          />
+        );
+      }
       if (item.kind === "playlist") {
         const {row} = item;
         return (
@@ -562,61 +661,71 @@ export function WatchLibraryScreen() {
         onRetry={retryCommand}
         pendingCommands={pendingCommands}
       />
-      {viewModel ? (
-        <>
-          <StorageBar storage={viewModel.storage} />
-          <View
-            style={{
-              alignItems: "center",
-              flexDirection: "row",
-              gap: theme.spacing.sm,
-            }}>
-            <Chip
-              label={t("watchLibrary.tabs.downloads", {
-                count: viewModel.downloads.length,
-              })}
-              onPress={() => setTab("downloads")}
-              selected={tab === "downloads"}
-            />
-            <Chip
-              label={t("watchLibrary.tabs.playlists", {
-                count: viewModel.playlists.length,
-              })}
-              onPress={() => setTab("playlists")}
-              selected={tab === "playlists"}
-            />
-            <View style={{flex: 1}} />
-            {tab === "downloads" && hasDownloads ? (
-              <AppButton
-                label={t("watchLibrary.action.clearAll")}
-                onPress={confirmClearAll}
-                variant={"danger"}
-              />
-            ) : null}
-          </View>
-        </>
+      {viewModel ? <StorageBar storage={viewModel.storage} /> : null}
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: theme.spacing.sm,
+        }}>
+        <Chip
+          label={t("watchLibrary.tabs.downloads", {
+            count: viewModel?.downloads.length ?? 0,
+          })}
+          onPress={() => setTab("downloads")}
+          selected={tab === "downloads"}
+        />
+        <Chip
+          label={t("watchLibrary.tabs.playlists", {
+            count: viewModel?.playlists.length ?? 0,
+          })}
+          onPress={() => setTab("playlists")}
+          selected={tab === "playlists"}
+        />
+        <Chip
+          label={t("watchLibrary.tabs.transfers", {
+            count: transferRows.length,
+          })}
+          onPress={() => setTab("transfers")}
+          selected={tab === "transfers"}
+        />
+      </View>
+      {tab === "downloads" && hasDownloads ? (
+        <View style={{alignItems: "flex-end"}}>
+          <AppButton
+            label={t("watchLibrary.action.clearAll")}
+            onPress={confirmClearAll}
+            variant={"danger"}
+          />
+        </View>
       ) : null}
     </View>
   );
 
-  const emptyState = !snapshot ? (
-    <EmptyState
-      actionLabel={t("watchLibrary.refresh")}
-      message={t("watchLibrary.noSnapshot.message")}
-      onAction={requestSnapshot}
-      title={t("watchLibrary.noSnapshot.title")}
-    />
-  ) : tab === "downloads" ? (
-    <EmptyState
-      message={t("watchLibrary.downloads.empty.message")}
-      title={t("watchLibrary.downloads.empty.title")}
-    />
-  ) : (
-    <EmptyState
-      message={t("watchLibrary.playlists.empty.message")}
-      title={t("watchLibrary.playlists.empty.title")}
-    />
-  );
+  const emptyState =
+    tab === "transfers" ? (
+      <EmptyState
+        message={t("watchLibrary.transfers.empty.message")}
+        title={t("watchLibrary.transfers.empty.title")}
+      />
+    ) : !snapshot ? (
+      <EmptyState
+        actionLabel={t("watchLibrary.refresh")}
+        message={t("watchLibrary.noSnapshot.message")}
+        onAction={requestSnapshot}
+        title={t("watchLibrary.noSnapshot.title")}
+      />
+    ) : tab === "downloads" ? (
+      <EmptyState
+        message={t("watchLibrary.downloads.empty.message")}
+        title={t("watchLibrary.downloads.empty.title")}
+      />
+    ) : (
+      <EmptyState
+        message={t("watchLibrary.playlists.empty.message")}
+        title={t("watchLibrary.playlists.empty.title")}
+      />
+    );
 
   return (
     <FlatList
@@ -628,7 +737,7 @@ export function WatchLibraryScreen() {
         padding: theme.spacing.md,
       }}
       data={rows}
-      keyExtractor={item => `${item.kind}-${item.row.id}`}
+      keyExtractor={rowKey}
       refreshControl={
         <RefreshControl
           onRefresh={requestSnapshot}

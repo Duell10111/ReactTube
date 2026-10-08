@@ -18,21 +18,9 @@ import {useDatabaseMigration} from "@/downloader/DownloadDatabaseOperations";
 import {useTranslation} from "@/localization";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
-export interface WatchFileTransferInfo {
-  uri: string;
-  process: number;
-  transferring: boolean;
-  paused: boolean;
-  /** Metadata passed to `sendFile`, used to map a transfer to its video. */
-  metadata?: Record<string, unknown>;
-}
-
 interface DownloaderContextValue {
   currentDownloads: MutableRefObject<DownloadRef>;
-  // TODO: Migrate to ref as downloads as well?
-  currentUploads: WatchFileTransferInfo[];
   download: (id: string) => Promise<void>;
-  uploadToWatch: (id: string) => void;
 }
 
 // TODO: Create some placeholder functions that generate warnings
@@ -84,15 +72,14 @@ function InitializedDownloaderContext({
     }
   }, [recovered, t]);
 
-  const {watchTransfers, upload} = useWatchSync();
+  // Keeps playback state and YouTube API requests in sync with the watch.
+  useWatchSync();
 
   return (
     <downloaderContext.Provider
       value={{
         download,
         currentDownloads: downloadRefs,
-        currentUploads: watchTransfers,
-        uploadToWatch: upload,
       }}
       children={children}
     />

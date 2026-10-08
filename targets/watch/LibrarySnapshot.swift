@@ -139,6 +139,8 @@ final class LibrarySync {
   private var revisionTask: Task<Void, Never>?
   private var snapshotTask: Task<Void, Never>?
   private var playlistChangeTasks: [String: Task<Void, Never>] = [:]
+  private var progressTask: Task<Void, Never>?
+  private var lastProgressSentAt = Date.distantPast
 
   private var session: WCSession { WCSession.default }
   private var modelContext: ModelContext { DataController.shared.container.mainContext }
@@ -185,6 +187,37 @@ final class LibrarySync {
       bumpRevision()
     }
     return revision
+  }
+
+  /// Sends the progress of running downloads to the phone, at most once per
+  /// second. Only while the phone is reachable; otherwise the snapshot is enough.
+  func downloadProgressChanged() {
+    guard progressTask == nil else { return }
+    let delay = max(0, 1 - Date().timeIntervalSince(lastProgressSentAt))
+    progressTask = Task { @MainActor in
+      if delay > 0 {
+        try? await Task.sleep(for: .seconds(delay))
+      }
+      self.progressTask = nil
+      self.sendDownloadProgress()
+    }
+  }
+
+  private func sendDownloadProgress() {
+    guard WCSession.isSupported(), session.activationState == .activated, session.isReachable else { return }
+    lastProgressSentAt = Date()
+    let manager = DownloadManager.shared
+    let downloads: [[String: Any]] = manager.activeDownloads.map { download in
+      ["id": download.id, "progress": manager.progressDownloads[download.id] ?? 0]
+    }
+    session.sendMessage([
+      "type": WatchLibraryProtocol.downloadProgressType,
+      "protocolVersion": WatchLibraryProtocol.version,
+      "downloads": downloads,
+    ], replyHandler: nil) { error in
+      // Progress is best effort; the next snapshot carries the real state.
+      print("Sending download progress failed: \(error.localizedDescription)")
+    }
   }
 
   /// Reports an edit made on the watch to a linked playlist. Always sends the

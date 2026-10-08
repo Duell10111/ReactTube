@@ -16,6 +16,13 @@ export const WATCH_LIBRARY_COMMAND_TYPE = "libraryCommand";
 export const WATCH_LIBRARY_COMMAND_RESULT_TYPE = "libraryCommandResult";
 export const WATCH_LIBRARY_PLAYLIST_CHANGED_TYPE = "playlistChanged";
 export const WATCH_LIBRARY_PLAYLIST_DELETED_TYPE = "playlistDeleted";
+/** Metadata type of a downloaded video transferred to the watch as a file. */
+export const WATCH_LIBRARY_VIDEO_FILE_TYPE = "videoFile";
+/** Metadata type of the downloaded cover sent along with a video file. */
+export const WATCH_LIBRARY_VIDEO_COVER_TYPE = "videoCover";
+export const WATCH_LIBRARY_DOWNLOAD_PROGRESS_TYPE = "downloadProgress";
+/** Live progress older than this falls back to the snapshot. */
+export const WATCH_LIBRARY_LIVE_PROGRESS_MAX_AGE_MS = 5000;
 /** Key of the short status inside the watch -> phone application context. */
 export const WATCH_LIBRARY_STATUS_CONTEXT_KEY = "libraryStatus";
 
@@ -82,7 +89,12 @@ export type WatchLibraryCommandOp =
   | "upsertPlaylist"
   | "deletePlaylist"
   | "setPlaylistAutoDownload"
-  | "clearAllDownloads";
+  | "clearAllDownloads"
+  /**
+   * Not sent via transferUserInfo: tracks a file transfer of a video already
+   * downloaded on the phone; the command id travels in the file metadata.
+   */
+  | "transferVideo";
 
 const WATCH_LIBRARY_COMMAND_OPS: readonly WatchLibraryCommandOp[] = [
   "requestSnapshot",
@@ -94,6 +106,7 @@ const WATCH_LIBRARY_COMMAND_OPS: readonly WatchLibraryCommandOp[] = [
   "deletePlaylist",
   "setPlaylistAutoDownload",
   "clearAllDownloads",
+  "transferVideo",
 ];
 
 export interface WatchLibraryCommand {
@@ -840,7 +853,7 @@ export function applyPendingCommands(
     }
     for (const id of getWatchLibraryCommandVideoIds(command)) {
       const row = rowsById.get(id);
-      if (command.op === "downloadVideos") {
+      if (command.op === "downloadVideos" || command.op === "transferVideo") {
         if (!row) {
           const video = videosById.get(id);
           const metadata = metadataVideo(command, id);
@@ -1224,4 +1237,230 @@ export function supersedePlaylistUpserts(
         ),
     ),
   };
+}
+
+// File transfers and live progress
+
+export interface PhoneDownloadedVideo {
+  id: string;
+  name?: string | null;
+  author?: string | null;
+  /** Unit depends on `fileUrl`, see `getStoredDurationMillis`. */
+  duration?: number | null;
+  coverUrl?: string | null;
+  fileUrl?: string | null;
+}
+
+/**
+ * Duration of a phone database record in milliseconds. Downloaded files store
+ * milliseconds, remote-only records (playlist entries) store seconds; the same
+ * rule as `getStoredDurationSeconds` in DBData.ts.
+ */
+export function getStoredDurationMillis(
+  video: Pick<PhoneDownloadedVideo, "duration" | "fileUrl">,
+): number | undefined {
+  if (!video.duration || !Number.isFinite(video.duration)) {
+    return undefined;
+  }
+  return Math.round(video.fileUrl ? video.duration : video.duration * 1000);
+}
+
+/**
+ * Metadata of a video file sent to the watch. Only property-list values; the
+ * watch acknowledges the transfer with `commandId`.
+ */
+export function createVideoFileMetadata(
+  commandId: string,
+  video: PhoneDownloadedVideo,
+  fileExtension: string | undefined,
+): Record<string, string | number> {
+  const metadata: Record<string, string | number> = {
+    type: WATCH_LIBRARY_VIDEO_FILE_TYPE,
+    protocolVersion: WATCH_LIBRARY_PROTOCOL_VERSION,
+    commandId,
+    id: video.id,
+  };
+  if (video.name) {
+    metadata.title = video.name;
+  }
+  if (video.author) {
+    metadata.artist = video.author;
+  }
+  const durationMillis = getStoredDurationMillis(video);
+  if (durationMillis !== undefined) {
+    metadata.durationMillis = durationMillis;
+  }
+  if (video.coverUrl && /^https?:\/\//.test(video.coverUrl)) {
+    metadata.coverUrl = video.coverUrl;
+  }
+  if (fileExtension) {
+    metadata.fileExtension = fileExtension;
+  }
+  return metadata;
+}
+
+/**
+ * Path of a cover the phone downloaded next to the video, relative to the
+ * download directory; undefined for remote URLs or missing covers.
+ */
+export function getLocalCoverPath(
+  video: Pick<PhoneDownloadedVideo, "coverUrl">,
+): string | undefined {
+  const coverUrl = video.coverUrl;
+  return coverUrl && !/^[a-z]+:\/\//i.test(coverUrl) ? coverUrl : undefined;
+}
+
+/** Metadata of a cover file; covers are best effort and not acknowledged. */
+export function createVideoCoverMetadata(
+  id: string,
+  fileExtension: string | undefined,
+): Record<string, string | number> {
+  const metadata: Record<string, string | number> = {
+    type: WATCH_LIBRARY_VIDEO_COVER_TYPE,
+    protocolVersion: WATCH_LIBRARY_PROTOCOL_VERSION,
+    id,
+  };
+  if (fileExtension) {
+    metadata.fileExtension = fileExtension;
+  }
+  return metadata;
+}
+
+export function getFileExtension(path: string): string | undefined {
+  const name = path.split("/").pop() ?? "";
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? name.slice(dot + 1) : undefined;
+}
+
+export interface WatchLiveProgress {
+  /** Phone time (ms) the progress arrived. */
+  receivedAt: number;
+  downloads: WatchLibraryActiveDownload[];
+}
+
+export function parseWatchDownloadProgress(
+  message: unknown,
+): WatchLibraryActiveDownload[] | null {
+  if (
+    !isRecord(message) ||
+    message.type !== WATCH_LIBRARY_DOWNLOAD_PROGRESS_TYPE
+  ) {
+    return null;
+  }
+  return parseList(message.downloads, parseActiveDownload);
+}
+
+/** Replaces the snapshot's running downloads by fresh live progress. */
+export function withLiveProgress(
+  snapshot: WatchLibrarySnapshot,
+  live: WatchLiveProgress | null,
+  now: number,
+): WatchLibrarySnapshot {
+  if (
+    !live ||
+    now - live.receivedAt > WATCH_LIBRARY_LIVE_PROGRESS_MAX_AGE_MS ||
+    live.receivedAt < snapshot.generatedAt
+  ) {
+    return snapshot;
+  }
+  const running = new Set(live.downloads.map(download => download.id));
+  return {
+    ...snapshot,
+    activeDownloads: live.downloads,
+    pendingDownloads: snapshot.pendingDownloads.filter(id => !running.has(id)),
+  };
+}
+
+export interface PhoneFileTransfer {
+  uri: string;
+  /** Fraction completed between 0 and 1. */
+  process: number;
+  transferring: boolean;
+  paused: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export type WatchTransferRow =
+  | {
+      kind: "upload";
+      key: string;
+      id?: string;
+      title?: string;
+      progress: number;
+      paused: boolean;
+    }
+  | {
+      kind: "watchDownload";
+      key: string;
+      id: string;
+      title?: string;
+      /** Undefined while queued on the watch. */
+      progress?: number;
+    };
+
+/**
+ * Rows of the transfers tab: files the phone is sending first, then downloads
+ * the watch runs itself. Snapshot transfers are not shown.
+ */
+export function buildWatchTransferRows(
+  fileTransfers: readonly PhoneFileTransfer[],
+  snapshot: WatchLibrarySnapshot | null,
+): WatchTransferRow[] {
+  const titles = new Map(
+    (snapshot?.videos ?? []).map(video => [video.id, video.title]),
+  );
+  const uploads = fileTransfers
+    .filter(transfer => {
+      const type = transfer.metadata?.type;
+      return type === undefined || type === WATCH_LIBRARY_VIDEO_FILE_TYPE;
+    })
+    .map((transfer): WatchTransferRow => {
+      const id = optionalString(transfer.metadata?.id);
+      return {
+        kind: "upload",
+        key: `upload-${transfer.uri}`,
+        id,
+        title:
+          optionalString(transfer.metadata?.title) ??
+          (id ? titles.get(id) : undefined),
+        progress: Math.min(1, Math.max(0, transfer.process)),
+        paused: transfer.paused,
+      };
+    });
+  const downloads = [
+    ...(snapshot?.activeDownloads ?? []).map(
+      (download): WatchTransferRow => ({
+        kind: "watchDownload",
+        key: `watch-${download.id}`,
+        id: download.id,
+        title: titles.get(download.id),
+        progress: download.progress,
+      }),
+    ),
+    ...(snapshot?.pendingDownloads ?? []).map(
+      (id): WatchTransferRow => ({
+        kind: "watchDownload",
+        key: `watch-${id}`,
+        id,
+        title: titles.get(id),
+      }),
+    ),
+  ];
+  return [...uploads, ...downloads];
+}
+
+/**
+ * Splits titles missing on the watch into those the phone can transfer
+ * (downloaded there) and those the watch has to download itself.
+ */
+export function splitByPhoneAvailability(
+  videoIds: readonly string[],
+  phoneDownloadedIds: ReadonlySet<string>,
+): {transfer: string[]; download: string[]} {
+  const transfer: string[] = [];
+  const download: string[] = [];
+  videoIds.forEach(id =>
+    (phoneDownloadedIds.has(id) ? transfer : download).push(id),
+  );
+  return {transfer, download};
 }

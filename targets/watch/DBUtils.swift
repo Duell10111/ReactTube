@@ -35,11 +35,11 @@ func createDirectoryIfNotExisting(path: URL) -> Bool {
   return false
 }
 
-func saveDownloadFile(id: String, filePath: URL, fileExtension: String? = nil) -> String? {
+func saveDownloadFile(id: String, filePath: URL, fileExtension: String? = nil, fileName: String = "audio") -> String? {
   let downloadDir = getDownloadVideoDirectory(id: id)
   let created = createDirectoryIfNotExisting(path: downloadDir)
 
-  let destinationURL = downloadDir.appending(path: "/audio.\(fileExtension ?? filePath.pathExtension)")
+  let destinationURL = downloadDir.appending(path: "/\(fileName).\(fileExtension ?? filePath.pathExtension)")
 
   if created {
     do {
@@ -336,6 +336,10 @@ func deleteDownloadedVideo(_ modelContext: ModelContext, id: String) {
     for video in try modelContext.fetch(descriptor) {
       video.downloaded = false
       video.fileURL = nil
+      // A downloaded cover lived in the deleted directory as well.
+      if video.coverURL?.hasPrefix("/") == true {
+        video.coverURL = nil
+      }
     }
   } catch {
     print("Error resetting download state of video \(id): \(error)")

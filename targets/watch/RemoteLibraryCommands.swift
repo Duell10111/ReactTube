@@ -59,10 +59,66 @@ final class RemoteLibraryCommands {
       WatchLog.shared.warning("Library", "Command \(op) \(outcome.status): \(outcome.error ?? "")")
     }
 
+    await finish(commandId: commandId, outcome: outcome)
+  }
+
+  private func finish(commandId: String, outcome: Outcome) async {
     let revision = await LibrarySync.shared.flushRevision()
     remember(commandId, outcome: outcome)
     sendResult(commandId: commandId, outcome: outcome, revision: revision)
     if outcome.status == "ok" {
+      LibrarySync.shared.scheduleSnapshot()
+    }
+  }
+
+  /// Stores a video file transferred from the phone. The file was already moved
+  /// into the download directory (`savedPath`); the metadata carries the command
+  /// id the phone waits for. Transfers without command id (older phone app)
+  /// are stored without acknowledgement.
+  /// Stores a cover the phone had downloaded together with a video. Best
+  /// effort: covers are not acknowledged, the list just shows a placeholder.
+  func handleReceivedCover(id: String, savedPath: String?) {
+    guard let savedPath else {
+      WatchLog.shared.warning("Transfer", "Saving the transferred cover of \(id) failed")
+      return
+    }
+    addDownloadData(modelContext, id: id, duration: 0, coverURL: savedPath)
+    _ = save()
+  }
+
+  func handleReceivedVideoFile(metadata: [String: Any], savedPath: String?) async {
+    let commandId = metadata["commandId"] as? String
+    if let commandId, let previous = processedOutcome(commandId) {
+      sendResult(commandId: commandId, outcome: previous, revision: LibrarySync.shared.revision)
+      return
+    }
+
+    let outcome: Outcome
+    if let id = metadata["id"] as? String, let savedPath {
+      // Older phone apps sent the duration in seconds under "duration".
+      let durationMillis = metadata["durationMillis"] as? Int ?? (metadata["duration"] as? Int).map { $0 * 1000 } ?? 0
+      DownloadManager.shared.cancel(ids: [id])
+      addDownloadData(
+        modelContext,
+        id: id,
+        title: metadata["title"] as? String,
+        artist: metadata["artist"] as? String,
+        downloaded: true,
+        duration: durationMillis,
+        fileURL: savedPath
+      )
+      if let video = fetchVideo(id), video.coverURL == nil {
+        video.coverURL = metadata["coverUrl"] as? String
+      }
+      outcome = save()
+      WatchLog.shared.info("Transfer", "Received \(metadata["title"] as? String ?? id) from iPhone")
+    } else {
+      outcome = .failed("Saving the transferred file failed")
+    }
+
+    if let commandId {
+      await finish(commandId: commandId, outcome: outcome)
+    } else {
       LibrarySync.shared.scheduleSnapshot()
     }
   }

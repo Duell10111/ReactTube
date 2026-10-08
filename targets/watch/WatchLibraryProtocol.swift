@@ -18,6 +18,12 @@ enum WatchLibraryProtocol {
   static let playlistChangedType = "playlistChanged"
   /// Watch -> phone: a linked playlist was deleted on the watch, ending the link.
   static let playlistDeletedType = "playlistDeleted"
+  /// Phone -> watch file transfer metadata type for a downloaded video.
+  static let videoFileType = "videoFile"
+  /// Phone -> watch file transfer metadata type for the downloaded cover of a video.
+  static let videoCoverType = "videoCover"
+  /// Watch -> phone live progress of running downloads, only while reachable.
+  static let downloadProgressType = "downloadProgress"
   /// Key of the short status inside the watch -> phone application context.
   static let statusContextKey = "libraryStatus"
 

@@ -26,7 +26,6 @@ import LoginScreen from "@/screens/LoginScreen";
 import PlaylistScreen from "@/screens/PlaylistScreen";
 import SearchScreen from "@/screens/SearchScreen";
 import {ActiveDownloadScreen} from "@/screens/phone/ActiveDownloadScreen";
-import {ActiveUploadScreen} from "@/screens/phone/ActiveUploadScreen";
 import {MusicAlbumScreen} from "@/screens/phone/MusicAlbumScreen";
 import {MusicChannelScreen} from "@/screens/phone/MusicChannelScreen";
 import {MusicLibraryScreen} from "@/screens/phone/MusicLibraryScreen";
@@ -66,8 +65,9 @@ export type RootStackParamList = {
   VideoPlayerSubtitles: undefined;
   // Downloads
   ActiveDownloadScreen: undefined;
-  ActiveUploadScreen: undefined;
-  WatchLibraryScreen: undefined;
+  WatchLibraryScreen:
+    | {tab?: "downloads" | "playlists" | "transfers"}
+    | undefined;
   DownloadPlayer: {id: string};
   // Music Screens
   MusicPlaylistScreen: {playlistId: string};
@@ -188,11 +188,6 @@ export default function RootStackNavigator() {
             name={"ActiveDownloadScreen"}
             component={ActiveDownloadScreen}
             options={{headerTitle: t("navigation.activeDownloads")}}
-          />
-          <Stack.Screen
-            name={"ActiveUploadScreen"}
-            component={ActiveUploadScreen}
-            options={{headerTitle: t("navigation.activeUploads")}}
           />
           <Stack.Screen
             name={"WatchLibraryScreen"}

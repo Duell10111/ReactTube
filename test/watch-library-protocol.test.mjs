@@ -2,6 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  createVideoCoverMetadata,
+  getLocalCoverPath,
+  getStoredDurationMillis,
+  buildWatchTransferRows,
+  createVideoFileMetadata,
+  getFileExtension,
+  parseWatchDownloadProgress,
+  splitByPhoneAvailability,
+  withLiveProgress,
   addWatchLibraryPendingCommand,
   applyWatchPlaylistChange,
   createLinkedPlaylist,
@@ -704,4 +713,179 @@ test("shows link status and linked playlists the watch has not reported", () => 
       ["LC-2", "waitingForWatch", 2],
     ],
   );
+});
+
+test("creates property-list metadata for a video file transfer", () => {
+  assert.deepEqual(
+    createVideoFileMetadata(
+      "cmd-9",
+      {
+        id: "a",
+        name: "Alpha",
+        author: null,
+        // Downloaded files store milliseconds.
+        duration: 181500,
+        coverUrl: "file:///covers/a.png",
+        fileUrl: "a/audio.m4a",
+      },
+      "m4a",
+    ),
+    {
+      type: "videoFile",
+      protocolVersion: 1,
+      commandId: "cmd-9",
+      id: "a",
+      title: "Alpha",
+      durationMillis: 181500,
+      fileExtension: "m4a",
+    },
+  );
+  assert.equal(getFileExtension("a/video.mp4"), "mp4");
+  assert.equal(getFileExtension("a/video"), undefined);
+  assert.equal(getFileExtension(".hidden"), undefined);
+});
+
+test("prefers fresh live progress over the snapshot", () => {
+  const base = parseWatchLibrarySnapshot(snapshot({generatedAt: 1000}));
+  const live = {
+    receivedAt: 2000,
+    downloads: [
+      {id: "b", progress: 0.9},
+      {id: "c", progress: 0.1},
+    ],
+  };
+
+  const updated = withLiveProgress(base, live, 3000);
+  assert.deepEqual(updated.activeDownloads, live.downloads);
+  // "c" started running, so it is no longer queued.
+  assert.deepEqual(updated.pendingDownloads, []);
+
+  assert.equal(withLiveProgress(base, live, 2000 + 6000), base);
+  assert.equal(withLiveProgress(base, {...live, receivedAt: 500}, 600), base);
+  assert.equal(withLiveProgress(base, null, 3000), base);
+});
+
+test("parses live download progress from the watch", () => {
+  assert.deepEqual(
+    parseWatchDownloadProgress({
+      type: "downloadProgress",
+      downloads: [{id: "a", progress: 0.5}, {progress: 1}],
+    }),
+    [{id: "a", progress: 0.5}],
+  );
+  assert.equal(parseWatchDownloadProgress({type: "other"}), null);
+});
+
+test("lists phone uploads before downloads on the watch", () => {
+  const rows = buildWatchTransferRows(
+    [
+      {
+        uri: "file:///a.mp4",
+        process: 0.25,
+        transferring: true,
+        paused: false,
+        metadata: {type: "videoFile", id: "a"},
+      },
+      {
+        uri: "file:///snapshot.json",
+        process: 0,
+        transferring: true,
+        paused: false,
+        metadata: {type: "librarySnapshot"},
+      },
+    ],
+    parseWatchLibrarySnapshot(snapshot()),
+  );
+  assert.deepEqual(rows, [
+    {
+      kind: "upload",
+      key: "upload-file:///a.mp4",
+      id: "a",
+      title: "Alpha",
+      progress: 0.25,
+      paused: false,
+    },
+    {
+      kind: "watchDownload",
+      key: "watch-b",
+      id: "b",
+      title: "Beta",
+      progress: 0.4,
+    },
+    {kind: "watchDownload", key: "watch-c", id: "c", title: "Gamma"},
+  ]);
+});
+
+test("splits missing titles by availability on the phone", () => {
+  assert.deepEqual(splitByPhoneAvailability(["a", "b", "c"], new Set(["b"])), {
+    transfer: ["b"],
+    download: ["a", "c"],
+  });
+});
+
+test("shows pending file transfers as queued rows", () => {
+  const viewModel = applyPendingCommands(
+    parseWatchLibrarySnapshot(snapshot()),
+    [
+      {
+        command: createWatchLibraryCommand(
+          "transferVideo",
+          {videoIds: ["new"]},
+          "t1",
+          1,
+        ),
+        state: "pending",
+        sentAt: 1,
+      },
+    ],
+  );
+  const row = viewModel.downloads.find(item => item.id === "new");
+  assert.equal(row?.state, "queued");
+  assert.equal(row?.pendingOp, "transferVideo");
+});
+
+test("reads stored durations in the unit of their record", () => {
+  // A downloaded 3 minute song must not become 50 hours on the watch.
+  assert.equal(
+    getStoredDurationMillis({duration: 180000, fileUrl: "a/audio.m4a"}),
+    180000,
+  );
+  assert.equal(getStoredDurationMillis({duration: 180, fileUrl: null}), 180000);
+  assert.equal(
+    getStoredDurationMillis({duration: 0, fileUrl: null}),
+    undefined,
+  );
+  assert.equal(getStoredDurationMillis({duration: null}), undefined);
+});
+
+test("sends downloaded covers as files and keeps remote ones as URLs", () => {
+  assert.equal(getLocalCoverPath({coverUrl: "a/cover.jpg"}), "a/cover.jpg");
+  assert.equal(
+    getLocalCoverPath({coverUrl: "https://i.ytimg.com/vi/a/hq.jpg"}),
+    undefined,
+  );
+  assert.equal(getLocalCoverPath({coverUrl: "file:///x.jpg"}), undefined);
+  assert.equal(getLocalCoverPath({coverUrl: null}), undefined);
+  assert.deepEqual(createVideoCoverMetadata("a", "jpg"), {
+    type: "videoCover",
+    protocolVersion: 1,
+    id: "a",
+    fileExtension: "jpg",
+  });
+});
+
+test("does not list cover transfers as uploads", () => {
+  const rows = buildWatchTransferRows(
+    [
+      {
+        uri: "file:///cover.jpg",
+        process: 0.5,
+        transferring: true,
+        paused: false,
+        metadata: {type: "videoCover", id: "a"},
+      },
+    ],
+    null,
+  );
+  assert.deepEqual(rows, []);
 });

@@ -3,21 +3,22 @@ import {useState} from "react";
 import {StyleSheet, View} from "react-native";
 import {IconButton, Menu} from "react-native-paper";
 
-import {useDownloaderContext} from "@/context/DownloaderContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {useWatchLibrary} from "@/context/WatchLibraryContext";
 import {deleteVideo} from "@/downloader/DBData";
 import {ElementData} from "@/extraction/Types";
 import {useTranslation} from "@/localization";
 import {NativeStackProp} from "@/navigation/types";
 import {MediaRow} from "@/ui/patterns";
 import {useAppTheme} from "@/ui/theme";
+import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 interface DownloadListItemProps {
   data: ElementData;
 }
 
 export function DownloadListItem({data}: DownloadListItemProps) {
-  const {uploadToWatch} = useDownloaderContext();
+  const {available: watchAvailable, transferVideos} = useWatchLibrary();
   const {setCurrentItem} = useMusikPlayerContext();
   const navigation = useNavigation<NativeStackProp>();
   const [showMenu, setShowMenu] = useState(false);
@@ -51,14 +52,21 @@ export function DownloadListItem({data}: DownloadListItemProps) {
               onPress={() => setShowMenu(true)}
             />
           }>
-          <Menu.Item
-            onPress={() => {
-              setShowMenu(false);
-              uploadToWatch(data.id);
-            }}
-            title={t("downloads.upload")}
-            leadingIcon={"upload"}
-          />
+          {watchAvailable ? (
+            <Menu.Item
+              onPress={() => {
+                setShowMenu(false);
+                const started = transferVideos([data.id]);
+                showMessage(
+                  started > 0
+                    ? {type: "success", message: t("watch.uploadStarted")}
+                    : {type: "warning", message: t("watch.uploadFailed")},
+                );
+              }}
+              title={t("downloads.upload")}
+              leadingIcon={"upload"}
+            />
+          ) : null}
           <Menu.Item
             onPress={() => {
               setShowMenu(false);
