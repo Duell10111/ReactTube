@@ -17,7 +17,7 @@ enum LibrarySnapshotBuilder {
     let videos = try modelContext.fetch(FetchDescriptor<Video>())
     let sizes = downloadSizes()
 
-    let pendingIds = Set(downloadManager.pendingDownloads.map(\.id))
+    let pendingIds = Set(downloadManager.pendingDownloads.map(\.id)).union(downloadManager.awaitingMetadata)
     let activeIds = Set(downloadManager.activeDownloads.map(\.id))
     // Home feed entries (temp) are a cache, not part of the user's library.
     let libraryPlaylists = playlists.filter { $0.temp != true }
@@ -138,6 +138,7 @@ final class LibrarySync {
   private let defaults = UserDefaults.standard
   private var saveObserver: NSObjectProtocol?
   private var revisionTask: Task<Void, Never>?
+  private var snapshotTask: Task<Void, Never>?
 
   private var session: WCSession { WCSession.default }
   private var modelContext: ModelContext { DataController.shared.container.mainContext }
@@ -162,8 +163,38 @@ final class LibrarySync {
     revisionTask = Task { @MainActor in
       try? await Task.sleep(for: .seconds(2))
       guard !Task.isCancelled else { return }
-      self.defaults.set(self.revision + 1, forKey: Key.revision)
-      self.publishStatus()
+      self.revisionTask = nil
+      self.bumpRevision()
+    }
+  }
+
+  private func bumpRevision() {
+    defaults.set(revision + 1, forKey: Key.revision)
+    publishStatus()
+  }
+
+  /// Commits a pending debounced revision immediately and returns the current
+  /// revision. Command results report it, so the phone can tell which snapshot
+  /// already contains the change.
+  func flushRevision() async -> Int {
+    // didSave notifications are delivered through the main queue; let them arrive first.
+    try? await Task.sleep(for: .milliseconds(100))
+    if let revisionTask {
+      revisionTask.cancel()
+      self.revisionTask = nil
+      bumpRevision()
+    }
+    return revision
+  }
+
+  /// Sends a snapshot shortly after a change; bursts of commands produce one snapshot.
+  func scheduleSnapshot() {
+    snapshotTask?.cancel()
+    snapshotTask = Task { @MainActor in
+      try? await Task.sleep(for: .milliseconds(500))
+      guard !Task.isCancelled else { return }
+      self.snapshotTask = nil
+      self.sendSnapshot()
     }
   }
 
@@ -260,45 +291,5 @@ final class LibrarySync {
     for file in files where !outstanding.contains(file.standardizedFileURL) {
       try? FileManager.default.removeItem(at: file)
     }
-  }
-
-  // MARK: Commands
-
-  /// Minimal command entry point. Only `requestSnapshot` is handled for now;
-  /// every other operation is acknowledged as `unsupported`.
-  func handleCommand(_ message: [String: Any]) {
-    guard let commandId = message["commandId"] as? String else {
-      WatchLog.shared.warning("Library", "Library command without commandId ignored")
-      return
-    }
-    let protocolVersion = message["protocolVersion"] as? Int ?? 0
-    let op = message["op"] as? String
-
-    if protocolVersion > WatchLibraryProtocol.version {
-      sendCommandResult(commandId: commandId, status: "unsupported", error: "Unsupported protocol version \(protocolVersion)")
-      return
-    }
-
-    switch op {
-    case "requestSnapshot":
-      sendSnapshot()
-      sendCommandResult(commandId: commandId, status: "ok")
-    default:
-      sendCommandResult(commandId: commandId, status: "unsupported", error: "Unsupported operation \(op ?? "nil")")
-    }
-  }
-
-  private func sendCommandResult(commandId: String, status: String, error: String? = nil) {
-    var result: [String: Any] = [
-      "type": WatchLibraryProtocol.commandResultType,
-      "protocolVersion": WatchLibraryProtocol.version,
-      "commandId": commandId,
-      "status": status,
-      "revision": revision,
-    ]
-    if let error {
-      result["error"] = error
-    }
-    send(result, as: .guaranteed)
   }
 }

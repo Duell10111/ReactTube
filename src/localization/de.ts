@@ -2,6 +2,7 @@ import type {TranslationKey} from "./en";
 
 export const de = {
   "common.retry": "Erneut versuchen",
+  "common.cancel": "Abbrechen",
   "common.continue": "Weiter",
   "common.close": "Schließen",
   "common.back": "Zurück",
@@ -256,6 +257,37 @@ export const de = {
   "watchLibrary.unavailable.title": "Watch-App nicht installiert",
   "watchLibrary.unavailable.message":
     "Installiere ReactTube auf deiner Apple Watch, um sie von hier aus zu verwalten.",
+  "watchLibrary.action.deleteDownload": "Von der Uhr löschen",
+  "watchLibrary.action.cancelDownload": "Download abbrechen",
+  "watchLibrary.action.downloadPlaylist": "Alle Titel auf der Uhr laden",
+  "watchLibrary.action.deletePlaylistDownloads":
+    "Downloads dieser Playlist löschen",
+  "watchLibrary.action.clearAll": "Alle löschen",
+  "watchLibrary.clearAll.title": "Alle Downloads auf der Uhr löschen?",
+  "watchLibrary.clearAll.message":
+    "Playlists bleiben auf der Uhr. Titel können später erneut geladen werden.",
+  "watchLibrary.pendingOp.downloadVideos": "Download ausstehend",
+  "watchLibrary.pendingOp.cancelDownloads": "Abbruch ausstehend",
+  "watchLibrary.pendingOp.deleteDownload": "Löschen ausstehend",
+  "watchLibrary.pendingOp.removeVideos": "Entfernen ausstehend",
+  "watchLibrary.pending.title": "Ausstehende Änderungen",
+  "watchLibrary.command.downloadVideos": "{count} Titel auf der Uhr laden",
+  "watchLibrary.command.cancelDownloads": "{count} Downloads abbrechen",
+  "watchLibrary.command.deleteDownload": "{count} Downloads löschen",
+  "watchLibrary.command.removeVideos": "{count} Titel entfernen",
+  "watchLibrary.command.clearAllDownloads": "Alle Downloads löschen",
+  "watchLibrary.command.other": "Bestand der Uhr ändern",
+  "watchLibrary.state.pending":
+    "Wird ausgeführt, sobald die Watch-App aktiv ist · gesendet {time}",
+  "watchLibrary.state.stale":
+    "Keine Antwort der Uhr seit {time}. Öffne ReactTube auf deiner Uhr.",
+  "watchLibrary.state.applied": "Erledigt · warte auf Aktualisierung der Uhr",
+  "watchLibrary.state.failed": "Fehlgeschlagen",
+  "watchLibrary.state.failedWithReason": "Fehlgeschlagen: {reason}",
+  "watchLibrary.state.unsupported":
+    "Die Watch-App unterstützt das noch nicht. Bitte aktualisiere sie.",
+  "watchLibrary.retry": "Erneut senden",
+  "watchLibrary.discard": "Verwerfen",
   "sponsorBlock.skipping": "{category} wird übersprungen",
   "menu.channel": "Kanal öffnen",
   "search.empty.title": "YouTube durchsuchen",

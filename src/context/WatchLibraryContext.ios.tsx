@@ -3,6 +3,7 @@ import {
   addApplicationContextListener,
   addFileListener,
   addMessageListener,
+  addUserInfoTransferFinishedListener,
   getReceivedApplicationContext,
   isSupported,
   transferUserInfo,
@@ -23,19 +24,27 @@ import Crypto from "react-native-quick-crypto";
 import {
   unavailableWatchLibrary,
   type WatchLibraryContextValue,
+  type WatchLibraryUserCommandOp,
 } from "./watchLibraryTypes";
 
 import {
+  addWatchLibraryPendingCommand,
+  applyWatchLibraryCommandResult,
   applyWatchLibrarySnapshot,
   createEmptyWatchLibraryCache,
   createWatchLibraryCommand,
+  discardWatchLibraryPendingCommand,
   isWatchLibrarySnapshotOutdated,
+  markWatchLibraryCommandFailed,
   parseWatchLibraryCache,
   parseWatchLibraryCommandResult,
   parseWatchLibrarySnapshotJSON,
   parseWatchLibraryStatus,
+  resendWatchLibraryPendingCommand,
+  WATCH_LIBRARY_COMMAND_TYPE,
   WATCH_LIBRARY_SNAPSHOT_TYPE,
   type WatchLibraryCache,
+  type WatchLibraryCommand,
   type WatchLibrarySnapshot,
 } from "@/hooks/watchSync/WatchLibraryProtocol";
 import Logger from "@/utils/Logger";
@@ -84,6 +93,8 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
   const [waitingForSnapshot, setWaitingForSnapshot] = useState(false);
   const lastRequestAtRef = useRef(0);
   const loadedCacheRef = useRef(cache);
+  const cacheRef = useRef(cache);
+  cacheRef.current = cache;
 
   useEffect(() => {
     // The cache file is the whole state; skip rewriting what was just loaded.
@@ -135,6 +146,75 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       });
   }, []);
 
+  const transferCommand = useCallback((command: WatchLibraryCommand) => {
+    // Queued via transferUserInfo, so it survives until the watch app wakes up.
+    transferUserInfo(command)
+      .then(queued => {
+        if (!queued) {
+          setCache(current =>
+            markWatchLibraryCommandFailed(
+              current,
+              command.commandId,
+              "WatchConnectivity session is not active",
+            ),
+          );
+        }
+      })
+      .catch(error => {
+        setCache(current =>
+          markWatchLibraryCommandFailed(
+            current,
+            command.commandId,
+            String(error),
+          ),
+        );
+      });
+  }, []);
+
+  const sendCommand = useCallback(
+    (op: WatchLibraryUserCommandOp, args: Record<string, unknown> = {}) => {
+      if (!available) {
+        return;
+      }
+      const now = Date.now();
+      const command = createWatchLibraryCommand(
+        op,
+        args,
+        Crypto.randomUUID(),
+        now,
+      );
+      setCache(current => addWatchLibraryPendingCommand(current, command, now));
+      transferCommand(command);
+    },
+    [available, transferCommand],
+  );
+
+  const retryCommand = useCallback(
+    (commandId: string) => {
+      const pending = cacheRef.current.pendingCommands.find(
+        item => item.command.commandId === commandId,
+      );
+      if (!available || !pending) {
+        return;
+      }
+      const now = Date.now();
+      const newCommandId = Crypto.randomUUID();
+      setCache(current =>
+        resendWatchLibraryPendingCommand(current, commandId, newCommandId, now),
+      );
+      transferCommand({
+        ...pending.command,
+        commandId: newCommandId,
+        issuedAt: now,
+      });
+    },
+    [available, transferCommand],
+  );
+
+  const discardCommand = useCallback((commandId: string) => {
+    setCache(current => discardWatchLibraryPendingCommand(current, commandId));
+  }, []);
+
   const requestSnapshot = useCallback(() => {
     if (available) {
       sendSnapshotRequest(true);
@@ -176,10 +256,22 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       }
       const result = parseWatchLibraryCommandResult(message);
       if (result) {
-        // Pending commands are tracked once the watch accepts more than snapshot requests.
         LOGGER.debug(
           `Watch library command ${result.commandId}: ${result.status}`,
           result.error ?? "",
+        );
+        setCache(current => applyWatchLibraryCommandResult(current, result));
+      }
+    });
+    const transferSub = addUserInfoTransferFinishedListener(event => {
+      const {userInfo, error} = event;
+      if (
+        error &&
+        userInfo.type === WATCH_LIBRARY_COMMAND_TYPE &&
+        typeof userInfo.commandId === "string"
+      ) {
+        setCache(current =>
+          markWatchLibraryCommandFailed(current, userInfo.commandId, error),
         );
       }
     });
@@ -213,6 +305,7 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
     return () => {
       contextSub.remove();
       messageSub.remove();
+      transferSub.remove();
       fileSub.remove();
     };
   }, [receiveApplicationContext, receiveSnapshot]);
@@ -236,8 +329,21 @@ export function WatchLibraryProvider({children}: {children: React.ReactNode}) {
       lastSyncAt: cache.lastSyncAt,
       waitingForSnapshot,
       requestSnapshot,
+      pendingCommands: cache.pendingCommands,
+      sendCommand,
+      retryCommand,
+      discardCommand,
     }),
-    [available, reachable, cache, waitingForSnapshot, requestSnapshot],
+    [
+      available,
+      reachable,
+      cache,
+      waitingForSnapshot,
+      requestSnapshot,
+      sendCommand,
+      retryCommand,
+      discardCommand,
+    ],
   );
 
   return (

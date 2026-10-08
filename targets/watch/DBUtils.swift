@@ -401,7 +401,7 @@ func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
 
 func clearDownloads(modelContext: ModelContext) {
   do {
-    SDDownloadManager.shared.cancelAllDownloads()
+    DownloadManager.shared.cancelAll()
     if FileManager.default.fileExists(atPath: getDownloadDirectory().path()) {
       try FileManager.default.removeItem(at: getDownloadDirectory())
     }

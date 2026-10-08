@@ -7,6 +7,7 @@
 
 import Foundation
 import SDDownloadManager
+import SwiftData
 
 @Observable
 class DownloadManager {
@@ -16,8 +17,57 @@ class DownloadManager {
   var progressDownloads: [String: Double] = [:]
 
   var pendingDownloads: Set<Video> = []
+  /// Video ids waiting for fresh stream metadata from the phone before they can be downloaded.
+  var awaitingMetadata: Set<String> = []
+  /// SDDownloadManager keys of running audio downloads, needed to cancel them.
+  private var downloadKeys: [String: String] = [:]
 
-  // TODO: Add function to download Playlist?
+  /// Queues a download. Videos without a valid download URL request fresh
+  /// metadata first; `videoMetadataUpdated` continues once it arrives.
+  func enqueue(_ video: Video) {
+    guard !video.downloaded, !activeDownloads.contains(where: { $0.id == video.id }) else { return }
+    if video.downloadURL != nil, let validUntil = video.validUntil, validUntil > Date() {
+      pendingDownloads.insert(video)
+    } else {
+      awaitingMetadata.insert(video.id)
+      requestVideo(id: video.id)
+    }
+  }
+
+  @MainActor
+  func videoMetadataUpdated(id: String) {
+    guard awaitingMetadata.remove(id) != nil else { return }
+    let descriptor = FetchDescriptor<Video>(predicate: #Predicate { $0.id == id })
+    if let video = try? DataController.shared.container.mainContext.fetch(descriptor).first, !video.downloaded {
+      pendingDownloads.insert(video)
+      checkDownloads()
+    }
+  }
+
+  /// Removes the videos from all queues and cancels running downloads.
+  func cancel(ids: Set<String>) {
+    pendingDownloads = pendingDownloads.filter { !ids.contains($0.id) }
+    awaitingMetadata.subtract(ids)
+    for id in ids {
+      // SDDownloadManager drops the completion block of a cancelled task, so the
+      // bookkeeping normally done there has to happen here.
+      if let key = downloadKeys.removeValue(forKey: id) {
+        SDDownloadManager.shared.cancelDownload(forUniqueKey: key)
+      }
+      progressDownloads.removeValue(forKey: id)
+    }
+    activeDownloads.removeAll { ids.contains($0.id) }
+    checkDownloads()
+  }
+
+  func cancelAll() {
+    SDDownloadManager.shared.cancelAllDownloads()
+    pendingDownloads.removeAll()
+    awaitingMetadata.removeAll()
+    downloadKeys.removeAll()
+    progressDownloads.removeAll()
+    activeDownloads.removeAll()
+  }
 
   func downloadPlaylist(_ playlist: Playlist) {
     print("Downloading playlist \(playlist.id)")
@@ -37,7 +87,7 @@ class DownloadManager {
     if let streamURL = video.downloadURL, video.validUntil != nil, let uri = URL(string: streamURL) {
       WatchLog.shared.info("Download", "Started: \(video.title ?? video.id)")
       let request = URLRequest(url: uri)
-      _ = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
+      let key = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
         print("Progrss: \(progress)")
         self.progressDownloads[video.id] = Double(progress)
       }) { error, fileUrl in
@@ -60,9 +110,13 @@ class DownloadManager {
           download.id == video.id
         }
         self.progressDownloads.removeValue(forKey: video.id)
+        self.downloadKeys.removeValue(forKey: video.id)
         // Keep draining the queue even when the video has no cover or the
         // optional cover download fails.
         self.checkDownloads()
+      }
+      if let key {
+        downloadKeys[video.id] = key
       }
       activeDownloads.append(ActiveDownload(id: video.id))
       didStartAudioDownload = true

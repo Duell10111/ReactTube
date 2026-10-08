@@ -80,6 +80,18 @@ export type WatchLibraryCommandOp =
   | "setPlaylistAutoDownload"
   | "clearAllDownloads";
 
+const WATCH_LIBRARY_COMMAND_OPS: readonly WatchLibraryCommandOp[] = [
+  "requestSnapshot",
+  "downloadVideos",
+  "cancelDownloads",
+  "deleteDownload",
+  "removeVideos",
+  "upsertPlaylist",
+  "deletePlaylist",
+  "setPlaylistAutoDownload",
+  "clearAllDownloads",
+];
+
 export interface WatchLibraryCommand {
   type: typeof WATCH_LIBRARY_COMMAND_TYPE;
   protocolVersion: number;
@@ -96,6 +108,28 @@ export interface WatchLibraryCommandResult {
   revision: number;
 }
 
+/**
+ * - `pending`: sent, the watch has not acknowledged it yet.
+ * - `applied`: acknowledged, but no snapshot containing the change has arrived.
+ * - `failed`: the watch rejected it or the transfer failed.
+ */
+export type WatchLibraryPendingState = "pending" | "applied" | "failed";
+
+export interface WatchLibraryPendingCommand {
+  command: WatchLibraryCommand;
+  state: WatchLibraryPendingState;
+  /** Phone time (ms) of the last send. */
+  sentAt: number;
+  /** Revision containing the change, known once acknowledged. */
+  revision?: number;
+  error?: string;
+  /** Set if the watch app does not know the operation (outdated watch app). */
+  unsupported?: boolean;
+}
+
+/** After this long without an acknowledgement the UI suggests opening the watch app. */
+export const WATCH_LIBRARY_COMMAND_STALE_MS = 30 * 60 * 1000;
+
 /** Everything the phone persists about the watch library, replaced as a whole. */
 export interface WatchLibraryCache {
   cacheVersion: number;
@@ -103,6 +137,8 @@ export interface WatchLibraryCache {
   status: WatchLibraryStatus | null;
   /** Phone time (ms) at which the last snapshot was received. */
   lastSyncAt: number | null;
+  /** Commands not yet reflected by a snapshot, oldest first. */
+  pendingCommands: WatchLibraryPendingCommand[];
 }
 
 // Parsing helpers
@@ -288,6 +324,51 @@ export function createEmptyWatchLibraryCache(): WatchLibraryCache {
     snapshot: null,
     status: null,
     lastSyncAt: null,
+    pendingCommands: [],
+  };
+}
+
+function parseCommand(value: unknown): WatchLibraryCommand | null {
+  if (!isRecord(value) || value.type !== WATCH_LIBRARY_COMMAND_TYPE) {
+    return null;
+  }
+  const commandId = nonEmptyString(value.commandId);
+  const op = WATCH_LIBRARY_COMMAND_OPS.find(item => item === value.op);
+  if (!commandId || !op) {
+    return null;
+  }
+  return {
+    type: WATCH_LIBRARY_COMMAND_TYPE,
+    protocolVersion:
+      finiteNumber(value.protocolVersion) ?? WATCH_LIBRARY_PROTOCOL_VERSION,
+    commandId,
+    issuedAt: finiteNumber(value.issuedAt) ?? 0,
+    op,
+    args: isRecord(value.args) ? value.args : {},
+  };
+}
+
+function parsePendingCommand(
+  value: unknown,
+): WatchLibraryPendingCommand | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const command = parseCommand(value.command);
+  const state = value.state;
+  if (
+    !command ||
+    (state !== "pending" && state !== "applied" && state !== "failed")
+  ) {
+    return null;
+  }
+  return {
+    command,
+    state,
+    sentAt: finiteNumber(value.sentAt) ?? command.issuedAt,
+    revision: finiteNumber(value.revision),
+    error: optionalString(value.error),
+    unsupported: value.unsupported === true ? true : undefined,
   };
 }
 
@@ -309,10 +390,25 @@ export function parseWatchLibraryCache(json: string): WatchLibraryCache {
       [WATCH_LIBRARY_STATUS_CONTEXT_KEY]: value.status,
     }),
     lastSyncAt: finiteNumber(value.lastSyncAt) ?? null,
+    pendingCommands: parseList(value.pendingCommands, parsePendingCommand),
   };
 }
 
-/** Stores a newly received snapshot unless an equal or newer one is cached. */
+function isContainedIn(
+  pending: WatchLibraryPendingCommand,
+  snapshot: WatchLibrarySnapshot,
+) {
+  return (
+    pending.state === "applied" &&
+    pending.revision !== undefined &&
+    pending.revision <= snapshot.revision
+  );
+}
+
+/**
+ * Stores a newly received snapshot unless a newer one is cached. Acknowledged
+ * commands disappear once a snapshot contains their revision.
+ */
 export function applyWatchLibrarySnapshot(
   cache: WatchLibraryCache,
   snapshot: WatchLibrarySnapshot,
@@ -321,7 +417,167 @@ export function applyWatchLibrarySnapshot(
   if (cache.snapshot && cache.snapshot.revision > snapshot.revision) {
     return cache;
   }
-  return {...cache, snapshot, lastSyncAt: receivedAt};
+  return {
+    ...cache,
+    snapshot,
+    lastSyncAt: receivedAt,
+    pendingCommands: cache.pendingCommands.filter(
+      pending => !isContainedIn(pending, snapshot),
+    ),
+  };
+}
+
+export function addWatchLibraryPendingCommand(
+  cache: WatchLibraryCache,
+  command: WatchLibraryCommand,
+  sentAt: number,
+): WatchLibraryCache {
+  return {
+    ...cache,
+    pendingCommands: [
+      ...cache.pendingCommands,
+      {command, state: "pending", sentAt},
+    ],
+  };
+}
+
+function updatePendingCommand(
+  cache: WatchLibraryCache,
+  commandId: string,
+  update: (
+    pending: WatchLibraryPendingCommand,
+  ) => WatchLibraryPendingCommand | null,
+): WatchLibraryCache {
+  const index = cache.pendingCommands.findIndex(
+    pending => pending.command.commandId === commandId,
+  );
+  if (index < 0) {
+    return cache;
+  }
+  const updated = update(cache.pendingCommands[index]);
+  const pendingCommands = [...cache.pendingCommands];
+  if (updated) {
+    pendingCommands[index] = updated;
+  } else {
+    pendingCommands.splice(index, 1);
+  }
+  return {...cache, pendingCommands};
+}
+
+/** Applies an acknowledgement from the watch. Unknown command ids are ignored. */
+export function applyWatchLibraryCommandResult(
+  cache: WatchLibraryCache,
+  result: WatchLibraryCommandResult,
+): WatchLibraryCache {
+  return updatePendingCommand(cache, result.commandId, pending => {
+    if (result.status !== "ok") {
+      return {
+        ...pending,
+        state: "failed",
+        error: result.error,
+        unsupported: result.status === "unsupported" ? true : undefined,
+      };
+    }
+    const applied: WatchLibraryPendingCommand = {
+      ...pending,
+      state: "applied",
+      revision: result.revision,
+      error: undefined,
+      unsupported: undefined,
+    };
+    return cache.snapshot && isContainedIn(applied, cache.snapshot)
+      ? null
+      : applied;
+  });
+}
+
+/** Marks a command whose WatchConnectivity transfer failed. */
+export function markWatchLibraryCommandFailed(
+  cache: WatchLibraryCache,
+  commandId: string,
+  error: string,
+): WatchLibraryCache {
+  return updatePendingCommand(cache, commandId, pending =>
+    pending.state === "applied"
+      ? pending
+      : {...pending, state: "failed", error},
+  );
+}
+
+/**
+ * Replaces a command by a resent copy. A new command id is required because the
+ * watch answers known ids with the stored result instead of executing again.
+ */
+export function resendWatchLibraryPendingCommand(
+  cache: WatchLibraryCache,
+  commandId: string,
+  newCommandId: string,
+  sentAt: number,
+): WatchLibraryCache {
+  return updatePendingCommand(cache, commandId, pending => ({
+    command: {...pending.command, commandId: newCommandId, issuedAt: sentAt},
+    state: "pending",
+    sentAt,
+  }));
+}
+
+export function discardWatchLibraryPendingCommand(
+  cache: WatchLibraryCache,
+  commandId: string,
+): WatchLibraryCache {
+  return updatePendingCommand(cache, commandId, () => null);
+}
+
+export function isWatchLibraryCommandStale(
+  pending: WatchLibraryPendingCommand,
+  now: number,
+): boolean {
+  return (
+    pending.state === "pending" &&
+    now - pending.sentAt >= WATCH_LIBRARY_COMMAND_STALE_MS
+  );
+}
+
+/**
+ * Arguments for `downloadVideos`. Known metadata is sent along so the watch can
+ * show the titles before it fetched stream data. Undefined values are omitted
+ * because WatchConnectivity only accepts property-list values.
+ */
+export function createDownloadVideosArgs(
+  videoIds: readonly string[],
+  snapshot: WatchLibrarySnapshot | null,
+): Record<string, unknown> {
+  const videosById = new Map(
+    (snapshot?.videos ?? []).map(video => [video.id, video]),
+  );
+  const videos = videoIds.flatMap(id => {
+    const video = videosById.get(id);
+    if (!video) {
+      return [];
+    }
+    const entry: Record<string, string | number> = {
+      id,
+      durationMillis: video.durationMillis,
+    };
+    if (video.title !== undefined) {
+      entry.title = video.title;
+    }
+    if (video.artist !== undefined) {
+      entry.artist = video.artist;
+    }
+    if (video.coverUrl !== undefined) {
+      entry.coverUrl = video.coverUrl;
+    }
+    return [entry];
+  });
+  return {videoIds: [...videoIds], videos};
+}
+
+/** Video ids a command refers to; empty for library-wide commands. */
+export function getWatchLibraryCommandVideoIds(
+  command: WatchLibraryCommand,
+): string[] {
+  return stringList(command.args.videoIds);
 }
 
 /** True if the watch reports a library state the cached snapshot does not cover. */
@@ -362,6 +618,8 @@ export interface WatchLibraryDownloadRow {
   state: WatchLibraryDownloadState;
   sizeBytes?: number;
   progress?: number;
+  /** Latest not yet confirmed command affecting this row. */
+  pendingOp?: WatchLibraryCommandOp;
 }
 
 export interface WatchLibraryPlaylistRow {
@@ -391,12 +649,51 @@ const DOWNLOAD_STATE_ORDER: Record<WatchLibraryDownloadState, number> = {
   downloaded: 2,
 };
 
+function compareDownloadRows(
+  a: WatchLibraryDownloadRow,
+  b: WatchLibraryDownloadRow,
+) {
+  const order = DOWNLOAD_STATE_ORDER[a.state] - DOWNLOAD_STATE_ORDER[b.state];
+  if (order !== 0) {
+    return order;
+  }
+  return (a.title ?? a.id).localeCompare(b.title ?? b.id);
+}
+
 /**
  * Builds the rows shown on the phone. Running and queued downloads come first,
  * temporary home feed playlists are hidden.
  */
 export function buildWatchLibraryViewModel(
   snapshot: WatchLibrarySnapshot,
+  status: WatchLibraryStatus | null = null,
+): WatchLibraryViewModel {
+  return applyPendingCommands(snapshot, [], status);
+}
+
+function metadataVideo(
+  command: WatchLibraryCommand,
+  id: string,
+): {title?: string; artist?: string} {
+  const videos = Array.isArray(command.args.videos) ? command.args.videos : [];
+  const entry = videos.find(
+    (video): video is UnknownRecord => isRecord(video) && video.id === id,
+  );
+  return {
+    title: optionalString(entry?.title),
+    artist: optionalString(entry?.artist),
+  };
+}
+
+/**
+ * Optimistic view: lays commands that are not confirmed by a snapshot yet over
+ * the snapshot, so the phone reacts immediately while the watch may be asleep.
+ * Affected rows are marked instead of removed, so the pending change stays visible.
+ * Failed commands are not applied.
+ */
+export function applyPendingCommands(
+  snapshot: WatchLibrarySnapshot,
+  pendingCommands: readonly WatchLibraryPendingCommand[],
   status: WatchLibraryStatus | null = null,
 ): WatchLibraryViewModel {
   const videosById = new Map(snapshot.videos.map(video => [video.id, video]));
@@ -411,33 +708,67 @@ export function buildWatchLibraryViewModel(
     ...snapshot.videos.filter(video => video.downloaded).map(video => video.id),
   ]);
 
-  const downloads = [...downloadIds]
-    .map((id): WatchLibraryDownloadRow => {
-      const video = videosById.get(id);
-      const progress = progressById.get(id);
-      const state: WatchLibraryDownloadState =
-        progress !== undefined
-          ? "downloading"
-          : video?.downloaded
-            ? "downloaded"
-            : "queued";
-      return {
-        id,
-        title: video?.title,
-        artist: video?.artist,
-        state,
-        sizeBytes: state === "downloaded" ? video?.sizeBytes : undefined,
-        progress: state === "downloading" ? progress : undefined,
-      };
-    })
-    .sort((a, b) => {
-      const order =
-        DOWNLOAD_STATE_ORDER[a.state] - DOWNLOAD_STATE_ORDER[b.state];
-      if (order !== 0) {
-        return order;
+  const downloads = [...downloadIds].map((id): WatchLibraryDownloadRow => {
+    const video = videosById.get(id);
+    const progress = progressById.get(id);
+    const state: WatchLibraryDownloadState =
+      progress !== undefined
+        ? "downloading"
+        : video?.downloaded
+          ? "downloaded"
+          : "queued";
+    return {
+      id,
+      title: video?.title,
+      artist: video?.artist,
+      state,
+      sizeBytes: state === "downloaded" ? video?.sizeBytes : undefined,
+      progress: state === "downloading" ? progress : undefined,
+    };
+  });
+
+  const rowsById = new Map(downloads.map(row => [row.id, row]));
+  for (const pending of pendingCommands) {
+    if (pending.state === "failed") {
+      continue;
+    }
+    const {command} = pending;
+    if (command.op === "clearAllDownloads") {
+      rowsById.forEach(row => {
+        row.pendingOp = command.op;
+      });
+      continue;
+    }
+    for (const id of getWatchLibraryCommandVideoIds(command)) {
+      const row = rowsById.get(id);
+      if (command.op === "downloadVideos") {
+        if (!row) {
+          const video = videosById.get(id);
+          const metadata = metadataVideo(command, id);
+          const added: WatchLibraryDownloadRow = {
+            id,
+            title: video?.title ?? metadata.title,
+            artist: video?.artist ?? metadata.artist,
+            state: "queued",
+            pendingOp: command.op,
+          };
+          rowsById.set(id, added);
+          downloads.push(added);
+        } else if (row.state !== "downloaded") {
+          row.pendingOp = command.op;
+        }
+      } else if (
+        row &&
+        (command.op === "deleteDownload" ||
+          command.op === "removeVideos" ||
+          command.op === "cancelDownloads")
+      ) {
+        row.pendingOp = command.op;
       }
-      return (a.title ?? a.id).localeCompare(b.title ?? b.id);
-    });
+    }
+  }
+
+  downloads.sort(compareDownloadRows);
 
   const playlists = snapshot.playlists
     .filter(playlist => !playlist.temp)

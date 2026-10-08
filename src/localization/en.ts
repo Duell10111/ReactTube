@@ -1,5 +1,6 @@
 export const en = {
   "common.retry": "Try again",
+  "common.cancel": "Cancel",
   "common.continue": "Continue",
   "common.close": "Close",
   "common.back": "Back",
@@ -247,6 +248,37 @@ export const en = {
   "watchLibrary.unavailable.title": "Watch app not installed",
   "watchLibrary.unavailable.message":
     "Install ReactTube on your Apple Watch to manage it from here.",
+  "watchLibrary.action.deleteDownload": "Delete from Watch",
+  "watchLibrary.action.cancelDownload": "Cancel download",
+  "watchLibrary.action.downloadPlaylist": "Download all titles on the Watch",
+  "watchLibrary.action.deletePlaylistDownloads":
+    "Delete downloads of this playlist",
+  "watchLibrary.action.clearAll": "Delete all",
+  "watchLibrary.clearAll.title": "Delete all downloads on the Watch?",
+  "watchLibrary.clearAll.message":
+    "Playlists stay on the Watch. Titles can be downloaded again later.",
+  "watchLibrary.pendingOp.downloadVideos": "Download pending",
+  "watchLibrary.pendingOp.cancelDownloads": "Cancellation pending",
+  "watchLibrary.pendingOp.deleteDownload": "Deletion pending",
+  "watchLibrary.pendingOp.removeVideos": "Removal pending",
+  "watchLibrary.pending.title": "Pending changes",
+  "watchLibrary.command.downloadVideos": "Download {count} titles on the Watch",
+  "watchLibrary.command.cancelDownloads": "Cancel {count} downloads",
+  "watchLibrary.command.deleteDownload": "Delete {count} downloads",
+  "watchLibrary.command.removeVideos": "Remove {count} titles",
+  "watchLibrary.command.clearAllDownloads": "Delete all downloads",
+  "watchLibrary.command.other": "Change the Watch library",
+  "watchLibrary.state.pending":
+    "Runs once the Watch app is active · sent {time}",
+  "watchLibrary.state.stale":
+    "No answer from the Watch since {time}. Open ReactTube on your Watch.",
+  "watchLibrary.state.applied": "Done · waiting for an update from the Watch",
+  "watchLibrary.state.failed": "Failed",
+  "watchLibrary.state.failedWithReason": "Failed: {reason}",
+  "watchLibrary.state.unsupported":
+    "The Watch app does not support this yet. Please update it.",
+  "watchLibrary.retry": "Send again",
+  "watchLibrary.discard": "Discard",
   "sponsorBlock.skipping": "Skipping {category}",
   "menu.channel": "Open channel",
   "search.empty.title": "Search YouTube",
