@@ -10,6 +10,20 @@ import SwiftData
 
 struct HomeList: View {
   @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
+  @Query(filter: #Predicate<Playlist> { playlist in
+    playlist.temp == false || playlist.temp == nil
+  }) private var playlists: [Playlist]
+  @Query(filter: #Predicate<Video> { video in
+    video.downloaded == true
+  }) private var downloadedVideos: [Video]
+
+  /// Short enough for one line on the smallest watch; downloads only appear when there are any.
+  private var librarySummary: LocalizedStringKey {
+    if downloadedVideos.isEmpty {
+      return "^[\(playlists.count) playlist](inflect: true)"
+    }
+    return "^[\(playlists.count) playlist](inflect: true) · \(Image(systemName: "arrow.down.circle.fill")) \(downloadedVideos.count)"
+  }
 
     var body: some View {
       List {
@@ -19,11 +33,15 @@ struct HomeList: View {
           }
         }
         HomeSectionList()
-        NavigationLink("Library") {
+        NavigationLink {
           LibraryView()
+        } label: {
+          MenuIconLabel(title: "Library", subtitle: librarySummary, systemImage: "books.vertical.fill", color: .purple)
         }
-        NavigationLink("Settings") {
+        NavigationLink {
           SettingsScreen()
+        } label: {
+          MenuIconLabel(title: "Settings", systemImage: "gearshape.fill", color: .gray)
         }
       }.toolbar {
           ToolbarItem(placement: .topBarTrailing) {

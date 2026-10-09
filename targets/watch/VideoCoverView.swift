@@ -7,24 +7,40 @@
 
 import SwiftUI
 
-/// Resolves the stored cover of a title. A downloaded cover is kept as a path
-/// relative to the download directory, everything else is a remote URL.
+/// Resolves the stored cover of a title.
 func resolvedCoverURL(for video: Video) -> (url: URL, isLocal: Bool)? {
-  guard let coverURL = video.coverURL, !coverURL.isEmpty else { return nil }
+  resolvedCoverURL(video.coverURL)
+}
 
-  if coverURL.hasPrefix("/") {
+/// Resolves a stored cover string. Downloaded covers are kept as a path
+/// relative to the download directory (with or without a leading slash,
+/// depending on how they were saved), everything else is a remote URL.
+func resolvedCoverURL(_ coverURL: String?) -> (url: URL, isLocal: Bool)? {
+  guard let coverURL, !coverURL.isEmpty else { return nil }
+
+  guard let url = URL(string: coverURL), url.scheme != nil else {
     return (getDownloadDirectory().appending(path: coverURL), true)
   }
-
-  guard let url = URL(string: coverURL) else { return nil }
   return (url, url.isFileURL)
 }
 
-/// Small cover thumbnail for title lists. Loads through `ArtworkCache`, so the
-/// same image the player uses is reused instead of downloaded per row.
+/// Small cover thumbnail for title lists.
 struct VideoCoverView: View {
   var video: Video
   var size: CGFloat = 30
+
+  var body: some View {
+    CoverImageView(cover: resolvedCoverURL(for: video), size: size)
+  }
+}
+
+/// Cover thumbnail with a symbol placeholder. Loads through `ArtworkCache`, so
+/// the same image the player uses is reused instead of downloaded per row.
+struct CoverImageView: View {
+  var cover: (url: URL, isLocal: Bool)?
+  var size: CGFloat = 30
+  var cornerRadius: CGFloat = 4
+  var placeholderSymbol = "music.note"
 
   @State private var image: UIImage?
 
@@ -36,21 +52,21 @@ struct VideoCoverView: View {
           .aspectRatio(contentMode: .fill)
       } else {
         Color.gray.opacity(0.25)
-        Image(systemName: "music.note")
+        Image(systemName: placeholderSymbol)
           .font(.system(size: size * 0.45))
           .foregroundStyle(.secondary)
       }
     }
     .frame(width: size, height: size)
-    .clipShape(RoundedRectangle(cornerRadius: 4))
+    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     .accessibilityHidden(true)
-    .task(id: video.id) {
+    .task(id: cover?.url) {
       loadCover()
     }
   }
 
   private func loadCover() {
-    guard let resolved = resolvedCoverURL(for: video) else {
+    guard let resolved = cover else {
       image = nil
       return
     }
@@ -61,11 +77,11 @@ struct VideoCoverView: View {
     }
 
     image = nil
-    let requestedID = video.id
+    let requestedURL = resolved.url
     ArtworkCache.shared.image(for: resolved.url, isLocal: resolved.isLocal) { loaded in
       DispatchQueue.main.async {
-        // The row may already show a different title by now.
-        guard requestedID == video.id else { return }
+        // The row may already show a different cover by now.
+        guard requestedURL == cover?.url else { return }
         image = loaded
       }
     }
