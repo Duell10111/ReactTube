@@ -41,3 +41,30 @@ struct EdgeBorder: Shape {
         }.reduce(into: Path()) { $0.addPath($1) }
     }
 }
+
+/// Menu entry with a colored icon badge, similar to the system settings.
+struct MenuIconLabel: View {
+  var title: String
+  var subtitle: LocalizedStringKey? = nil
+  var systemImage: String
+  var color: Color
+
+  var body: some View {
+    HStack(spacing: 10) {
+      Image(systemName: systemImage)
+        .font(.system(size: 14, weight: .semibold))
+        .foregroundStyle(.white)
+        .frame(width: 28, height: 28)
+        .background(color.gradient, in: Circle())
+      VStack(alignment: .leading, spacing: 1) {
+        Text(title)
+        if let subtitle {
+          Text(subtitle)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
+      }
+    }
+  }
+}

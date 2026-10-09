@@ -11,17 +11,25 @@ import SwiftData
 struct LibraryView: View {
     var body: some View {
       List {
-        NavigationLink("Playlists") {
+        NavigationLink {
           LibraryPlaylists()
+        } label: {
+          MenuIconLabel(title: "Playlists", systemImage: "music.note.list", color: .red)
         }
-        NavigationLink("Videos") {
+        NavigationLink {
           LibraryVideos()
+        } label: {
+          MenuIconLabel(title: "Videos", systemImage: "play.rectangle.fill", color: .orange)
         }
-        NavigationLink("Downloaded") {
+        NavigationLink {
           LibraryDownloadedVideos()
+        } label: {
+          MenuIconLabel(title: "Downloaded", systemImage: "arrow.down.circle.fill", color: .blue)
         }
-        NavigationLink("Available") {
+        NavigationLink {
           LibraryAvailableVideos()
+        } label: {
+          MenuIconLabel(title: "Available", systemImage: "clock.fill", color: .green)
         }
       }.toolbar {
         ToolbarItem(placement: .topBarTrailing) {
@@ -48,7 +56,7 @@ struct LibraryPlaylists: View {
         ForEach(playlists, id: \.id) { playlist in
           LibraryPlaylistListItem(playlist: playlist)
         }
-        Button("Refresh") {
+        Button("Refresh", systemImage: "arrow.clockwise") {
           requestLibraryPlaylists()
         }
       }
@@ -77,8 +85,7 @@ struct LibraryPlaylistListItem: View {
     NavigationLink {
       PlaylistListView(playlist: playlist)
     } label: {
-      Text(playlist.title ?? "No title")
-        .foregroundStyle(playlist.download == true ? .blue : .primary)
+      LibraryPlaylistRow(playlist: playlist)
     }
     .swipeActions {
       Button {
@@ -114,6 +121,74 @@ struct LibraryPlaylistListItem: View {
       Button("Cancel") {
           deletePlaylist = false
       }
+    }
+  }
+}
+
+/// Playlist row with cover, title count and sync/download state.
+struct LibraryPlaylistRow: View {
+  var playlist: Playlist
+
+  private var titleCount: Int {
+    max(playlist.videoIDs.count, playlist.videos.count)
+  }
+
+  private var downloadedCount: Int {
+    playlist.videos.filter(\.downloaded).count
+  }
+
+  /// Uses the playlist cover, otherwise the cover of the first title that has one.
+  private var cover: (url: URL, isLocal: Bool)? {
+    if let cover = resolvedCoverURL(playlist.coverURL) {
+      return cover
+    }
+    return playlist.orderedVideos.lazy.compactMap { resolvedCoverURL(for: $0) }.first
+  }
+
+  var body: some View {
+    HStack(spacing: 8) {
+      CoverImageView(cover: cover, size: 40, cornerRadius: 6, placeholderSymbol: "music.note.list")
+      VStack(alignment: .leading, spacing: 2) {
+        Text(playlist.title ?? "No title")
+          .font(.headline)
+          .lineLimit(2)
+        HStack(spacing: 6) {
+          Text("^[\(titleCount) title](inflect: true)")
+          if downloadedCount > 0 {
+            Label("\(downloadedCount)", systemImage: "arrow.down.circle.fill")
+              .labelStyle(CompactLabelStyle())
+              .foregroundStyle(downloadedCount == titleCount ? .green : .blue)
+          }
+        }
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+      }
+      Spacer(minLength: 0)
+      VStack(spacing: 4) {
+        if playlist.linked {
+          Image(systemName: "iphone")
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("Synced with iPhone")
+        }
+        if playlist.download {
+          Image(systemName: "arrow.down.to.line.circle")
+            .foregroundStyle(.blue)
+            .accessibilityLabel("Auto download")
+        }
+      }
+      .font(.footnote)
+    }
+    .padding(.vertical, 2)
+  }
+}
+
+/// Icon directly followed by the title, tighter than the default label spacing.
+private struct CompactLabelStyle: LabelStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    HStack(spacing: 2) {
+      configuration.icon
+      configuration.title
     }
   }
 }
