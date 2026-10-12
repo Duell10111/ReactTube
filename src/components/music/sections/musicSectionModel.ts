@@ -189,3 +189,19 @@ export function getMusicSubtitle(
 
   return composed ? composed : undefined;
 }
+
+/**
+ * Whether a list entry is the track the music player currently holds. Only
+ * tracks qualify: an album or playlist entry can share an id with nothing the
+ * player plays, and matching it would mark the wrong row.
+ */
+export function isCurrentMusicTrack(
+  element: ElementData,
+  currentTrackId?: string,
+): boolean {
+  return (
+    currentTrackId !== undefined &&
+    element.type === "video" &&
+    element.id === currentTrackId
+  );
+}

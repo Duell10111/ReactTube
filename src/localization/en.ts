@@ -127,6 +127,8 @@ export const en = {
   "music.next": "Next track",
   "music.repeat": "Repeat",
   "music.shuffle": "Shuffle",
+  "music.nowPlaying": "Now playing",
+  "music.nowPaused": "Paused",
   "music.autoplay": "Autoplay {state}",
   "music.autoplay.hint": "Add similar songs for continuous playback.",
   "music.openArtist": "Open artist",

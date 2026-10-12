@@ -7,8 +7,9 @@ import {
 } from "react-native";
 
 import {MusicTrackRow} from "./MusicTrackRow";
-import {musicSurfacePadding} from "./musicSectionModel";
+import {isCurrentMusicTrack, musicSurfacePadding} from "./musicSectionModel";
 
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import type {ElementData} from "@/extraction/Types";
 import {useTranslation} from "@/localization";
 import {EmptyState, ErrorState, Skeleton} from "@/ui/components";
@@ -50,6 +51,8 @@ export function MusicTrackList({
 }: MusicTrackListProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
+  const {currentItem, playing} = useMusikPlayerContext();
+  const currentTrackId = currentItem?.id;
   const {loadingMore, handleEndReached} = useFeedPagination(
     onEndReached,
     items.length > 0,
@@ -61,9 +64,16 @@ export function MusicTrackList({
         editable={editable}
         element={item}
         onRemove={() => onRemoveItem?.(item)}
+        playback={
+          isCurrentMusicTrack(item, currentTrackId)
+            ? playing
+              ? "playing"
+              : "paused"
+            : undefined
+        }
       />
     ),
-    [editable, onRemoveItem],
+    [currentTrackId, editable, onRemoveItem, playing],
   );
 
   const empty = loading ? (
@@ -96,6 +106,9 @@ export function MusicTrackList({
         flexGrow: 1,
       }}
       data={items}
+      // Rows only re-render when this changes, so the current-track mark follows
+      // the player without the items changing.
+      extraData={`${currentTrackId}-${playing}`}
       // A track can appear twice in a playlist, so the position keeps the key unique.
       keyExtractor={(item, index) => `${item.id}-${index}`}
       onEndReached={handleEndReached}
