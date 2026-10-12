@@ -81,6 +81,12 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
     if let d = downloaded {
       video.downloaded = d
     }
+
+    // The initializer only covers new entries; refreshed metadata must also
+    // reach titles that already exist.
+    if let title = title {
+      video.title = title
+    }
     
     if let artist = artist {
       video.artist = artist

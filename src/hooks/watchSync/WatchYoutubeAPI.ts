@@ -40,7 +40,8 @@ interface YoutubeVideoResponse {
   type: "videoResponse";
   id: string;
   title: string;
-  artist: string;
+  /** Omitted when YouTube provides no author, so the watch keeps a known one. */
+  artist?: string;
   duration: number;
   streamURL: string;
   // Workaround to always use mp4 stream for downloads. Missing if no audio
@@ -286,7 +287,7 @@ function toVideoResponse(
     type: "videoResponse",
     id: videoInfo.id,
     title: videoInfo.title,
-    artist: videoInfo.author?.name ?? "Unknown artist",
+    ...(videoInfo.author?.name ? {artist: videoInfo.author.name} : {}),
     duration: duration_ms,
     coverUrl: videoInfo.thumbnailImage.url,
     streamURL,

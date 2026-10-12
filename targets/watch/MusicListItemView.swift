@@ -64,6 +64,13 @@ struct MusicListItemView: View {
             Label("Add to Playlist", systemImage: "text.badge.plus")
         }
       }
+      .swipeActions(edge: .leading) {
+        Button {
+          MetadataRefresher.shared.refresh(video)
+        } label: {
+          Label("Refresh Info", systemImage: "arrow.clockwise")
+        }
+      }
     }
 }
 
