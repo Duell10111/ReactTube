@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MusicPlayerPlaylistView: View {
     @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
+    @State private var didScrollToCurrentTrack = false
 
     var body: some View {
       ScrollViewReader { proxy in
@@ -66,6 +67,23 @@ struct MusicPlayerPlaylistView: View {
             }
           }
         }
+        .onAppear {
+          scrollToCurrentTrackOnce(proxy)
+        }
+        // The queue may still be empty on first appearance, so retry once items arrive.
+        .onChange(of: musicManager.playerPlaylistItems.count) {
+          scrollToCurrentTrackOnce(proxy)
+        }
+      }
+    }
+
+    private func scrollToCurrentTrackOnce(_ proxy: ScrollViewProxy) {
+      guard !didScrollToCurrentTrack,
+            musicManager.playerPlaylistItems.indices.contains(musicManager.trackIndex) else { return }
+      didScrollToCurrentTrack = true
+      // Defer until the list has laid out its rows; scrolling synchronously in onAppear is ignored.
+      DispatchQueue.main.async {
+        proxy.scrollTo(musicManager.trackIndex, anchor: .center)
       }
     }
 
