@@ -115,7 +115,7 @@ class PlaylistManager {
 
       // TODO: Outsource to skip duplicate code
       
-    } else if let sURL = video.streamURL, let validUntil = video.validUntil, validUntil > Date(), let item = Track(url: sURL, artworkUrl: video.coverURL) {
+    } else if let sURL = video.streamURL, let validUntil = video.validUntil, validUntil > Date(), let item = Track(url: sURL, artworkUrl: resolvedCoverURL(for: video)?.url.absoluteString) {
       print("Remote uri: \(sURL)")
 
       // TODO: Outsource to skip duplicate code

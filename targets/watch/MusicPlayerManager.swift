@@ -400,6 +400,9 @@ class MusicPlayerManager {
     }
     item?.getArtwork({ audioImage in
       self.onMain {
+        // A slow load of a previous title must not replace the cover of the
+        // title that is playing now.
+        guard (self.player?.currentItem as AnyObject?) === (item as AnyObject?) else { return }
         self.currentCover = audioImage
       }
     })
