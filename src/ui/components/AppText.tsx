@@ -5,7 +5,12 @@ import {type AppColors, type TypographyRole, useAppTheme} from "@/ui/theme";
 
 export type TextColorRole = Extract<
   keyof AppColors,
-  "textPrimary" | "textSecondary" | "textDisabled" | "error" | "success"
+  | "textPrimary"
+  | "textSecondary"
+  | "textDisabled"
+  | "error"
+  | "success"
+  | "brand"
 >;
 
 interface AppTextProps extends TextProps {

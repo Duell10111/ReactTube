@@ -14,6 +14,7 @@ import {
   getMusicSubtitle,
   getTrackColumnWidth,
   getTrackShelfRows,
+  isCurrentMusicTrack,
 } from "../src/components/music/sections/musicSectionModel.ts";
 import {resolveMediaCardRoute} from "../src/ui/patterns/mediaCardRouting.ts";
 
@@ -285,4 +286,11 @@ test("routes the top result header by the page it links to", () => {
     undefined,
   );
   assert.equal(resolveMusicEndpointTarget(undefined), undefined);
+});
+
+test("marks only the track the music player currently holds", () => {
+  assert.equal(isCurrentMusicTrack(song("a"), "a"), true);
+  assert.equal(isCurrentMusicTrack(song("a"), "b"), false);
+  assert.equal(isCurrentMusicTrack(song("a"), undefined), false);
+  assert.equal(isCurrentMusicTrack(song("a", {type: "playlist"}), "a"), false);
 });

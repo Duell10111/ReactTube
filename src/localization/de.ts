@@ -130,6 +130,8 @@ export const de = {
   "music.next": "Nächster Titel",
   "music.repeat": "Wiederholen",
   "music.shuffle": "Zufallswiedergabe",
+  "music.nowPlaying": "Wird gerade abgespielt",
+  "music.nowPaused": "Pausiert",
   "music.autoplay": "Autoplay {state}",
   "music.autoplay.hint":
     "Fügt ähnliche Titel für eine fortlaufende Wiedergabe hinzu.",
