@@ -79,6 +79,8 @@ export interface VideoComponentType<T> {
   onAudioTracks: (audioTracks: OnAudioTracksData) => void;
   /** Rendered size on load and after every adaptive variant switch. */
   onPlaybackSizeChange?: (size: PlaybackSize) => void;
+  /** Not every backend reports buffering; the overlay treats it as optional. */
+  onBuffer?: (buffering: boolean) => void;
   // Additional props
   props: T;
 }

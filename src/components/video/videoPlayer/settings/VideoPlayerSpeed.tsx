@@ -7,7 +7,7 @@ import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/Vi
 import {useTranslation} from "@/localization";
 import {AppText} from "@/ui/components";
 
-const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+export const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 export function VideoPlayerSpeed() {
   const {speed, setSpeed} = useVideoPlayerSettings();
@@ -26,7 +26,7 @@ export function VideoPlayerSpeed() {
   return (
     <VideoMenuContainer>
       <FlatList
-        data={speeds}
+        data={PLAYBACK_SPEEDS}
         renderItem={renderItem}
         ListHeaderComponent={
           <AppText variant={"titleMedium"}>{t("video.player.speeds")}</AppText>

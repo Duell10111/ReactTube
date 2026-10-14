@@ -161,6 +161,11 @@ const VideoPlayerNative = forwardRef<
       }}
       onEnd={props.onEnd}
       onAudioTracks={props.onAudioTracks}
+      onBuffer={data => props.onBuffer?.(data.isBuffering)}
+      // Phone-only behavior; the TV screen leaves these unset.
+      playInBackground={props.props.playInBackground}
+      enterPictureInPictureOnLeave={props.props.enterPictureInPictureOnLeave}
+      ignoreSilentSwitch={props.props.ignoreSilentSwitch}
       controls={false}
       resizeMode={ResizeMode.CONTAIN}
     />
