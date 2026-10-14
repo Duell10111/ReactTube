@@ -11,6 +11,7 @@ import {
   AccessibilityActionEvent,
   ActivityIndicator,
   Animated,
+  DeviceEventEmitter,
   LayoutChangeEvent,
   Pressable,
   StyleSheet,
@@ -21,6 +22,7 @@ import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import type {OnLoadData, OnProgressData} from "react-native-video";
 
+import PhoneSeekBar from "./PhoneSeekBar";
 import {
   CONTROLS_HIDE_DELAY_MS,
   DOUBLE_TAP_SEEK_SECONDS,
@@ -30,31 +32,32 @@ import {
   SeekDirection,
   formatPlaybackTime,
   getChainSeekTarget,
-  getProgressFraction,
+  getFullscreenSwipe,
   getTapZone,
-  getTimeForBarPosition,
   initialTapState,
   interpretTap,
 } from "./phoneOverlayGestures";
 
+import VideoEndCard from "@/components/video/VideoEndCard";
+import {findActiveChapterIndex} from "@/components/video/tv/chapterModel";
 import SubtitleOverlay from "@/components/video/videoPlayer/SubtitleOverlay";
 import {
+  PausePlayerEvent,
   VideoComponentRefType,
   VideoComponentType,
   VideoPlayerRefs,
 } from "@/components/video/videoPlayer/VideoPlayer";
 import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
 import {useAppData} from "@/context/AppDataContext";
+import type {YTChapter, YTEndscreen} from "@/extraction/Types";
+import type {YTStoryboard} from "@/extraction/storyboard";
 import {useTranslation} from "@/localization";
 import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
 import {pickSubtitleTrack, SubtitleTrackList} from "@/utils/Subtitles";
 
 // The player is drawn over video frames, so its colors are YouTube's and do
 // not follow the app theme.
-const PROGRESS_COLOR = "#FF0000";
 const CONTROL_COLOR = "#FFFFFF";
-const TRACK_COLOR = "rgba(255, 255, 255, 0.3)";
-const BUFFER_COLOR = "rgba(255, 255, 255, 0.5)";
 const SCRIM_COLOR = "rgba(0, 0, 0, 0.45)";
 
 /** Hold time before a press turns into the 2x playback of YouTube. */
@@ -71,6 +74,12 @@ interface PhoneOverlayPlayerProps<T> {
   title?: string;
   /** Caption tracks offered in the settings and behind the CC button. */
   subtitles?: SubtitleTrackList;
+  /** Splits the seek bar and names the chapter under the finger. */
+  chapters?: YTChapter[];
+  /** Frames for the preview above the seek bar while scrubbing. */
+  storyboard?: YTStoryboard;
+  /** The creator's end cards, shown over the last seconds of the video. */
+  endscreen?: YTEndscreen;
   fullscreen: boolean;
   onToggleFullscreen: () => void;
   onOpenSettings: () => void;
@@ -108,6 +117,9 @@ const PhoneOverlayPlayer = forwardRef<
       videoID,
       title,
       subtitles,
+      chapters,
+      storyboard,
+      endscreen,
       fullscreen,
       onToggleFullscreen,
       onOpenSettings,
@@ -134,7 +146,6 @@ const PhoneOverlayPlayer = forwardRef<
     const [scrubTime, setScrubTime] = useState<number>();
     const [seekIndicator, setSeekIndicator] = useState<SeekIndicator>();
     const [surfaceWidth, setSurfaceWidth] = useState(0);
-    const [barWidth, setBarWidth] = useState(0);
     // Bumped by every interaction with the controls to restart the hide timer.
     const [interaction, setInteraction] = useState(0);
 
@@ -186,6 +197,15 @@ const PhoneOverlayPlayer = forwardRef<
     );
 
     useSponsorBlock(videoID, currentTime, seek);
+
+    // An end card that opens a channel pushes it above the still mounted
+    // player, which has to stop then, as on TV.
+    useEffect(() => {
+      const sub = DeviceEventEmitter.addListener(PausePlayerEvent, () =>
+        setPaused(true),
+      );
+      return () => sub.remove();
+    }, []);
 
     // A fallback step swaps the source in place; it loads from scratch.
     const sourceUrl: string | undefined = VideoComponentProps?.url;
@@ -294,6 +314,19 @@ const PhoneOverlayPlayer = forwardRef<
     );
 
     const surfaceGesture = Gesture.Race(
+      // Up enters full screen, down leaves it. The offsets keep the pan from
+      // starting on a tap or a sideways movement.
+      Gesture.Pan()
+        .runOnJS(true)
+        .activeOffsetY([-20, 20])
+        .failOffsetX([-30, 30])
+        .onEnd(event => {
+          if (
+            getFullscreenSwipe(event.translationY, event.velocityY, fullscreen)
+          ) {
+            onToggleFullscreen();
+          }
+        }),
       Gesture.LongPress()
         .runOnJS(true)
         .minDuration(HOLD_MIN_DURATION_MS)
@@ -314,28 +347,14 @@ const PhoneOverlayPlayer = forwardRef<
         }),
     );
 
-    const barGesture = Gesture.Pan()
-      .runOnJS(true)
-      // A touch on the bar jumps right away; the pan then keeps following.
-      .minDistance(0)
-      .onBegin(event =>
-        setScrubTime(getTimeForBarPosition(event.x, barWidth, duration)),
-      )
-      .onUpdate(event =>
-        setScrubTime(getTimeForBarPosition(event.x, barWidth, duration)),
-      )
-      .onEnd(event => {
-        const target = getTimeForBarPosition(event.x, barWidth, duration);
-        if (ended && target < duration - 1) {
-          setEnded(false);
-          setPaused(false);
-        }
-        seek(target);
-      })
-      .onFinalize(() => {
-        setScrubTime(undefined);
-        touch();
-      });
+    const seekFromBar = (target: number) => {
+      if (ended && target < duration - 1) {
+        setEnded(false);
+        setPaused(false);
+      }
+      seek(target);
+      touch();
+    };
 
     const onLoad = (data: OnLoadData) => {
       setDuration(data.duration);
@@ -389,8 +408,19 @@ const PhoneOverlayPlayer = forwardRef<
     };
 
     const displayedTime = scrubTime ?? currentTime;
-    const progress = getProgressFraction(displayedTime, duration);
-    const buffered = getProgressFraction(bufferedTime, duration);
+    const chapterIndex = chapters?.length
+      ? findActiveChapterIndex(chapters, displayedTime)
+      : -1;
+    const chapterTitle =
+      chapterIndex >= 0 ? chapters?.[chapterIndex]?.title : undefined;
+    // From the end screen's start to the end of the video. After the end the
+    // cards stay, even those whose own window has already closed.
+    const endscreenShown =
+      endscreen !== undefined &&
+      scrubTime === undefined &&
+      (ended ||
+        (endscreen.startDuration !== undefined &&
+          currentTime >= endscreen.startDuration));
     const controlsActive = showControls || scrubTime !== undefined;
     const sideInsets = fullscreen
       ? {paddingLeft: insets.left, paddingRight: insets.right}
@@ -452,6 +482,18 @@ const PhoneOverlayPlayer = forwardRef<
             style={StyleSheet.absoluteFill}
           />
         </GestureDetector>
+
+        {endscreenShown ? (
+          // Above the gesture surface so the cards take their own taps, below
+          // the controls so the buttons stay reachable.
+          <VideoEndCard
+            browsing
+            currentTime={currentTime}
+            endcard={endscreen}
+            ignoreTiming={ended}
+            onElementOpened={() => setShowControls(false)}
+          />
+        ) : null}
 
         {seekIndicator ? (
           <SeekRipple
@@ -551,6 +593,11 @@ const PhoneOverlayPlayer = forwardRef<
                 {formatPlaybackTime(duration)}
               </Text>
             </Text>
+            {chapterTitle ? (
+              <Text numberOfLines={1} style={styles.chapter}>
+                {` • ${chapterTitle}`}
+              </Text>
+            ) : null}
             <View style={styles.spacer} />
             <ControlButton
               icon={fullscreen ? "fullscreen-exit" : "fullscreen"}
@@ -579,60 +626,20 @@ const PhoneOverlayPlayer = forwardRef<
          * controls hidden, YouTube keeps a thin progress line visible, and
          * the bar keeps its own touch area so it can be grabbed any time.
          */}
-        <GestureDetector gesture={barGesture}>
-          <View
-            accessibilityLabel={t("video.player.seekbar")}
-            accessibilityRole={"adjustable"}
-            accessibilityValue={{
-              min: 0,
-              max: Math.round(duration),
-              now: Math.round(displayedTime),
-              text: `${formatPlaybackTime(displayedTime, duration)} / ${formatPlaybackTime(duration)}`,
-            }}
-            onLayout={event => setBarWidth(event.nativeEvent.layout.width)}
-            style={[
-              styles.barTouchArea,
-              fullscreen && styles.barTouchAreaFullscreen,
-              fullscreen && {
-                left: insets.left + 16,
-                right: insets.right + 16,
-              },
-              !controlsActive && fullscreen && styles.hidden,
-            ]}>
-            <View
-              style={[
-                styles.barTrack,
-                controlsActive && styles.barTrackActive,
-                !controlsActive && styles.barTrackHidden,
-              ]}>
-              <View
-                style={[
-                  styles.barFill,
-                  {width: `${buffered * 100}%`, backgroundColor: BUFFER_COLOR},
-                ]}
-              />
-              <View
-                style={[
-                  styles.barFill,
-                  {
-                    width: `${progress * 100}%`,
-                    backgroundColor: PROGRESS_COLOR,
-                  },
-                ]}
-              />
-            </View>
-            {controlsActive ? (
-              <View
-                pointerEvents={"none"}
-                style={[
-                  styles.thumb,
-                  scrubTime !== undefined && styles.thumbActive,
-                  {left: `${progress * 100}%`},
-                ]}
-              />
-            ) : null}
-          </View>
-        </GestureDetector>
+        <PhoneSeekBar
+          active={controlsActive}
+          bufferedTime={bufferedTime}
+          chapters={chapters}
+          currentTime={currentTime}
+          duration={duration}
+          fullscreen={fullscreen}
+          insetLeft={insets.left}
+          insetRight={insets.right}
+          onScrub={setScrubTime}
+          onSeek={seekFromBar}
+          scrubTime={scrubTime}
+          storyboard={storyboard}
+        />
       </View>
     );
   },
@@ -777,52 +784,14 @@ const styles = StyleSheet.create({
   duration: {
     color: "rgba(255, 255, 255, 0.7)",
   },
+  chapter: {
+    flexShrink: 1,
+    color: CONTROL_COLOR,
+    fontSize: 13,
+    fontWeight: "500",
+  },
   controlButton: {
     padding: 8,
-  },
-  barTouchArea: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: -12,
-    height: 28,
-    justifyContent: "center",
-  },
-  barTouchAreaFullscreen: {
-    bottom: 12,
-  },
-  barTrack: {
-    height: 3,
-    backgroundColor: TRACK_COLOR,
-  },
-  barTrackActive: {
-    height: 4,
-  },
-  barTrackHidden: {
-    height: 2,
-  },
-  barFill: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-  },
-  thumb: {
-    position: "absolute",
-    width: 12,
-    height: 12,
-    marginLeft: -6,
-    borderRadius: 6,
-    backgroundColor: PROGRESS_COLOR,
-  },
-  thumbActive: {
-    width: 18,
-    height: 18,
-    marginLeft: -9,
-    borderRadius: 9,
-  },
-  hidden: {
-    opacity: 0,
   },
   holdPill: {
     position: "absolute",

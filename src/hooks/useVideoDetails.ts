@@ -511,30 +511,41 @@ export default function useVideoDetails(
     // replaces the info object and must not decipher the stream again.
   }, [videoInfo?.best_format, youtube]);
 
-  // The end screen is part of the WEB /player response only: the TV response
-  // is UNPLAYABLE and the stream clients leave it out, so the TV player never
-  // had the creator's end cards. It is fetched on its own once the metadata is
-  // in, so it never delays the start of playback.
-  const endscreenVideoId =
-    client === "TV" && videoInfo && !videoInfo.endscreen
+  // The end screen and the storyboard are part of the WEB /player response
+  // only: the TV response is UNPLAYABLE and the stream clients leave them out,
+  // so the TV player never had the creator's end cards. They are fetched on
+  // their own once the metadata is in, so they never delay the start of
+  // playback. Besides TV, only the phone/tablet overlay player shows them; the
+  // native controls would not use them, so they are not fetched there.
+  const wantsPlayerExtras =
+    client === "TV" ||
+    Boolean(appSettings.ownOverlayEnabled || appSettings.vlcEnabled);
+  const extrasVideoId =
+    wantsPlayerExtras &&
+    videoInfo &&
+    (!videoInfo.endscreen || (client !== "TV" && !videoInfo.storyboard))
       ? videoInfo.id
       : undefined;
 
   useEffect(() => {
-    if (!endscreenVideoId || !youtube) {
+    if (!extrasVideoId || !youtube) {
       return;
     }
     let active = true;
     youtube
-      .getBasicInfo(endscreenVideoId)
+      .getBasicInfo(extrasVideoId)
       .then(info => {
-        const endscreen = getElementDataFromVideoInfo(info).endscreen;
-        if (!active || !endscreen) {
+        const extras = getElementDataFromVideoInfo(info);
+        if (!active || (!extras.endscreen && !extras.storyboard)) {
           return;
         }
         setVideoInfo(previous =>
-          previous?.id === endscreenVideoId && !previous.endscreen
-            ? {...previous, endscreen}
+          previous?.id === extrasVideoId
+            ? {
+                ...previous,
+                endscreen: previous.endscreen ?? extras.endscreen,
+                storyboard: previous.storyboard ?? extras.storyboard,
+              }
             : previous,
         );
       })
@@ -542,7 +553,7 @@ export default function useVideoDetails(
     return () => {
       active = false;
     };
-  }, [endscreenVideoId, youtube]);
+  }, [extrasVideoId, youtube]);
 
   /**
    * The steps available for this video (plan phase 4.1), and the one that is

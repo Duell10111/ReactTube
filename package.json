@@ -26,6 +26,7 @@
     "expo-font": "~57.0.4",
     "expo-image": "~57.0.5",
     "expo-linking": "~57.0.10",
+    "expo-navigation-bar": "~57.0.3",
     "expo-screen-orientation": "~57.0.2",
     "expo-sensors": "~57.0.3",
     "expo-splash-screen": "~57.0.9",

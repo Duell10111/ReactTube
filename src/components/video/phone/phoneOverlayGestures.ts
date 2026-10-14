@@ -221,3 +221,34 @@ export function formatPlaybackTime(
   }
   return `${minutes}:${pad(secs)}`;
 }
+
+/** Vertical travel that counts as a swipe for full screen. */
+export const FULLSCREEN_SWIPE_DISTANCE = 60;
+
+/** A fast flick counts even when it travels less than the distance. */
+const FULLSCREEN_SWIPE_VELOCITY = 800;
+
+/**
+ * YouTube's vertical swipes on the player: up enters full screen, down leaves
+ * it. A swipe in the other direction does nothing.
+ */
+export function getFullscreenSwipe(
+  translationY: number,
+  velocityY: number,
+  fullscreen: boolean,
+): "enter" | "exit" | undefined {
+  const up =
+    translationY <= -FULLSCREEN_SWIPE_DISTANCE ||
+    (translationY < 0 && velocityY <= -FULLSCREEN_SWIPE_VELOCITY);
+  const down =
+    translationY >= FULLSCREEN_SWIPE_DISTANCE ||
+    (translationY > 0 && velocityY >= FULLSCREEN_SWIPE_VELOCITY);
+
+  if (!fullscreen && up) {
+    return "enter";
+  }
+  if (fullscreen && down) {
+    return "exit";
+  }
+  return undefined;
+}
