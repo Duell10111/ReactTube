@@ -41,7 +41,8 @@ import {
 } from "@/utils/PlaybackSource";
 import {startSabrPlayback, type SabrPlaybackSource} from "@/utils/SabrPlayback";
 import {getSubtitleChoices, getSubtitleTrackList} from "@/utils/Subtitles";
-import {Innertube, YT, YTTV, YTNodes} from "@/utils/Youtube";
+import {pickVlcFormats} from "@/utils/VlcPlayback";
+import {Innertube, Misc, YT, YTTV, YTNodes} from "@/utils/Youtube";
 import {
   clientNeedsPoToken,
   getContentPoToken,
@@ -155,6 +156,61 @@ async function generateIfPossible(
   );
 }
 
+/**
+ * Picks the direct stream URLs for the VLC player.
+ *
+ * Needs a client whose byte ranges are not capped — VLC reads the formats
+ * progressively, and a capped client breaks off after about 0.37 MB. That is
+ * the same condition as for the generated manifest, so `canGenerateHls`
+ * answers it.
+ */
+async function resolveVlcSource(
+  streaming: StreamingSource,
+  youtube: Innertube,
+): Promise<{videoUrl: string; audioUrl?: string} | undefined> {
+  if (!streaming.canGenerateHls) {
+    return undefined;
+  }
+
+  const selection = pickVlcFormats(
+    streaming.info.streaming_data?.adaptive_formats ?? [],
+  );
+  if (!selection) {
+    return undefined;
+  }
+
+  const player = youtube.session.player;
+  // Without a player `decipher` returns the plain URL, which is what the
+  // uncapped clients deliver anyway.
+  const decipher = async (format: Misc.Format | undefined) =>
+    format ? (await format.decipher(player)) || undefined : undefined;
+
+  try {
+    const [videoUrl, audioUrl] = await Promise.all([
+      decipher(selection.video),
+      decipher(selection.audio),
+    ]);
+    if (!videoUrl) {
+      return undefined;
+    }
+
+    LOGGER.info(
+      `VLC-Quelle: itag ${selection.video.itag} ` +
+        `${selection.video.quality_label ?? ""} ` +
+        `(${selection.video.mime_type}) · Ton itag ${
+          selection.audio?.itag ?? "–"
+        }`,
+    );
+
+    return {videoUrl, audioUrl};
+  } catch (error: any) {
+    LOGGER.warn(
+      `VLC-Quelle nicht möglich (${String(error?.message ?? error)})`,
+    );
+    return undefined;
+  }
+}
+
 export default function useVideoDetails(
   videoId: string | YTNodes.NavigationEndpoint,
   client?: InnerTubeClient,
@@ -182,6 +238,13 @@ export default function useVideoDetails(
   const {appSettings} = useAppData();
   /** The selected path — decides the client chain, manifest build, and ladder order. */
   const playbackMode = playbackModeFromSettings(appSettings);
+  const vlcEnabled = !!appSettings.vlcEnabled;
+  /**
+   * VLC plays the adaptive formats directly and needs uncapped clients — the
+   * same chain the generated manifest uses. Neither the manifest nor a SABR
+   * stream is built for it.
+   */
+  const streamMode: PlaybackMode = vlcEnabled ? "generated" : playbackMode;
   /**
    * The running SABR stream. It holds a local server and an open connection
    * to googlevideo — both must go when the video changes or the screen is
@@ -250,7 +313,7 @@ export default function useVideoDetails(
         tvYoutube?.tv?.getInfo(videoId),
         youtube
           ? resolveStreamingSource(youtube, videoId, {
-              mode: playbackMode,
+              mode: streamMode,
               signedInYoutube: tvYoutube,
             })
           : undefined,
@@ -296,7 +359,16 @@ export default function useVideoDetails(
             // Before publishing the metadata: otherwise the player would get
             // YouTube's manifest first and ours half a second later — a
             // visible restart of playback.
-            if (streaming) {
+            if (streaming && vlcEnabled) {
+              // `youtube` is necessarily present here — the streams come from
+              // this instance — but only the check makes that visible to the
+              // type checker.
+              // A SABR stream from before the switch must not keep running.
+              replaceSabrSource(undefined);
+              parsedDataTV.vlc_source = youtube
+                ? await resolveVlcSource(streaming, youtube)
+                : undefined;
+            } else if (streaming) {
               parsedDataTV.generated_hls_url = await generateIfPossible(
                 streaming,
                 playbackMode,
@@ -305,9 +377,7 @@ export default function useVideoDetails(
                   subtitles: nativeSubtitleOptions(streaming),
                 },
               );
-              // `youtube` is necessarily present here — the streams come from
-              // this instance — but only the check makes that visible to the
-              // type checker.
+              // See above: the check only informs the type checker.
               if (youtube) {
                 parsedDataTV.sabr_hls_url = replaceSabrSource(
                   await startSabrIfPossible(streaming, playbackMode, {
@@ -338,7 +408,7 @@ export default function useVideoDetails(
     } else {
       youtube &&
         resolveStreamingSource(youtube, videoId, {
-          mode: playbackMode,
+          mode: streamMode,
           signedInYoutube: tvYoutube,
         })
           .then(async streaming => {
@@ -352,20 +422,29 @@ export default function useVideoDetails(
             );
             videoRef.current = streaming.info;
             const parsedData = getElementDataFromVideoInfo(streaming.info);
-            parsedData.generated_hls_url = await generateIfPossible(
-              streaming,
-              playbackMode,
-              {
-                allowAv1: appSettings.av1Enabled,
-                subtitles: nativeSubtitleOptions(streaming),
-              },
-            );
-            parsedData.sabr_hls_url = replaceSabrSource(
-              await startSabrIfPossible(streaming, playbackMode, {
+            if (vlcEnabled) {
+              // A SABR stream from before the switch must not keep running.
+              replaceSabrSource(undefined);
+              parsedData.vlc_source = await resolveVlcSource(
+                streaming,
                 youtube,
-                allowAv1: appSettings.av1Enabled,
-              }),
-            )?.masterUri;
+              );
+            } else {
+              parsedData.generated_hls_url = await generateIfPossible(
+                streaming,
+                playbackMode,
+                {
+                  allowAv1: appSettings.av1Enabled,
+                  subtitles: nativeSubtitleOptions(streaming),
+                },
+              );
+              parsedData.sabr_hls_url = replaceSabrSource(
+                await startSabrIfPossible(streaming, playbackMode, {
+                  youtube,
+                  allowAv1: appSettings.av1Enabled,
+                }),
+              )?.masterUri;
+            }
             setVideoInfo(parsedData);
             parsedData.watchNextFeed &&
               setWatchNextFeed(parsedData.watchNextFeed);
@@ -387,6 +466,7 @@ export default function useVideoDetails(
     });
   }, [
     playbackMode,
+    vlcEnabled,
     appSettings.av1Enabled,
     videoId,
     youtube,
@@ -472,19 +552,23 @@ export default function useVideoDetails(
     () =>
       buildPlaybackLadder(
         {
+          vlc: videoInfo?.vlc_source,
           sabrHlsUrl: videoInfo?.sabr_hls_url,
           generatedHlsUrl: videoInfo?.generated_hls_url,
           youtubeHlsUrl: videoInfo?.hls_manifest_url,
           progressiveUrl: httpVideoURL,
         },
         playbackMode,
+        vlcEnabled ? "vlc" : "native",
       ),
     [
+      videoInfo?.vlc_source,
       videoInfo?.sabr_hls_url,
       videoInfo?.generated_hls_url,
       videoInfo?.hls_manifest_url,
       httpVideoURL,
       playbackMode,
+      vlcEnabled,
     ],
   );
 

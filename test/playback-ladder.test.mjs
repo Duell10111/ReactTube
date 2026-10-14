@@ -45,7 +45,9 @@ test("SABR mode without a segment server drops through to the generated manifest
 
 test("SABR mode falls all the way to YouTube's manifest when nothing else is there", () => {
   assert.deepEqual(
-    kinds(buildPlaybackLadder({youtubeHlsUrl: ALL_SOURCES.youtubeHlsUrl}, "sabr")),
+    kinds(
+      buildPlaybackLadder({youtubeHlsUrl: ALL_SOURCES.youtubeHlsUrl}, "sabr"),
+    ),
     ["youtube-hls"],
   );
 });
@@ -71,4 +73,30 @@ test("recognises an unchanged ladder", () => {
 
   assert.ok(sameLadder(a, b));
   assert.ok(!sameLadder(a, buildPlaybackLadder(ALL_SOURCES, "generated")));
+});
+
+test("the VLC player puts its direct streams first and skips what it cannot open", () => {
+  const ladder = buildPlaybackLadder(
+    {
+      ...ALL_SOURCES,
+      vlc: {
+        videoUrl: "https://media.googlevideo.test/vp9",
+        audioUrl: "https://media.googlevideo.test/audio",
+      },
+    },
+    "sabr",
+    "vlc",
+  );
+
+  assert.deepEqual(kinds(ladder), ["vlc", "youtube-hls", "progressive"]);
+  assert.equal(ladder[0].audioUri, "https://media.googlevideo.test/audio");
+  assert.equal(ladder[0].label, "VLC");
+  assert.equal(ladder[1].audioUri, undefined);
+});
+
+test("the VLC player falls back to YouTube's manifest without direct streams", () => {
+  assert.deepEqual(
+    kinds(buildPlaybackLadder(ALL_SOURCES, "generated", "vlc")),
+    ["youtube-hls", "progressive"],
+  );
 });

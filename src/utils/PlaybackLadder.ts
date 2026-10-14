@@ -1,38 +1,45 @@
 /**
- * Die Fehler-Ladder der Wiedergabe — Plan-Phase 4.1.
+ * The playback fallback ladder — plan phase 4.1.
  *
- * Eine einzelne Quelle fällt regelmäßig aus: ein Client hört auf zu liefern, ein
- * Codec fehlt dem Gerät, eine URL läuft ab. SmartTube beantwortet das mit
- * `switchNextFormat` — probiere der Reihe nach, was noch da ist, statt mit einer
- * Fehlermeldung stehenzubleiben. Hier ist dieselbe Reihenfolge als Datenstruktur
- * abgelegt, damit sie an einer Stelle steht und nicht in jedem Player noch
- * einmal.
+ * A single source fails regularly: a client stops delivering, the device lacks
+ * a codec, a URL expires. SmartTube answers that with `switchNextFormat` — try
+ * whatever is left, in order, instead of stopping with an error message. The
+ * same order lives here as a data structure, so it is defined in one place
+ * rather than once more in every player.
  *
- * **Eine Erfahrung steckt fest darin:** ein Player, dem der Decoder fehlt,
- * meldet keinen Fehler — er bleibt stumm im Ladezustand stehen (gemessen mit
- * einem Manifest, das nur AV1 anbot: der Media-Server-Prozess starb, `onError`
- * kam nie). Deshalb reicht `onError` als Auslöser nicht; der Stillstands-Wächter
- * in `VideoComponent` gehört zur Ladder dazu.
+ * **One lesson is built in:** a player that lacks the decoder reports no error
+ * — it silently stays in its loading state (measured with a manifest that only
+ * offered AV1: the media server process died, `onError` never arrived). That
+ * is why `onError` alone is not a sufficient trigger; the stall watchdog in
+ * `VideoComponent` is part of the ladder.
  */
 
 import type {PlaybackMode} from "@/utils/PlaybackSource";
 
-/** Woran eine Stufe erkannt wird — für Protokoll und Anzeige. */
+/** How a step is identified — for logging and display. */
 export type PlaybackSourceKind =
+  | "vlc"
   | "sabr-hls"
   | "generated-hls"
   | "youtube-hls"
   | "progressive";
 
+/** Which player renders the ladder's steps. */
+export type PlaybackPlayer = "native" | "vlc";
+
 export interface PlaybackStep {
   uri: string;
   kind: PlaybackSourceKind;
-  /** Kurzbeschreibung für Protokoll und Overlay. */
+  /** Separate audio stream that plays alongside `uri` (VLC step only). */
+  audioUri?: string;
+  /** Short description for logging and the overlay. */
   label: string;
 }
 
 export function describeSourceKind(kind: PlaybackSourceKind): string {
   switch (kind) {
+    case "vlc":
+      return "VLC";
     case "sabr-hls":
       return "SABR";
     case "generated-hls":
@@ -45,18 +52,17 @@ export function describeSourceKind(kind: PlaybackSourceKind): string {
 }
 
 /**
- * In welcher Reihenfolge die Stufen je nach Einstellung probiert werden.
+ * The order in which the steps are tried, depending on the setting.
  *
- * **Die gewählte Einstellung steht immer vorn.** Sie ist die Entscheidung des
- * Benutzers, nicht ein Vorschlag — wer YouTube-HLS wählt, will nicht erst
- * zwanzig Sekunden auf einen Fehlschlag des eigenen Manifests warten. Die
- * übrigen Stufen bleiben als Auffangnetz dahinter, absteigend nach dem, was sie
- * an Qualität mitbringen.
+ * **The chosen setting always comes first.** It is the user's decision, not a
+ * suggestion — whoever picks YouTube HLS does not want to wait twenty seconds
+ * for the generated manifest to fail first. The remaining steps stay behind it
+ * as a safety net, in descending order of the quality they bring.
  */
 const ORDER_BY_MODE: Record<PlaybackMode, PlaybackSourceKind[]> = {
-  // SABR steht vorn, wenn es gewählt ist — dahinter unverändert der Phase-2-Weg.
-  // Die Stufe entsteht überhaupt nur, wenn ein Segment-Server sie ausliefert
-  // (Phase 6.5); ohne ihn fällt die Ladder von selbst auf „eigenes HLS".
+  // SABR comes first when it is chosen — behind it the phase 2 path stays
+  // unchanged. The step only exists when a segment server delivers it (phase
+  // 6.5); without one the ladder drops to the generated manifest on its own.
   sabr: ["sabr-hls", "generated-hls", "youtube-hls", "progressive"],
   generated: ["generated-hls", "youtube-hls", "progressive"],
   "youtube-hls": ["youtube-hls", "generated-hls", "progressive"],
@@ -64,35 +70,56 @@ const ORDER_BY_MODE: Record<PlaybackMode, PlaybackSourceKind[]> = {
 };
 
 /**
- * Stellt die Stufen zusammen, die für dieses Video zur Verfügung stehen.
+ * The order for the VLC player, independent of the resolution setting.
  *
- * Doppelte URLs fallen raus: steht die App auf YouTube-HLS und wurde kein
- * eigenes Manifest gebaut, bleibt genau eine HLS-Stufe übrig.
+ * VLC cannot open the generated manifest (a `data:` master with `file://`
+ * playlists) and is not wired to the SABR server, so both stay out. YouTube's
+ * own manifest and the progressive URL are plain HTTPS and play in VLC too.
+ */
+const VLC_ORDER: PlaybackSourceKind[] = ["vlc", "youtube-hls", "progressive"];
+
+/**
+ * Assembles the steps available for this video.
+ *
+ * Duplicate URLs are dropped: if the app is set to YouTube HLS and no
+ * generated manifest was built, exactly one HLS step remains.
  */
 export function buildPlaybackLadder(
   sources: {
+    vlc?: {videoUrl: string; audioUrl?: string};
     sabrHlsUrl?: string;
     generatedHlsUrl?: string;
     youtubeHlsUrl?: string;
     progressiveUrl?: string;
   },
   mode: PlaybackMode = "generated",
+  player: PlaybackPlayer = "native",
 ): PlaybackStep[] {
   const byKind: Record<PlaybackSourceKind, string | undefined> = {
+    vlc: sources.vlc?.videoUrl,
     "sabr-hls": sources.sabrHlsUrl,
     "generated-hls": sources.generatedHlsUrl,
     "youtube-hls": sources.youtubeHlsUrl,
     progressive: sources.progressiveUrl,
   };
 
-  const order = ORDER_BY_MODE[mode] ?? ORDER_BY_MODE.generated;
+  const order =
+    player === "vlc"
+      ? VLC_ORDER
+      : (ORDER_BY_MODE[mode] ?? ORDER_BY_MODE.generated);
 
   const candidates: PlaybackStep[] = order
     .map(kind => ({uri: byKind[kind], kind}))
     .filter(
       (step): step is {uri: string; kind: PlaybackSourceKind} => !!step.uri,
     )
-    .map(step => ({...step, label: describeSourceKind(step.kind)}));
+    .map(step => ({
+      ...step,
+      ...(step.kind === "vlc" && sources.vlc?.audioUrl
+        ? {audioUri: sources.vlc.audioUrl}
+        : {}),
+      label: describeSourceKind(step.kind),
+    }));
 
   const seen = new Set<string>();
 
@@ -105,7 +132,7 @@ export function buildPlaybackLadder(
   });
 }
 
-/** Ob die beiden Ladders dieselben Stufen in derselben Reihenfolge haben. */
+/** Whether both ladders have the same steps in the same order. */
 export function sameLadder(a: PlaybackStep[], b: PlaybackStep[]): boolean {
   return a.length === b.length && a.every((step, i) => step.uri === b[i].uri);
 }

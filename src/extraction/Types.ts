@@ -157,6 +157,11 @@ export interface YTVideoInfo {
   generated_hls_url?: string;
   /** Master playlist of the local SABR server (plan phase 6.5). */
   sabr_hls_url?: string;
+  /**
+   * Direct stream URLs for the VLC player: VP9 above 1080p, which AVPlayer
+   * cannot decode on Apple TV, with the audio as a separate stream.
+   */
+  vlc_source?: {videoUrl: string; audioUrl?: string};
   /** Caption tracks of the stream client; the TV metadata client has none. */
   subtitles?: SubtitleTrackList;
   best_format?: YTFormat;

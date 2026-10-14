@@ -81,6 +81,12 @@
           "style": "light"
         }
       ],
+      [
+        "@duell10111/react-native-vlc-media-player",
+        {
+          "android": {}
+        }
+      ],
       "./fmt_path.js",
       "./plugins/android/withTVDisplayScaling.js"
     ],
