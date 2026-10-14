@@ -1,10 +1,15 @@
 import {useIsFocused} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {ScrollView, StyleSheet, View} from "react-native";
+import {Platform, ScrollView, StatusBar, StyleSheet, View} from "react-native";
 import {VideoRef} from "react-native-video";
 
+import VideoPlayerNative from "@/components/video/VideoPlayerNative";
+import VideoPlayerVLC from "@/components/video/VideoPlayerVLC";
+import PhoneOverlayPlayer from "@/components/video/phone/PhoneOverlayPlayer";
+import {PhoneVideoSettingsSheet} from "@/components/video/phone/PhoneVideoSettingsSheet";
 import {VideoPlayerPhone} from "@/components/video/phone/VideoPlayerPhone";
+import {useAppData} from "@/context/AppDataContext";
 import {useDownloaderContext} from "@/context/DownloaderContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {usePlaylistManagerContext} from "@/context/PlaylistManagerContext";
@@ -12,6 +17,7 @@ import useChannelManager from "@/hooks/channel/useChannelManager";
 import useVideoComments from "@/hooks/comments/useVideoComments";
 import useOrientationChange from "@/hooks/ui/useOrientationChange";
 import useVideoDetails from "@/hooks/useVideoDetails";
+import usePlayerFullscreen from "@/hooks/video/usePlayerFullscreen";
 import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {ErrorState} from "@/ui/components";
@@ -35,14 +41,14 @@ const LOGGER = Logger.extend("VIDEO_DETAIL");
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
-type PanelId = "description" | "comments" | "queue";
+type PanelId = "description" | "comments" | "queue" | "playerSettings";
 
 /**
  * Video detail for phone and tablet. One screen for both: the difference
  * between them is the arrangement, and that is decided by `getVideoDetailLayout`
  * from the layout class and the orientation, not by the device type.
  */
-export default function VideoDetailScreen({route}: Props) {
+export default function VideoDetailScreen({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;
   const {theme} = useAppTheme();
   const {t} = useTranslation();
@@ -61,7 +67,21 @@ export default function VideoDetailScreen({route}: Props) {
     like,
     dislike,
     removeRating,
+    playbackSource,
+    startTime,
+    reportPlaybackFailure,
+    reportProgress,
   } = useVideoDetails(navEndpoint ?? videoId);
+
+  const {appSettings} = useAppData();
+  // The same player setting as on TV: the own overlay draws YouTube's
+  // controls above the native player, and VLC always runs behind it.
+  const overlayEnabled = Boolean(
+    appSettings.ownOverlayEnabled || appSettings.vlcEnabled,
+  );
+  const {fullscreen: fullscreenState, toggleFullscreen} = usePlayerFullscreen();
+  // The native controls bring their own full screen.
+  const fullscreen = overlayEnabled && fullscreenState;
 
   const [landscape, setLandscape] = useState(false);
   useOrientationChange(orientation => {
@@ -205,8 +225,40 @@ export default function VideoDetailScreen({route}: Props) {
     ) : null;
 
   const player = (
-    <View style={{aspectRatio: detailLayout.playerAspectRatio}}>
-      {videoUrl ? (
+    <View
+      style={
+        fullscreen
+          ? styles.playerFullscreen
+          : {aspectRatio: detailLayout.playerAspectRatio}
+      }>
+      {videoUrl && overlayEnabled ? (
+        <PhoneOverlayPlayer
+          VideoComponent={
+            appSettings.vlcEnabled ? VideoPlayerVLC : VideoPlayerNative
+          }
+          VideoComponentProps={{
+            url: videoUrl,
+            audioUrl: playbackSource?.audioUri,
+            startPosition: startTime ? startTime * 1000 : undefined,
+            videoInfo: YTVideoInfo.originalData,
+            onPlaybackFailure: reportPlaybackFailure,
+            // Kept from the native-controls player of this screen.
+            playInBackground: Platform.OS === "android",
+            enterPictureInPictureOnLeave: Platform.OS === "ios",
+            ignoreSilentSwitch: "ignore",
+          }}
+          videoID={YTVideoInfo.id}
+          title={YTVideoInfo.title}
+          subtitles={YTVideoInfo.subtitles}
+          fullscreen={fullscreen}
+          onToggleFullscreen={toggleFullscreen}
+          onOpenSettings={() => setPanel("playerSettings")}
+          onClose={
+            navigation.canGoBack() ? () => navigation.goBack() : undefined
+          }
+          onProgress={data => reportProgress(data.currentTime)}
+        />
+      ) : videoUrl ? (
         <VideoPlayerPhone
           onPipPress={() => videoRef.current?.pause()}
           ref={videoRef}
@@ -229,11 +281,15 @@ export default function VideoDetailScreen({route}: Props) {
     />
   );
 
-  const split = detailLayout.mode === "split";
+  const split = detailLayout.mode === "split" && !fullscreen;
 
   return (
     <View
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
+      style={[
+        styles.container,
+        {backgroundColor: fullscreen ? "black" : theme.colors.background},
+      ]}>
+      <StatusBar hidden={fullscreen} animated />
       {/*
         Stacked and split share one tree. The player has to keep its exact
         place in it: rendering it from two different branches makes React
@@ -247,13 +303,17 @@ export default function VideoDetailScreen({route}: Props) {
             styles.playerColumn,
             split && styles.playerColumnSplit,
             split && {width: `${detailLayout.playerColumnRatio * 100}%`},
+            fullscreen && styles.playerColumnFullscreen,
           ]}>
           {player}
           {split ? (
             <ScrollView style={styles.metadataColumn}>{header}</ScrollView>
           ) : null}
         </View>
-        <View style={styles.feedColumn}>{feed}</View>
+        {/* Hidden instead of unmounted: the feed keeps its scroll position. */}
+        <View style={[styles.feedColumn, fullscreen && styles.hidden]}>
+          {feed}
+        </View>
       </View>
       <SheetPanel
         onClose={() => setPanel(undefined)}
@@ -281,6 +341,12 @@ export default function VideoDetailScreen({route}: Props) {
           onRetry={comments.retry}
         />
       </SheetPanel>
+      {overlayEnabled ? (
+        <PhoneVideoSettingsSheet
+          onClose={() => setPanel(undefined)}
+          open={panel === "playerSettings"}
+        />
+      ) : null}
       {model?.queue ? (
         <SheetPanel
           onClose={() => setPanel(undefined)}
@@ -323,5 +389,14 @@ const styles = StyleSheet.create({
   player: {
     width: "100%",
     height: "100%",
+  },
+  playerColumnFullscreen: {
+    flex: 1,
+  },
+  playerFullscreen: {
+    flex: 1,
+  },
+  hidden: {
+    display: "none",
   },
 });
