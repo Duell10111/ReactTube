@@ -1,5 +1,6 @@
 import {useIsFocused} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
+import {NavigationBar} from "expo-navigation-bar";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Platform, ScrollView, StatusBar, StyleSheet, View} from "react-native";
 import {VideoRef} from "react-native-video";
@@ -250,6 +251,9 @@ export default function VideoDetailScreen({route, navigation}: Props) {
           videoID={YTVideoInfo.id}
           title={YTVideoInfo.title}
           subtitles={YTVideoInfo.subtitles}
+          chapters={YTVideoInfo.chapters}
+          storyboard={YTVideoInfo.storyboard}
+          endscreen={YTVideoInfo.endscreen}
           fullscreen={fullscreen}
           onToggleFullscreen={toggleFullscreen}
           onOpenSettings={() => setPanel("playerSettings")}
@@ -290,6 +294,8 @@ export default function VideoDetailScreen({route, navigation}: Props) {
         {backgroundColor: fullscreen ? "black" : theme.colors.background},
       ]}>
       <StatusBar hidden={fullscreen} animated />
+      {/* Android only; the bar comes back with a swipe from the edge. */}
+      <NavigationBar hidden={fullscreen} />
       {/*
         Stacked and split share one tree. The player has to keep its exact
         place in it: rendering it from two different branches makes React

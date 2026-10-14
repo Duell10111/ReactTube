@@ -13,6 +13,7 @@ import {
 
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 import type {ResolutionBadge} from "@/extraction/lockupMetadata";
+import type {YTStoryboard} from "@/extraction/storyboard";
 import type {SubtitleTrackList} from "@/utils/Subtitles";
 
 export interface Thumbnail {
@@ -124,6 +125,8 @@ export interface YTVideoInfo {
   livestream?: boolean;
   author?: Author;
   chapters?: YTChapter[];
+  /** Frames for the seek bar preview; missing for live streams. */
+  storyboard?: YTStoryboard;
   channel_id?: string;
   channel?: {
     id: string;

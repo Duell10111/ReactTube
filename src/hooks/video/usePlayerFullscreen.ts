@@ -14,7 +14,8 @@ const LOGGER = Logger.extend("PLAYER_FULLSCREEN");
  * The player itself only grows to fill the screen; this hook handles what
  * belongs to the screen around it: the navigation header and the back swipe
  * go away, the hardware back button leaves full screen first, and a phone
- * turns to landscape. A tablet keeps its orientation — it has room for a 16:9
+ * turns to landscape. The status bar and the Android navigation bar are
+ * hidden declaratively by the screen. A tablet keeps its orientation — it has room for a 16:9
  * player either way, and forcing a rotation there would be surprising.
  */
 export default function usePlayerFullscreen() {
@@ -32,6 +33,13 @@ export default function usePlayerFullscreen() {
       gestureEnabled: !fullscreen,
     });
   }, [fullscreen, navigation]);
+
+  // A screen pushed on top, such as a channel opened from an end card, must
+  // not inherit the landscape lock or the hidden header.
+  useEffect(
+    () => navigation.addListener("blur", () => setFullscreen(false)),
+    [navigation],
+  );
 
   useEffect(() => {
     if (!fullscreen) {

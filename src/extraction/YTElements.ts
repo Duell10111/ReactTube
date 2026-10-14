@@ -47,6 +47,7 @@ import {
   parseObservedArray,
 } from "@/extraction/ArrayExtraction";
 import {parseHorizontalNode} from "@/extraction/ShelfExtraction";
+import {pickStoryboard, YTStoryboard} from "@/extraction/storyboard";
 import {getSubtitleTrackList} from "@/utils/Subtitles";
 
 /**
@@ -85,6 +86,7 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     : undefined;
 
   const chapters = extractChaptersFromVideoInfo(videoInfo);
+  const storyboard = extractStoryboard(videoInfo);
 
   const best_format = chooseBestSingleUrlFormat(videoInfo);
 
@@ -103,6 +105,7 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
       videoInfo?.primary_info?.view_count?.original_view_count,
     publishDate: videoInfo.primary_info?.relative_date.text,
     chapters,
+    storyboard,
     channel_id:
       videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
     channel: videoInfo.basic_info.channel,
@@ -868,4 +871,15 @@ function parseYTTabType(tab: YTNodes.Tab) {
       return "playlists";
   }
   console.log("BrowseID: ", browseId);
+}
+
+/** Live streams carry a different spec without fixed boards; they get none. */
+export function extractStoryboard(
+  videoInfo: YT.VideoInfo | YTTV.VideoInfo,
+): YTStoryboard | undefined {
+  const spec = videoInfo.storyboards;
+  if (!spec?.is(YTNodes.PlayerStoryboardSpec)) {
+    return undefined;
+  }
+  return pickStoryboard(spec.boards);
 }
