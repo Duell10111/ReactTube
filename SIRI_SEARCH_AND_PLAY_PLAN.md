@@ -1,0 +1,350 @@
+# Plan: Siri „Search & Play“ für ReactTube
+
+> Stand: 2026-10-15 · Branch: `yt-phone-adaptions`
+> Scope: iOS/iPadOS-Phone-App (Musik-Wiedergabe über `MusicPlayerContext`),
+> neues Intents-Extension-Target unter `targets/`, neues lokales Expo-Modul unter
+> `modules/`, ein iOS-Config-Plugin unter `plugins/ios/`, JS-Bridge in `src/`.
+> Später optional: tvOS und watchOS (Abschnitt 8).
+> Nicht im Scope: Android (Google Assistant / `onPlayFromSearch`), CarPlay-UI.
+
+---
+
+## 0. Ziel in einem Satz
+
+Man sagt „Hey Siri, spiele _Bohemian Rhapsody_ in ReactTube“ (oder „…suche
+_Lo-Fi_ in ReactTube“) und ReactTube sucht auf YouTube Music, startet die
+Wiedergabe samt Up-Next/Automix bzw. öffnet die Suchergebnisse — auch wenn die
+App gerade nicht im Vordergrund ist.
+
+---
+
+## 1. Befund — was heute da ist
+
+| Thema                         | Stand                                                                                                                                                                               | Fundstelle                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Musik-Wiedergabe              | `@rntp/player`, Playlist/Repeat/Shuffle/Automix leben **in React**                                                                                                                  | `src/context/MusicPlayerContext.tsx`, `src/utils/music/MusicInit.ts` |
+| Einstiegspunkte zum Abspielen | `setPlaylistViaEndpoint(endpoint)`, `setCurrentItem(item)`, `setPlaylistViaLocalDownload(id)`, `addAsNextItem(item)`, `setShuffle`, `setRepeat`                                     | `MusicPlayerContext.tsx:479 ff.`                                     |
+| Musiksuche                    | `youtube.music.search(query)` → `parseArrayHorizontalData`                                                                                                                          | `src/hooks/music/useMusicSearch.ts`                                  |
+| Suchscreens                   | `Search` und `MusicSearchScreen` haben **keine** Route-Params (kein Initial-Query)                                                                                                  | `src/navigation/RootStackNavigator.tsx:52, 76`                       |
+| Navigation von außen          | kein `navigationRef`, kein `linking`-Config                                                                                                                                         | `src/navigation/Navigation.tsx`                                      |
+| YouTube-Zugriff               | ausschließlich JS (`youtubei.js`, PoToken über `PoTokenWebViewHost`)                                                                                                                | `App.tsx`, `src/utils/potoken/`                                      |
+| App-Lebenszyklus              | Scene-basiert (`EXExpoAppSceneDelegate`, `enableSceneSupport: true`), `UIApplicationSupportsMultipleScenes = false`                                                                 | `app.json`, `ios/reacttube/Info.plist`                               |
+| React-Start                   | `factory.startReactNative(...)` passiert erst in `scene(_:willConnectTo:)`                                                                                                          | `node_modules/expo/ios/AppDelegates/ExpoAppSceneDelegate.swift:59`   |
+| Native Erweiterungen          | lokale Expo-Module (`modules/media-server`, `modules/botguard-webview`), Targets über `@duell10111/apple-targets` (unterstützt Typ `"intent"`), Config-Plugins unter `plugins/ios/` | —                                                                    |
+| Siri / Intents                | **nichts** vorhanden: keine Entitlements, kein `NSSiriUsageDescription`, keine Extension                                                                                            | `ios/reacttube/reacttube.entitlements` ist leer                      |
+| App-Name für Siri             | `CFBundleDisplayName = "reacttube"` — Siri muss das als „React Tube“ verstehen                                                                                                      | `Info.plist`                                                         |
+| Lokalisierung                 | `src/localization/` mit `en`/`de` existiert bereits                                                                                                                                 | `src/localization/en.ts`, `de.ts`                                    |
+
+### Kernproblem
+
+Der natürliche Siri-Weg für Audio-Apps (`INPlayMediaIntent` →
+`.handleInApp`) startet die App **im Hintergrund** und ruft nur
+`application(_:handle:completionHandler:)` am App-Delegate auf. Dabei wird
+**keine UIScene verbunden** — in unserem Setup startet React Native also gar
+nicht, und ohne JS gibt es weder YouTube-Suche noch Stream-Auflösung noch
+Playlist-Logik. Das bestimmt die Phasenreihenfolge (siehe Abschnitt 3).
+
+---
+
+## 2. Welche Apple-API?
+
+| Option                                                                                                                                              | Freitext („spiele _X_“)                                                                                        | Hintergrund-Wiedergabe     | HomePod/CarPlay             | Bewertung                                                                     |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------- | --------------------------- | ----------------------------------------------------------------------------- |
+| **SiriKit Media Intents** (`INPlayMediaIntent`, `INSearchForMediaIntent`, `INAddMediaIntent`, `INUpdateMediaAffinityIntent`) über Intents-Extension | ✅ `INMediaSearch` (Titel, Künstler, Album, Genre, Mood, Typ)                                                  | ✅ via `.handleInApp`      | ✅ (nur mit `.handleInApp`) | **Empfohlen** — einziger offizieller Weg für „spiele beliebiges _X_ in App Y“ |
+| App Intents + App Shortcuts (`AppShortcutsProvider`)                                                                                                | ❌ Phrasen erlauben nur `AppEntity`/`AppEnum`-Parameter, Freitext nur per Rückfrage („Was möchtest du hören?“) | ✅ (`AudioPlaybackIntent`) | eingeschränkt               | Ergänzung für Kurzbefehle-App, Spotlight, Action Button (Phase 5)             |
+| Universal Links / URL-Schema                                                                                                                        | ❌                                                                                                             | ❌                         | ❌                          | nur als interner Transport nützlich                                           |
+
+> Vor Phase 0 kurz gegen das aktuelle SDK prüfen, ob Apple inzwischen ein
+> Assistant-Schema für Medienwiedergabe in App Intents anbietet. Stand der
+> Recherche: Media Intents sind weiterhin der Weg für Audio-Apps.
+
+**Video:** `INPlayMediaIntent` ist für Audio gedacht; Videos auf dem iPhone
+starten wir nicht über Siri-Wiedergabe. „Suche _X_ in ReactTube“ darf aber den
+Video-Suchscreen öffnen (Abschnitt 4).
+
+---
+
+## 3. Zielarchitektur
+
+```
+ "Hey Siri, spiele X in ReactTube"
+            │
+            ▼
+ ┌──────────────────────────────┐   App Group (UserDefaults/JSON)
+ │ Intents-Extension (Swift)    │◀── Library-Snapshot: Playlists, Downloads,
+ │ targets/siri-intents/        │    zuletzt gespielt, Login-Status
+ │  resolveMediaItems  ─ leicht,│
+ │  kein youtubei.js            │
+ │  handle → .handleInApp /     │
+ │           .continueInApp     │
+ └──────────────┬───────────────┘
+                │ INPlayMediaIntent (+ resolved INMediaItem)
+                ▼
+ ┌──────────────────────────────┐
+ │ Expo-Modul modules/siri-media│  AppDelegateSubscriber:
+ │  - application(_:handle:)    │  - Intent in Pending-Queue legen
+ │  - scene continue userActivity│ - React ggf. headless starten (Phase 2)
+ │  - JS-Events + completeRequest│ - Completion erst nach JS-Antwort / Timeout
+ └──────────────┬───────────────┘
+                │ Event "onSiriMediaRequest" {requestId, request}
+                ▼
+ ┌──────────────────────────────┐
+ │ JS: useSiriMediaBridge.ios   │  parseSiriRequest (pur, getestet)
+ │  (in App.tsx innerhalb       │  → resolveSiriRequest (YT-Music-Suche,
+ │   MusicPlayerContext)        │     Ranking, Library/Downloads)
+ │                              │  → MusicPlayerContext.setPlaylistViaEndpoint
+ │                              │  → completeRequest(requestId, "success")
+ └──────────────────────────────┘
+```
+
+### 3.1 Aufgabenteilung Extension ↔ App
+
+- **Extension löst nur „leicht“ auf.** Sie kann kein `youtubei.js` ausführen.
+  Sie akzeptiert die `INMediaSearch` und baut ein `INMediaItem` mit
+  - `identifier` = serialisierte Anfrage, z. B.
+    `rt:search:song?q=Bohemian%20Rhapsody&artist=Queen` oder, wenn im
+    App-Group-Snapshot gefunden, `rt:playlist:<id>` / `rt:download:<videoId>`;
+  - `title`/`artist` aus der Anfrage (Siri liest das vor).
+    Nur Login-pflichtige Fälle ohne Login (z. B. „meine Playlist _X_“) werden
+    bereits hier mit `.unsupported` beantwortet.
+- **Die App macht die echte Suche** und startet die Wiedergabe. Findet sie
+  nichts, antwortet sie mit `.failureNoUnplayedContent` bzw. `.failure`, Siri
+  sagt das dann an.
+
+### 3.2 Drei Startsituationen
+
+| Situation                                                | Weg                                                                                                                                        | Phase |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| App läuft (Vorder- oder Hintergrund, JS lebt)            | `.handleInApp` → Modul feuert JS-Event sofort                                                                                              | 1     |
+| App beendet, Gerät entsperrt                             | MVP: `.continueInApp` → App kommt in den Vordergrund, Scene verbindet, React startet, Modul liefert die Anfrage aus der Pending-Queue nach | 1     |
+| App beendet, Hintergrund-/Sperrbildschirm-/HomePod-Start | `.handleInApp` → Modul startet React **headless** (ohne Window) und hält die Siri-Completion bis zur JS-Antwort (Timeout ~8 s)             | 2     |
+
+Die Extension weiß nicht, ob die App läuft. Deshalb: **Phase 1** antwortet
+immer mit `.continueInApp` (robust, öffnet die App), **Phase 2** stellt auf
+`.handleInApp` um, sobald der Headless-Start zuverlässig funktioniert. Ein
+rein nativer Fallback (Stream ohne JS auflösen) ist bewusst nicht vorgesehen:
+PoToken, SABR und Cipher-Logik leben in JS.
+
+---
+
+## 4. Intent-Semantik
+
+### 4.1 `INPlayMediaIntent` → Aktion
+
+| Beispiel (de/en)                              | `INMediaSearch`                      | Aktion in der App                                                                          |
+| --------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------ |
+| „Spiele _Bohemian Rhapsody_ in ReactTube“     | `mediaType=.song`, `mediaName`       | YT-Music-Suche, Filter „Songs“, Top-Treffer → `setPlaylistViaEndpoint` (Up Next + Automix) |
+| „Spiele _Queen_ in ReactTube“                 | `mediaType=.artist`, `artistName`    | Künstler-Treffer → Shuffle-/Radio-Endpoint des Künstlers                                   |
+| „Spiele das Album _A Night at the Opera_“     | `mediaType=.album`, `albumName`      | Album-Playlist ab Titel 1                                                                  |
+| „Spiele meine Playlist _Sport_“               | `mediaType=.playlist`, `mediaName`   | Abgleich lokal + Account-Playlists (Snapshot), sonst YT-Suche nach Playlists               |
+| „Spiele entspannte Musik / Jazz in ReactTube“ | `moodNames` / `genreNames`           | Suche nach Mood/Genre bzw. „Moods & Genres“-Endpoint, Shuffle                              |
+| „Spiele ReactTube“                            | leer                                 | zuletzt gespielten Titel fortsetzen, sonst erste „Quick Picks“ der Music-Home              |
+| „Spiele mehr davon“                           | `reference=.currentlyPlaying`        | Automix/Radio vom aktuellen Titel                                                          |
+| „…als Nächstes“ / „…danach“                   | `playbackQueueLocation=.next/.later` | `addAsNextItem` statt Ersetzen                                                             |
+| „…zufällig“ / „…wiederholen“                  | `playShuffled`, `playbackRepeatMode` | `setShuffle`, `setRepeat`                                                                  |
+| Offline / heruntergeladen                     | Treffer im Download-Snapshot         | `setPlaylistViaLocalDownload(id)` bevorzugen                                               |
+
+### 4.2 `INSearchForMediaIntent`
+
+„Suche _Lo-Fi_ in ReactTube“ → `.continueInApp` → `MusicSearchScreen` mit
+`initialQuery`. Hinweise auf Video („…Videos von _X_“, `mediaType=.video` /
+`.musicVideo`) → normaler `Search`-Screen mit `initialQuery`.
+
+### 4.3 Später (Phase 4)
+
+- `INUpdateMediaAffinityIntent`: „Ich mag diesen Song“ → Like über
+  `youtubei.js` (nur mit Login), sonst lokale Bibliothek.
+- `INAddMediaIntent`: „Füge diesen Song zu _Sport_ hinzu“ →
+  `PlaylistManagerContext` (lokal oder Account).
+
+---
+
+## 5. Bausteine und Dateien
+
+| Datei / Ordner                                                          | Art      | Inhalt                                                                                                                                                                                              |
+| ----------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `targets/siri-intents/expo-target.config.js`                            | neu      | `type: "intent"`, Bundle-ID `com.duell10111.reacttube.siri-intents`, App Group, Siri-Entitlement                                                                                                    |
+| `targets/siri-intents/IntentHandler.swift`                              | neu      | `INExtension`, verteilt auf die Handler                                                                                                                                                             |
+| `targets/siri-intents/PlayMediaIntentHandler.swift`                     | neu      | `resolveMediaItems`, `handle` (Abschnitt 3.1)                                                                                                                                                       |
+| `targets/siri-intents/SearchForMediaIntentHandler.swift`                | neu      | `handle` → `.continueInApp`                                                                                                                                                                         |
+| `targets/siri-intents/LibrarySnapshot.swift`                            | neu      | liest den App-Group-Snapshot (Codable, versioniert)                                                                                                                                                 |
+| `targets/siri-intents/Info.plist`                                       | neu      | `NSExtension` → `IntentsSupported`: `INPlayMediaIntent`, `INSearchForMediaIntent`; `SupportedMediaCategories`: `INMediaCategoryMusic` (+ ggf. `General`)                                            |
+| `modules/siri-media/`                                                   | neu      | lokales Expo-Modul (Aufbau wie `modules/media-server`)                                                                                                                                              |
+| `modules/siri-media/ios/SiriMediaAppDelegateSubscriber.swift`           | neu      | `ExpoAppDelegateSubscriber`: `application(_:handle:completionHandler:)`, Pending-Queue, Timeout, Headless-Start (Phase 2)                                                                           |
+| `modules/siri-media/ios/SiriMediaModule.swift`                          | neu      | JS-API: Event `onSiriMediaRequest`, `getPendingRequests()`, `completeRequest(id, result)`, `writeLibrarySnapshot(json)`, `setVocabulary(kind, strings)`, `donatePlayback(item)`                     |
+| `modules/siri-media/index.ts` + `src/*.ts`                              | neu      | Typen; No-op-Implementierung für Android/tvOS/Web                                                                                                                                                   |
+| `plugins/ios/withSiri.js`                                               | neu      | Entitlements (`com.apple.developer.siri`, App Group), `NSSiriUsageDescription` (en/de via `InfoPlist.strings`), `INAlternativeAppNames` („React Tube“), Scene-`continue userActivity` weiterreichen |
+| `app.json`                                                              | geändert | Plugin eintragen; Entitlements nicht direkt in `ios/` editieren (generiert)                                                                                                                         |
+| `src/siri/parseSiriRequest.ts`                                          | neu      | **pure** Abbildung Intent-Payload → `SiriPlayRequest` (Discriminated Union)                                                                                                                         |
+| `src/siri/rankSiriSearchResults.ts`                                     | neu      | **pure** Auswahl des besten Treffers (Typ-Match, Künstler-Match, Normalisierung von Groß-/Kleinschreibung, Akzenten, „feat.“)                                                                       |
+| `src/siri/resolveSiriRequest.ts`                                        | neu      | YT-Music-Suche/Library/Downloads → Endpoint oder lokale ID                                                                                                                                          |
+| `src/hooks/siri/useSiriMediaBridge.ios.tsx`                             | neu      | Event-Listener, Pending-Queue abholen, Player steuern, `completeRequest`                                                                                                                            |
+| `src/hooks/siri/useSiriMediaBridge.tsx`                                 | neu      | No-op für Android/TV                                                                                                                                                                                |
+| `src/hooks/siri/useSiriLibrarySync.ios.tsx`                             | neu      | schreibt Snapshot + `INVocabulary` (`.mediaPlaylistTitle`), wenn sich Playlists/Downloads ändern                                                                                                    |
+| `src/navigation/Navigation.tsx`                                         | geändert | `createNavigationContainerRef` exportieren, damit die Bridge zu Suche/Player navigieren kann                                                                                                        |
+| `src/navigation/RootStackNavigator.tsx`                                 | geändert | `Search: {initialQuery?: string} \| undefined`, `MusicSearchScreen: {initialQuery?: string} \| undefined`                                                                                           |
+| `src/screens/phone/MusicSearchScreen.tsx`, `SearchScreen`               | geändert | `initialQuery` übernehmen und Suche auslösen                                                                                                                                                        |
+| Settings (Phone)                                                        | geändert | Schalter „Siri-Wiedergabe“ und „Wiedergabe an Siri melden (Vorschläge)“                                                                                                                             |
+| `src/localization/en.ts`, `de.ts`                                       | geändert | Keys z. B. `settings.siri.*`, `siri.errors.*` in beiden Sprachen                                                                                                                                    |
+| `test/siri-request-parse.test.mjs`, `test/siri-result-ranking.test.mjs` | neu      | Node-Tests für die puren Module                                                                                                                                                                     |
+
+Hinweise aus `AGENTS.md`: alle Code-Kommentare englisch; sichtbare Texte nur
+über `src/localization`; nichts in `ios/` von Hand ändern — alles über
+Config-Plugin, Expo-Modul und `targets/`.
+
+### 5.1 Request-Lebenszyklus im Modul
+
+1. Intent kommt an → `requestId` vergeben, in Pending-Queue (Speicher +
+   App-Group, damit `.continueInApp`-Kaltstarts sie finden).
+2. Ist ein JS-Listener registriert → Event sofort senden, sonst warten.
+3. JS meldet `completeRequest(id, "success" | "notFound" | "loginRequired" |
+"failure")` → Modul ruft die Siri-Completion mit passendem
+   `INPlayMediaIntentResponseCode` auf.
+4. Timeout (≈ 8 s, Siri gibt nicht viel länger) → `.failure`; die Anfrage wird
+   verworfen, damit sie nicht Minuten später überraschend losspielt.
+5. Bei `.success` liefert die Antwort die tatsächlich gespielten
+   `INMediaItem`s zurück (Siri kann dann „Spiele _Titel_ von _Künstler_“ sagen).
+
+---
+
+## 6. Phasen
+
+### Phase 0 — Spike (Machbarkeit, 1–2 Tage)
+
+- [ ] Klären: Apple-Developer-Programm (bezahlt) und echte `appleTeamId` —
+      das Siri-Entitlement gibt es **nicht** mit einem Personal Team
+      (`app.json` hat aktuell `XXXXXXXXXX`).
+- [ ] Minimal-Extension über `@duell10111/apple-targets` (`type: "intent"`)
+      bauen, signieren, auf Gerät installieren; Siri antwortet auf
+      „Spiele Test in ReactTube“.
+- [ ] `.continueInApp`: prüfen, dass die `NSUserActivity` mit der Interaction
+      über `EXExpoAppSceneDelegate` (`scene(_:continue:)` bzw.
+      Connection-Options beim Kaltstart) im Modul ankommt.
+- [ ] `.handleInApp` bei beendeter App: Kann das Modul im
+      `application(_:handle:)` den `RCTReactNativeFactory`-Host ohne Window
+      starten (Root-View offscreen bzw. Surface ohne Window)? Laufen
+      `YoutubeContextProvider` und `PoTokenWebViewHost` (WKWebView) dabei?
+      Funktioniert danach ein späterer Scene-Connect ohne zweiten JS-Start?
+- [ ] Ergebnis hier im Plan festhalten; davon hängt Phase 2 ab.
+
+### Phase 1 — MVP: „Spiele _X_“ und „Suche _X_“ (Vordergrund)
+
+- [ ] Extension mit `INPlayMediaIntent` + `INSearchForMediaIntent`,
+      leichte Auflösung, immer `.continueInApp`.
+- [ ] Expo-Modul mit Pending-Queue, Event, `completeRequest`.
+- [ ] `parseSiriRequest` + `rankSiriSearchResults` + Tests.
+- [ ] `resolveSiriRequest` für Song, Künstler, Album, leere Anfrage.
+- [ ] Bridge-Hook in `App.tsx` innerhalb von `MusicPlayerContext`
+      (analog zu `useWatchSync`); nach Start optional zu
+      `MusicPlayerScreen` navigieren.
+- [ ] `initialQuery` für beide Suchscreens.
+- [ ] `INAlternativeAppNames` („React Tube“) und `NSSiriUsageDescription`
+      in en/de; Siri-Berechtigung beim ersten Aktivieren des Settings-Schalters
+      anfragen (`INPreferences.requestSiriAuthorization`).
+- [ ] Settings-Schalter + Lokalisierung.
+
+### Phase 2 — Echte Hintergrund-Wiedergabe
+
+- [ ] Headless-React-Start aus dem Spike produktiv machen.
+- [ ] Extension auf `.handleInApp` umstellen (Voraussetzung für Sperrbildschirm,
+      AirPods, HomePod, CarPlay-Sprachbefehl).
+- [ ] Timeout-/Fehlerpfade, Logging über `Logger.extend("SIRI")`.
+- [ ] Audio-Session: sicherstellen, dass `setupMusicPlayer()` vor der
+      Wiedergabe läuft, auch ohne dass ein Screen gemountet wurde.
+
+### Phase 3 — Bibliothek, Downloads, Vokabular
+
+- [ ] `useSiriLibrarySync`: Snapshot (lokale + Account-Playlists, Downloads,
+      zuletzt gespielt, Login-Status) in die App Group schreiben.
+- [ ] `INVocabulary.setVocabularyStrings` für Playlist-Namen.
+- [ ] Extension löst Playlists/Downloads direkt auf (`rt:playlist:<id>`,
+      `rt:download:<id>`), Offline-Wiedergabe bevorzugt Downloads.
+- [ ] `INMediaUserContext` (Anzahl Bibliothekseinträge) setzen, damit Siri
+      ReactTube als Medien-App ernst nimmt.
+
+### Phase 4 — Queue, Optionen, Affinität
+
+- [ ] `playbackQueueLocation`, `playShuffled`, `playbackRepeatMode`,
+      `reference=.currentlyPlaying`.
+- [ ] `INUpdateMediaAffinityIntent` (Like/Dislike), `INAddMediaIntent`
+      (zu Playlist hinzufügen).
+
+### Phase 5 — Vorschläge und Kurzbefehle
+
+- [ ] Gespielte Titel als `INPlayMediaIntent`-Interaction spenden
+      (Siri-Vorschläge, „Zuletzt gespielt“ auf Sperrbildschirm/Watch).
+- [ ] Optional App Intents im App-Target: `PlayMusicIntent`
+      (`AudioPlaybackIntent`, Parameter per Rückfrage), `SearchIntent`,
+      `ResumeIntent` + `AppShortcutsProvider` mit Phrasen in en/de
+      (`AppShortcuts.xcstrings`).
+
+### Phase 6 — Weitere Plattformen (optional, eigener Spike)
+
+Siehe Abschnitt 8.
+
+---
+
+## 7. Tests
+
+| Ebene           | Was                                                                    | Wie                                                              |
+| --------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Unit (Node)     | `parseSiriRequest`, `rankSiriSearchResults`, Identifier-Serialisierung | `test/*.test.mjs`, `npm test`                                    |
+| Extension       | Auflösung mit Beispiel-Utterances                                      | Xcode-Scheme der Extension, „Siri Intent Query“ im Scheme setzen |
+| Manuell (Gerät) | Matrix unten                                                           | Siri auf Deutsch **und** Englisch                                |
+| Regression      | normale Musik-Wiedergabe, Watch-Sync, Downloads                        | bestehende Maestro-Flows                                         |
+
+Testmatrix (manuell):
+
+|                                     | App im Vordergrund | App im Hintergrund | App beendet | Gesperrt | Offline              |
+| ----------------------------------- | ------------------ | ------------------ | ----------- | -------- | -------------------- |
+| Song                                |                    |                    |             |          | (nur Download)       |
+| Künstler                            |                    |                    |             |          | –                    |
+| Playlist (Account/lokal)            |                    |                    |             |          | (nur lokal/Download) |
+| Leere Anfrage                       |                    |                    |             |          |                      |
+| Suche                               |                    |                    |             | –        | –                    |
+| Nicht eingeloggt + „meine Playlist“ |                    |                    |             |          |                      |
+
+Maestro kann Siri nicht ansprechen; die Siri-Strecke bleibt manuell.
+
+---
+
+## 8. Plattformen
+
+- **iPhone/iPad:** Hauptziel dieses Plans.
+- **tvOS:** Media Intents existieren seit tvOS 14 (Siri Remote: „Spiele _X_ in
+  ReactTube“). Eigene Extension im TV-Build (`isTV: true`), Ziel ist
+  `MusicPlayerContext.tv.tsx`. Fokus-/Remote-Verhalten darf dadurch nicht
+  leiden. Eigener Spike, erst nach Phase 2.
+- **watchOS:** Siri auf der Uhr könnte heruntergeladene Titel/Playlists direkt
+  im Swift-Player (`MusicPlayerManager.swift`) abspielen — ohne iPhone. Für
+  Streaming hängt das an `WATCH_YOUTUBE_API_PLAN.md`. Eigener Plan, wenn
+  gewünscht.
+- **Android:** nicht im Scope; der passende Weg wäre
+  `MediaSession.onPlayFromSearch` (Assistant/Android Auto).
+
+---
+
+## 9. Risiken
+
+| Risiko                                                                           | Auswirkung                                         | Gegenmaßnahme                                                                                                             |
+| -------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Headless-React-Start funktioniert mit Scene-Lifecycle/Expo nicht sauber          | kein `.handleInApp` → kein Sperrbildschirm/HomePod | Phase 1 mit `.continueInApp` liefert trotzdem Nutzen; Spike entscheidet                                                   |
+| JS-Kaltstart + YouTube-Session + PoToken zu langsam für Siri-Timeout             | Siri meldet Fehler, obwohl es später spielt        | Completion früh mit „wird gestartet“ beantworten, wenn Suche erfolgreich; Sessions/Visitor-Data cachen; Timeout-Verwerfen |
+| Siri versteht „reacttube“ nicht                                                  | Intent landet bei Apple Music                      | `INAlternativeAppNames`, ggf. `CFBundleDisplayName` „ReactTube“                                                           |
+| Siri-Entitlement ohne bezahlten Account nicht verfügbar                          | keine Umsetzung möglich                            | in Phase 0 klären                                                                                                         |
+| Mehrdeutige Suchtreffer (Cover, Live, Remix)                                     | falscher Titel                                     | Ranking mit Typ- und Künstler-Match, Tests mit realen Fixtures                                                            |
+| `INMediaSearch.mediaName` unzuverlässig bei Playlists (bekanntes Siri-Verhalten) | Playlist wird nicht gefunden                       | Vokabular registrieren, Fallback auf Freitextsuche                                                                        |
+| App-Group-Snapshot veraltet                                                      | Extension löst falsch auf                          | Snapshot versionieren, App prüft IDs beim Abspielen erneut                                                                |
+
+---
+
+## 10. Offene Fragen
+
+1. Gibt es einen bezahlten Apple-Developer-Account mit echter Team-ID für
+   Siri-Entitlement und App Group?
+2. Soll Siri nur Musik starten, oder soll „Suche _X_“ standardmäßig die
+   Video-Suche statt der Musik-Suche öffnen?
+3. Soll nach einem Siri-Start im Vordergrund automatisch der
+   `MusicPlayerScreen` geöffnet werden oder nur der Mini-Player erscheinen?
+4. Prioritäten nach dem MVP: Hintergrundstart (Phase 2) vor
+   Bibliothek/Vokabular (Phase 3), oder umgekehrt? Und tvOS/watchOS überhaupt?
