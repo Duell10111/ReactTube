@@ -33,6 +33,11 @@ export interface AppSettings {
   languageSelected?: string;
   uiLanguage?: UILanguage;
   trackingEnabled?: boolean;
+  /**
+   * Whether the phone/tablet overlay player starts the next video on its own
+   * once a video ends. Unset means on, as in the YouTube app.
+   */
+  autoplayEnabled?: boolean;
   /** Whether subtitles are shown, remembered across videos. */
   subtitlesEnabled?: boolean;
   /**

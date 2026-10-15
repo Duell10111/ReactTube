@@ -2,8 +2,11 @@ import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import React, {useEffect, useState} from "react";
 import {StyleSheet} from "react-native";
 
+import {isAutoplayEnabled} from "./phoneAutoplayModel";
+
 import {useVideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettingsContext";
 import {PLAYBACK_SPEEDS} from "@/components/video/videoPlayer/settings/VideoPlayerSpeed";
+import {useAppData} from "@/context/AppDataContext";
 import {useSubtitleOptions} from "@/hooks/video/useSubtitleOptions";
 import {useTranslation} from "@/localization";
 import {AppListItem, AppText} from "@/ui/components";
@@ -40,6 +43,8 @@ export function PhoneVideoSettingsSheet({
     selectSubtitle,
   } = useVideoPlayerSettings();
   const subtitleOptions = useSubtitleOptions();
+  const {appSettings, updateSettings} = useAppData();
+  const autoplay = isAutoplayEnabled(appSettings);
 
   // Every opening starts at the menu, not at the page left last time.
   useEffect(() => {
@@ -109,6 +114,16 @@ export function PhoneVideoSettingsSheet({
               onPress={() => setPage("subtitles")}
               title={t("video.player.subtitles")}
               trailingText={subtitleLabel}
+            />
+            <AppListItem
+              icon={"play-circle-outline"}
+              // A toggle, not a page: the sheet stays open to show the change.
+              onPress={() => updateSettings({autoplayEnabled: !autoplay})}
+              selected={autoplay}
+              title={t("video.autoplay")}
+              trailingText={
+                autoplay ? t("common.enabled") : t("common.disabled")
+              }
             />
           </>
         ) : null}

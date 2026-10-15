@@ -23,6 +23,8 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import type {OnLoadData, OnProgressData} from "react-native-video";
 
 import PhoneSeekBar from "./PhoneSeekBar";
+import PhoneUpNextOverlay from "./PhoneUpNextOverlay";
+import type {UpNextVideo} from "./phoneAutoplayModel";
 import {
   CONTROLS_HIDE_DELAY_MS,
   DOUBLE_TAP_SEEK_SECONDS,
@@ -87,6 +89,11 @@ interface PhoneOverlayPlayerProps<T> {
   onClose?: () => void;
   onProgress?: (data: OnProgressData) => void;
   onEnd?: () => void;
+  /** What autoplay starts after the video; missing when nothing is known. */
+  upNext?: UpNextVideo;
+  autoplay: boolean;
+  onToggleAutoplay: () => void;
+  onPlayNext: (upNext: UpNextVideo) => void;
 }
 
 interface SeekIndicator {
@@ -126,6 +133,10 @@ const PhoneOverlayPlayer = forwardRef<
       onClose,
       onProgress,
       onEnd,
+      upNext,
+      autoplay,
+      onToggleAutoplay,
+      onPlayNext,
     },
     ref,
   ) => {
@@ -143,6 +154,11 @@ const PhoneOverlayPlayer = forwardRef<
     const [bufferedTime, setBufferedTime] = useState(0);
     const [showControls, setShowControls] = useState(false);
     const [holding, setHolding] = useState(false);
+    // Cancelled for the current end of the video; replaying brings it back.
+    const [upNextDismissed, setUpNextDismissed] = useState(false);
+    const [autoplayNotice, setAutoplayNotice] = useState<boolean>();
+    const autoplayNoticeTimer =
+      useRef<ReturnType<typeof setTimeout>>(undefined);
     const [scrubTime, setScrubTime] = useState<number>();
     const [seekIndicator, setSeekIndicator] = useState<SeekIndicator>();
     const [surfaceWidth, setSurfaceWidth] = useState(0);
@@ -175,6 +191,7 @@ const PhoneOverlayPlayer = forwardRef<
       () => () => {
         clearTimeout(singleTapTimer.current);
         clearTimeout(indicatorTimer.current);
+        clearTimeout(autoplayNoticeTimer.current);
       },
       [],
     );
@@ -372,6 +389,7 @@ const PhoneOverlayPlayer = forwardRef<
 
     const onVideoEnd = () => {
       setEnded(true);
+      setUpNextDismissed(false);
       setPaused(true);
       setShowControls(true);
       setCurrentTime(duration);
@@ -389,6 +407,18 @@ const PhoneOverlayPlayer = forwardRef<
           enabled: true,
           languageCode: appSettings.subtitleLanguage,
         }),
+      );
+    };
+
+    const toggleAutoplay = () => {
+      touch();
+      onToggleAutoplay();
+      // YouTube confirms the switch with a short note on the video.
+      setAutoplayNotice(!autoplay);
+      clearTimeout(autoplayNoticeTimer.current);
+      autoplayNoticeTimer.current = setTimeout(
+        () => setAutoplayNotice(undefined),
+        1500,
       );
     };
 
@@ -413,9 +443,13 @@ const PhoneOverlayPlayer = forwardRef<
       : -1;
     const chapterTitle =
       chapterIndex >= 0 ? chapters?.[chapterIndex]?.title : undefined;
+    const upNextShown =
+      ended && autoplay && upNext !== undefined && !upNextDismissed;
     // From the end screen's start to the end of the video. After the end the
-    // cards stay, even those whose own window has already closed.
+    // cards stay, even those whose own window has already closed. The
+    // autoplay countdown covers them while it runs.
     const endscreenShown =
+      !upNextShown &&
       endscreen !== undefined &&
       scrubTime === undefined &&
       (ended ||
@@ -505,6 +539,16 @@ const PhoneOverlayPlayer = forwardRef<
           />
         ) : null}
 
+        {autoplayNotice !== undefined ? (
+          <View pointerEvents={"none"} style={styles.holdPill}>
+            <Text style={styles.holdText}>
+              {autoplayNotice
+                ? t("video.autoplay.on")
+                : t("video.autoplay.off")}
+            </Text>
+          </View>
+        ) : null}
+
         {holding ? (
           <View pointerEvents={"none"} style={styles.holdPill}>
             <Text style={styles.holdText}>
@@ -543,6 +587,11 @@ const PhoneOverlayPlayer = forwardRef<
             ) : (
               <View style={styles.spacer} />
             )}
+            <AutoplaySwitch
+              label={t("video.autoplay")}
+              onPress={toggleAutoplay}
+              value={autoplay}
+            />
             {subtitles?.tracks.length ? (
               <ControlButton
                 icon={
@@ -640,6 +689,19 @@ const PhoneOverlayPlayer = forwardRef<
           scrubTime={scrubTime}
           storyboard={storyboard}
         />
+
+        {upNextShown ? (
+          // Topmost: it covers the ended video like YouTube's autoplay screen.
+          <PhoneUpNextOverlay
+            key={upNext.videoId}
+            onCancel={() => {
+              setUpNextDismissed(true);
+              setShowControls(true);
+            }}
+            onPlay={() => onPlayNext(upNext)}
+            upNext={upNext}
+          />
+        ) : null}
       </View>
     );
   },
@@ -671,6 +733,39 @@ function ControlButton({
       onPress={onPress}
       style={styles.controlButton}>
       <MaterialIcons color={CONTROL_COLOR} name={icon} size={size} />
+    </Pressable>
+  );
+}
+
+/**
+ * YouTube's autoplay switch in the top bar: a small track whose knob carries
+ * a play or pause sign.
+ */
+function AutoplaySwitch({
+  value,
+  label,
+  onPress,
+}: {
+  value: boolean;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole={"switch"}
+      accessibilityState={{checked: value}}
+      hitSlop={10}
+      onPress={onPress}
+      style={styles.autoplaySwitch}>
+      <View style={[styles.autoplayTrack, value && styles.autoplayTrackOn]} />
+      <View style={[styles.autoplayKnob, value && styles.autoplayKnobOn]}>
+        <MaterialIcons
+          color={"black"}
+          name={value ? "play-arrow" : "pause"}
+          size={14}
+        />
+      </View>
     </Pressable>
   );
 }
@@ -792,6 +887,33 @@ const styles = StyleSheet.create({
   },
   controlButton: {
     padding: 8,
+  },
+  autoplaySwitch: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+  },
+  autoplayTrack: {
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "rgba(255, 255, 255, 0.35)",
+  },
+  autoplayTrackOn: {
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
+  },
+  autoplayKnob: {
+    position: "absolute",
+    left: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+  },
+  autoplayKnobOn: {
+    left: 18,
+    backgroundColor: CONTROL_COLOR,
   },
   holdPill: {
     position: "absolute",
