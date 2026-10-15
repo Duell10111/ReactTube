@@ -76,6 +76,7 @@ export default function VideoDetailScreen({route, navigation}: Props) {
     startTime,
     reportPlaybackFailure,
     reportProgress,
+    reportEnded,
   } = useVideoDetails(navEndpoint ?? videoId);
 
   const {appSettings, updateSettings} = useAppData();
@@ -275,6 +276,7 @@ export default function VideoDetailScreen({route, navigation}: Props) {
             navigation.canGoBack() ? () => navigation.goBack() : undefined
           }
           onProgress={data => reportProgress(data.currentTime)}
+          onEnd={reportEnded}
           upNext={upNext}
           autoplay={autoplay}
           onToggleAutoplay={() => updateSettings({autoplayEnabled: !autoplay})}
@@ -293,6 +295,8 @@ export default function VideoDetailScreen({route, navigation}: Props) {
           onPipPress={() => videoRef.current?.pause()}
           ref={videoRef}
           sourceURL={videoUrl}
+          onProgress={data => reportProgress(data.currentTime)}
+          onEnd={reportEnded}
           style={styles.player}
         />
       ) : (

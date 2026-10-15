@@ -15,7 +15,6 @@ import {ResizeMode} from "react-native-video";
 
 import VideoComponent from "@/components/VideoComponent";
 import type {ShortRole} from "@/components/shorts/tv/shortsQueueModel";
-import {useAppData} from "@/context/AppDataContext";
 import {useVideoSidePanel} from "@/context/VideoSidePanelContext";
 import {useSubscriptionToggle} from "@/hooks/channel/useSubscriptionToggle";
 import useChannelDetails from "@/hooks/useChannelDetails";
@@ -59,8 +58,6 @@ const ENTRANCE_OFFSET = 120;
 const ENTRANCE_DURATION_MS = 260;
 /** Room above and below the card for the previous/next hints. */
 const HINT_SPACE = 56;
-/** Seconds between watch-time reports, matching the regular TV player. */
-const WATCH_TIME_INTERVAL_SECONDS = 30;
 /**
  * Whether the next short already gets a (paused) player that buffers ahead.
  * Android renders video into a SurfaceView, which ignores the opacity that
@@ -94,7 +91,6 @@ export function TVShortItem({
   const isFocused = useIsFocused();
   const {t} = useTranslation();
   const {theme} = useAppTheme();
-  const {appSettings} = useAppData();
   const {prepare: prepareSidePanel} = useVideoSidePanel();
   const overscan = useTVOverscanInsets();
   const {height} = useWindowDimensions();
@@ -108,7 +104,6 @@ export function TVShortItem({
     like,
     dislike,
     removeRating,
-    addToWatchHistory,
   } = useVideoDetails(videoId, "TV");
   const {parsedChannel} = useChannelDetails(YTVideoInfo?.channel_id ?? "");
   const subscription = useSubscriptionToggle(
@@ -118,7 +113,6 @@ export function TVShortItem({
 
   const [progress, setProgress] = useState(0);
   const [cardFocused, setCardFocused] = useState(false);
-  const lastReportedRef = useRef<number>(undefined);
 
   const cardHeight = height - overscan.top - overscan.bottom - 2 * HINT_SPACE;
   const cardWidth = Math.round(cardHeight * SHORT_ASPECT_RATIO);
@@ -177,22 +171,6 @@ export function TVShortItem({
     (rated ? removeRating : target === "like" ? like : dislike)().catch(
       LOGGER.warn,
     );
-  };
-
-  const trackWatchTime = (currentTime: number) => {
-    if (!appSettings.trackingEnabled) {
-      return;
-    }
-    const last = lastReportedRef.current;
-    if (
-      last === undefined ||
-      Math.abs(last - currentTime) > WATCH_TIME_INTERVAL_SECONDS
-    ) {
-      addToWatchHistory(
-        last === undefined ? undefined : Math.floor(currentTime),
-      ).catch(LOGGER.warn);
-      lastReportedRef.current = currentTime;
-    }
   };
 
   const thumbnailUrl =
@@ -276,7 +254,6 @@ export function TVShortItem({
                   onPlaybackFailure={reportPlaybackFailure}
                   onProgress={data => {
                     reportProgress(data.currentTime);
-                    trackWatchTime(data.currentTime);
                     const duration =
                       data.seekableDuration || YTVideoInfo.durationSeconds;
                     if (duration) {

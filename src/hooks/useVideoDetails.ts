@@ -22,6 +22,7 @@ import {
   useSubtitleLabel,
   useSubtitleTranslationLanguages,
 } from "@/hooks/video/useSubtitleChoices";
+import useWatchHistory from "@/hooks/video/useWatchHistory";
 import {
   buildGeneratedHls,
   type GeneratedHlsOptions,
@@ -481,13 +482,6 @@ export default function useVideoDetails(
     refresh,
   ]);
 
-  // TODO: Add tracking again once reworked
-  // useEffect(() => {
-  //   if (appSettings.trackingEnabled) {
-  //     videoRef.current?.addToWatchHistory().catch(LOGGER.warn);
-  //   }
-  // }, [appSettings.trackingEnabled]);
-
   const [httpVideoURL, setHttpVideoURL] = useState<string>();
 
   useEffect(() => {
@@ -630,9 +624,20 @@ export default function useVideoDetails(
   /** Last known playback position — survives step changes and refreshes. */
   const positionRef = useRef(0);
 
-  const reportProgress = useCallback((seconds: number) => {
-    positionRef.current = seconds;
-  }, []);
+  const {onProgress: reportHistoryProgress, onEnded: reportEnded} =
+    useWatchHistory({
+      videoId: videoInfo?.id,
+      durationSeconds: videoInfo?.durationSeconds,
+      enabled: !!appSettings.trackingEnabled,
+    });
+
+  const reportProgress = useCallback(
+    (seconds: number) => {
+      positionRef.current = seconds;
+      reportHistoryProgress(seconds);
+    },
+    [reportHistoryProgress],
+  );
 
   /**
    * Reports that the current step does not work — as an error or as a stall.
@@ -813,17 +818,6 @@ export default function useVideoDetails(
     [applyRating, tvYoutube],
   );
 
-  const addToWatchHistory = useCallback(
-    async (seconds?: number) => {
-      if (seconds && videoInfo?.originalData?.updateWatchTime) {
-        await videoInfo?.originalData.updateWatchTime(seconds);
-      } else {
-        videoInfo?.originalData?.addToWatchHistory();
-      }
-    },
-    [actionData],
-  );
-
   return {
     YTVideoInfo: videoInfo,
     loading,
@@ -840,6 +834,7 @@ export default function useVideoDetails(
       Math.min(ladderIndex, Math.max(ladder.length - 1, 0)) + 1,
     reportPlaybackFailure,
     reportProgress,
+    reportEnded,
     startTime: resumeSeconds,
     watchNextFeed,
     fetchNextVideoContinue,
@@ -849,7 +844,6 @@ export default function useVideoDetails(
     like,
     dislike,
     removeRating,
-    addToWatchHistory,
     refresh: (continueAtSeconds?: number) => {
       setStartTime(continueAtSeconds ?? positionRef.current ?? undefined);
       setRefresh(previous => !previous);

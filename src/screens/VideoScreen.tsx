@@ -54,7 +54,7 @@ export default function VideoScreen({route, navigation}: Props) {
     like,
     dislike,
     removeRating,
-    addToWatchHistory,
+    reportEnded,
     refresh,
     actionData,
   } = useVideoDetails(navEndpoint ?? videoId, "TV", route.params.startSeconds);
@@ -82,7 +82,6 @@ export default function VideoScreen({route, navigation}: Props) {
     [YTVideoInfo, t],
   );
   const videoPlayerRef = useRef<VideoPlayerRefs>(undefined);
-  const currentTimeRef = useRef<number>(undefined);
 
   useEffect(() => {
     return navigation.addListener("blur", () => {
@@ -232,30 +231,11 @@ export default function VideoScreen({route, navigation}: Props) {
           videoID={YTVideoInfo.id}
           // The end card is a native modal above the player.
           remoteEnabled={!showEndCard}
-          onProgress={data => {
-            reportProgress(data.currentTime);
-            if (
-              appSettings.trackingEnabled &&
-              (!currentTimeRef.current ||
-                Math.abs(currentTimeRef.current - data.currentTime) > 30)
-            ) {
-              LOGGER.debug("Triggering watchlist update");
-              addToWatchHistory(
-                !currentTimeRef.current
-                  ? undefined
-                  : Math.floor(data.currentTime),
-              ).catch(LOGGER.warn);
-              currentTimeRef.current = data.currentTime;
-            }
-          }}
+          onProgress={data => reportProgress(data.currentTime)}
           onEnd={() => {
             setEnded(true);
             setShowEndCard(true);
-            if (appSettings.trackingEnabled && YTVideoInfo?.durationSeconds) {
-              addToWatchHistory(YTVideoInfo?.durationSeconds).catch(
-                LOGGER.warn,
-              );
-            }
+            reportEnded();
           }}
           bottomContainer={
             <BottomMetadata
@@ -288,29 +268,11 @@ export default function VideoScreen({route, navigation}: Props) {
           onPlaybackFailure={reportPlaybackFailure}
           videoInfo={YTVideoInfo}
           selectedTextTrack={nativeTextTrack}
-          onProgress={data => {
-            reportProgress(data.currentTime);
-            if (
-              appSettings.trackingEnabled &&
-              (!currentTimeRef.current ||
-                Math.abs(currentTimeRef.current - data.currentTime) > 30)
-            ) {
-              addToWatchHistory(
-                !currentTimeRef.current
-                  ? undefined
-                  : Math.floor(data.currentTime),
-              ).catch(LOGGER.warn);
-              currentTimeRef.current = data.currentTime;
-            }
-          }}
+          onProgress={data => reportProgress(data.currentTime)}
           onEndReached={() => {
             setEnded(true);
             setShowEndCard(true);
-            if (appSettings.trackingEnabled && YTVideoInfo?.durationSeconds) {
-              addToWatchHistory(YTVideoInfo?.durationSeconds).catch(
-                LOGGER.warn,
-              );
-            }
+            reportEnded();
           }}
           onPlaybackInfoUpdate={infos => {
             setPlaybackInfos({resolution: formatResolutionLabel(infos)});

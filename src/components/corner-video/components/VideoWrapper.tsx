@@ -22,6 +22,7 @@ const VideoWrapper = React.forwardRef<VideoRef, CornerVideoProps>(
 
     const onProgress = (data: OnProgressData) => {
       currentTime = data.currentTime;
+      props.onProgress?.(data);
       props.videoProps.onVideoProgress &&
         // @ts-ignore Ignore strict type issue
         props.videoProps.onVideoProgress(data);
@@ -46,6 +47,7 @@ const VideoWrapper = React.forwardRef<VideoRef, CornerVideoProps>(
           ref={ref}
           {...props.videoProps}
           onProgress={onProgress}
+          onEnd={props.onEnd}
         />
         {props.children}
       </TouchableOpacity>

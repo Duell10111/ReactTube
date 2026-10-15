@@ -1,6 +1,6 @@
 import {ReactElement} from "react";
 import {ViewStyle} from "react-native";
-import type {VideoNativeProps} from "react-native-video";
+import type {OnProgressData, VideoNativeProps} from "react-native-video";
 
 // VideoProvider
 
@@ -26,4 +26,6 @@ export interface CornerVideoProps {
     left: number;
   };
   videoProps: VideoNativeProps;
+  onProgress?: (data: OnProgressData) => void;
+  onEnd?: () => void;
 }
