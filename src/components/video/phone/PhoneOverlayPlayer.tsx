@@ -469,206 +469,212 @@ const PhoneOverlayPlayer = forwardRef<
 
     return (
       <View style={styles.root}>
-        <VideoComponent
-          ref={videoRef}
-          paused={paused}
-          rate={holding ? HOLD_PLAYBACK_RATE : speed}
-          audioTrackIndex={selectedLanguage?.index}
-          onLoad={onLoad}
-          onProgress={onVideoProgress}
-          onSeek={data => setCurrentTime(data.seekTime)}
-          onEnd={onVideoEnd}
-          onError={() => setLoading(false)}
-          onBuffer={setBuffering}
-          onAudioTracks={tracks => setLanguages(tracks.audioTracks)}
-          props={VideoComponentProps}
-        />
-
-        <SubtitleOverlay
-          track={selectedSubtitle}
-          currentTime={currentTime}
-          raised={controlsActive}
-        />
-
-        <GestureDetector gesture={surfaceGesture}>
-          <View
-            accessible
-            accessibilityActions={[
-              {name: "activate"},
-              {
-                name: "decrement",
-                label: t("video.player.seekBackward", {
-                  seconds: DOUBLE_TAP_SEEK_SECONDS,
-                }),
-              },
-              {
-                name: "increment",
-                label: t("video.player.seekForward", {
-                  seconds: DOUBLE_TAP_SEEK_SECONDS,
-                }),
-              },
-            ]}
-            accessibilityLabel={title}
-            onAccessibilityAction={onAccessibilityAction}
-            onLayout={(event: LayoutChangeEvent) =>
-              setSurfaceWidth(event.nativeEvent.layout.width)
-            }
-            style={StyleSheet.absoluteFill}
+        {/*
+         * Clips the video and its layers; the root does not clip, so the
+         * seek bar thumb can reach past the bottom edge as on YouTube.
+         */}
+        <View style={styles.surface}>
+          <VideoComponent
+            ref={videoRef}
+            paused={paused}
+            rate={holding ? HOLD_PLAYBACK_RATE : speed}
+            audioTrackIndex={selectedLanguage?.index}
+            onLoad={onLoad}
+            onProgress={onVideoProgress}
+            onSeek={data => setCurrentTime(data.seekTime)}
+            onEnd={onVideoEnd}
+            onError={() => setLoading(false)}
+            onBuffer={setBuffering}
+            onAudioTracks={tracks => setLanguages(tracks.audioTracks)}
+            props={VideoComponentProps}
           />
-        </GestureDetector>
 
-        {endscreenShown ? (
-          // Above the gesture surface so the cards take their own taps, below
-          // the controls so the buttons stay reachable.
-          <VideoEndCard
-            browsing
+          <SubtitleOverlay
+            track={selectedSubtitle}
             currentTime={currentTime}
-            endcard={endscreen}
-            ignoreTiming={ended}
-            onElementOpened={() => setShowControls(false)}
+            raised={controlsActive}
           />
-        ) : null}
 
-        {seekIndicator ? (
-          <SeekRipple
-            key={seekIndicator.id}
-            direction={seekIndicator.direction}
-            label={t("video.player.seekSeconds", {
-              seconds: seekIndicator.seconds,
-            })}
-          />
-        ) : null}
-
-        {autoplayNotice !== undefined ? (
-          <View pointerEvents={"none"} style={styles.holdPill}>
-            <Text style={styles.holdText}>
-              {autoplayNotice
-                ? t("video.autoplay.on")
-                : t("video.autoplay.off")}
-            </Text>
-          </View>
-        ) : null}
-
-        {holding ? (
-          <View pointerEvents={"none"} style={styles.holdPill}>
-            <Text style={styles.holdText}>
-              {t("video.player.holdSpeed", {rate: HOLD_PLAYBACK_RATE})}
-            </Text>
-            <MaterialIcons
-              color={CONTROL_COLOR}
-              name={"fast-forward"}
-              size={16}
-            />
-          </View>
-        ) : null}
-
-        <Animated.View
-          pointerEvents={controlsActive ? "box-none" : "none"}
-          style={[
-            StyleSheet.absoluteFill,
-            sideInsets,
-            {opacity: controlsOpacity},
-          ]}>
-          <View pointerEvents={"none"} style={styles.scrim} />
-
-          <View pointerEvents={"box-none"} style={styles.topBar}>
-            {onClose && !fullscreen ? (
-              <ControlButton
-                icon={"keyboard-arrow-down"}
-                label={t("video.player.close")}
-                onPress={onClose}
-                size={30}
-              />
-            ) : null}
-            {fullscreen && title ? (
-              <Text numberOfLines={1} style={styles.title}>
-                {title}
-              </Text>
-            ) : (
-              <View style={styles.spacer} />
-            )}
-            <AutoplaySwitch
-              label={t("video.autoplay")}
-              onPress={toggleAutoplay}
-              value={autoplay}
-            />
-            {subtitles?.tracks.length ? (
-              <ControlButton
-                icon={
-                  selectedSubtitle ? "closed-caption" : "closed-caption-off"
-                }
-                label={t("video.player.subtitles")}
-                onPress={toggleSubtitles}
-                selected={selectedSubtitle !== undefined}
-              />
-            ) : null}
-            <ControlButton
-              icon={"settings"}
-              label={t("video.player.settings")}
-              onPress={() => {
-                touch();
-                onOpenSettings();
-              }}
-            />
-          </View>
-
-          <View pointerEvents={"box-none"} style={styles.center}>
-            {loading || buffering ? null : (
-              <Pressable
-                accessibilityLabel={playLabel}
-                accessibilityRole={"button"}
-                hitSlop={12}
-                onPress={togglePlay}
-                style={styles.playButton}>
-                <MaterialIcons
-                  color={CONTROL_COLOR}
-                  name={playIcon}
-                  size={44}
-                />
-              </Pressable>
-            )}
-          </View>
-
-          <View
-            pointerEvents={"box-none"}
-            style={[
-              styles.bottomBar,
-              fullscreen && styles.bottomBarFullscreen,
-            ]}>
-            <Text style={styles.time}>
-              {formatPlaybackTime(displayedTime, duration)}
-              <Text style={styles.duration}>
-                {" / "}
-                {formatPlaybackTime(duration)}
-              </Text>
-            </Text>
-            {chapterTitle ? (
-              <Text numberOfLines={1} style={styles.chapter}>
-                {` • ${chapterTitle}`}
-              </Text>
-            ) : null}
-            <View style={styles.spacer} />
-            <ControlButton
-              icon={fullscreen ? "fullscreen-exit" : "fullscreen"}
-              label={
-                fullscreen
-                  ? t("video.player.fullscreen.exit")
-                  : t("video.player.fullscreen.enter")
+          <GestureDetector gesture={surfaceGesture}>
+            <View
+              accessible
+              accessibilityActions={[
+                {name: "activate"},
+                {
+                  name: "decrement",
+                  label: t("video.player.seekBackward", {
+                    seconds: DOUBLE_TAP_SEEK_SECONDS,
+                  }),
+                },
+                {
+                  name: "increment",
+                  label: t("video.player.seekForward", {
+                    seconds: DOUBLE_TAP_SEEK_SECONDS,
+                  }),
+                },
+              ]}
+              accessibilityLabel={title}
+              onAccessibilityAction={onAccessibilityAction}
+              onLayout={(event: LayoutChangeEvent) =>
+                setSurfaceWidth(event.nativeEvent.layout.width)
               }
-              onPress={() => {
-                touch();
-                onToggleFullscreen();
-              }}
-              size={28}
+              style={StyleSheet.absoluteFill}
             />
-          </View>
-        </Animated.View>
+          </GestureDetector>
 
-        {loading || buffering ? (
-          <View pointerEvents={"none"} style={styles.center}>
-            <ActivityIndicator color={CONTROL_COLOR} size={"large"} />
-          </View>
-        ) : null}
+          {endscreenShown ? (
+            // Above the gesture surface so the cards take their own taps, below
+            // the controls so the buttons stay reachable.
+            <VideoEndCard
+              browsing
+              currentTime={currentTime}
+              endcard={endscreen}
+              ignoreTiming={ended}
+              onElementOpened={() => setShowControls(false)}
+            />
+          ) : null}
+
+          {seekIndicator ? (
+            <SeekRipple
+              key={seekIndicator.id}
+              direction={seekIndicator.direction}
+              label={t("video.player.seekSeconds", {
+                seconds: seekIndicator.seconds,
+              })}
+            />
+          ) : null}
+
+          {autoplayNotice !== undefined ? (
+            <View pointerEvents={"none"} style={styles.holdPill}>
+              <Text style={styles.holdText}>
+                {autoplayNotice
+                  ? t("video.autoplay.on")
+                  : t("video.autoplay.off")}
+              </Text>
+            </View>
+          ) : null}
+
+          {holding ? (
+            <View pointerEvents={"none"} style={styles.holdPill}>
+              <Text style={styles.holdText}>
+                {t("video.player.holdSpeed", {rate: HOLD_PLAYBACK_RATE})}
+              </Text>
+              <MaterialIcons
+                color={CONTROL_COLOR}
+                name={"fast-forward"}
+                size={16}
+              />
+            </View>
+          ) : null}
+
+          <Animated.View
+            pointerEvents={controlsActive ? "box-none" : "none"}
+            style={[
+              StyleSheet.absoluteFill,
+              sideInsets,
+              {opacity: controlsOpacity},
+            ]}>
+            <View pointerEvents={"none"} style={styles.scrim} />
+
+            <View pointerEvents={"box-none"} style={styles.topBar}>
+              {onClose && !fullscreen ? (
+                <ControlButton
+                  icon={"keyboard-arrow-down"}
+                  label={t("video.player.close")}
+                  onPress={onClose}
+                  size={30}
+                />
+              ) : null}
+              {fullscreen && title ? (
+                <Text numberOfLines={1} style={styles.title}>
+                  {title}
+                </Text>
+              ) : (
+                <View style={styles.spacer} />
+              )}
+              <AutoplaySwitch
+                label={t("video.autoplay")}
+                onPress={toggleAutoplay}
+                value={autoplay}
+              />
+              {subtitles?.tracks.length ? (
+                <ControlButton
+                  icon={
+                    selectedSubtitle ? "closed-caption" : "closed-caption-off"
+                  }
+                  label={t("video.player.subtitles")}
+                  onPress={toggleSubtitles}
+                  selected={selectedSubtitle !== undefined}
+                />
+              ) : null}
+              <ControlButton
+                icon={"settings"}
+                label={t("video.player.settings")}
+                onPress={() => {
+                  touch();
+                  onOpenSettings();
+                }}
+              />
+            </View>
+
+            <View pointerEvents={"box-none"} style={styles.center}>
+              {loading || buffering ? null : (
+                <Pressable
+                  accessibilityLabel={playLabel}
+                  accessibilityRole={"button"}
+                  hitSlop={12}
+                  onPress={togglePlay}
+                  style={styles.playButton}>
+                  <MaterialIcons
+                    color={CONTROL_COLOR}
+                    name={playIcon}
+                    size={44}
+                  />
+                </Pressable>
+              )}
+            </View>
+
+            <View
+              pointerEvents={"box-none"}
+              style={[
+                styles.bottomBar,
+                fullscreen && styles.bottomBarFullscreen,
+              ]}>
+              <Text style={styles.time}>
+                {formatPlaybackTime(displayedTime, duration)}
+                <Text style={styles.duration}>
+                  {" / "}
+                  {formatPlaybackTime(duration)}
+                </Text>
+              </Text>
+              {chapterTitle ? (
+                <Text numberOfLines={1} style={styles.chapter}>
+                  {` • ${chapterTitle}`}
+                </Text>
+              ) : null}
+              <View style={styles.spacer} />
+              <ControlButton
+                icon={fullscreen ? "fullscreen-exit" : "fullscreen"}
+                label={
+                  fullscreen
+                    ? t("video.player.fullscreen.exit")
+                    : t("video.player.fullscreen.enter")
+                }
+                onPress={() => {
+                  touch();
+                  onToggleFullscreen();
+                }}
+                size={28}
+              />
+            </View>
+          </Animated.View>
+
+          {loading || buffering ? (
+            <View pointerEvents={"none"} style={styles.center}>
+              <ActivityIndicator color={CONTROL_COLOR} size={"large"} />
+            </View>
+          ) : null}
+        </View>
 
         {/*
          * The bar sits on the bottom edge outside the fading layer: with the
@@ -815,6 +821,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: "black",
+  },
+  surface: {
+    ...StyleSheet.absoluteFill,
     overflow: "hidden",
   },
   scrim: {
