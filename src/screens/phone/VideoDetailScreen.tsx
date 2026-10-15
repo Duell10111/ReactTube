@@ -89,7 +89,9 @@ export default function VideoDetailScreen({route, navigation}: Props) {
   const overlayEnabled = Boolean(
     appSettings.ownOverlayEnabled || appSettings.vlcEnabled,
   );
-  const {fullscreen: fullscreenState, toggleFullscreen} = usePlayerFullscreen();
+  const {fullscreen: fullscreenState, toggleFullscreen} = usePlayerFullscreen({
+    followRotation: overlayEnabled,
+  });
   // The native controls bring their own full screen.
   const fullscreen = overlayEnabled && fullscreenState;
 
