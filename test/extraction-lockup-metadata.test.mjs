@@ -56,6 +56,29 @@ test("takes only the owner from a playlist lockup that labels itself", () => {
   );
 });
 
+test("reads views and date from a channel tab video lockup without author", () => {
+  assert.deepEqual(parseLockupMetadataRows(rows(["1.2M", "22h ago"]), true), {
+    count: "1.2M",
+    published: "22h ago",
+  });
+});
+
+test("keeps a single-part row as the author of a video lockup", () => {
+  assert.deepEqual(parseLockupMetadataRows(rows(["Alex Goot"]), true), {
+    author: "Alex Goot",
+    count: undefined,
+    published: undefined,
+  });
+});
+
+test("keeps the owner of a playlist lockup with a single row", () => {
+  assert.deepEqual(parseLockupMetadataRows(rows(["Alex Goot", "Playlist"])), {
+    author: "Alex Goot",
+    count: undefined,
+    published: undefined,
+  });
+});
+
 test("returns nothing for a lockup without metadata rows", () => {
   assert.deepEqual(parseLockupMetadataRows(undefined), {});
   assert.deepEqual(parseLockupMetadataRows([badgeOnlyRow()]), {});

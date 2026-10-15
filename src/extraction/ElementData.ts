@@ -559,6 +559,7 @@ export function getVideoData(
       : undefined;
     const {author, count, published} = parseLockupMetadataRows(
       ytNode.metadata?.metadata?.metadata_rows,
+      ytNode.content_type === "VIDEO" || ytNode.content_type === "SHORT",
     );
     const badges = parseLockupThumbnailBadges(thumbnailView?.overlays);
     const authorObject = getLockupAuthor(author, ytNode.metadata?.image);
