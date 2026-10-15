@@ -10,6 +10,10 @@ import VideoPlayerVLC from "@/components/video/VideoPlayerVLC";
 import PhoneOverlayPlayer from "@/components/video/phone/PhoneOverlayPlayer";
 import {PhoneVideoSettingsSheet} from "@/components/video/phone/PhoneVideoSettingsSheet";
 import {VideoPlayerPhone} from "@/components/video/phone/VideoPlayerPhone";
+import {
+  isAutoplayEnabled,
+  resolveUpNext,
+} from "@/components/video/phone/phoneAutoplayModel";
 import {useAppData} from "@/context/AppDataContext";
 import {useDownloaderContext} from "@/context/DownloaderContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
@@ -74,7 +78,12 @@ export default function VideoDetailScreen({route, navigation}: Props) {
     reportProgress,
   } = useVideoDetails(navEndpoint ?? videoId);
 
-  const {appSettings} = useAppData();
+  const {appSettings, updateSettings} = useAppData();
+  const autoplay = isAutoplayEnabled(appSettings);
+  const upNext = useMemo(
+    () => (YTVideoInfo ? resolveUpNext(YTVideoInfo, watchNextFeed) : undefined),
+    [YTVideoInfo, watchNextFeed],
+  );
   // The same player setting as on TV: the own overlay draws YouTube's
   // controls above the native player, and VLC always runs behind it.
   const overlayEnabled = Boolean(
@@ -234,6 +243,9 @@ export default function VideoDetailScreen({route, navigation}: Props) {
       }>
       {videoUrl && overlayEnabled ? (
         <PhoneOverlayPlayer
+          // Autoplay swaps the video on this screen; a fresh player per video
+          // starts without the ended state of the previous one.
+          key={YTVideoInfo.id}
           VideoComponent={
             appSettings.vlcEnabled ? VideoPlayerVLC : VideoPlayerNative
           }
@@ -261,6 +273,18 @@ export default function VideoDetailScreen({route, navigation}: Props) {
             navigation.canGoBack() ? () => navigation.goBack() : undefined
           }
           onProgress={data => reportProgress(data.currentTime)}
+          upNext={upNext}
+          autoplay={autoplay}
+          onToggleAutoplay={() => updateSettings({autoplayEnabled: !autoplay})}
+          onPlayNext={next =>
+            // The same screen instead of a replaced one, so full screen and
+            // its orientation survive the switch, as in the YouTube app.
+            navigation.setParams({
+              videoId: next.videoId,
+              navEndpoint: next.navEndpoint,
+              startSeconds: undefined,
+            })
+          }
         />
       ) : videoUrl ? (
         <VideoPlayerPhone

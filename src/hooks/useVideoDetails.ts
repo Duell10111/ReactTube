@@ -293,6 +293,8 @@ export default function useVideoDetails(
     [],
   );
   const [startTime, setStartTime] = useState<number>();
+  /** The video the start time belongs to. */
+  const startVideoRef = useRef(videoId);
 
   // TODO: Maybe replace with fkt in the future?
   const [refresh, setRefresh] = useState<boolean>(false);
@@ -457,9 +459,13 @@ export default function useVideoDetails(
           });
     }
     // TODO: Fix duplicate reset to starttime on refresh
-    // Only set if not set previously
+    // A refresh or a changed setting keeps the position set before; a new
+    // video, such as the one autoplay switches to on the same screen, starts
+    // at its own time instead of the previous video's.
+    const sameVideo = startVideoRef.current === videoId;
+    startVideoRef.current = videoId;
     setStartTime(prevSeconds => {
-      if (prevSeconds) {
+      if (sameVideo && prevSeconds) {
         return prevSeconds;
       }
       return startTimeSeconds;
