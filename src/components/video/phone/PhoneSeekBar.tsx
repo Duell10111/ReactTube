@@ -128,70 +128,74 @@ export default function PhoneSeekBar({
           fullscreen && {left: insetLeft + 16, right: insetRight + 16},
           !active && fullscreen && styles.hidden,
         ]}>
-        <View
-          style={[
-            styles.track,
-            active && styles.trackActive,
-            !active && styles.trackHidden,
-          ]}>
-          {segments.map((segment, index) => (
-            <View
-              key={segment.startSeconds}
-              style={[
-                styles.segment,
-                {
-                  left: `${segment.startFraction * 100}%`,
-                  width: `${segment.widthFraction * 100}%`,
-                },
-              ]}>
+        {/* Track and thumb share this slot's vertical center. */}
+        <View pointerEvents={"none"} style={styles.slot}>
+          <View
+            style={[
+              styles.track,
+              active && styles.trackActive,
+              !active && styles.trackHidden,
+            ]}>
+            {segments.map((segment, index) => (
               <View
+                key={segment.startSeconds}
                 style={[
-                  styles.segmentInner,
-                  // The last segment runs to the end; the others leave a gap.
-                  index < segments.length - 1 && {marginRight: CHAPTER_GAP},
-                  // The segment under the finger grows, as on YouTube.
-                  scrubbing &&
-                    index === Math.max(0, chapterIndex) &&
-                    segments.length > 1 &&
-                    styles.segmentScrubbed,
+                  styles.segment,
+                  {
+                    left: `${segment.startFraction * 100}%`,
+                    width: `${segment.widthFraction * 100}%`,
+                  },
                 ]}>
                 <View
                   style={[
-                    styles.fill,
-                    {
-                      width: `${getSegmentFill(segment, bufferedTime) * 100}%`,
-                      backgroundColor: BUFFER_COLOR,
-                    },
-                  ]}
-                />
-                <View
-                  style={[
-                    styles.fill,
-                    {
-                      width: `${getSegmentFill(segment, displayedTime) * 100}%`,
-                      backgroundColor: PROGRESS_COLOR,
-                    },
-                  ]}
-                />
+                    styles.segmentInner,
+                    // The last segment runs to the end; the others leave a gap.
+                    index < segments.length - 1 && {marginRight: CHAPTER_GAP},
+                    // The segment under the finger grows, as on YouTube.
+                    scrubbing &&
+                      index === Math.max(0, chapterIndex) &&
+                      segments.length > 1 &&
+                      styles.segmentScrubbed,
+                  ]}>
+                  <View
+                    style={[
+                      styles.fill,
+                      {
+                        width: `${getSegmentFill(segment, bufferedTime) * 100}%`,
+                        backgroundColor: BUFFER_COLOR,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.fill,
+                      {
+                        width: `${getSegmentFill(segment, displayedTime) * 100}%`,
+                        backgroundColor: PROGRESS_COLOR,
+                      },
+                    ]}
+                  />
+                </View>
               </View>
-            </View>
-          ))}
+            ))}
+          </View>
+          {active ? (
+            <View
+              pointerEvents={"none"}
+              style={[
+                styles.thumb,
+                scrubbing && styles.thumbActive,
+                {left: `${progress * 100}%`},
+              ]}
+            />
+          ) : null}
         </View>
-        {active ? (
-          <View
-            pointerEvents={"none"}
-            style={[
-              styles.thumb,
-              scrubbing && styles.thumbActive,
-              {left: `${progress * 100}%`},
-            ]}
-          />
-        ) : null}
         {scrubbing ? (
           <View
             pointerEvents={"none"}
             style={[
               styles.preview,
+              fullscreen && styles.previewFullscreen,
               {
                 width: PREVIEW_WIDTH,
                 left: getPreviewLeft(progress, barWidth, PREVIEW_WIDTH),
@@ -233,16 +237,25 @@ export default function PhoneSeekBar({
 }
 
 const styles = StyleSheet.create({
+  // Inline, the track lies on the player's bottom edge and the thumb reaches
+  // past it; the touch area stays inside the player so it never takes touches
+  // meant for the content below.
   touchArea: {
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: -12,
-    height: 28,
-    justifyContent: "center",
+    bottom: 0,
+    height: 16,
+    justifyContent: "flex-end",
   },
   touchAreaFullscreen: {
     bottom: 12,
+    height: 28,
+    paddingBottom: 12,
+  },
+  slot: {
+    height: 4,
+    justifyContent: "center",
   },
   hidden: {
     opacity: 0,
@@ -292,9 +305,12 @@ const styles = StyleSheet.create({
   },
   preview: {
     position: "absolute",
-    bottom: 26,
+    bottom: 14,
     alignItems: "center",
     gap: 2,
+  },
+  previewFullscreen: {
+    bottom: 26,
   },
   previewFrame: {
     overflow: "hidden",

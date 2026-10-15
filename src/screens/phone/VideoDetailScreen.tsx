@@ -238,11 +238,12 @@ export default function VideoDetailScreen({route, navigation}: Props) {
 
   const player = (
     <View
-      style={
+      style={[
+        styles.playerFrame,
         fullscreen
           ? styles.playerFullscreen
-          : {aspectRatio: detailLayout.playerAspectRatio}
-      }>
+          : {aspectRatio: detailLayout.playerAspectRatio},
+      ]}>
       {videoUrl && overlayEnabled ? (
         <PhoneOverlayPlayer
           // Autoplay swaps the video on this screen; a fresh player per video
@@ -406,8 +407,14 @@ const styles = StyleSheet.create({
   bodySplit: {
     flexDirection: "row",
   },
+  // The player and its column sit above their siblings: the seek bar thumb
+  // reaches past the player's bottom edge, over the content below.
   playerColumn: {
     width: "100%",
+    zIndex: 1,
+  },
+  playerFrame: {
+    zIndex: 1,
   },
   playerColumnSplit: {
     height: "100%",
