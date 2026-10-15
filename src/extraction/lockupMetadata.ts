@@ -66,9 +66,16 @@ export interface LockupMetadata {
  * classified. A live video sends only its viewers ("13K watching") and a video
  * hiding its views only its date, and both end up in the same single metadata
  * line, so the order is what matters and the meaning of each part does not.
+ *
+ * A video lockup on a channel's own tab leaves out the author row, since the
+ * channel is already on screen, and sends the count and the date as its only
+ * row. A single row with several parts is therefore read as count and date
+ * for videos. Playlists are excluded: their only row can be the owner followed
+ * by the "Playlist" label.
  */
 export function parseLockupMetadataRows(
   rows?: MetadataRowLike[],
+  isVideo = false,
 ): LockupMetadata {
   const texts = (rows ?? [])
     .map(row =>
@@ -80,6 +87,11 @@ export function parseLockupMetadataRows(
 
   if (texts.length === 0) {
     return {};
+  }
+
+  if (isVideo && texts.length === 1 && texts[0].length > 1) {
+    const [count, published] = texts[0];
+    return {count, published};
   }
 
   const [first, ...rest] = texts;
