@@ -57,6 +57,17 @@ Playlist-Logik. Das bestimmt die Phasenreihenfolge (siehe Abschnitt 3).
 > Vor Phase 0 kurz gegen das aktuelle SDK prüfen, ob Apple inzwischen ein
 > Assistant-Schema für Medienwiedergabe in App Intents anbietet. Stand der
 > Recherche: Media Intents sind weiterhin der Weg für Audio-Apps.
+>
+> **Geprüft in Phase 0 (iOS-27-SDK, Xcode 27):** Es gibt neu eine App-Schema-
+> Domain `.audio` (`@available(anyAppleOS 27.0)`, nicht tvOS/watchOS) mit
+> `playAudio` (`PlayAudioIntent`), `addToLibrary`, `addToPlaylist`,
+> `createStation`, `updateAudioAffinity`, `warmupAudioQueue` und Entities
+> (`song`, `album`, `artist`, `playlist`, …). Apple Music selbst
+> (`_MusicKitInternal_AppIntents`) bildet seine Siri-Intents darauf ab, die
+> Audio-Entity wird über eine `IntentValueQuery` aufgelöst. Ob Drittanbieter
+> damit Freitext („spiele _X_“) bekommen und ob das an Apple Intelligence
+> hängt, ist offen → eigener Spike, frühestens nach Phase 1. Media Intents
+> bleiben der Weg, weil sie ab iOS 14 auf allen Geräten laufen.
 
 **Video:** `INPlayMediaIntent` ist für Audio gedacht; Videos auf dem iPhone
 starten wir nicht über Siri-Wiedergabe. „Suche _X_ in ReactTube“ darf aber den
@@ -211,21 +222,118 @@ Config-Plugin, Expo-Modul und `targets/`.
 
 ### Phase 0 — Spike (Machbarkeit, 1–2 Tage)
 
-- [ ] Klären: Apple-Developer-Programm (bezahlt) und echte `appleTeamId` —
+- [x] Klären: Apple-Developer-Programm (bezahlt) und echte `appleTeamId` —
       das Siri-Entitlement gibt es **nicht** mit einem Personal Team
       (`app.json` hat aktuell `XXXXXXXXXX`).
-- [ ] Minimal-Extension über `@duell10111/apple-targets` (`type: "intent"`)
+- [x] Minimal-Extension über `@duell10111/apple-targets` (`type: "intent"`)
       bauen, signieren, auf Gerät installieren; Siri antwortet auf
       „Spiele Test in ReactTube“.
-- [ ] `.continueInApp`: prüfen, dass die `NSUserActivity` mit der Interaction
-      über `EXExpoAppSceneDelegate` (`scene(_:continue:)` bzw.
-      Connection-Options beim Kaltstart) im Modul ankommt.
-- [ ] `.handleInApp` bei beendeter App: Kann das Modul im
-      `application(_:handle:)` den `RCTReactNativeFactory`-Host ohne Window
-      starten (Root-View offscreen bzw. Surface ohne Window)? Laufen
-      `YoutubeContextProvider` und `PoTokenWebViewHost` (WKWebView) dabei?
-      Funktioniert danach ein späterer Scene-Connect ohne zweiten JS-Start?
-- [ ] Ergebnis hier im Plan festhalten; davon hängt Phase 2 ab.
+- [~] `.continueInApp`: prüfen, dass die `NSUserActivity` mit der Interaction
+  über `EXExpoAppSceneDelegate` (`scene(_:continue:)` bzw.
+  Connection-Options beim Kaltstart) im Modul ankommt.
+  → warm ✅, Kaltstart noch nicht getestet.
+- [~] `.handleInApp` bei beendeter App: Kann das Modul im
+  `application(_:handle:)` den `RCTReactNativeFactory`-Host ohne Window
+  starten (Root-View offscreen bzw. Surface ohne Window)? Laufen
+  `YoutubeContextProvider` und `PoTokenWebViewHost` (WKWebView) dabei?
+  Funktioniert danach ein späterer Scene-Connect ohne zweiten JS-Start?
+  → Headless-Start war gar nicht nötig (siehe Ergebnis); Wiedergabe aus
+  dem beendeten Zustand funktioniert, **sobald Siri die Anfrage an
+  ReactTube schickt** (1 von 5 Versuchen).
+- [x] Ergebnis hier im Plan festhalten; davon hängt Phase 2 ab.
+
+#### Ergebnis Phase 0 (2026-10-16, iPhone 15 Pro, iOS 27, Release-Build)
+
+Spike-Code liegt auf `siri-extension`: `targets/siri-intents/`,
+`modules/siri-media/`, `plugins/ios/withSiri.js`,
+`src/hooks/siri/useSiriMediaBridge*.tsx`. Diagnose-Log:
+`Documents/siri-spike.log` im App-Container
+(`xcrun devicectl device copy from --domain-type appDataContainer …`). Die
+Extension schreibt `siri-extension.log` in die App Group
+`group.com.duell10111.reacttube`; die App kopiert beim Start beide Dateien
+nach `Documents/group-*.log`, weil `devicectl` Dateien im
+App-Group-Container nicht anzeigt.
+
+**Account/Signing**
+
+- Bezahltes Team vorhanden. Automatisches Signing legt die App-IDs mit
+  Siri-Capability und die App Group per `-allowProvisioningUpdates` an (nötig
+  war nur ein erneuter Login in Xcode). Das Wildcard-Profil reicht nicht.
+- Die Team-ID gehört nicht ins Repo: `app.json` behält den Platzhalter
+  `XXXXXXXXXX`, den `expo prebuild` ins Projekt schreibt. Gebaut wird mit
+  `xcodebuild … -allowProvisioningUpdates DEVELOPMENT_TEAM=<Team-ID>` (oder das
+  Team in Xcode setzen).
+
+**Integration in Expo (erkannte Hürden, gelöst)**
+
+- `ExpoAppDelegate` leitet `application(_:handlerFor:)` **nicht** an
+  Subscriber weiter → `withSiri.js` ergänzt die Methode im `AppDelegate.swift`
+  (`internal import SiriMedia`, weil `ExpoModulesProvider` das Modul so
+  importiert).
+- `.continueInApp`-Activities kommen über `ExpoAppSceneDelegate` →
+  `application(_:continue:)` korrekt bei einem `ExpoAppDelegateSubscriber` an.
+- Für einen eventuellen Headless-Start gibt es mit
+  `ExpoReactDelegateHandler.createReactRootView` einen sauberen Haken, um die
+  Root-View später an die Scene zu übergeben (implementiert, aber nicht
+  gebraucht — s. u.).
+
+**Messungen**
+
+| Fall                       | Weg             | Ergebnis                                                                                                                                                                                                                                                       |
+| -------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App im Vordergrund         | `handleInApp`   | ✅ Request +25 ms in JS, Suche fertig +440 ms, Siri-Completion +460 ms, Ton nach ~2,7 s                                                                                                                                                                        |
+| App im Hintergrund         | `handleInApp`   | ✅ gleiche Zeiten, Wiedergabe startet im Hintergrund (`appState=background`)                                                                                                                                                                                   |
+| App beendet, 1. Lauf       | `handleInApp`   | ❌ Siri bot Amazon Music an; zusätzlich kamen drei leere `.music`-Requests (kein `mediaName`) an, JS antwortete `notFound`. Erster Start nach Installation: JS bereit erst nach ≈ 6 s                                                                          |
+| App beendet, 2. Lauf (5×)  | `handleInApp`   | 1× ✅, 3× Amazon Music („in deiner Region nicht unterstützt“), 1× Websuche. **Nur beim Erfolg wurde die Extension überhaupt aufgerufen**                                                                                                                       |
+| App beendet, Erfolgsfall   | `handleInApp`   | ✅ Extension → App-Start +0,2 s, Scene verbunden, JS bereit +0,17 s, Suche +0,9 s, Siri-Completion +0,9 s, Ton nach ~3,6 s (Siri sagt dabei nichts)                                                                                                            |
+| App beendet, 3. Lauf (4×)  | `handleInApp`   | Nach Anzeigename „ReactTube“ + Spenden: **4/4 an ReactTube**, aber `mediaName` enthielt den App-Namen („Bohemian Rhapsody in React Tube“, „Paparazzi von React Tube“) → Cover/Fremdtitel gespielt. Gespendete Originale kamen nicht zurück (`mediaItems` leer) |
+| App beendet, 4. Lauf (4×)  | `handleInApp`   | ✅ **4/4 an ReactTube, 4/4 Originale** mit `normalizeSiriQuery`. Extension → Siri-Completion 0,7–1,1 s. Siri hörte zweimal „in the Tube“ statt „in React Tube“ (danach ebenfalls bereinigt)                                                                    |
+| „Spiele Test …“ (App lief) | `continueInApp` | ✅ App in den Vordergrund, Siri verstand „Test Tube“, Wiedergabe gestartet                                                                                                                                                                                     |
+| „Suche Lo-Fi …“            | `continueInApp` | – kein `INSearchForMediaIntent` im Log, nicht angekommen oder nicht getestet                                                                                                                                                                                   |
+
+**Wichtigste Erkenntnisse**
+
+1. **Unter iOS 27 verbindet das System beim Siri-Hintergrundstart eine Scene**
+   (`connectedScenes=1`, `applicationState=background`, schon beim ersten
+   `handlerFor`). React startet also ganz normal über `ExpoAppSceneDelegate`,
+   inklusive `YoutubeContextProvider`/PoToken — **ein Headless-Start ist nicht
+   nötig**. Das Kernproblem aus Abschnitt 1 tritt so nicht auf; Phase 2
+   schrumpft auf Timeout/Fehlerpfade. (Auf älteren iOS-Versionen und am
+   Sperrbildschirm noch prüfen; der Headless-Pfad bleibt als Fallback im
+   Modul.)
+2. **Kaltstart ist schnell genug:** Im Erfolgsfall vergehen vom Aufruf der
+   Extension bis zur Siri-Completion ≈ 1,1 s (JS bereit nach 0,17 s). Die
+   ≈ 6 s aus dem ersten Lauf waren der erste Start nach der Installation; das
+   8-s-Timeout ist im Normalfall unkritisch.
+3. **Siris App-Zuordnung im beendeten Zustand:** Im 2. Lauf wurde die
+   Extension bei den Fehlschlägen gar nicht aufgerufen; Siri leitete an Amazon
+   Music weiter oder machte eine Websuche. **Behoben im 3. Lauf (4/4)** durch
+   `CFBundleDisplayName` „ReactTube“ (vorher „reacttube“; in `app.json` unter
+   `ios.infoPlist`, gilt auch für tvOS) **und** Spenden jedes gespielten Titels
+   als `INPlayMediaIntent`-Interaction (`SiriMedia.donatePlayback`, Phase 5
+   vorgezogen). Welche der beiden Maßnahmen den Ausschlag gab, ist nicht
+   getrennt gemessen. Die leeren `.music`-Requests aus dem 1. Lauf traten
+   nicht wieder auf; leere Anfragen trotzdem wie in 4.1 beantworten statt mit
+   `notFound`.
+4. **Siri lässt den App-Namen im Suchbegriff** („… in React Tube“, „… von
+   React Tube“, „Test Tube“). → `src/siri/normalizeSiriQuery.ts` (getestet in
+   `test/siri-query-normalize.test.mjs`) schneidet den App-Namen samt
+   Verbindungswort am Ende ab; Teil von Phase 1 (`parseSiriRequest`) und im
+   Spike schon aktiv. Auch „… in the Tube“ wird entfernt (nur mit
+   Verbindungswort davor, damit Titel wie „Down the Tube“ bleiben). „Test
+   Tube“ (Name verschmolzen) lässt sich so nicht sicher erkennen.
+5. **Gespendete Items kommen nicht als `mediaItems` zurück**, Siri schickt
+   weiterhin nur `mediaName`. Um bereits gespielte Originale zu bevorzugen,
+   braucht es den lokalen Abgleich (Verlauf/Bibliothek) im Ranking (Phase 1/3).
+
+**Fazit:** Siri-Wiedergabe funktioniert in allen drei App-Zuständen
+(Vordergrund, Hintergrund, beendet) über `.handleInApp`, ohne Headless-Start.
+Phase 1 kann direkt mit `.handleInApp` statt `.continueInApp` starten; Phase 2
+reduziert sich auf Timeout-/Fehlerpfade und den Sperrbildschirm.
+
+**Offen (in Phase 1 mitnehmen):** `.continueInApp` beim Kaltstart,
+`INSearchForMediaIntent`, Sperrbildschirm/AirPods, Siri-Ansage des gespielten
+Titels (Response ohne `INMediaItem` → Siri schweigt).
 
 ### Phase 1 — MVP: „Spiele _X_“ und „Suche _X_“ (Vordergrund)
 

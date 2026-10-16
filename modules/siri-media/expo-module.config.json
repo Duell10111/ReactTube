@@ -1,0 +1,8 @@
+{
+  "platforms": ["apple"],
+  "apple": {
+    "modules": ["SiriMediaModule"],
+    "appDelegateSubscribers": ["SiriMediaAppDelegateSubscriber"],
+    "reactDelegateHandlers": ["SiriMediaReactDelegateHandler"]
+  }
+}

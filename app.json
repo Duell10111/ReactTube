@@ -16,6 +16,7 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
+        "CFBundleDisplayName": "ReactTube",
         "UIBackgroundModes": ["audio"],
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
@@ -87,7 +88,8 @@
       ],
       "./fmt_path.js",
       "./plugins/android/withTVDisplayScaling.js",
-      "./plugins/ios/withStripVlcBitcode.js"
+      "./plugins/ios/withStripVlcBitcode.js",
+      "./plugins/ios/withSiri.js"
     ],
     "name": "reacttube",
     "slug": "reacttube",
