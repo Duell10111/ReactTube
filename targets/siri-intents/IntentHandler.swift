@@ -1,40 +1,17 @@
 import Intents
 import os
 
-private let osLog = Logger(subsystem: "com.duell10111.reacttube.siri", category: "extension")
+private let log = Logger(subsystem: "com.duell10111.reacttube.siri", category: "extension")
 
-/// Phase 0 spike diagnostics: appends to a log file in the shared app group,
-/// which the app copies into its Documents folder on launch.
-private enum ExtensionLog {
-  private static let fileURL = FileManager.default
-    .containerURL(forSecurityApplicationGroupIdentifier: "group.com.duell10111.reacttube")?
-    .appendingPathComponent("siri-extension.log")
-  private static let formatter: ISO8601DateFormatter = {
-    let formatter = ISO8601DateFormatter()
-    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    return formatter
-  }()
+/// Mirrors `SiriMediaSettings` in modules/siri-media; the app writes the value
+/// whenever the opt-in setting changes.
+private enum SharedSettings {
+  static let appGroup = "group.com.duell10111.reacttube"
+  static let playbackEnabledKey = "siriPlaybackEnabled"
 
-  static func info(_ message: String) {
-    osLog.info("\(message, privacy: .public)")
-    guard let fileURL else {
-      osLog.error("app group container unavailable")
-      return
-    }
-    guard let data = "\(formatter.string(from: Date())) [EXT] \(message)\n".data(using: .utf8) else {
-      return
-    }
-    if let handle = try? FileHandle(forWritingTo: fileURL) {
-      handle.seekToEndOfFile()
-      handle.write(data)
-      try? handle.close()
-    } else {
-      do {
-        try data.write(to: fileURL)
-      } catch {
-        osLog.error("log write failed: \(error.localizedDescription, privacy: .public)")
-      }
-    }
+  /// Siri playback is opt-in, so a missing value means disabled.
+  static var playbackEnabled: Bool {
+    UserDefaults(suiteName: appGroup)?.bool(forKey: playbackEnabledKey) ?? false
   }
 }
 
@@ -43,7 +20,6 @@ private enum ExtensionLog {
 /// the actual search and playback over to the app.
 class IntentHandler: INExtension {
   override func handler(for intent: INIntent) -> Any {
-    ExtensionLog.info("handler(for: \(type(of: intent))) \(intent)")
     switch intent {
     case is INPlayMediaIntent:
       return PlayMediaIntentHandler()
@@ -64,7 +40,7 @@ final class PlayMediaIntentHandler: NSObject, INPlayMediaIntentHandling {
     // Siri passes items back that the app donated earlier (suggestions,
     // "play that again"); they already carry an `rt:video:` identifier.
     let donated = (intent.mediaItems ?? []).filter { $0.identifier?.hasPrefix("rt:video:") == true }
-    ExtensionLog.info("resolveMediaItems \(describe(search)) donated=\(donated.compactMap(\.identifier))")
+    log.notice("resolveMediaItems \(describe(search), privacy: .public) donated=\(donated.count)")
     let items = donated.isEmpty ? [mediaItem(for: search)] : donated
     completion(INPlayMediaMediaItemResolutionResult.successes(with: items))
   }
@@ -73,12 +49,15 @@ final class PlayMediaIntentHandler: NSObject, INPlayMediaIntentHandling {
     intent: INPlayMediaIntent,
     completion: @escaping (INPlayMediaIntentResponse) -> Void
   ) {
-    // Phase 0 spike switch: a query containing "test" exercises the
-    // `.continueInApp` path, everything else the background `.handleInApp` path.
-    let name = intent.mediaSearch?.mediaName?.lowercased() ?? ""
-    let code: INPlayMediaIntentResponseCode = name.contains("test") ? .continueInApp : .handleInApp
-    ExtensionLog.info("handle play intent -> \(code.rawValue) \(describe(intent.mediaSearch))")
-    completion(INPlayMediaIntentResponse(code: code, userActivity: nil))
+    guard SharedSettings.playbackEnabled else {
+      // Siri offers to open the app, where Siri playback can be enabled.
+      log.notice("play intent while Siri playback is disabled")
+      completion(INPlayMediaIntentResponse(code: .failureRequiringAppLaunch, userActivity: nil))
+      return
+    }
+    // The app searches and starts playback in the background, even when Siri
+    // has to launch it first (verified in phase 0 on iOS 27).
+    completion(INPlayMediaIntentResponse(code: .handleInApp, userActivity: nil))
   }
 }
 
@@ -88,7 +67,7 @@ final class SearchForMediaIntentHandler: NSObject, INSearchForMediaIntentHandlin
     with completion: @escaping ([INSearchForMediaMediaItemResolutionResult]) -> Void
   ) {
     let search = intent.mediaSearch
-    ExtensionLog.info("resolveMediaItems (search) \(describe(search))")
+    log.notice("resolveMediaItems (search) \(describe(search), privacy: .public)")
     completion(INSearchForMediaMediaItemResolutionResult.successes(with: [mediaItem(for: search)]))
   }
 
@@ -96,8 +75,9 @@ final class SearchForMediaIntentHandler: NSObject, INSearchForMediaIntentHandlin
     intent: INSearchForMediaIntent,
     completion: @escaping (INSearchForMediaIntentResponse) -> Void
   ) {
-    ExtensionLog.info("handle search intent -> continueInApp \(describe(intent.mediaSearch))")
-    completion(INSearchForMediaIntentResponse(code: .continueInApp, userActivity: nil))
+    let code: INSearchForMediaIntentResponseCode =
+      SharedSettings.playbackEnabled ? .continueInApp : .failureRequiringAppLaunch
+    completion(INSearchForMediaIntentResponse(code: code, userActivity: nil))
   }
 }
 

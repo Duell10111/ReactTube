@@ -50,6 +50,13 @@ export interface AppSettings {
    * `LoudnessNormalizationMode`. Unset means the default mode.
    */
   musicLoudnessNormalization?: LoudnessNormalizationMode;
+  /**
+   * Siri media playback ("Hey Siri, play … in ReactTube"), iOS only. Opt-in;
+   * mirrored into the app group for the intents extension.
+   */
+  siriPlaybackEnabled?: boolean;
+  /** Donates played tracks to Siri. Opt-in; donations stay on the device. */
+  siriDonationsEnabled?: boolean;
   /** Sort order of the download list in the Apple Watch screen. */
   watchLibraryDownloadSort?: "added" | "name" | "size";
 }

@@ -17,6 +17,7 @@
       },
       "infoPlist": {
         "CFBundleDisplayName": "ReactTube",
+        "CFBundleSpokenName": "React Tube",
         "UIBackgroundModes": ["audio"],
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
@@ -91,6 +92,10 @@
       "./plugins/ios/withStripVlcBitcode.js",
       "./plugins/ios/withSiri.js"
     ],
+    "locales": {
+      "en": "./assets/locales/en.json",
+      "de": "./assets/locales/de.json"
+    },
     "name": "reacttube",
     "slug": "reacttube",
     "version": "0.4.1",

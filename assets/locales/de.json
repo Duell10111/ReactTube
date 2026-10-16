@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSSiriUsageDescription": "ReactTube nutzt Siri, um Musik per Sprache zu suchen und abzuspielen."
+  }
+}

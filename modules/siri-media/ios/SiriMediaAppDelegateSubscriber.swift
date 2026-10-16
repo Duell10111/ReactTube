@@ -8,17 +8,6 @@ import Intents
 public class SiriMediaAppDelegateSubscriber: ExpoAppDelegateSubscriber {
   public func application(
     _ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
-  ) -> Bool {
-    SiriMediaLog.write(
-      "didFinishLaunching state=\(application.applicationState.rawValue) "
-        + "scenes=\(application.connectedScenes.count)"
-    )
-    return true
-  }
-
-  public func application(
-    _ application: UIApplication,
     continue userActivity: NSUserActivity,
     restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
   ) -> Bool {

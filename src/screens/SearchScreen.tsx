@@ -1,4 +1,4 @@
-import {useNavigation} from "@react-navigation/native";
+import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
 import {NativeStackNavigationProp} from "@react-navigation/native-stack";
 import _ from "lodash";
 import React, {
@@ -93,6 +93,17 @@ export default function SearchScreen() {
   // cannot drop its focus mid-input.
   const performSearchRef = useRef(performSearch);
   performSearchRef.current = performSearch;
+
+  // Set when another part of the app opens the search, e.g. Siri.
+  const initialQuery =
+    useRoute<RouteProp<RootStackParamList, "Search">>().params?.initialQuery;
+  useEffect(() => {
+    if (!initialQuery) {
+      return;
+    }
+    searchBarRef.current?.setText(initialQuery);
+    performSearchRef.current(initialQuery);
+  }, [initialQuery]);
 
   useLayoutEffect(() => {
     if (Platform.isTV) {

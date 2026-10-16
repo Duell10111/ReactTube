@@ -331,25 +331,78 @@ App-Group-Container nicht anzeigt.
 Phase 1 kann direkt mit `.handleInApp` statt `.continueInApp` starten; Phase 2
 reduziert sich auf Timeout-/Fehlerpfade und den Sperrbildschirm.
 
-**Offen (in Phase 1 mitnehmen):** `.continueInApp` beim Kaltstart,
+**Offen (in Phase 1 aufgenommen):** `.continueInApp` beim Kaltstart,
 `INSearchForMediaIntent`, Sperrbildschirm/AirPods, Siri-Ansage des gespielten
 Titels (Response ohne `INMediaItem` → Siri schweigt).
 
-### Phase 1 — MVP: „Spiele _X_“ und „Suche _X_“ (Vordergrund)
+### Phase 1 — MVP: „Spiele _X_“ und „Suche _X_“
 
-- [ ] Extension mit `INPlayMediaIntent` + `INSearchForMediaIntent`,
-      leichte Auflösung, immer `.continueInApp`.
-- [ ] Expo-Modul mit Pending-Queue, Event, `completeRequest`.
-- [ ] `parseSiriRequest` + `rankSiriSearchResults` + Tests.
-- [ ] `resolveSiriRequest` für Song, Künstler, Album, leere Anfrage.
-- [ ] Bridge-Hook in `App.tsx` innerhalb von `MusicPlayerContext`
-      (analog zu `useWatchSync`); nach Start optional zu
-      `MusicPlayerScreen` navigieren.
-- [ ] `initialQuery` für beide Suchscreens.
-- [ ] `INAlternativeAppNames` („React Tube“) und `NSSiriUsageDescription`
-      in en/de; Siri-Berechtigung beim ersten Aktivieren des Settings-Schalters
-      anfragen (`INPreferences.requestSiriAuthorization`).
-- [ ] Settings-Schalter + Lokalisierung.
+Abweichung vom ursprünglichen Plan nach Phase 0: Wiedergabe läuft direkt über
+`.handleInApp` (funktioniert auch bei beendeter App), nicht über
+`.continueInApp`.
+
+- [x] Extension mit `INPlayMediaIntent` + `INSearchForMediaIntent`,
+      leichte Auflösung; Wiedergabe `.handleInApp`, Suche `.continueInApp`.
+      Ist Siri-Wiedergabe in den Einstellungen aus (App-Group-Wert
+      `siriPlaybackEnabled`), antwortet sie `.failureRequiringAppLaunch`.
+- [x] Expo-Modul mit Pending-Queue, Event, `completeRequest` (inkl.
+      `nowPlayingInfo` für Siris Ansage), `setPlaybackEnabled`,
+      `donatePlayback`.
+- [x] `parseSiriRequest` + `rankSiriSearchResults` + Tests
+      (`test/siri-request-parse.test.mjs`, `test/siri-result-ranking.test.mjs`,
+      Fixtures aus den Phase-0-Logs).
+- [x] `resolveSiriRequest` für Song (Fallback Video), Künstler (Shuffle,
+      sonst Radio), Album, öffentliche Playlist und leere Anfrage (laufende
+      Wiedergabe fortsetzen, sonst erster Titel der Music-Startseite).
+- [x] Bridge-Hook in `App.tsx` innerhalb von `MusicPlayerContext`. Nach dem
+      Start erscheint nur der Mini-Player (Entscheidung zu Frage 3).
+- [x] `initialQuery` für beide Suchscreens; „Suche _X_“ öffnet die
+      Musiksuche, bei Musikvideo-Hinweis die Videosuche (Frage 2), über den
+      neuen `navigationRef` (`src/navigation/navigationRef.ts`).
+- [x] `INAlternativeAppNames` („React Tube“), `NSSiriUsageDescription`
+      in en/de (`assets/locales/*.json` → `InfoPlist.strings`);
+      Siri-Berechtigung beim ersten Aktivieren des Schalters.
+- [x] Settings „Siri“ (nur iPhone/iPad) mit „Musik mit Siri abspielen“ und
+      „Wiedergabe an Siri melden“, beide standardmäßig **aus** (Opt-in,
+      Entscheidung des Nutzers); Texte in en/de.
+- [x] Spike-Reste entfernt: „test“-Schalter, Berechtigungsabfrage beim
+      Start, Logdateien (nur noch `os_log` / `Logger.extend("SIRI")`).
+- [~] Gerätetest (2026-10-16, iPhone 15 Pro, App beendet):
+  Song ✅ (Original), Künstler ✅, Album ❌ → behoben (Album-/Playlist-
+  Treffer haben nur eine `playlistId`; Start jetzt mit dem ersten Track,
+  Playlist bleibt Warteschlange), „Spiele ReactTube“ ❌ → behoben
+  (kam als `mediaName` „Red Tube“), „Suche …“ ❌ (s. u.), Schalter aus ✅
+  (Siri öffnet die App; jetzt direkt in den Siri-Einstellungen). Siri sagt
+  den gestarteten Titel trotz `nowPlayingInfo` nicht an.
+- [x] Nachtest (2026-10-16): Album ✅ (erster Track, Album als
+      Warteschlange), „Spiele ReactTube“ ✅ (setzt die Wiedergabe fort).
+      `CFBundleSpokenName` „React Tube“ hilft **nicht**: „Suche …“ landet
+      weiter bei Apple Music → Suche per Sprache über App Shortcuts
+      (Phase 5); die Suche per Media Intent bleibt eingebaut und greift,
+      sobald Siri den Namen erkennt.
+
+#### Erkenntnis aus den Systemlogs: Siri erkennt „ReactTube“ nicht als Namen
+
+Ausgewertet mit `sudo log collect --device-udid …` (Prozess
+`assistant_service`, Subsystem `com.apple.siri.audio`):
+
+- Bei jeder Wiedergabe wählte Siri ReactTube nur per **Vorhersage**
+  (`resolutionResultType: Inferred`, `appInferred: true`) aus Signalen wie
+  Now Playing, Nutzung und Spenden — nie als ausdrücklich genannte App.
+  Deshalb wirken die Spenden, und deshalb landet der App-Name im
+  `mediaName` („… in React Tube“, „… in the Tube“, „Red Tube“, „A nightat the
+  Opera Cube“).
+- `INSearchForMediaIntent` hat keine Vorhersage: Siri bestimmt die App nur aus
+  der Äußerung und fällt sonst auf Apple Music zurück
+  (`resolutionResultType: Default`), obwohl ReactTube mit
+  `INSearchForMediaIntent` registriert ist. „Suche … in ReactTube“ kann so
+  nicht funktionieren, solange Siri den Namen nicht erkennt.
+- Versuch: `CFBundleSpokenName` „React Tube“ (`app.json`, neben
+  `INAlternativeAppNames`) — ohne Wirkung auf die Suche (ohne iPhone-Neustart
+  getestet). Nächster Schritt: App Shortcuts (Phase 5).
+- Die Info-Logs von App/Extension landen nicht im persistenten Log; die
+  Siri-Meldungen loggen deshalb auf `notice` (inkl. gemeldetem Titel beim
+  Abschluss).
 
 ### Phase 2 — Echte Hintergrund-Wiedergabe
 
@@ -379,12 +432,29 @@ Titels (Response ohne `INMediaItem` → Siri schweigt).
 
 ### Phase 5 — Vorschläge und Kurzbefehle
 
-- [ ] Gespielte Titel als `INPlayMediaIntent`-Interaction spenden
-      (Siri-Vorschläge, „Zuletzt gespielt“ auf Sperrbildschirm/Watch).
-- [ ] Optional App Intents im App-Target: `PlayMusicIntent`
-      (`AudioPlaybackIntent`, Parameter per Rückfrage), `SearchIntent`,
-      `ResumeIntent` + `AppShortcutsProvider` mit Phrasen in en/de
-      (`AppShortcuts.xcstrings`).
+- [x] Gespielte Titel als `INPlayMediaIntent`-Interaction spenden
+      (in Phase 0/1 vorgezogen, Schalter „Wiedergabe an Siri melden“).
+- [ ] **App Shortcuts, damit Siri den App-Namen erkennt** (vorgezogen nach
+      Phase 1, höchste Priorität dieser Phase). Siri ordnet ReactTube bisher
+      nur per Vorhersage zu (siehe Erkenntnis in Phase 1); App-Shortcut-
+      Phrasen mit `\(.applicationName)` registrieren den Namen ausdrücklich.
+      Umfang:
+  - App Intents im App-Target (Swift, über das Config-Plugin bzw. das
+    Expo-Modul): `SearchMusicIntent` (Suchbegriff als Parameter, öffnet die
+    Musiksuche mit `initialQuery`), `PlayMusicIntent` (`AudioPlaybackIntent`,
+    Suchbegriff per Rückfrage, nutzt dieselbe JS-Bridge wie die Media
+    Intents), `ResumeIntent`.
+  - `AppShortcutsProvider` mit Phrasen in en/de
+    (`AppShortcuts.xcstrings`), z. B. „Suche in \(.applicationName)“,
+    „Spiele Musik in \(.applicationName)“, „Weiter in
+    \(.applicationName)“.
+  - Prüfen, ob die Shortcut-Registrierung auch die Erkennung für die
+    Media Intents verbessert (`resolutionResultType` im Systemlog wird dann
+    `Explicit` statt `Inferred`).
+  - Ab iOS 27 alternativ die App-Schema-Domain `.audio` (`PlayAudioIntent`)
+    prüfen (siehe Abschnitt 2).
+- [ ] Optional Siri-Vorschläge/„Zuletzt gespielt“ auf Sperrbildschirm und
+      Watch über `INUpcomingMediaManager`.
 
 ### Phase 6 — Weitere Plattformen (optional, eigener Spike)
 

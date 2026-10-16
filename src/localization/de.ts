@@ -86,6 +86,15 @@ export const de = {
     "Nutzt die Lautheitsdaten von YouTube, um laute Songs leiser abzuspielen. Songs können nur leiser gemacht werden, daher sinkt die Gesamtlautstärke etwas; stelle das Gerät einmal etwas lauter.",
   "settings.value.true": "Ein",
   "settings.value.false": "Aus",
+  "settings.siri": "Siri",
+  "settings.siri.playback": "Musik mit Siri abspielen",
+  "settings.siri.playback.hint":
+    "Sag „Hey Siri, spiele … in ReactTube“. ReactTube sucht auf YouTube Music und startet die Wiedergabe, auch im Hintergrund.",
+  "settings.siri.donations": "Wiedergabe an Siri melden",
+  "settings.siri.donations.hint":
+    "Teilt Siri mit, welche Songs du hörst, damit Siri ReactTube zuverlässiger erkennt und Songs vorschlagen kann. Bleibt auf deinem Gerät.",
+  "settings.siri.denied":
+    "Siri ist für ReactTube ausgeschaltet. Du kannst es in den iOS-Einstellungen erlauben.",
   "you.account": "Konto",
   "you.signedIn": "Du bist angemeldet",
   "you.signedOut.title": "Nicht angemeldet",

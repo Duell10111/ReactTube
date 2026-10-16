@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import Intents
+import MediaPlayer
 
 public class SiriMediaModule: Module {
   public func definition() -> ModuleDefinition {
@@ -27,12 +28,21 @@ public class SiriMediaModule: Module {
       return SiriMediaCenter.shared.takeUndelivered()
     }
 
-    Function("completeRequest") { (requestId: String, result: String) in
-      SiriMediaCenter.shared.complete(requestId, result: SiriMediaResult(rawValue: result) ?? .failure)
+    Function("completeRequest") { (requestId: String, result: String, title: String?, artist: String?) in
+      var nowPlayingInfo: [String: Any] = [:]
+      nowPlayingInfo[MPMediaItemPropertyTitle] = title
+      nowPlayingInfo[MPMediaItemPropertyArtist] = artist
+      SiriMediaCenter.shared.complete(
+        requestId,
+        result: SiriMediaResult(rawValue: result) ?? .failure,
+        nowPlayingInfo: nowPlayingInfo.isEmpty ? nil : nowPlayingInfo
+      )
     }
 
-    Function("log") { (message: String) in
-      SiriMediaLog.write("[JS] \(message)")
+    // Mirrors the opt-in setting for the intents extension, which answers
+    // before the app runs.
+    Function("setPlaybackEnabled") { (enabled: Bool) in
+      SiriMediaSettings.setPlaybackEnabled(enabled)
     }
 
     // Tells Siri what was played, so it learns ReactTube as a media app and can

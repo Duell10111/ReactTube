@@ -1,168 +1,189 @@
 import {MutableRefObject, useEffect, useRef} from "react";
-import {AppState, Platform} from "react-native";
+import {Platform} from "react-native";
 
-import SiriMedia, {SiriMediaRequest} from "../../../modules/siri-media";
+import SiriMedia, {
+  SiriMediaRequest,
+  SiriMediaResult,
+} from "../../../modules/siri-media";
 
+import {useAppData} from "@/context/AppDataContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {useYoutubeContext} from "@/context/YoutubeContext";
-import {normalizeSiriQuery} from "@/siri/normalizeSiriQuery";
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
+import {navigationRef} from "@/navigation/navigationRef";
+import {parseSiriRequest, SiriSearchRequest} from "@/siri/parseSiriRequest";
+import {resolveSiriRequest} from "@/siri/resolveSiriRequest";
 import Logger from "@/utils/Logger";
-import {YTNodes} from "@/utils/Youtube";
 
 const LOGGER = Logger.extend("SIRI");
 
+/** How long a cold start may take until YouTube or navigation is usable. */
 const YOUTUBE_WAIT_MS = 6000;
-/** Identifier prefix of items donated through `donatePlayback`. */
-const VIDEO_ID_PREFIX = "rt:video:";
-
-type Innertube = ReturnType<typeof useYoutubeContext>;
-type SetPlaylistViaEndpoint = ReturnType<
-  typeof useMusikPlayerContext
->["setPlaylistViaEndpoint"];
+const NAVIGATION_WAIT_MS = 15000;
 
 interface BridgeRefs {
-  youtube: Innertube;
-  setPlaylistViaEndpoint: SetPlaylistViaEndpoint;
+  youtube: ReturnType<typeof useYoutubeContext>;
+  player: ReturnType<typeof useMusikPlayerContext>;
+  playbackEnabled: boolean;
 }
 
-function siriLog(message: string) {
-  LOGGER.info(message);
-  SiriMedia?.log(message);
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+function complete(
+  requestId: string,
+  result: SiriMediaResult,
+  title?: string,
+  artist?: string,
+) {
+  SiriMedia?.completeRequest(requestId, result, title, artist);
 }
 
 async function waitForYoutube(refs: MutableRefObject<BridgeRefs>) {
   const deadline = Date.now() + YOUTUBE_WAIT_MS;
   while (!refs.current.youtube && Date.now() < deadline) {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await delay(100);
   }
   return refs.current.youtube;
 }
 
 /**
- * Phase 0 spike: plays the first song search result for the spoken query and
- * logs timings, to find out whether search and playback work after Siri
- * launched the app in the background. Ranking and the other request kinds
- * follow in phase 1.
+ * Waits until the root navigator offers the route. After a cold start it only
+ * registers the screens once the app finished initializing.
  */
+async function waitForRoute(route: keyof RootStackParamList) {
+  const deadline = Date.now() + NAVIGATION_WAIT_MS;
+  while (Date.now() < deadline) {
+    if (
+      navigationRef.isReady() &&
+      navigationRef.getRootState()?.routeNames?.includes(route)
+    ) {
+      return true;
+    }
+    await delay(200);
+  }
+  return false;
+}
+
+async function openSearch(request: SiriSearchRequest) {
+  const route = request.target === "video" ? "Search" : "MusicSearchScreen";
+  if (!(await waitForRoute(route))) {
+    return false;
+  }
+  navigationRef.navigate(route, {initialQuery: request.query});
+  return true;
+}
+
 async function handleRequest(
   request: SiriMediaRequest,
   refs: MutableRefObject<BridgeRefs>,
 ) {
-  const elapsed = () => `+${Date.now() - request.receivedAt}ms`;
-  siriLog(
-    `request ${request.requestId} ${request.intent} delivery=${request.delivery} ` +
-      `headless=${request.headlessStart} appState=${AppState.currentState} ` +
-      `name=${request.mediaName} artist=${request.artistName} ` +
-      `type=${request.mediaType} item=${request.itemIdentifier} ${elapsed()}`,
-  );
-
-  if (request.intent !== "play") {
-    SiriMedia?.completeRequest(request.requestId, "success");
+  // The extension already refuses while disabled; this covers requests that
+  // were queued before the setting changed.
+  if (!refs.current.playbackEnabled) {
+    complete(request.requestId, "failure");
+    if (
+      request.delivery === "continueInApp" &&
+      (await waitForRoute("SettingsScreen"))
+    ) {
+      // Siri opened the app because Siri playback is off; show the switch.
+      navigationRef.navigate("SettingsScreen", {screen: "SiriSettings"});
+    }
     return;
   }
 
-  const donatedVideoId = request.itemIdentifier?.startsWith(VIDEO_ID_PREFIX)
-    ? request.itemIdentifier.slice(VIDEO_ID_PREFIX.length)
-    : undefined;
+  const parsed = parseSiriRequest(request);
+  LOGGER.info(`${request.delivery} ${parsed.kind}`, parsed);
+
+  if (parsed.kind === "search") {
+    const opened = await openSearch(parsed);
+    complete(request.requestId, opened ? "success" : "failure");
+    return;
+  }
 
   const youtube = await waitForYoutube(refs);
   if (!youtube) {
-    siriLog(`youtube not ready ${elapsed()}`);
-    SiriMedia?.completeRequest(request.requestId, "failure");
-    return;
-  }
-  siriLog(`youtube ready ${elapsed()}`);
-
-  if (donatedVideoId) {
-    // An item the app donated earlier; Siri hands it back as is.
-    refs.current.setPlaylistViaEndpoint(
-      new YTNodes.NavigationEndpoint({
-        watchEndpoint: {videoId: donatedVideoId},
-      }),
-    );
-    SiriMedia?.completeRequest(request.requestId, "success");
-    siriLog(`playback of donated ${donatedVideoId} requested ${elapsed()}`);
+    complete(request.requestId, "failure");
     return;
   }
 
-  const query = [request.mediaName, request.artistName, request.albumName]
-    .map(normalizeSiriQuery)
-    .filter(Boolean)
-    .join(" ");
-  if (!query) {
-    SiriMedia?.completeRequest(request.requestId, "notFound");
-    return;
-  }
+  const {player} = refs.current;
+  const resolution = await resolveSiriRequest(youtube, parsed, {
+    hasCurrentItem: !!player.currentItem,
+  });
 
-  const search = await youtube.music.search(query, {type: "song"});
-  const item = search.contents?.firstOfType(YTNodes.MusicShelf)?.contents?.[0];
-  const endpoint = item?.overlay?.content?.endpoint ?? item?.endpoint;
-  siriLog(
-    `search done ${elapsed()} query="${query}" first=${item?.title} id=${item?.id}`,
-  );
-  if (!endpoint) {
-    SiriMedia?.completeRequest(request.requestId, "notFound");
-    return;
+  switch (resolution.kind) {
+    case "resume":
+      player.play();
+      complete(
+        request.requestId,
+        "success",
+        player.currentItem?.title,
+        player.currentItem?.author?.name,
+      );
+      break;
+    case "play":
+      // Only the mini player appears; the current screen stays.
+      player.setPlaylistViaEndpoint(resolution.endpoint);
+      complete(
+        request.requestId,
+        "success",
+        resolution.title,
+        resolution.artist,
+      );
+      break;
+    case "notFound":
+      complete(request.requestId, "notFound");
+      break;
   }
-
-  refs.current.setPlaylistViaEndpoint(endpoint);
-  SiriMedia?.completeRequest(request.requestId, "success");
-  siriLog(`playback requested ${elapsed()}`);
 }
 
 export default function useSiriMediaBridge() {
   const youtube = useYoutubeContext();
-  const {setPlaylistViaEndpoint, playbackStatus, playing, currentItem} =
-    useMusikPlayerContext();
-  const lastDonatedId = useRef<string>(undefined);
-  const refs = useRef<BridgeRefs>({youtube, setPlaylistViaEndpoint});
-  refs.current = {youtube, setPlaylistViaEndpoint};
+  const player = useMusikPlayerContext();
+  const {appSettings} = useAppData();
+  const playbackEnabled = !!appSettings.siriPlaybackEnabled;
+  const donationsEnabled = !!appSettings.siriDonationsEnabled;
+
+  const refs = useRef<BridgeRefs>({youtube, player, playbackEnabled});
+  refs.current = {youtube, player, playbackEnabled};
+
+  // The intents extension answers before the app runs and reads the setting
+  // from the app group.
+  useEffect(() => {
+    if (!SiriMedia || Platform.isTV) {
+      return;
+    }
+    SiriMedia.setPlaybackEnabled(playbackEnabled);
+  }, [playbackEnabled]);
 
   useEffect(() => {
     if (!SiriMedia || Platform.isTV) {
       return;
     }
-    siriLog(`bridge mounted appState=${AppState.currentState}`);
-
     const onRequest = (request: SiriMediaRequest) => {
       handleRequest(request, refs).catch(error => {
-        siriLog(`request ${request.requestId} failed: ${error}`);
-        SiriMedia?.completeRequest(request.requestId, "failure");
+        LOGGER.warn(`Siri request ${request.requestId} failed`, error);
+        complete(request.requestId, "failure");
       });
     };
     const subscription = SiriMedia.addListener("onSiriMediaRequest", onRequest);
     SiriMedia.getPendingRequests().forEach(onRequest);
-
-    // Phase 0 spike: ask once while the app is visible. Moves behind the
-    // settings switch in phase 1.
-    if (
-      AppState.currentState === "active" &&
-      SiriMedia.getSiriAuthorizationStatus() === "notDetermined"
-    ) {
-      SiriMedia.requestSiriAuthorization()
-        .then(status => siriLog(`siri authorization ${status}`))
-        .catch(LOGGER.warn);
-    }
-
     return () => subscription.remove();
   }, []);
 
+  // Donate each track once it actually plays, so Siri learns ReactTube as a
+  // media app and resolves it even while the app is not running.
+  const lastDonatedId = useRef<string>(undefined);
+  const {currentItem, playing} = player;
   useEffect(() => {
-    if (!SiriMedia || Platform.isTV) {
-      return;
-    }
-    siriLog(
-      `playback status=${playbackStatus} playing=${playing} appState=${AppState.currentState}`,
-    );
-  }, [playbackStatus, playing]);
-
-  // Phase 0 spike: donate every track once it actually plays, so Siri learns
-  // ReactTube as a media app. Moves behind the settings switch in phase 1.
-  useEffect(() => {
-    if (!SiriMedia || Platform.isTV || !playing || !currentItem) {
-      return;
-    }
-    if (lastDonatedId.current === currentItem.id) {
+    if (
+      !SiriMedia ||
+      Platform.isTV ||
+      !donationsEnabled ||
+      !playing ||
+      !currentItem ||
+      lastDonatedId.current === currentItem.id
+    ) {
       return;
     }
     lastDonatedId.current = currentItem.id;
@@ -171,5 +192,5 @@ export default function useSiriMediaBridge() {
       currentItem.title,
       currentItem.author?.name,
     );
-  }, [currentItem, playing]);
+  }, [currentItem, playing, donationsEnabled]);
 }

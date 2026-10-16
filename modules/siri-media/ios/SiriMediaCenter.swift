@@ -48,7 +48,6 @@ final class SiriMediaCenter {
     jsRuntimeCreated = true
     lock.unlock()
     SiriMediaLog.write("module attached (JS runtime created)")
-    SiriMediaLog.importExtensionLog()
   }
 
   func detach(module: SiriMediaModule) {
@@ -83,7 +82,7 @@ final class SiriMediaCenter {
     pending[requestId] = PendingRequest(payload: payload, completion: completion, delivered: false)
     order.append(requestId)
     lock.unlock()
-    SiriMediaLog.write("enqueued \(requestId): \(payload)")
+    SiriMediaLog.write("enqueued \(requestId) \(payload["intent"] ?? "?") via \(payload["delivery"] ?? "?")")
 
     if completion != nil {
       DispatchQueue.main.asyncAfter(deadline: .now() + Self.completionTimeout) { [weak self] in
@@ -109,7 +108,8 @@ final class SiriMediaCenter {
     return result
   }
 
-  func complete(_ requestId: String, result: SiriMediaResult) {
+  /// - Parameter nowPlayingInfo: lets Siri announce what is playing.
+  func complete(_ requestId: String, result: SiriMediaResult, nowPlayingInfo: [String: Any]? = nil) {
     lock.lock()
     let request = pending.removeValue(forKey: requestId)
     order.removeAll { $0 == requestId }
@@ -119,8 +119,12 @@ final class SiriMediaCenter {
       SiriMediaLog.write("complete \(requestId) ignored (unknown or expired)")
       return
     }
-    SiriMediaLog.write("complete \(requestId) -> \(result.rawValue)")
-    request.completion?(INPlayMediaIntentResponse(code: Self.responseCode(for: result), userActivity: nil))
+    SiriMediaLog.write("complete \(requestId) -> \(result.rawValue) \(nowPlayingInfo ?? [:])")
+    let response = INPlayMediaIntentResponse(code: Self.responseCode(for: result), userActivity: nil)
+    if result == .success {
+      response.nowPlayingInfo = nowPlayingInfo
+    }
+    request.completion?(response)
   }
 
   private func expire(_ requestId: String) {
@@ -228,63 +232,26 @@ enum SiriMediaPayload {
   }
 }
 
+// MARK: - Settings
+
+/// Settings the intents extension needs before the app runs. Kept in the app
+/// group; the keys are mirrored in `targets/siri-intents/IntentHandler.swift`.
+enum SiriMediaSettings {
+  static let appGroup = "group.com.duell10111.reacttube"
+  static let playbackEnabledKey = "siriPlaybackEnabled"
+
+  static func setPlaybackEnabled(_ enabled: Bool) {
+    UserDefaults(suiteName: appGroup)?.set(enabled, forKey: playbackEnabledKey)
+  }
+}
+
 // MARK: - Logging
 
-/// Phase 0 spike diagnostics: os_log plus a file in Documents that can be pulled
-/// from the device with `xcrun devicectl device copy from`. The intents
-/// extension logs into the app group; `importExtensionLog()` copies that file
-/// next to this one.
 enum SiriMediaLog {
   private static let logger = Logger(subsystem: "com.duell10111.reacttube.siri", category: "app")
-  private static let queue = DispatchQueue(label: "com.duell10111.reacttube.siri.log")
-  private static let documents = FileManager.default
-    .urls(for: .documentDirectory, in: .userDomainMask).first
-  private static let fileURL = documents?.appendingPathComponent("siri-spike.log")
-
-  static func importExtensionLog() {
-    queue.async {
-      guard let group = FileManager.default
-        .containerURL(forSecurityApplicationGroupIdentifier: "group.com.duell10111.reacttube"),
-        let documents else {
-        write("extension log: no app group container")
-        return
-      }
-      let contents = (try? FileManager.default.contentsOfDirectory(atPath: group.path)) ?? []
-      write("app group \(group.path) files=\(contents)")
-      // `siri-spike.log` is where the previous spike build had the extension write.
-      for name in ["siri-extension.log", "siri-spike.log"] where contents.contains(name) {
-        let destination = documents.appendingPathComponent("group-\(name)")
-        try? FileManager.default.removeItem(at: destination)
-        do {
-          try FileManager.default.copyItem(at: group.appendingPathComponent(name), to: destination)
-          write("imported \(name)")
-        } catch {
-          write("import of \(name) failed: \(error)")
-        }
-      }
-    }
-  }
-
-  private static let formatter: ISO8601DateFormatter = {
-    let formatter = ISO8601DateFormatter()
-    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    return formatter
-  }()
 
   static func write(_ message: String) {
-    logger.info("\(message, privacy: .public)")
-    let line = "\(formatter.string(from: Date())) \(message)\n"
-    queue.async {
-      guard let fileURL, let data = line.data(using: .utf8) else {
-        return
-      }
-      if let handle = try? FileHandle(forWritingTo: fileURL) {
-        handle.seekToEndOfFile()
-        handle.write(data)
-        try? handle.close()
-      } else {
-        try? data.write(to: fileURL)
-      }
-    }
+    // notice, not info: only persisted levels show up in `log collect`.
+    logger.notice("\(message, privacy: .public)")
   }
 }

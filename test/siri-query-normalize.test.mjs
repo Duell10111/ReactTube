@@ -46,11 +46,15 @@ test("handles spelling variants and English connectors", () => {
 test("keeps queries without the app name untouched", () => {
   assert.equal(normalizeSiriQuery("Bohemian Rhapsody"), "Bohemian Rhapsody");
   assert.equal(normalizeSiriQuery("Live in Berlin"), "Live in Berlin");
+  assert.equal(normalizeSiriQuery("Fred Tube"), "Fred Tube");
   assert.equal(normalizeSiriQuery("  Lo-Fi   Beats "), "Lo-Fi Beats");
 });
 
 test("returns undefined when nothing but the app name is left", () => {
   assert.equal(normalizeSiriQuery("React Tube"), undefined);
+  // Phase 1 device test: "Spiele ReactTube" arrived as this media name.
+  assert.equal(normalizeSiriQuery("Red Tube"), undefined);
+  assert.equal(normalizeSiriQuery("Paparazzi in Red Tube"), "Paparazzi");
   assert.equal(normalizeSiriQuery(""), undefined);
   assert.equal(normalizeSiriQuery(undefined), undefined);
 });

@@ -15,15 +15,23 @@ import {
 declare class SiriMediaModule extends NativeModule<SiriMediaModuleEvents> {
   /** Returns requests not yet delivered to JavaScript and marks them delivered. */
   getPendingRequests(): SiriMediaRequest[];
-  /** Answers Siri. Unknown or already expired request ids are ignored. */
-  completeRequest(requestId: string, result: SiriMediaResult): void;
+  /**
+   * Answers Siri. Unknown or already expired request ids are ignored. Title and
+   * artist let Siri announce what started playing.
+   */
+  completeRequest(
+    requestId: string,
+    result: SiriMediaResult,
+    title?: string,
+    artist?: string,
+  ): void;
+  /** Mirrors the opt-in setting for the intents extension. */
+  setPlaybackEnabled(enabled: boolean): void;
   /**
    * Donates a played track to Siri (`INPlayMediaIntent` interaction) so Siri
    * learns ReactTube as a media app and can suggest the item again.
    */
   donatePlayback(videoId: string, title: string, artist?: string): void;
-  /** Appends a line to the native Siri diagnostics log. */
-  log(message: string): void;
   getSiriAuthorizationStatus(): SiriAuthorizationStatus;
   requestSiriAuthorization(): Promise<SiriAuthorizationStatus>;
 }

@@ -8,6 +8,7 @@ import SettingsScreen from "../screens/SettingsScreen";
 
 import ChannelSelectorScreen from "@/components/settings/screens/ChannelSelector";
 import LoudnessNormalizationSelectorScreen from "@/components/settings/screens/LoudnessNormalizationSelector";
+import SiriSettingsScreen from "@/components/settings/screens/SiriSettings";
 import TrackingSelector from "@/components/settings/screens/TrackingSelector";
 import UILanguageSelectorScreen from "@/components/settings/screens/UILanguageSelector";
 
@@ -21,6 +22,7 @@ export type SettingsStackParamList = {
   LoudnessNormalizationSelector: undefined;
   PlaybackDiagnostics: undefined;
   ChannelSelector: undefined;
+  SiriSettings: undefined;
 };
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
@@ -54,6 +56,7 @@ export default function SettingsNavigator() {
         name={"ChannelSelector"}
         component={ChannelSelectorScreen}
       />
+      <Stack.Screen name={"SiriSettings"} component={SiriSettingsScreen} />
       <Stack.Screen
         name={"PlaybackDiagnostics"}
         component={PlaybackDiagnosticsScreen}
