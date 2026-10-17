@@ -14,6 +14,11 @@ export interface SiriMediaRequest {
   delivery: "handleInApp" | "continueInApp";
   /** `Date.now()`-compatible timestamp of when the app received the intent. */
   receivedAt: number;
+  /**
+   * `Date.now()`-compatible time after which Siri no longer waits; only set
+   * when Siri waits for `completeRequest`.
+   */
+  deadline?: number;
   /** True when Siri launched the app in the background and React started headless. */
   headlessStart: boolean;
   applicationState: "active" | "inactive" | "background" | "unknown";

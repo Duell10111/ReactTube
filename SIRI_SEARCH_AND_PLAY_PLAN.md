@@ -406,12 +406,31 @@ Ausgewertet mit `sudo log collect --device-udid …` (Prozess
 
 ### Phase 2 — Echte Hintergrund-Wiedergabe
 
-- [ ] Headless-React-Start aus dem Spike produktiv machen.
-- [ ] Extension auf `.handleInApp` umstellen (Voraussetzung für Sperrbildschirm,
-      AirPods, HomePod, CarPlay-Sprachbefehl).
-- [ ] Timeout-/Fehlerpfade, Logging über `Logger.extend("SIRI")`.
-- [ ] Audio-Session: sicherstellen, dass `setupMusicPlayer()` vor der
-      Wiedergabe läuft, auch ohne dass ein Screen gemountet wurde.
+- [x] Extension auf `.handleInApp` umstellen (bereits in Phase 0/1
+      vorgezogen; Voraussetzung für Sperrbildschirm, AirPods, HomePod,
+      CarPlay-Sprachbefehl).
+- [x] Audio-Session: `index.js` ruft `setupMusicPlayer()` schon beim Laden des
+      Bundles auf, also vor jedem Screen und auch beim Headless-Start; die
+      Bridge ruft es vor der Wiedergabe zusätzlich auf (idempotent).
+- [x] Timeout-/Fehlerpfade:
+  - Das Modul gibt Requests, auf die Siri wartet, eine `deadline` mit (8 s
+    für Media Intents, 20 s für App Intents). JS prüft sie vor der Suche und
+    vor dem Start (`src/siri/siriRequestDeadline.ts`) und spielt nach Siris
+    Timeout nichts mehr ab;
+  - `completeRequest` hat ein `detail` (Grund und Dauer), das nativ im
+    Systemlog landet (`complete … detail=song, 412 ms`); auch verspätete
+    Antworten werden mit Grund geloggt;
+  - JS loggt jeden Ausgang über `Logger.extend("SIRI")` mit Quelle, Weg und
+    Dauer.
+- [x] Gerätetest (2026-10-17, iPhone gesperrt, App beendet): „Spiele
+      Bohemian Rhapsody in ReactTube“ ✅ (Kaltstart bis Antwort 739 ms),
+      „Setze ReactTube fort“ ✅ (letzter Track nach Kaltstart). AirPods noch
+      nicht getestet.
+- [x] Headless-React-Start: Auch bei gesperrtem iPhone verbindet iOS 27 eine
+      Scene (`startIfNeeded scenes=1 jsRuntime=false`), der Headless-Pfad
+      wird dort nicht gebraucht. Der Code (`SiriHeadlessHost`, Übernahme der
+      Root-View durch die Scene) bleibt als Absicherung für iOS 16.4–26 und
+      Starts ohne Scene (z. B. HomePod/CarPlay), ist dort aber ungetestet.
 
 ### Phase 3 — Bibliothek, Downloads, Vokabular
 

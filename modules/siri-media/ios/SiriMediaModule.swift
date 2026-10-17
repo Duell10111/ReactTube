@@ -27,13 +27,15 @@ public class SiriMediaModule: Module {
       return SiriMediaCenter.shared.takeUndelivered()
     }
 
-    Function("completeRequest") { (requestId: String, result: String, title: String?, artist: String?) in
+    Function("completeRequest") {
+      (requestId: String, result: String, title: String?, artist: String?, detail: String?) in
       SiriMediaCenter.shared.complete(
         requestId,
         result: SiriMediaResult(rawValue: result) ?? .failure,
         nowPlaying: title == nil && artist == nil
           ? nil
-          : SiriMediaNowPlaying(title: title, artist: artist)
+          : SiriMediaNowPlaying(title: title, artist: artist),
+        detail: detail
       )
     }
 

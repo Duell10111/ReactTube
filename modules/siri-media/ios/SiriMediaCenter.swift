@@ -89,6 +89,11 @@ final class SiriMediaCenter {
     guard let requestId = payload["requestId"] as? String else {
       return
     }
+    var payload = payload
+    if completion != nil {
+      // JavaScript must not start playback after Siri already gave up.
+      payload["deadline"] = (Date().timeIntervalSince1970 + timeout) * 1000
+    }
     lock.lock()
     pending[requestId] = PendingRequest(payload: payload, completion: completion, delivered: false)
     order.append(requestId)
@@ -122,20 +127,31 @@ final class SiriMediaCenter {
     return result
   }
 
-  /// - Parameter nowPlaying: lets Siri announce what is playing.
-  func complete(_ requestId: String, result: SiriMediaResult, nowPlaying: SiriMediaNowPlaying? = nil) {
+  /// - Parameters:
+  ///   - nowPlaying: lets Siri announce what is playing.
+  ///   - detail: why JavaScript answered this way; only logged.
+  func complete(
+    _ requestId: String,
+    result: SiriMediaResult,
+    nowPlaying: SiriMediaNowPlaying? = nil,
+    detail: String? = nil
+  ) {
     lock.lock()
     let request = pending.removeValue(forKey: requestId)
     order.removeAll { $0 == requestId }
     lock.unlock()
 
     guard let request else {
-      SiriMediaLog.write("complete \(requestId) ignored (unknown or expired)")
+      SiriMediaLog.write(
+        "complete \(requestId) -> \(result.rawValue) ignored (unknown or expired) "
+          + "detail=\(detail ?? "-")"
+      )
       return
     }
     SiriMediaLog.write(
       "complete \(requestId) -> \(result.rawValue) "
-        + "title=\(nowPlaying?.title ?? "-") artist=\(nowPlaying?.artist ?? "-")"
+        + "title=\(nowPlaying?.title ?? "-") artist=\(nowPlaying?.artist ?? "-") "
+        + "detail=\(detail ?? "-")"
     )
     request.completion?(result, result == .success ? nowPlaying : nil)
   }

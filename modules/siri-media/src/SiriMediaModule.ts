@@ -17,13 +17,15 @@ declare class SiriMediaModule extends NativeModule<SiriMediaModuleEvents> {
   getPendingRequests(): SiriMediaRequest[];
   /**
    * Answers Siri. Unknown or already expired request ids are ignored. Title and
-   * artist let Siri announce what started playing.
+   * artist let Siri announce what started playing; `detail` only goes to the
+   * system log.
    */
   completeRequest(
     requestId: string,
     result: SiriMediaResult,
     title?: string,
     artist?: string,
+    detail?: string,
   ): void;
   /** Mirrors the opt-in setting for the intents extension. */
   setPlaybackEnabled(enabled: boolean): void;

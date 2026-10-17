@@ -14,7 +14,9 @@ import {navigationRef} from "@/navigation/navigationRef";
 import {getLastPlayedTrack, setLastPlayedTrack} from "@/siri/lastPlayedTrack";
 import {parseSiriRequest, SiriSearchRequest} from "@/siri/parseSiriRequest";
 import {resolveSiriRequest} from "@/siri/resolveSiriRequest";
+import {isSiriRequestExpired} from "@/siri/siriRequestDeadline";
 import Logger from "@/utils/Logger";
+import {setupMusicPlayer} from "@/utils/music/MusicInit";
 
 const LOGGER = Logger.extend("SIRI");
 
@@ -30,13 +32,45 @@ interface BridgeRefs {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+interface Completion {
+  title?: string;
+  artist?: string;
+  /** Why the request ended this way; goes to the system log. */
+  detail?: string;
+}
+
 function complete(
-  requestId: string,
+  request: SiriMediaRequest,
   result: SiriMediaResult,
-  title?: string,
-  artist?: string,
+  {title, artist, detail}: Completion = {},
 ) {
-  SiriMedia?.completeRequest(requestId, result, title, artist);
+  // receivedAt comes from the native clock with sub-millisecond precision.
+  const elapsed = Math.max(0, Math.round(Date.now() - request.receivedAt));
+  const message = `${request.requestId} -> ${result} after ${elapsed} ms${detail ? ` (${detail})` : ""}`;
+  if (result === "success") {
+    LOGGER.info(message);
+  } else {
+    LOGGER.warn(message);
+  }
+  SiriMedia?.completeRequest(
+    request.requestId,
+    result,
+    title,
+    artist,
+    detail ? `${detail}, ${elapsed} ms` : `${elapsed} ms`,
+  );
+}
+
+/**
+ * Siri gave up already (cold start or YouTube too slow): answering is
+ * pointless and playback would start unexpectedly.
+ */
+function abortIfExpired(request: SiriMediaRequest, stage: string) {
+  if (!isSiriRequestExpired(request)) {
+    return false;
+  }
+  complete(request, "failure", {detail: `expired before ${stage}`});
+  return true;
 }
 
 async function waitForYoutube(refs: MutableRefObject<BridgeRefs>) {
@@ -81,7 +115,7 @@ async function handleRequest(
   // The extension already refuses while disabled; this covers requests that
   // were queued before the setting changed.
   if (!refs.current.playbackEnabled) {
-    complete(request.requestId, "failure");
+    complete(request, "failure", {detail: "Siri playback disabled"});
     if (
       request.delivery === "continueInApp" &&
       (await waitForRoute("SettingsScreen"))
@@ -93,17 +127,25 @@ async function handleRequest(
   }
 
   const parsed = parseSiriRequest(request);
-  LOGGER.info(`${request.delivery} ${parsed.kind}`, parsed);
+  LOGGER.info(
+    `${request.requestId} ${request.source} ${request.delivery} ${parsed.kind}`,
+    parsed,
+  );
 
   if (parsed.kind === "search") {
     const opened = await openSearch(parsed);
-    complete(request.requestId, opened ? "success" : "failure");
+    complete(request, opened ? "success" : "failure", {
+      detail: opened ? "search opened" : "navigation not ready",
+    });
     return;
   }
 
   const youtube = await waitForYoutube(refs);
   if (!youtube) {
-    complete(request.requestId, "failure");
+    complete(request, "failure", {detail: "YouTube not ready"});
+    return;
+  }
+  if (abortIfExpired(request, "search")) {
     return;
   }
 
@@ -112,31 +154,38 @@ async function handleRequest(
     hasCurrentItem: !!player.currentItem,
     lastPlayed: getLastPlayedTrack(),
   });
-
-  switch (resolution.kind) {
-    case "resume":
-      player.play();
-      complete(
-        request.requestId,
-        "success",
-        player.currentItem?.title,
-        player.currentItem?.author?.name,
-      );
-      break;
-    case "play":
-      // Only the mini player appears; the current screen stays.
-      player.setPlaylistViaEndpoint(resolution.endpoint);
-      complete(
-        request.requestId,
-        "success",
-        resolution.title,
-        resolution.artist,
-      );
-      break;
-    case "notFound":
-      complete(request.requestId, "notFound");
-      break;
+  if (resolution.kind === "notFound") {
+    complete(request, "notFound", {detail: `nothing found for ${parsed.kind}`});
+    return;
   }
+  if (abortIfExpired(request, "playback")) {
+    return;
+  }
+
+  // Normally done in index.js; repeated here (idempotent) because playback
+  // must not depend on the order in which a headless start runs modules.
+  if (!setupMusicPlayer()) {
+    complete(request, "failure", {detail: "music player setup failed"});
+    return;
+  }
+
+  if (resolution.kind === "resume") {
+    player.play();
+    complete(request, "success", {
+      title: player.currentItem?.title,
+      artist: player.currentItem?.author?.name,
+      detail: "resumed",
+    });
+    return;
+  }
+
+  // Only the mini player appears; the current screen stays.
+  player.setPlaylistViaEndpoint(resolution.endpoint);
+  complete(request, "success", {
+    title: resolution.title,
+    artist: resolution.artist,
+    detail: parsed.kind,
+  });
 }
 
 export default function useSiriMediaBridge() {
@@ -164,8 +213,9 @@ export default function useSiriMediaBridge() {
     }
     const onRequest = (request: SiriMediaRequest) => {
       handleRequest(request, refs).catch(error => {
-        LOGGER.warn(`Siri request ${request.requestId} failed`, error);
-        complete(request.requestId, "failure");
+        complete(request, "failure", {
+          detail: `exception: ${error instanceof Error ? error.message : String(error)}`,
+        });
       });
     };
     const subscription = SiriMedia.addListener("onSiriMediaRequest", onRequest);
