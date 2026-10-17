@@ -17,6 +17,63 @@
 * create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
 * update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
 
+## [0.5.0](https://github.com/Duell10111/ReactTube/compare/v0.4.1...v0.5.0) (2026-10-17)
+
+
+### ✨ Features
+
+* add autoplay functionality and "Up Next" overlay for phone video player, including support for localization, tests, and settings integration. ([5c3b384](https://github.com/Duell10111/ReactTube/commit/5c3b3848c54feeaa7e54e548e826949411dc25f0))
+* add channel selection for signed-in users and support for age-restricted videos ([761bfcc](https://github.com/Duell10111/ReactTube/commit/761bfcce6355543c720ac99d113cf28747286eb8))
+* add current track identification and playback state to music track list ([336dad8](https://github.com/Duell10111/ReactTube/commit/336dad88bfb6bf4582add7a4bddb6bd69031b4e2))
+* add playback size tracking and resolution formatting for video components ([bafd570](https://github.com/Duell10111/ReactTube/commit/bafd570235df50569eeaa3f7e56027b6977901e9))
+* add resolution badges for videos and tiles ([e067671](https://github.com/Duell10111/ReactTube/commit/e067671bf2889de1abc194ca82cc7534006901f9))
+* add shorts preloading for TV shorts player ([af23f51](https://github.com/Duell10111/ReactTube/commit/af23f51a8d4e8f3b026573491a46822a8a1053a2))
+* add subtitle support with selection and overlay for video player ([95e6789](https://github.com/Duell10111/ReactTube/commit/95e6789b4ba48152f11753e8f13f4f8a2409b4c0))
+* add VLC player support with direct stream handling and playback options ([82edc9f](https://github.com/Duell10111/ReactTube/commit/82edc9f0919d96931345ad731657e1a78035c98b))
+* add Watch Phone Remote Plan Phase 0 ([1d92c50](https://github.com/Duell10111/ReactTube/commit/1d92c504e4f5a74260440cd66bcb26f002c81907))
+* add Watch Phone Remote Plan Phase 2 ([5e90ad6](https://github.com/Duell10111/ReactTube/commit/5e90ad620571bd23ce3a9242bda5f393655b0e64))
+* add Watch Phone Remote Plan Phase 3 ([68c1d37](https://github.com/Duell10111/ReactTube/commit/68c1d37e8f6e0446c430891806c9665ccffcb0fc))
+* add Watch Phone Remote Plan Phase 4 ([63354c0](https://github.com/Duell10111/ReactTube/commit/63354c0c8a565da62badadb8eb6194ec4d36ede2))
+* add Watch Phone Remote Plan Phase 5 ([e7bed44](https://github.com/Duell10111/ReactTube/commit/e7bed4408b7b2baf441b554e92df8f84159c2ac0))
+* enhance library navigation with menu icon labels and playlist summary ([ba61475](https://github.com/Duell10111/ReactTube/commit/ba614753e1d023f635358028733e32eb2203f0d2))
+* ensure current cover image is not replaced by slow-loading previous titles ([9d53ba0](https://github.com/Duell10111/ReactTube/commit/9d53ba0063c6de85f23ef1cdee9f3b693ca3dc62))
+* implement automatic scrolling to the current track in the upnext view ([3bda166](https://github.com/Duell10111/ReactTube/commit/3bda1668777bca53b4c389aa49496d11df7b3a0f))
+* implement BotGuard runtime for tvOS with headless WKWebView support ([42bc6b1](https://github.com/Duell10111/ReactTube/commit/42bc6b1b4ae1b9047a2af2e3b53436bc2438d13f))
+* implement fullscreen swipe gestures and enhance phone seek bar with chapter and storyboard support ([d6acee5](https://github.com/Duell10111/ReactTube/commit/d6acee59f1aada5a7a62261f66ca4e05f2713cf6))
+* implement metadata refresh functionality for incomplete downloads ([55d5c12](https://github.com/Duell10111/ReactTube/commit/55d5c120ec54dfb8d79bed92205762b1999955b6))
+* implement music loudness normalization settings and functionality ([3abf647](https://github.com/Duell10111/ReactTube/commit/3abf647a2ad3ad77e1205966a8644a01422c39a1))
+* implement phone overlay player with customizable playback settings and gestures ([b85e9c5](https://github.com/Duell10111/ReactTube/commit/b85e9c55ab3cbc2c8ee5e70deac6d7f025e5c099))
+* implement phone rotation handling for fullscreen mode with customizable settings and tests ([027ac06](https://github.com/Duell10111/ReactTube/commit/027ac06be14e75b19f8a6c852073825c39b72323))
+* implement playback support for signed-in users' private videos via TV_DOWNGRADED client ([3e0170d](https://github.com/Duell10111/ReactTube/commit/3e0170dd41f0d4cd40b569f7aa1fff219dc6317f))
+* implement PoToken minting with BotGuard integration for streaming clients ([6d40717](https://github.com/Duell10111/ReactTube/commit/6d40717954a419ec22dadf1075fad92904edcd04))
+* implement rating override functionality for video interactions on error cases ([e615bdb](https://github.com/Duell10111/ReactTube/commit/e615bdb7cbae9e121e18946867e8db1eb8b23303))
+* implement TV shorts player with navigation and subscription features ([e8ef4e6](https://github.com/Duell10111/ReactTube/commit/e8ef4e6a575e32fa319ae54e6e72a2b6086c74b6))
+* **tv:** enhance Timer component with improved text readability ([e56006a](https://github.com/Duell10111/ReactTube/commit/e56006a11dc0caa1107d951344b2eeb1528c516f))
+
+
+### 🐛 Bugfixes
+
+* add album cover handling for tracks without artwork ([cb73f57](https://github.com/Duell10111/ReactTube/commit/cb73f57a3ad5f02b7b3a7872b7e119aa34c8c857))
+* enhance chapter navigation with asynchronous artwork loading for tvOS ([6dfc9be](https://github.com/Duell10111/ReactTube/commit/6dfc9be5f9a242310d853c499d3c2910d2e3cbba))
+* enhance playlist creation functionality and UI improvements ([14e323b](https://github.com/Duell10111/ReactTube/commit/14e323b064901c0ea9bbecdbebd82927990ed567))
+* fix playlist management with unique handling and membership checks ([2b43f8f](https://github.com/Duell10111/ReactTube/commit/2b43f8fc510ecf2240cc660d5a065a97c7bf8d56))
+* implement audio track selection for SABR playback with multiple formats ([b081a36](https://github.com/Duell10111/ReactTube/commit/b081a36a15ded77c6f52b278b4b7f30653130fbb))
+* **ios:** strip bitcode from prebuilt VLCKit frameworks ([74d6641](https://github.com/Duell10111/ReactTube/commit/74d66412f31a1babdfff3e8f69c0417baac968c3))
+* **metadata:** fix lockup metadata parsing for video and playlist rows ([bd187d1](https://github.com/Duell10111/ReactTube/commit/bd187d1373983820a1965cb7877ef156e643db26))
+* **player:** enhance PhoneOverlayPlayer and PhoneSeekBar with improved layout and accessibility features ([6d14185](https://github.com/Duell10111/ReactTube/commit/6d141855884cf13c6b5efcc64e89a8935f835b77))
+* **tv:** add TV variant of usePlayerFullscreen ([29c9631](https://github.com/Duell10111/ReactTube/commit/29c96318ab9cf74239ae8478d2cb26c419a467bf))
+
+
+### ♻️ Refactor
+
+* streamline volume handling and UI updates in MusicPlayer on watch variant ([584b166](https://github.com/Duell10111/ReactTube/commit/584b1669b1edf66b4dd4a49df3dded323b2f5146))
+
+
+### 🔧 Chore
+
+* enhance video current playlist component with current index tracking and localization support ([1fc0bce](https://github.com/Duell10111/ReactTube/commit/1fc0bce728afbd108cef421a7961643e2967427d))
+* implement video chapter navigation with progress tracking and accessibility support ([668625e](https://github.com/Duell10111/ReactTube/commit/668625ef0bf977f28f4f77148c18d8b70e125da6))
+
 ## [0.4.1](https://github.com/Duell10111/ReactTube/compare/v0.4.0...v0.4.1) (2026-10-04)
 
 

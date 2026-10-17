@@ -16,7 +16,9 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
         }
@@ -91,7 +93,7 @@
     ],
     "name": "reacttube",
     "slug": "reacttube",
-    "version": "0.4.1",
+    "version": "0.5.0",
     "userInterfaceStyle": "dark",
     "primaryColor": "#7C83FD",
     "backgroundColor": "#0F0F0F"
