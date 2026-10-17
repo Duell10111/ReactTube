@@ -22,9 +22,10 @@ const TRAILING_MISHEARD_APP_NAME = new RegExp(
   "i",
 );
 
-// "in ReactTube" heard as one word: "Indirect Tube", "in direct Tube".
+// "in ReactTube" heard as one word: "Indirect Tube", "in direct Tube",
+// "Ina Tube" (also as the whole name: "play more of this in ReactTube").
 const TRAILING_FUSED_APP_NAME = new RegExp(
-  String.raw`\s+in\s*(?:direct|rect)\s+tube${APP_SUFFIX}`,
+  String.raw`(?:^|\s+)in\s*(?:direct|rect|a)\s+tube${APP_SUFFIX}`,
   "i",
 );
 

@@ -210,6 +210,26 @@ enum SiriMediaPayload {
       payload["intent"] = "search"
       search = searchIntent.mediaSearch
       items = searchIntent.mediaItems
+    case let affinity as INUpdateMediaAffinityIntent:
+      payload["intent"] = "affinity"
+      payload["affinity"] = describe(affinity.affinityType)
+      search = affinity.mediaSearch
+      items = affinity.mediaItems
+    case let add as INAddMediaIntent:
+      payload["intent"] = "add"
+      switch add.mediaDestination {
+      case .library:
+        payload["destination"] = "library"
+      case let .playlist(name):
+        payload["destination"] = "playlist"
+        payload["playlistName"] = name
+      case nil:
+        break
+      @unknown default:
+        break
+      }
+      search = add.mediaSearch
+      items = add.mediaItems
     default:
       return nil
     }
@@ -260,6 +280,17 @@ enum SiriMediaPayload {
       "applicationState": describe(UIApplication.shared.applicationState),
       "connectedScenes": UIApplication.shared.connectedScenes.count,
     ]
+  }
+
+  private static func describe(_ affinity: INMediaAffinityType) -> String {
+    switch affinity {
+    case .like:
+      return "like"
+    case .dislike:
+      return "dislike"
+    default:
+      return "unknown"
+    }
   }
 
   private static func describe(_ state: UIApplication.State) -> String {

@@ -12,6 +12,7 @@
 			<array>
 				<string>INPlayMediaIntent</string>
 				<string>INSearchForMediaIntent</string>
+				<string>INAddMediaIntent</string>
 			</array>
 			<key>SupportedMediaCategories</key>
 			<array>

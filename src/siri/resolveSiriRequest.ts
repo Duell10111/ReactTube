@@ -208,7 +208,11 @@ async function resolveHomeFeed(youtube: Innertube): Promise<SiriResolution> {
 export async function resolveSiriRequest(
   youtube: Innertube,
   request: SiriPlayRequest,
-  player: {hasCurrentItem: boolean; lastPlayed?: SiriLastPlayedTrack},
+  player: {
+    hasCurrentItem: boolean;
+    currentVideoId?: string;
+    lastPlayed?: SiriLastPlayedTrack;
+  },
   library?: SiriLibrary,
 ): Promise<SiriResolution> {
   const match = library && matchSiriLibrary(request, library);
@@ -251,9 +255,22 @@ export async function resolveSiriRequest(
     case "playlist":
       return resolvePlaylist(youtube, request);
     case "empty":
-      // "Play more like this" and "play ReactTube" both continue what is
-      // loaded. After a cold start nothing is, so restart the last track and
-      // fall back to the home feed only when nothing was played yet.
+      // "Play more like this": the YouTube Music radio of the current track.
+      if (request.currentlyPlaying && player.currentVideoId) {
+        return {
+          kind: "play",
+          endpoint: new YTNodes.NavigationEndpoint({
+            watchEndpoint: {
+              videoId: player.currentVideoId,
+              playlistId: `RDAMVM${player.currentVideoId}`,
+            },
+          }),
+          via: "radio",
+        };
+      }
+      // "Play ReactTube" continues what is loaded. After a cold start nothing
+      // is, so restart the last track and fall back to the home feed only when
+      // nothing was played yet.
       if (player.hasCurrentItem) {
         return {kind: "resume"};
       }

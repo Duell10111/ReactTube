@@ -76,7 +76,8 @@ function playlistScore(spoken: string[], title: string[]) {
   return 0;
 }
 
-function findPlaylist(library: SiriLibrary, name: string) {
+/** The user's playlist the spoken name refers to, if any. */
+export function findSiriLibraryPlaylist(library: SiriLibrary, name: string) {
   const spoken = playlistWords(name);
   let best: SiriLibraryPlaylist | undefined;
   let bestScore = 0;
@@ -128,14 +129,14 @@ export function matchSiriLibrary(
 ): SiriLibraryMatch | undefined {
   switch (request.kind) {
     case "playlist": {
-      const playlist = findPlaylist(library, request.playlist);
+      const playlist = findSiriLibraryPlaylist(library, request.playlist);
       return playlist && {kind: "playlist", playlist};
     }
     case "song": {
       // Siri often reports a playlist name without the playlist type.
       const playlist = request.artist
         ? undefined
-        : findPlaylist(library, request.title);
+        : findSiriLibraryPlaylist(library, request.title);
       if (playlist) {
         return {kind: "playlist", playlist};
       }

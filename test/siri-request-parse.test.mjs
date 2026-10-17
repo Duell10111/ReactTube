@@ -158,3 +158,12 @@ test("treats App Shortcut requests like media intents without a type", () => {
     {kind: "search", query: "Queen", target: "music"},
   );
 });
+
+test("treats a bare name with shuffle as the artist", () => {
+  assert.deepEqual(
+    parseSiriRequest({...base, mediaName: "Queen", playShuffled: true}),
+    {kind: "artist", query: "Queen", artist: "Queen"},
+  );
+  // Without shuffle it stays a song search.
+  assert.equal(parseSiriRequest({...base, mediaName: "Queen"}).kind, "song");
+});

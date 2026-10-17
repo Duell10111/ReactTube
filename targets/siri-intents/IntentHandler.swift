@@ -25,6 +25,8 @@ class IntentHandler: INExtension {
       return PlayMediaIntentHandler()
     case is INSearchForMediaIntent:
       return SearchForMediaIntentHandler()
+    case is INAddMediaIntent:
+      return AddMediaIntentHandler()
     default:
       return self
     }
@@ -78,6 +80,39 @@ final class SearchForMediaIntentHandler: NSObject, INSearchForMediaIntentHandlin
     let code: INSearchForMediaIntentResponseCode =
       SharedSettings.playbackEnabled ? .continueInApp : .failureRequiringAppLaunch
     completion(INSearchForMediaIntentResponse(code: code, userActivity: nil))
+  }
+}
+
+/// Siri's media flow only offers apps whose extension declares the intent, so
+/// "add this to my playlist X" is declared here and handed to the app, which
+/// knows the playlists and talks to YouTube.
+final class AddMediaIntentHandler: NSObject, INAddMediaIntentHandling {
+  func resolveMediaDestination(
+    for intent: INAddMediaIntent,
+    with completion: @escaping (INAddMediaMediaDestinationResolutionResult) -> Void
+  ) {
+    log.notice("resolveMediaDestination \(String(describing: intent.mediaDestination), privacy: .public)")
+    guard let destination = intent.mediaDestination else {
+      // Without a playlist the song goes to the library ("Liked music").
+      completion(INAddMediaMediaDestinationResolutionResult(
+        mediaDestinationResolutionResult: .success(with: .library)
+      ))
+      return
+    }
+    completion(INAddMediaMediaDestinationResolutionResult(
+      mediaDestinationResolutionResult: .success(with: destination)
+    ))
+  }
+
+  func handle(
+    intent: INAddMediaIntent,
+    completion: @escaping (INAddMediaIntentResponse) -> Void
+  ) {
+    guard SharedSettings.playbackEnabled else {
+      completion(INAddMediaIntentResponse(code: .failureRequiringAppLaunch, userActivity: nil))
+      return
+    }
+    completion(INAddMediaIntentResponse(code: .handleInApp, userActivity: nil))
   }
 }
 

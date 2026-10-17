@@ -8,15 +8,25 @@ import SiriMedia, {
 
 import {useAppData} from "@/context/AppDataContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
-import {useYoutubeContext} from "@/context/YoutubeContext";
+import {useYoutubeContext, useYoutubeTVContext} from "@/context/YoutubeContext";
 import {getPlaylistAsYTPlaylist} from "@/downloader/DBData";
 import type {VideoData} from "@/extraction/Types";
+import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
 import {loadSiriLibrary} from "@/hooks/siri/siriLibrary";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {navigationRef} from "@/navigation/navigationRef";
 import {getLastPlayedTrack, setLastPlayedTrack} from "@/siri/lastPlayedTrack";
-import type {SiriLibrary} from "@/siri/matchSiriLibrary";
-import {parseSiriRequest, SiriSearchRequest} from "@/siri/parseSiriRequest";
+import {findSiriLibraryPlaylist, SiriLibrary} from "@/siri/matchSiriLibrary";
+import {normalizeSiriQuery} from "@/siri/normalizeSiriQuery";
+import {
+  parseSiriPlaybackOptions,
+  SiriPlaybackOptions,
+} from "@/siri/parseSiriPlaybackOptions";
+import {
+  DONATED_VIDEO_PREFIX,
+  parseSiriRequest,
+  SiriSearchRequest,
+} from "@/siri/parseSiriRequest";
 import {resolveSiriRequest} from "@/siri/resolveSiriRequest";
 import {isSiriRequestExpired} from "@/siri/siriRequestDeadline";
 import Logger from "@/utils/Logger";
@@ -30,7 +40,13 @@ const NAVIGATION_WAIT_MS = 15000;
 
 interface BridgeRefs {
   youtube: ReturnType<typeof useYoutubeContext>;
+  /** Ratings go through the TV client, like the like buttons in the app. */
+  youtubeTV: ReturnType<typeof useYoutubeTVContext>;
   player: ReturnType<typeof useMusikPlayerContext>;
+  saveVideoToPlaylist: (
+    videoIds: string[],
+    playlistId: string,
+  ) => Promise<void>;
   playbackEnabled: boolean;
 }
 
@@ -121,6 +137,128 @@ async function openSearch(request: SiriSearchRequest) {
   return true;
 }
 
+/**
+ * The track an affinity or add request is about: an item Siri resolved from
+ * a donation, otherwise what is playing ("I like this song").
+ */
+function targetTrack(
+  request: SiriMediaRequest,
+  refs: MutableRefObject<BridgeRefs>,
+) {
+  const {currentItem} = refs.current.player;
+  if (request.itemIdentifier?.startsWith(DONATED_VIDEO_PREFIX)) {
+    const videoId = request.itemIdentifier.slice(DONATED_VIDEO_PREFIX.length);
+    return {
+      videoId,
+      title: videoId === currentItem?.id ? currentItem.title : undefined,
+    };
+  }
+  return currentItem
+    ? {videoId: currentItem.id, title: currentItem.title}
+    : undefined;
+}
+
+async function handleAffinity(
+  request: SiriMediaRequest,
+  refs: MutableRefObject<BridgeRefs>,
+) {
+  const track = targetTrack(request, refs);
+  const {youtubeTV} = refs.current;
+  if (!track || !youtubeTV || request.affinity === "unknown") {
+    complete(request, "failure", {
+      detail: !track ? "nothing playing" : "cannot rate",
+    });
+    return;
+  }
+  if (request.affinity === "like") {
+    await youtubeTV.interact.like(track.videoId);
+  } else {
+    await youtubeTV.interact.dislike(track.videoId);
+  }
+  complete(request, "success", {
+    title: track.title,
+    detail: request.affinity,
+  });
+}
+
+async function handleAdd(
+  request: SiriMediaRequest,
+  refs: MutableRefObject<BridgeRefs>,
+) {
+  const track = targetTrack(request, refs);
+  if (!track) {
+    complete(request, "failure", {detail: "nothing playing"});
+    return;
+  }
+  // YouTube Music's library for songs is "Liked music".
+  if (request.destination !== "playlist" || !request.playlistName) {
+    const {youtubeTV} = refs.current;
+    if (!youtubeTV) {
+      complete(request, "failure", {detail: "YouTube not ready"});
+      return;
+    }
+    await youtubeTV.interact.like(track.videoId);
+    complete(request, "success", {
+      title: track.title,
+      detail: "added to library",
+    });
+    return;
+  }
+  // Siri leaves the app name in the destination, or even sends it alone
+  // ("React Tube") when the request named the app before the playlist.
+  const playlistName = normalizeSiriQuery(request.playlistName);
+  if (!playlistName) {
+    complete(request, "notFound", {detail: "playlist name was the app name"});
+    return;
+  }
+  const library = await loadSiriLibrary();
+  const playlist = findSiriLibraryPlaylist(library, playlistName);
+  if (!playlist) {
+    complete(request, "notFound", {
+      detail: `no playlist matches${librarySummary(library)}`,
+    });
+    return;
+  }
+  await refs.current.saveVideoToPlaylist([track.videoId], playlist.id);
+  complete(request, "success", {
+    title: track.title,
+    detail: `added to ${playlist.source} playlist`,
+  });
+}
+
+/** Shuffle and repeat apply to whatever starts next, so set them first. */
+function applyPlaybackOptions(
+  options: SiriPlaybackOptions,
+  player: BridgeRefs["player"],
+) {
+  if (options.shuffle !== undefined) {
+    player.setShuffle(options.shuffle);
+  }
+  if (options.repeat) {
+    player.setRepeat(options.repeat === "off" ? undefined : options.repeat);
+  }
+}
+
+/** A queue entry for "play X next"; the player only needs id and metadata. */
+function queueItem(
+  videoId: string,
+  title?: string,
+  artist?: string,
+): VideoData {
+  return {
+    originalNode: {} as VideoData["originalNode"],
+    type: "video",
+    id: videoId,
+    title: title ?? "",
+    author: artist ? ({name: artist} as VideoData["author"]) : undefined,
+    thumbnailImage: {
+      url: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      width: 480,
+      height: 360,
+    },
+  };
+}
+
 async function handleRequest(
   request: SiriMediaRequest,
   refs: MutableRefObject<BridgeRefs>,
@@ -136,6 +274,17 @@ async function handleRequest(
       // Siri opened the app because Siri playback is off; show the switch.
       navigationRef.navigate("SettingsScreen", {screen: "SiriSettings"});
     }
+    return;
+  }
+
+  if (request.intent === "affinity" || request.intent === "add") {
+    if (!(await waitForYoutube(refs))) {
+      complete(request, "failure", {detail: "YouTube not ready"});
+      return;
+    }
+    await (request.intent === "affinity"
+      ? handleAffinity(request, refs)
+      : handleAdd(request, refs));
     return;
   }
 
@@ -172,7 +321,11 @@ async function handleRequest(
     resolveSiriRequest(
       youtube,
       parsed,
-      {hasCurrentItem: !!player.currentItem, lastPlayed: getLastPlayedTrack()},
+      {
+        hasCurrentItem: !!player.currentItem,
+        currentVideoId: player.currentItem?.id,
+        lastPlayed: getLastPlayedTrack(),
+      },
       library,
     );
   // A connection that was idle in the background often fails once ("network
@@ -197,6 +350,36 @@ async function handleRequest(
   if (!setupMusicPlayer()) {
     complete(request, "failure", {detail: "music player setup failed"});
     return;
+  }
+
+  const options = parseSiriPlaybackOptions(request);
+  applyPlaybackOptions(options, player);
+
+  // "Play X next": insert after the current track. Without a queue there is
+  // nothing to insert into, so the track then plays right away.
+  if (options.queue === "next" && player.currentItem && player.playlist) {
+    const next =
+      resolution.kind === "play" && resolution.endpoint.payload?.videoId
+        ? queueItem(
+            resolution.endpoint.payload.videoId,
+            resolution.title,
+            resolution.artist,
+          )
+        : resolution.kind === "playDownload"
+          ? queueItem(resolution.videoId, resolution.title, resolution.artist)
+          : undefined;
+    if (next) {
+      const currentIndex = player.playlist.items.findIndex(
+        item => item.id === player.currentItem?.id,
+      );
+      player.addAsNextItem(next);
+      complete(request, "success", {
+        title: next.title || undefined,
+        artist: next.author?.name,
+        detail: `queued next (queue ${player.playlist.items.length} items, current at ${currentIndex})`,
+      });
+      return;
+    }
   }
 
   if (resolution.kind === "resume") {
@@ -249,13 +432,22 @@ async function handleRequest(
 
 export default function useSiriMediaBridge() {
   const youtube = useYoutubeContext();
+  const youtubeTV = useYoutubeTVContext();
   const player = useMusikPlayerContext();
+  const {saveVideoToPlaylist} = usePlaylistManager();
   const {appSettings} = useAppData();
   const playbackEnabled = !!appSettings.siriPlaybackEnabled;
   const donationsEnabled = !!appSettings.siriDonationsEnabled;
 
-  const refs = useRef<BridgeRefs>({youtube, player, playbackEnabled});
-  refs.current = {youtube, player, playbackEnabled};
+  const current: BridgeRefs = {
+    youtube,
+    youtubeTV,
+    player,
+    saveVideoToPlaylist,
+    playbackEnabled,
+  };
+  const refs = useRef<BridgeRefs>(current);
+  refs.current = current;
 
   // The intents extension answers before the app runs and reads the setting
   // from the app group.

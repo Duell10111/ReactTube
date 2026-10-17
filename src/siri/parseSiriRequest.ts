@@ -91,6 +91,18 @@ export function parseSiriRequest(request: SiriMediaRequest): ParsedSiriRequest {
     return {kind: "playlist", query: name, playlist: name};
   }
 
+  // "Play Queen shuffled" arrives without a type; shuffling only makes sense
+  // for a collection, so a bare name then means the artist.
+  if (
+    name &&
+    !artist &&
+    !album &&
+    type === SiriMediaType.unknown &&
+    request.playShuffled === true
+  ) {
+    return {kind: "artist", query: name, artist: name};
+  }
+
   if (name) {
     return {kind: "song", query: joinQuery(name, artist), title: name, artist};
   }

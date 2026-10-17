@@ -230,6 +230,11 @@ const withSiri = config => {
   config = withInfoPlist(config, modConfig => {
     modConfig.modResults.NSSiriUsageDescription =
       "ReactTube uses Siri to search and play music by voice.";
+    // Handled by the app itself (SiriMediaIntentRouter): the extension cannot
+    // hand like/dislike over with .handleInApp. INAddMediaIntent goes through
+    // the extension, because Siri's media flow only offers apps whose
+    // extension declares the intent.
+    modConfig.modResults.INIntentsSupported = ["INUpdateMediaAffinityIntent"];
     modConfig.modResults.INAlternativeAppNames = [
       {
         INAlternativeAppName: "React Tube",

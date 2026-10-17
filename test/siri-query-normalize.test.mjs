@@ -70,3 +70,8 @@ test("strips “in ReactTube” heard as one word", () => {
   );
   assert.equal(normalizeSiriQuery("Direct Tube"), "Direct Tube");
 });
+
+test("strips “Ina Tube”, also as the whole name", () => {
+  assert.equal(normalizeSiriQuery("Ina Tube"), undefined);
+  assert.equal(normalizeSiriQuery("Take on Me Ina Tube"), "Take on Me");
+});

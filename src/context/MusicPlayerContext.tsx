@@ -348,9 +348,20 @@ export function MusicPlayerContext({children}: MusicPlayerProviderProps) {
         shuffleBackup.current = [...shuffleBackup.current, ...newItems];
       }
 
-      setPlaylist({
-        ...playlist,
-        items: [...playlist.items, ...newItems],
+      // Appended to the latest queue, not to the one this request started
+      // with: "play next" may have inserted a track while the continuation
+      // was loading, and replacing the queue would drop it again.
+      setPlaylist(prevState => {
+        const base = prevState ?? playlist;
+        return {
+          ...base,
+          items: [
+            ...base.items,
+            ...newItems.filter(
+              item => base.items.findIndex(i => i.id === item.id) === -1,
+            ),
+          ],
+        };
       });
       playlistContinuation.current = parsedData;
       return parsedData;

@@ -502,10 +502,60 @@ Snapshot.
 
 ### Phase 4 — Queue, Optionen, Affinität
 
-- [ ] `playbackQueueLocation`, `playShuffled`, `playbackRepeatMode`,
-      `reference=.currentlyPlaying`.
-- [ ] `INUpdateMediaAffinityIntent` (Like/Dislike), `INAddMediaIntent`
-      (zu Playlist hinzufügen).
+- [x] Wiedergabe-Optionen (`src/siri/parseSiriPlaybackOptions.ts`, Tests in
+      `test/siri-playback-options.test.mjs`):
+  - `playShuffled` → `setShuffle`, `playbackRepeatMode` → `setRepeat`
+    (`RepeatOne`/`RepeatAll`/aus), beides nur, wenn Siri es mitschickt, und
+    vor dem Start gesetzt;
+  - `playbackQueueLocation` `.next`/`.later` → `addAsNextItem` hinter dem
+    aktuellen Titel (Song oder Download; „später“ wie „als Nächstes“, der
+    Player kann nicht ans Ende anhängen). Läuft nichts oder ist es eine
+    Playlist, startet die Wiedergabe sofort.
+  - `reference=.currentlyPlaying` ohne Namen („Spiele mehr davon“) → Radio
+    des aktuellen Titels (`RDAMVM<videoId>`).
+- [x] `INUpdateMediaAffinityIntent` (Like/Dislike) und `INAddMediaIntent`:
+  - Beide kennen kein `.handleInApp`, deshalb meldet die App sie selbst an
+    (`INIntentsSupported` in der App-`Info.plist` über `withSiri.js`), und
+    `SiriMediaIntentRouter` behandelt sie in der App;
+  - Ziel ist ein gespendetes Element (`rt:video:`) oder der laufende Titel;
+  - Like/Dislike über `youtubeTV.interact.like/dislike` wie die Buttons;
+  - „Zu meiner Playlist _X_“ über `findSiriLibraryPlaylist` und
+    `saveVideoToPlaylist` (lokal oder Account), „zur Mediathek“ als Like
+    (YouTube Music führt Songs dort unter „Mag ich“).
+- [x] Gerätetest (2026-10-17):
+  - „Spiele Queen zufällig“: Zufall ✅, aber Siri schickte „Queen“ ohne Typ
+    → Song „QUEEN“ (Kanaria) → ein bloßer Name mit Zufall gilt jetzt als
+    Künstler.
+  - „Spiele Take on Me als Nächstes“: angenommen (`queued next`), stand aber
+    nicht in Up Next → ohne Warteschlange startet der Song jetzt sofort; das
+    Log nennt Länge der Warteschlange und Position. Nachtest offen.
+  - „Spiele mehr davon“: Siri schickte Künstler „Ina Tube“ (verhörtes „in
+    ReactTube“) → INNA; „Ina Tube“ gilt jetzt als App-Name (dann: weiter
+    abspielen). Siri setzt `reference=.currentlyPlaying` nicht, der
+    Radio-Pfad bleibt ungetestet.
+  - „Dieser Song gefällt mir nicht“ ✅ (Dislike, in der App behandelt).
+  - „Füge das zu meiner Playlist Test hinzu“: Siri machte daraus eine
+    Erinnerung (`INAddTasksIntent`, Liste „Playlist Test“). Außerdem führt
+    Siris Media-Flow ReactTube nur mit den Intents der Extension → Die
+    Extension meldet `INAddMediaIntent` jetzt an (`.handleInApp`, Ziel
+    ohne Playlist = Mediathek); in der App-`Info.plist` steht nur noch
+    `INUpdateMediaAffinityIntent`.
+- [x] Nachtest (2026-10-17): „Spiele Queen zufällig“ ✅ (Künstler Queen),
+      „Ich mag diesen Song“ ✅ (Like), „Füge diesen Song … zu meiner
+      Playlist Test hinzu“ ✅ (lokale Playlist, 137 ms).
+  - „Als Nächstes“ klappte erst beim zweiten Versuch (nach dem Fix
+    nachgetestet ✅). Ursache in
+    `MusicPlayerContext.fetchMorePlaylistData`: Das Nachladen der
+    Warteschlange (hier 50 → 350 Einträge) schrieb sie aus einem veralteten
+    Stand zurück und verwarf den eingefügten Titel; betraf auch „Als Nächstes
+    spielen“ in der App → hängt jetzt an den aktuellen Stand an.
+  - Die Position in der lokalen Playlist wirkte willkürlich:
+    `insertVideosIntoPlaylist` vergab die Anzahl der Einträge als Position,
+    nach einem Entfernen also doppelte Werte → jetzt höchste Position + 1,
+    nacheinander eingefügt.
+  - Siri schickte einmal „React Tube“ als Playlist-Namen; der Name läuft
+    jetzt durch `normalizeSiriQuery`, ein reiner App-Name antwortet mit
+    „nicht gefunden“.
 
 ### Phase 5 — Vorschläge und Kurzbefehle
 

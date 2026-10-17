@@ -6,7 +6,15 @@ export interface SiriMediaRequest {
    * `appIntent`: App Shortcut; only `mediaName` is set.
    */
   source: "siriKit" | "appIntent";
-  intent: "play" | "search";
+  /**
+   * `affinity`: like/dislike ("I like this song");
+   * `add`: add to a playlist or the library.
+   */
+  intent: "play" | "search" | "affinity" | "add";
+  affinity?: "like" | "dislike" | "unknown";
+  /** Where an `add` request should put the item. */
+  destination?: "library" | "playlist";
+  playlistName?: string;
   /**
    * `handleInApp`: Siri waits for `completeRequest`.
    * `continueInApp`: Siri already opened the app; completing is optional.

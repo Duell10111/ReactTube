@@ -17,11 +17,82 @@ public final class SiriMediaIntentRouter: NSObject {
     for intent: INIntent,
     startReactHeadless: @escaping @MainActor () -> UIView?
   ) -> Any? {
-    guard intent is INPlayMediaIntent else {
+    SiriMediaLog.write("handlerFor \(type(of: intent))")
+    switch intent {
+    case is INPlayMediaIntent:
+      return SiriPlayMediaInAppHandler(startReactHeadless: startReactHeadless)
+    // Like/dislike has no .handleInApp, so the app declares it itself
+    // (INIntentsSupported); "add to playlist" arrives via the extension.
+    case is INUpdateMediaAffinityIntent:
+      return SiriAffinityInAppHandler(startReactHeadless: startReactHeadless)
+    case is INAddMediaIntent:
+      return SiriAddMediaInAppHandler(startReactHeadless: startReactHeadless)
+    default:
       return nil
     }
-    SiriMediaLog.write("handlerFor \(type(of: intent))")
-    return SiriPlayMediaInAppHandler(startReactHeadless: startReactHeadless)
+  }
+
+  /// Starts React if needed and hands the intent to JavaScript.
+  @MainActor
+  static func enqueue(
+    _ intent: INIntent,
+    startReactHeadless: @MainActor () -> UIView?,
+    completion: @escaping SiriMediaCenter.Completion
+  ) {
+    let headless = SiriHeadlessHost.startIfNeeded(startReactHeadless)
+    guard let payload = SiriMediaPayload.make(
+      intent: intent,
+      delivery: "handleInApp",
+      headlessStart: headless
+    ) else {
+      completion(.failure, nil)
+      return
+    }
+    SiriMediaCenter.shared.enqueue(payload, completion: completion)
+  }
+}
+
+final class SiriAffinityInAppHandler: NSObject, INUpdateMediaAffinityIntentHandling {
+  private let startReactHeadless: @MainActor () -> UIView?
+
+  init(startReactHeadless: @escaping @MainActor () -> UIView?) {
+    self.startReactHeadless = startReactHeadless
+  }
+
+  func handle(
+    intent: INUpdateMediaAffinityIntent,
+    completion: @escaping (INUpdateMediaAffinityIntentResponse) -> Void
+  ) {
+    DispatchQueue.main.async {
+      SiriMediaIntentRouter.enqueue(intent, startReactHeadless: self.startReactHeadless) { result, _ in
+        completion(INUpdateMediaAffinityIntentResponse(
+          code: result == .success ? .success : .failure,
+          userActivity: nil
+        ))
+      }
+    }
+  }
+}
+
+final class SiriAddMediaInAppHandler: NSObject, INAddMediaIntentHandling {
+  private let startReactHeadless: @MainActor () -> UIView?
+
+  init(startReactHeadless: @escaping @MainActor () -> UIView?) {
+    self.startReactHeadless = startReactHeadless
+  }
+
+  func handle(
+    intent: INAddMediaIntent,
+    completion: @escaping (INAddMediaIntentResponse) -> Void
+  ) {
+    DispatchQueue.main.async {
+      SiriMediaIntentRouter.enqueue(intent, startReactHeadless: self.startReactHeadless) { result, _ in
+        completion(INAddMediaIntentResponse(
+          code: result == .success ? .success : .failure,
+          userActivity: nil
+        ))
+      }
+    }
   }
 }
 
