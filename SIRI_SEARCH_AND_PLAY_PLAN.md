@@ -218,6 +218,119 @@ Config-Plugin, Expo-Modul und `targets/`.
 
 ---
 
+### 5.2 Optionaler Siri-Build für kostenlose Apple-Konten (geplant)
+
+Die Siri-Integration muss beim Prebuild abschaltbar sein, damit ein Personal
+Team die App ohne Siri signieren kann. Ein Laufzeit-Schalter in den
+App-Einstellungen reicht dafür nicht. Diese Build-Option ist noch nicht
+implementiert.
+
+- [ ] Siri direkt in `app.json` über die Plugin-Option steuern:
+      `["./plugins/ios/withSiri.js", {"enabled": false}]`. Ohne Angabe bleibt
+      Siri für bestehende Builds aktiviert. Keine Umgebungsvariable oder
+      dynamische Expo-Konfiguration erforderlich.
+- [ ] `plugins/ios/withSiri.js` um die Option `enabled` erweitern. Bei
+      `enabled: false` keine Siri-Entitlements, App Group, Siri-Plist-Einträge,
+      AppDelegate-Erweiterungen oder App-Intents-Dateien hinzufügen.
+- [ ] Beim vorhandenen `@duell10111/apple-targets`-Plugin über `match` die
+      Extension ausnehmen: aktiviert `"*"`, deaktiviert `"!(siri-intents)"`.
+      Diese Option wird von Version `0.0.6-alpha.1` bereits unterstützt;
+      das Watch-Target bleibt dabei enthalten. Ein `enabled`-Feld in
+      `targets/siri-intents/expo-target.config.js` wird derzeit nicht ausgewertet.
+      Dafür den bisherigen Plugin-Eintrag durch einen lokalen Wrapper
+      `plugins/ios/withAppleTargets.js` ersetzen, der die vorhandenen Optionen
+      (`appleTeamId`, `isTV`) an das Paket weitergibt. Ein gemeinsamer Helper
+      liest die Siri-Option aus `config.plugins`, sodass der Wrapper vor dem
+      Aufruf des Pakets den passenden `match`-Filter setzen kann. Das
+      Siri-Plugin verwendet dieselbe Auswertung. Damit muss lokal nur ein
+      Boolean geändert werden, unabhängig von der Reihenfolge der Einträge;
+      weder das Paket noch generierte native Dateien werden dafür editiert.
+- [ ] Den Build-Status für Hooks und Einstellungen verfügbar machen:
+      Siri-Einstellungen ausblenden und native Siri-Aufrufe einschließlich
+      Autorisierungsanfragen, Donations und App-Group-Zugriffen verhindern,
+      auch wenn gespeicherte Siri-Einstellungen noch aktiviert sind. Das
+      bloße Vorhandensein des optionalen nativen Moduls ist kein ausreichender
+      Verfügbarkeitstest, wenn es weiterhin mitgelinkt wird.
+- [ ] Beim Wechsel der Flag einen sauberen iOS-Prebuild verlangen, weil das
+      Überspringen der Plugins bereits generierte Targets, Entitlements und
+      AppDelegate-Erweiterungen nicht entfernt. Beispiel nach Implementierung:
+      nach Setzen von `enabled: false`:
+      `npx expo prebuild --clean --platform ios`.
+      Dafür müssen native Anpassungen wie bisher in Plugins oder Modulen liegen.
+- [ ] Beide Varianten prüfen: Extension und Berechtigungen nur bei aktivierter
+      Flag; Watch-Target und bestehender tvOS-Ausschluss bleiben erhalten.
+      Zusätzlich den Wechsel in beide Richtungen und einen Geräte-Build mit
+      Personal Team ohne Siri testen. Andere Signing-Voraussetzungen wie
+      Team-Auswahl und verfügbare Bundle-IDs gelten weiterhin.
+
+### 5.3 Repository-Dokumentation und GitHub-Actions-Builds (geplant)
+
+**Dokumentation**
+
+- [ ] `README.md` im Abschnitt „Building“ um die beiden iOS-Buildvarianten
+      ergänzen: ohne Siri für kostenlose Personal Teams und mit Siri für ein
+      berechtigtes bezahltes Entwicklerteam. Auf eine neue Anleitung unter
+      `docs/IOS_LOCAL_BUILD.md` verlinken.
+- [ ] In `docs/IOS_LOCAL_BUILD.md` die vollständigen lokalen Schritte für
+      kostenlose Konten dokumentieren: `enabled: false` in `app.json`, sauberer
+      iOS-Prebuild, Workspace in Xcode öffnen, eigenes Personal Team auswählen,
+      bei Bedarf verfügbare Bundle-IDs für App und eingebettete Targets setzen
+      und auf dem eigenen Gerät bauen. Die Grenzen des kostenlosen Signings
+      und die erforderliche erneute Bereitstellung anhand aktueller
+      Apple-Dokumentation erläutern.
+- [ ] In derselben Anleitung den Siri-Build mit `enabled: true`, bezahltem
+      Team sowie passenden Siri- und App-Group-Provisioning-Profilen erklären.
+      Account-/Team-bezogene Bundle- und App-Group-IDs müssen für eigene Builds
+      konfigurierbar und zwischen App und Extension konsistent sein. Keine
+      persönlichen Signing-Daten ins Repository übernehmen.
+- [ ] `LOCALBUILD.md` an den lokalen Apple-Targets-Wrapper anpassen und den
+      tvOS-Ausschluss von Siri erklären. Die Anleitung bleibt auf Apple TV
+      ausgerichtet und verweist für iPhone/iPad auf die neue iOS-Anleitung.
+- [ ] Dokumentieren, welche Actions-Artefakte Siri enthalten, wie sie signiert
+      bzw. installiert werden und dass ein unsigniertes IPA allein keine
+      Installation auf einem Gerät ermöglicht. Kostenlose Konten werden
+      zunächst über den lokalen Xcode-Build unterstützt; die Installation
+      nachträglich signierter CI-Artefakte separat prüfen.
+
+**Standardbuilds ohne Siri**
+
+- [ ] `.github/actions/prebuild/action.yml` um einen Input `siri-enabled`
+      mit Standardwert `false` erweitern. Vor dem Prebuild die entsprechende
+      Plugin-Option in `app.json` setzen; lokal bleibt derselbe Schalter direkt
+      in der Datei bedienbar, ohne Umgebungsvariable. Plugin-Einträge nach
+      ihrem Namen statt über feste Array-Indizes bearbeiten, auch beim
+      vorhandenen `isTV`-Schalter und beim neuen Apple-Targets-Wrapper.
+- [ ] In `.github/workflows/build.yml` alle regulären Apple-Builds explizit
+      ohne Siri konfigurieren. Der CI-Standard muss unabhängig davon gelten,
+      ob Siri in der eingecheckten `app.json` für lokale Builds aktiviert ist.
+      tvOS bleibt ohne Siri; Android behält sein bisheriges Verhalten.
+- [ ] Den derzeit auskommentierten iOS-Phone-Job gesondert auf seine vorhandenen
+      Buildfehler prüfen. Diese werden durch die Siri-Flag nicht automatisch
+      behoben; bei seiner Reaktivierung ebenfalls ohne Siri bauen.
+
+**Zusätzlicher Siri-Build für bezahlte Entwicklerteams (optional)**
+
+- [ ] Einen zusätzlichen iOS-Phone-Job mit `siri-enabled: true` vorsehen,
+      beispielsweise separat über `workflow_dispatch` aktivierbar. Dieser Job
+      ergänzt den Standardbuild und ersetzt ihn nicht. Ein normaler manueller
+      Workflow-Lauf startet standardmäßig nur die Builds ohne Siri.
+- [ ] Artefakte und Release-Dateien eindeutig unterscheiden, zum Beispiel
+      `reacttube-ios-no-siri.ipa` und `reacttube-ios-siri.ipa`, damit Uploads
+      einander nicht überschreiben und die benötigte Account-Art erkennbar ist.
+- [ ] Festlegen und dokumentieren, ob das Siri-Artefakt unsigniert für späteres
+      Signing durch ein bezahltes Team bereitgestellt oder mit konfigurierten
+      CI-Signing-Secrets signiert wird. Auch die eingebettete Extension muss
+      mit passenden Profilen signiert werden. Der zusätzliche Build verschafft
+      einem kostenlosen Konto keine Siri-Berechtigung.
+- [ ] In beiden Buildvarianten den generierten Projektstand und das fertige
+      Artefakt prüfen: Im Standardbuild fehlen Siri-Extension, Siri-Entitlement
+      und die Siri-App-Group; im zusätzlichen Build sind sie vorhanden.
+      Bei signierten Builds außerdem die Entitlements und Profile von App
+      und Extension prüfen. Beide Jobs verwenden getrennte, saubere
+      Prebuild-Verzeichnisse, damit keine Siri-Dateien übernommen werden.
+
+---
+
 ## 6. Phasen
 
 ### Phase 0 — Spike (Machbarkeit, 1–2 Tage)
