@@ -1,6 +1,5 @@
 import ExpoModulesCore
 import Intents
-import MediaPlayer
 
 public class SiriMediaModule: Module {
   public func definition() -> ModuleDefinition {
@@ -29,13 +28,12 @@ public class SiriMediaModule: Module {
     }
 
     Function("completeRequest") { (requestId: String, result: String, title: String?, artist: String?) in
-      var nowPlayingInfo: [String: Any] = [:]
-      nowPlayingInfo[MPMediaItemPropertyTitle] = title
-      nowPlayingInfo[MPMediaItemPropertyArtist] = artist
       SiriMediaCenter.shared.complete(
         requestId,
         result: SiriMediaResult(rawValue: result) ?? .failure,
-        nowPlayingInfo: nowPlayingInfo.isEmpty ? nil : nowPlayingInfo
+        nowPlaying: title == nil && artist == nil
+          ? nil
+          : SiriMediaNowPlaying(title: title, artist: artist)
       )
     }
 

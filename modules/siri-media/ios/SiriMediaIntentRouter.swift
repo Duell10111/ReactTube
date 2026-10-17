@@ -1,5 +1,6 @@
 import Foundation
 import Intents
+import MediaPlayer
 import UIKit
 
 /// Called from the app delegate (injected by `plugins/ios/withSiri.js`), because
@@ -45,8 +46,35 @@ final class SiriPlayMediaInAppHandler: NSObject, INPlayMediaIntentHandling {
         completion(INPlayMediaIntentResponse(code: .failure, userActivity: nil))
         return
       }
-      SiriMediaCenter.shared.enqueue(payload, completion: completion)
+      SiriMediaCenter.shared.enqueue(payload) { result, nowPlaying in
+        completion(Self.response(for: result, nowPlaying: nowPlaying))
+      }
     }
+  }
+
+  private static func response(
+    for result: SiriMediaResult,
+    nowPlaying: SiriMediaNowPlaying?
+  ) -> INPlayMediaIntentResponse {
+    let code: INPlayMediaIntentResponseCode
+    switch result {
+    case .success:
+      code = .success
+    case .notFound:
+      code = .failureNoUnplayedContent
+    case .loginRequired:
+      code = .failureRequiringAppLaunch
+    case .failure:
+      code = .failure
+    }
+    let response = INPlayMediaIntentResponse(code: code, userActivity: nil)
+    if let nowPlaying {
+      var info: [String: Any] = [:]
+      info[MPMediaItemPropertyTitle] = nowPlaying.title
+      info[MPMediaItemPropertyArtist] = nowPlaying.artist
+      response.nowPlayingInfo = info.isEmpty ? nil : info
+    }
+    return response
   }
 }
 

@@ -1,6 +1,11 @@
 /** Raw payload of a Siri media request, as delivered by the native module. */
 export interface SiriMediaRequest {
   requestId: string;
+  /**
+   * `siriKit`: media intent resolved by the intents extension.
+   * `appIntent`: App Shortcut; only `mediaName` is set.
+   */
+  source: "siriKit" | "appIntent";
   intent: "play" | "search";
   /**
    * `handleInApp`: Siri waits for `completeRequest`.

@@ -11,14 +11,24 @@ enum SiriMediaResult: String {
   case failure
 }
 
+/// What JavaScript started playing, so Siri can announce it.
+struct SiriMediaNowPlaying {
+  let title: String?
+  let artist: String?
+}
+
 /// Holds Siri requests until JavaScript has picked them up and answered them.
 ///
-/// Requests arrive in two ways:
+/// Requests arrive in three ways:
 ///  - `.handleInApp`: through `application(_:handlerFor:)`. Siri waits for the
 ///    completion, so it is kept here until JavaScript answers or the timeout fires.
 ///  - `.continueInApp`: as an `NSUserActivity` carrying the interaction. Siri has
 ///    already finished; there is no completion to call.
+///  - App Intents (App Shortcuts) through `SiriMediaAppIntentBridge`, either
+///    awaiting the answer (play) or not (search).
 final class SiriMediaCenter {
+  typealias Completion = (SiriMediaResult, SiriMediaNowPlaying?) -> Void
+
   static let shared = SiriMediaCenter()
 
   /// Siri gives up after roughly ten seconds; answer before that so it can say
@@ -27,7 +37,7 @@ final class SiriMediaCenter {
 
   private struct PendingRequest {
     let payload: [String: Any]
-    let completion: ((INPlayMediaIntentResponse) -> Void)?
+    let completion: Completion?
     var delivered: Bool
   }
 
@@ -73,7 +83,8 @@ final class SiriMediaCenter {
 
   func enqueue(
     _ payload: [String: Any],
-    completion: ((INPlayMediaIntentResponse) -> Void)?
+    timeout: TimeInterval = SiriMediaCenter.completionTimeout,
+    completion: Completion?
   ) {
     guard let requestId = payload["requestId"] as? String else {
       return
@@ -82,10 +93,13 @@ final class SiriMediaCenter {
     pending[requestId] = PendingRequest(payload: payload, completion: completion, delivered: false)
     order.append(requestId)
     lock.unlock()
-    SiriMediaLog.write("enqueued \(requestId) \(payload["intent"] ?? "?") via \(payload["delivery"] ?? "?")")
+    SiriMediaLog.write(
+      "enqueued \(requestId) \(payload["intent"] ?? "?") from \(payload["source"] ?? "?") "
+        + "via \(payload["delivery"] ?? "?")"
+    )
 
     if completion != nil {
-      DispatchQueue.main.asyncAfter(deadline: .now() + Self.completionTimeout) { [weak self] in
+      DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { [weak self] in
         self?.expire(requestId)
       }
     }
@@ -108,8 +122,8 @@ final class SiriMediaCenter {
     return result
   }
 
-  /// - Parameter nowPlayingInfo: lets Siri announce what is playing.
-  func complete(_ requestId: String, result: SiriMediaResult, nowPlayingInfo: [String: Any]? = nil) {
+  /// - Parameter nowPlaying: lets Siri announce what is playing.
+  func complete(_ requestId: String, result: SiriMediaResult, nowPlaying: SiriMediaNowPlaying? = nil) {
     lock.lock()
     let request = pending.removeValue(forKey: requestId)
     order.removeAll { $0 == requestId }
@@ -119,12 +133,11 @@ final class SiriMediaCenter {
       SiriMediaLog.write("complete \(requestId) ignored (unknown or expired)")
       return
     }
-    SiriMediaLog.write("complete \(requestId) -> \(result.rawValue) \(nowPlayingInfo ?? [:])")
-    let response = INPlayMediaIntentResponse(code: Self.responseCode(for: result), userActivity: nil)
-    if result == .success {
-      response.nowPlayingInfo = nowPlayingInfo
-    }
-    request.completion?(response)
+    SiriMediaLog.write(
+      "complete \(requestId) -> \(result.rawValue) "
+        + "title=\(nowPlaying?.title ?? "-") artist=\(nowPlaying?.artist ?? "-")"
+    )
+    request.completion?(result, result == .success ? nowPlaying : nil)
   }
 
   private func expire(_ requestId: String) {
@@ -138,7 +151,7 @@ final class SiriMediaCenter {
     }
     // Drop the request entirely so it cannot start playing minutes later.
     SiriMediaLog.write("timeout \(requestId) (delivered=\(request.delivered))")
-    request.completion?(INPlayMediaIntentResponse(code: .failure, userActivity: nil))
+    request.completion?(.failure, nil)
   }
 
   private func flush() {
@@ -153,19 +166,6 @@ final class SiriMediaCenter {
       module.emitRequest(payload)
     }
   }
-
-  private static func responseCode(for result: SiriMediaResult) -> INPlayMediaIntentResponseCode {
-    switch result {
-    case .success:
-      return .success
-    case .notFound:
-      return .failureNoUnplayedContent
-    case .loginRequired:
-      return .failureRequiringAppLaunch
-    case .failure:
-      return .failure
-    }
-  }
 }
 
 // MARK: - Payload
@@ -176,14 +176,7 @@ enum SiriMediaPayload {
     delivery: String,
     headlessStart: Bool = false
   ) -> [String: Any]? {
-    var payload: [String: Any] = [
-      "requestId": UUID().uuidString,
-      "delivery": delivery,
-      "receivedAt": Date().timeIntervalSince1970 * 1000,
-      "headlessStart": headlessStart,
-      "applicationState": describe(UIApplication.shared.applicationState),
-      "connectedScenes": UIApplication.shared.connectedScenes.count,
-    ]
+    var payload = base(source: "siriKit", delivery: delivery, headlessStart: headlessStart)
 
     let search: INMediaSearch?
     let items: [INMediaItem]?
@@ -218,6 +211,34 @@ enum SiriMediaPayload {
     return payload
   }
 
+  /// Payload for an App Intent. It carries only the spoken term, which
+  /// JavaScript treats like a media intent without a media type.
+  static func make(
+    appIntent intent: String,
+    query: String?,
+    delivery: String,
+    headlessStart: Bool = false
+  ) -> [String: Any] {
+    var payload = base(source: "appIntent", delivery: delivery, headlessStart: headlessStart)
+    payload["intent"] = intent
+    payload["mediaType"] = INMediaItemType.unknown.rawValue
+    payload["reference"] = INMediaReference.unknown.rawValue
+    payload["mediaName"] = query
+    return payload
+  }
+
+  private static func base(source: String, delivery: String, headlessStart: Bool) -> [String: Any] {
+    return [
+      "requestId": UUID().uuidString,
+      "source": source,
+      "delivery": delivery,
+      "receivedAt": Date().timeIntervalSince1970 * 1000,
+      "headlessStart": headlessStart,
+      "applicationState": describe(UIApplication.shared.applicationState),
+      "connectedScenes": UIApplication.shared.connectedScenes.count,
+    ]
+  }
+
   private static func describe(_ state: UIApplication.State) -> String {
     switch state {
     case .active:
@@ -242,6 +263,11 @@ enum SiriMediaSettings {
 
   static func setPlaybackEnabled(_ enabled: Bool) {
     UserDefaults(suiteName: appGroup)?.set(enabled, forKey: playbackEnabledKey)
+  }
+
+  /// Siri playback is opt-in, so a missing value means disabled.
+  static var playbackEnabled: Bool {
+    UserDefaults(suiteName: appGroup)?.bool(forKey: playbackEnabledKey) ?? false
   }
 }
 

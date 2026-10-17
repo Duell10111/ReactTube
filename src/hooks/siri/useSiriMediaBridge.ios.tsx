@@ -11,6 +11,7 @@ import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {useYoutubeContext} from "@/context/YoutubeContext";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {navigationRef} from "@/navigation/navigationRef";
+import {getLastPlayedTrack, setLastPlayedTrack} from "@/siri/lastPlayedTrack";
 import {parseSiriRequest, SiriSearchRequest} from "@/siri/parseSiriRequest";
 import {resolveSiriRequest} from "@/siri/resolveSiriRequest";
 import Logger from "@/utils/Logger";
@@ -109,6 +110,7 @@ async function handleRequest(
   const {player} = refs.current;
   const resolution = await resolveSiriRequest(youtube, parsed, {
     hasCurrentItem: !!player.currentItem,
+    lastPlayed: getLastPlayedTrack(),
   });
 
   switch (resolution.kind) {
@@ -171,10 +173,24 @@ export default function useSiriMediaBridge() {
     return () => subscription.remove();
   }, []);
 
+  const {currentItem, playing} = player;
+
+  // Remembered independently of donations: it stays on the device and only
+  // serves "resume ReactTube" after a cold start.
+  useEffect(() => {
+    if (!SiriMedia || Platform.isTV || !playing || !currentItem) {
+      return;
+    }
+    setLastPlayedTrack({
+      videoId: currentItem.id,
+      title: currentItem.title,
+      artist: currentItem.author?.name,
+    });
+  }, [currentItem, playing]);
+
   // Donate each track once it actually plays, so Siri learns ReactTube as a
   // media app and resolves it even while the app is not running.
   const lastDonatedId = useRef<string>(undefined);
-  const {currentItem, playing} = player;
   useEffect(() => {
     if (
       !SiriMedia ||

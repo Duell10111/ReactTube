@@ -453,6 +453,51 @@ Ausgewertet mit `sudo log collect --device-udid …` (Prozess
     `Explicit` statt `Inferred`).
   - Ab iOS 27 alternativ die App-Schema-Domain `.audio` (`PlayAudioIntent`)
     prüfen (siehe Abschnitt 2).
+
+#### Umsetzung App Shortcuts (2026-10-17)
+
+- [x] `plugins/ios/siri/ReactTubeAppIntents.swift`, vom Config-Plugin ins
+      App-Target kopiert (Metadaten werden nur dort extrahiert, nicht aus dem
+      Pod):
+  - `SearchMusicIntent` (öffnet die App, Suchbegriff per Rückfrage, Musiksuche
+    mit `initialQuery`),
+  - `PlayMusicIntent` (Suchbegriff per Rückfrage, spielt im Hintergrund, Siri
+    sagt „_Titel_ von _Künstler_ wird abgespielt“),
+  - `ResumeMusicIntent` (wie „Spiele ReactTube“),
+  - `ReactTubeShortcuts` mit je drei Phrasen.
+- [x] Beide Wiedergabe-Intents sind ab iOS 17 per bedingter Konformanz
+      `AudioPlaybackIntent`. `if #available` im `AppShortcutsBuilder` braucht
+      iOS 17.4, das Deployment-Target ist 16.4.
+- [x] Phrasen in en (Code) und de (`plugins/ios/siri/AppShortcutPhrases.json`
+      → `Supporting/de.lproj/AppShortcuts.strings`; `AppShortcuts.xcstrings`
+      verlangt iOS 17). Titel, Rückfragen, Ansagen und Fehler in
+      `Localizable.xcstrings`.
+- [x] Gleiche JS-Bridge wie die Media Intents:
+  - `SiriMediaAppIntentBridge` (Pod) legt Requests mit `source: "appIntent"`
+    in die Pending-Queue, Timeout 20 s statt 8 s;
+  - ist React noch nicht gestartet, greift der Headless-Start
+    (`AppDelegate.makeHeadlessReactRootView()`);
+  - Siri-Wiedergabe aus: Wiedergabe-Intents sagen das an, die Suche öffnet die
+    Siri-Einstellungen;
+  - `parseSiriRequest` behandelt die Requests wie Media Intents ohne Typ.
+- [x] Tests: Plugin (App-Target statt Watch-Target, String-Katalog-Dateityp,
+      idempotent, jede Phrase übersetzt), Parser für App-Shortcut-Requests.
+- [x] Gerätetest (2026-10-17, iPhone 15 Pro, iOS 27): „Suche in ReactTube“
+      ✅, „Spiele Musik in ReactTube“ ✅ (auch bei beendeter App), drei
+      Einträge in der Kurzbefehle-App ✅. Siri erkennt die Phrasen exakt
+      (`PARSER_IDENTIFIER_SHORTCUTS_EXACT`).
+  - „Setze ReactTube fort“ bei beendeter App spielte den ersten Titel der
+    Startseite, weil der Musik-Player nichts über einen Neustart speichert →
+    behoben: Die Bridge merkt sich den zuletzt gespielten Track
+    (`src/siri/lastPlayedTrack.ts`, MMKV, unabhängig von den Spenden) und
+    startet ihn neu (ohne Position). Nachtest ✅.
+  - „Suche Queen in ReactTube“ ❌ → Apple TV. Unter iOS 27 übernimmt der
+    neue Planer solche freien Sätze (`PARSER_IDENTIFIER_PSC`,
+    `intelligenceflowd`, `appintents:fetch actions by protocol`) statt der
+    Media Intents. Er sucht Aktionen nach System-Protokollen; unsere Intents
+    erfüllen keines. Nächster Schritt: App-Schema-Domain `.audio` (s. u.).
+    Ein freier Suchbegriff in der Phrase selbst geht mit App Shortcuts nicht,
+    die erlauben dort nur `AppEntity`/`AppEnum`-Parameter.
 - [ ] Optional Siri-Vorschläge/„Zuletzt gespielt“ auf Sperrbildschirm und
       Watch über `INUpcomingMediaManager`.
 

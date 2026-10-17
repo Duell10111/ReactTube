@@ -5,6 +5,7 @@ import {parseSiriRequest} from "../src/siri/parseSiriRequest.ts";
 
 const base = {
   requestId: "id",
+  source: "siriKit",
   intent: "play",
   delivery: "handleInApp",
   receivedAt: 0,
@@ -131,5 +132,29 @@ test("routes search intents to music or video search", () => {
       artistName: "Queen",
     }),
     {kind: "search", query: "Queen", target: "video"},
+  );
+});
+
+test("treats App Shortcut requests like media intents without a type", () => {
+  const appIntent = {...base, source: "appIntent"};
+
+  assert.deepEqual(parseSiriRequest({...appIntent, mediaName: "Take on me"}), {
+    kind: "song",
+    query: "Take on me",
+    title: "Take on me",
+    artist: undefined,
+  });
+  assert.deepEqual(parseSiriRequest(appIntent), {
+    kind: "empty",
+    currentlyPlaying: false,
+  });
+  assert.deepEqual(
+    parseSiriRequest({
+      ...appIntent,
+      intent: "search",
+      delivery: "continueInApp",
+      mediaName: "Queen",
+    }),
+    {kind: "search", query: "Queen", target: "music"},
   );
 });

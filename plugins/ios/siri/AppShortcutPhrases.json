@@ -1,0 +1,13 @@
+{
+  "de": {
+    "Continue ${applicationName}": "Weiter in ${applicationName}",
+    "Play a song in ${applicationName}": "Spiele einen Song in ${applicationName}",
+    "Play music in ${applicationName}": "Spiele Musik in ${applicationName}",
+    "Play something in ${applicationName}": "Spiele etwas in ${applicationName}",
+    "Resume ${applicationName}": "Setze ${applicationName} fort",
+    "Resume music in ${applicationName}": "Setze die Musik in ${applicationName} fort",
+    "Search ${applicationName}": "Durchsuche ${applicationName}",
+    "Search in ${applicationName}": "Suche in ${applicationName}",
+    "Search music in ${applicationName}": "Suche Musik in ${applicationName}"
+  }
+}
