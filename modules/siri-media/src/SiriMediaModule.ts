@@ -34,6 +34,14 @@ declare class SiriMediaModule extends NativeModule<SiriMediaModuleEvents> {
    * learns ReactTube as a media app and can suggest the item again.
    */
   donatePlayback(videoId: string, title: string, artist?: string): void;
+  /**
+   * Registers playlist names as Siri vocabulary and reports the library size
+   * (`INMediaUserContext`). Empty values clear both.
+   */
+  updateLibraryContext(
+    playlistTitles: string[],
+    libraryItemCount: number,
+  ): void;
   getSiriAuthorizationStatus(): SiriAuthorizationStatus;
   requestSiriAuthorization(): Promise<SiriAuthorizationStatus>;
 }

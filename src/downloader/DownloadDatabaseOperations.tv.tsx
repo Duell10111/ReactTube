@@ -30,3 +30,11 @@ export function usePlaylistVideos(id: string) {
 export function usePlaylists() {
   return [];
 }
+
+export async function getAllPlaylists() {
+  return [];
+}
+
+export async function getDownloadedVideos() {
+  return [];
+}

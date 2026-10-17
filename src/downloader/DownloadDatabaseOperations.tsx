@@ -66,6 +66,14 @@ export function useVideos() {
   return data;
 }
 
+export async function getDownloadedVideos() {
+  return db
+    .select()
+    .from(schema.videos)
+    .where(isNotNull(schema.videos.fileUrl))
+    .execute();
+}
+
 export function useDownloadedVideos() {
   const {data} = useLiveQuery(
     db.select().from(schema.videos).where(isNotNull(schema.videos.fileUrl)),

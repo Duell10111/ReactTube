@@ -71,6 +71,21 @@ public class SiriMediaModule: Module {
       }
     }
 
+    // Playlist names become Siri vocabulary, so spoken names resolve; the
+    // library size tells Siri how much the user keeps in ReactTube.
+    Function("updateLibraryContext") { (playlistTitles: [String], libraryItemCount: Int) in
+      INVocabulary.shared().setVocabularyStrings(
+        NSOrderedSet(array: playlistTitles),
+        of: .mediaPlaylistTitle
+      )
+      let context = INMediaUserContext()
+      context.numberOfLibraryItems = libraryItemCount
+      context.becomeCurrent()
+      SiriMediaLog.write(
+        "library context: \(playlistTitles.count) playlist titles, \(libraryItemCount) items"
+      )
+    }
+
     Function("getSiriAuthorizationStatus") { () -> String in
       return Self.describe(INPreferences.siriAuthorizationStatus())
     }

@@ -22,6 +22,12 @@ const TRAILING_MISHEARD_APP_NAME = new RegExp(
   "i",
 );
 
+// "in ReactTube" heard as one word: "Indirect Tube", "in direct Tube".
+const TRAILING_FUSED_APP_NAME = new RegExp(
+  String.raw`\s+in\s*(?:direct|rect)\s+tube${APP_SUFFIX}`,
+  "i",
+);
+
 export function normalizeSiriQuery(value: string | undefined) {
   if (!value) {
     return undefined;
@@ -29,6 +35,7 @@ export function normalizeSiriQuery(value: string | undefined) {
   const normalized = value
     .replace(TRAILING_APP_NAME, "")
     .replace(TRAILING_MISHEARD_APP_NAME, "")
+    .replace(TRAILING_FUSED_APP_NAME, "")
     .replace(/\s+/g, " ")
     .trim();
   return normalized || undefined;

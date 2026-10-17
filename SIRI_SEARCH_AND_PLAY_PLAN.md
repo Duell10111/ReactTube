@@ -434,13 +434,71 @@ Ausgewertet mit `sudo log collect --device-udid …` (Prozess
 
 ### Phase 3 — Bibliothek, Downloads, Vokabular
 
-- [ ] `useSiriLibrarySync`: Snapshot (lokale + Account-Playlists, Downloads,
-      zuletzt gespielt, Login-Status) in die App Group schreiben.
-- [ ] `INVocabulary.setVocabularyStrings` für Playlist-Namen.
-- [ ] Extension löst Playlists/Downloads direkt auf (`rt:playlist:<id>`,
-      `rt:download:<id>`), Offline-Wiedergabe bevorzugt Downloads.
-- [ ] `INMediaUserContext` (Anzahl Bibliothekseinträge) setzen, damit Siri
-      ReactTube als Medien-App ernst nimmt.
+Abweichung vom ursprünglichen Plan: Der Abgleich mit Playlists und Downloads
+läuft in der App (JS) statt in der Extension, ein App-Group-Snapshot entfällt.
+Die Extension kann ohnehin nichts abspielen; seit Phase 0 übernimmt die App
+jede Anfrage per `.handleInApp`. So gibt es nur eine Abgleichslogik (mit
+`normalizeSiriQuery`/`normalizeForMatch` und Tests), und sie arbeitet immer
+auf dem aktuellen Stand der Datenbank statt auf einem womöglich veralteten
+Snapshot.
+
+- [x] `matchSiriLibrary` (`src/siri/matchSiriLibrary.ts`, Tests in
+      `test/siri-library-match.test.mjs`):
+  - Playlist-Anfragen gegen lokale und Account-Playlists (exakter Name nach
+    Normalisierung, Füllwörter wie „meine Playlist“ entfernt, lokale
+    gewinnen);
+  - Song-Anfragen ohne Künstler auch gegen Playlist-Namen (Siri meldet sie
+    oft ohne Typ);
+  - Song-Anfragen gegen Downloads (Ranking-Score ≥ 100, also exakter Titel
+    und kein abweichender Künstler).
+- [x] `resolveSiriRequest` prüft die Bibliothek vor der YouTube-Suche:
+  - ein Download wird bevorzugt, sobald er eindeutig passt
+    (`setPlaylistViaLocalDownload`, funktioniert auch offline);
+  - lokale Playlist: Start mit dem ersten Track, die Warteschlange kommt aus
+    der Datenbank;
+  - Account-Playlist: `music.getPlaylist` (ohne „VL“-Präfix), erster Track.
+- [x] `loadSiriLibrary` liest lokale Playlists und Downloads bei jeder Anfrage
+      frisch aus SQLite; die erste Seite der Account-Playlists lädt
+      `useSiriLibrarySync` einmal pro Start (nur angemeldet und mit
+      aktivierter Siri-Wiedergabe).
+- [x] `INVocabulary.setVocabularyStrings` (`.mediaPlaylistTitle`) mit allen
+      Playlist-Namen und `INMediaUserContext.numberOfLibraryItems`
+      (Playlists + Downloads) über `updateLibraryContext`; beides wird
+      geleert, wenn die Siri-Wiedergabe aus ist.
+- [x] Gerätetest (2026-10-17): lokale Playlist „Test“ ✅ (10 ms),
+      heruntergeladener Song „Bleed It Out“ ✅ (21 ms).
+  - Account-Playlist: Siri meldete „Today Hardstyle“ statt „hardstyle
+    today“; ohne exakten Treffer lief die öffentliche Suche → Playlist-Namen
+    werden jetzt unabhängig von der Wortreihenfolge verglichen.
+  - Der erste Versuch scheiterte an „Die Netzwerkverbindung wurde
+    unterbrochen“ (Verbindung aus dem Hintergrund) → einmalige Wiederholung,
+    solange Siris Frist nicht abgelaufen ist.
+  - Das Log nennt jetzt `account playlist` statt nur `playlist`.
+  - Flugmodus ❌: Siri erkennt die Sprache auf dem Gerät, gibt die Anfrage
+    aber nicht an ReactTube weiter (keine App-Auswahl, kein Aufruf der
+    Extension). Media Intents brauchen offenbar Siris Server; in der App ist
+    das nicht lösbar. Zu prüfen: der Kurzbefehl „Spiele Musik in ReactTube“,
+    den Siri auf dem Gerät erkennt (`PARSER_IDENTIFIER_SHORTCUTS_EXACT`).
+- [x] Nachtests (2026-10-17):
+  - Kurzbefehl „Spiele Musik in ReactTube“ → „Bleed It Out“ im Flugmodus ✅
+    (Download, 21 ms): offline geht nur der Kurzbefehl, nicht der freie
+    Satz.
+  - Account-Playlists kamen anfangs nicht an (`0 account playlists`): Die
+    TV-Bibliothek liefert eigene Playlists als Kacheln mit Watch-Endpunkt
+    (Extraktion: `"mix"`), und die Abfrage lief vor der Anmeldung
+    (`autoLoginFinished`). Beides behoben; danach `15 account playlists`,
+    19 Namen im Vokabular.
+  - Siri verhörte „Today's Hardstyle“ trotz Vokabular ständig („Today's
+    Hits“, „Today's Hits Hardstyle Inacio“, „Today Hardstyle Indirect Tube“,
+    „Today Hardstyle Interactive“). Deshalb:
+    - Playlist-Wörter ohne Apostroph und End-„s“, Reihenfolge egal;
+    - eine Playlist mit mindestens zwei Wörtern passt auch, wenn alle ihre
+      Wörter im Gesprochenen stecken (die meisten Treffer gewinnen,
+      Ein-Wort-Titel nur exakt);
+    - „Indirect Tube“/„in direct Tube“ gilt als App-Name.
+  - Danach dreimal hintereinander ✅ („Today's Hardstyle“, 17–34 ms).
+  - Das Log nennt beim Rückfall auf die Suche die Bibliotheksgröße
+    (`library: 5 local, 15 account playlists, 3 downloads`).
 
 ### Phase 4 — Queue, Optionen, Affinität
 

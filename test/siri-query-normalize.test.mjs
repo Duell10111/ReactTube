@@ -58,3 +58,15 @@ test("returns undefined when nothing but the app name is left", () => {
   assert.equal(normalizeSiriQuery(""), undefined);
   assert.equal(normalizeSiriQuery(undefined), undefined);
 });
+
+test("strips “in ReactTube” heard as one word", () => {
+  assert.equal(
+    normalizeSiriQuery("Today Hardstyle Indirect Tube"),
+    "Today Hardstyle",
+  );
+  assert.equal(
+    normalizeSiriQuery("Today Hardstyle in direct Tube"),
+    "Today Hardstyle",
+  );
+  assert.equal(normalizeSiriQuery("Direct Tube"), "Direct Tube");
+});

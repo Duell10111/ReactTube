@@ -9,9 +9,13 @@ import SiriMedia, {
 import {useAppData} from "@/context/AppDataContext";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
 import {useYoutubeContext} from "@/context/YoutubeContext";
+import {getPlaylistAsYTPlaylist} from "@/downloader/DBData";
+import type {VideoData} from "@/extraction/Types";
+import {loadSiriLibrary} from "@/hooks/siri/siriLibrary";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {navigationRef} from "@/navigation/navigationRef";
 import {getLastPlayedTrack, setLastPlayedTrack} from "@/siri/lastPlayedTrack";
+import type {SiriLibrary} from "@/siri/matchSiriLibrary";
 import {parseSiriRequest, SiriSearchRequest} from "@/siri/parseSiriRequest";
 import {resolveSiriRequest} from "@/siri/resolveSiriRequest";
 import {isSiriRequestExpired} from "@/siri/siriRequestDeadline";
@@ -59,6 +63,15 @@ function complete(
     artist,
     detail ? `${detail}, ${elapsed} ms` : `${elapsed} ms`,
   );
+}
+
+/** Shows in the log why a request fell back to the YouTube search. */
+function librarySummary(library: SiriLibrary | undefined) {
+  if (!library) {
+    return " (no library)";
+  }
+  const account = library.playlists.filter(p => p.source === "account").length;
+  return ` (library: ${library.playlists.length - account} local, ${account} account playlists, ${library.downloads.length} downloads)`;
 }
 
 /**
@@ -150,9 +163,26 @@ async function handleRequest(
   }
 
   const {player} = refs.current;
-  const resolution = await resolveSiriRequest(youtube, parsed, {
-    hasCurrentItem: !!player.currentItem,
-    lastPlayed: getLastPlayedTrack(),
+  const library = await loadSiriLibrary().catch(error => {
+    // The YouTube search still works without the library.
+    LOGGER.warn("Loading the Siri library failed", error);
+    return undefined;
+  });
+  const resolve = () =>
+    resolveSiriRequest(
+      youtube,
+      parsed,
+      {hasCurrentItem: !!player.currentItem, lastPlayed: getLastPlayedTrack()},
+      library,
+    );
+  // A connection that was idle in the background often fails once ("network
+  // connection was lost"); one retry fits easily into Siri's deadline.
+  const resolution = await resolve().catch(error => {
+    if (isSiriRequestExpired(request)) {
+      throw error;
+    }
+    LOGGER.warn(`${request.requestId} retrying after`, error);
+    return resolve();
   });
   if (resolution.kind === "notFound") {
     complete(request, "notFound", {detail: `nothing found for ${parsed.kind}`});
@@ -179,12 +209,41 @@ async function handleRequest(
     return;
   }
 
+  if (resolution.kind === "playDownload") {
+    player.setPlaylistViaLocalDownload(resolution.videoId);
+    complete(request, "success", {
+      title: resolution.title,
+      artist: resolution.artist,
+      detail: "download",
+    });
+    return;
+  }
+
+  if (resolution.kind === "playLocalPlaylist") {
+    // Starting the first track lets the player queue the rest from the
+    // database, like "play all" on the playlist screen.
+    const playlist = await getPlaylistAsYTPlaylist(resolution.playlistId);
+    const firstTrack = playlist.items.find(
+      (item): item is VideoData => item.type === "video",
+    );
+    if (!firstTrack) {
+      complete(request, "notFound", {detail: "local playlist is empty"});
+      return;
+    }
+    player.setCurrentItem(firstTrack);
+    complete(request, "success", {
+      title: resolution.title,
+      detail: "local playlist",
+    });
+    return;
+  }
+
   // Only the mini player appears; the current screen stays.
   player.setPlaylistViaEndpoint(resolution.endpoint);
   complete(request, "success", {
     title: resolution.title,
     artist: resolution.artist,
-    detail: parsed.kind,
+    detail: resolution.via ?? `${parsed.kind}${librarySummary(library)}`,
   });
 }
 

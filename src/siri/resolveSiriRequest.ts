@@ -1,4 +1,5 @@
 import type {SiriLastPlayedTrack} from "./lastPlayedTrack";
+import {matchSiriLibrary, SiriLibrary} from "./matchSiriLibrary";
 import type {SiriPlayRequest} from "./parseSiriRequest";
 import {
   rankSiriSearchResults,
@@ -16,9 +17,15 @@ export type SiriResolution =
       /** What Siri may announce; omitted when unknown. */
       title?: string;
       artist?: string;
+      /** Where the endpoint came from when not from the search; for logs. */
+      via?: string;
     }
   /** Nothing specific was asked for and something is loaded: just continue. */
   | {kind: "resume"}
+  /** A downloaded track; plays offline, too. */
+  | {kind: "playDownload"; videoId: string; title: string; artist?: string}
+  /** A playlist stored in the app; the player builds the queue from the database. */
+  | {kind: "playLocalPlaylist"; playlistId: string; title: string}
   | {kind: "notFound"};
 
 type MusicSearchType = "song" | "video" | "album" | "playlist" | "artist";
@@ -139,12 +146,28 @@ async function resolveAlbum(
     : {kind: "notFound"};
 }
 
+/** Account playlist ids from the TV client carry a "VL" browse prefix. */
+function musicPlaylistId(id: string) {
+  return id.startsWith("VL") ? id.slice(2) : id;
+}
+
+async function resolveAccountPlaylist(
+  youtube: Innertube,
+  id: string,
+  title: string,
+): Promise<SiriResolution> {
+  const playlist = await youtube.music.getPlaylist(musicPlaylistId(id));
+  const endpoint = firstTrackEndpoint(playlist.items);
+  return endpoint
+    ? {kind: "play", endpoint, title, via: "account playlist"}
+    : {kind: "notFound"};
+}
+
 async function resolvePlaylist(
   youtube: Innertube,
   request: Extract<SiriPlayRequest, {kind: "playlist"}>,
 ): Promise<SiriResolution> {
-  // Local and account playlists follow with the library snapshot (phase 3);
-  // until then this searches public playlists.
+  // Not one of the user's playlists (matched before): search public ones.
   const item = await searchBest(youtube, request.query, "playlist", {
     title: request.playlist,
   });
@@ -186,7 +209,31 @@ export async function resolveSiriRequest(
   youtube: Innertube,
   request: SiriPlayRequest,
   player: {hasCurrentItem: boolean; lastPlayed?: SiriLastPlayedTrack},
+  library?: SiriLibrary,
 ): Promise<SiriResolution> {
+  const match = library && matchSiriLibrary(request, library);
+  if (match?.kind === "download") {
+    return {
+      kind: "playDownload",
+      videoId: match.download.videoId,
+      title: match.download.title,
+      artist: match.download.artist,
+    };
+  }
+  if (match?.kind === "playlist") {
+    return match.playlist.source === "local"
+      ? {
+          kind: "playLocalPlaylist",
+          playlistId: match.playlist.id,
+          title: match.playlist.title,
+        }
+      : resolveAccountPlaylist(
+          youtube,
+          match.playlist.id,
+          match.playlist.title,
+        );
+  }
+
   switch (request.kind) {
     case "donated":
       return {
