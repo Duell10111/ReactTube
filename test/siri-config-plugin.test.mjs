@@ -104,6 +104,7 @@ test("adds the App Intent sources and strings to the app target only", () => {
   assert.deepEqual(buildPhaseFiles(project, "A50000000000000000000001"), [
     "AppDelegate.swift in Sources",
     "ReactTubeAppIntents.swift in Sources",
+    "ReactTubeAudioSchemaIntents.swift in Sources",
   ]);
   assert.deepEqual(buildPhaseFiles(project, "A50000000000000000000002"), [
     "Localizable.xcstrings in Resources",
@@ -132,7 +133,7 @@ test("adds the App Intent files only once across repeated prebuilds", () => {
     addAppIntentFilesToProject(loadFixtureProject(), "reacttube"),
     "reacttube",
   );
-  assert.equal(buildPhaseFiles(project, "A50000000000000000000001").length, 2);
+  assert.equal(buildPhaseFiles(project, "A50000000000000000000001").length, 3);
   assert.equal(buildPhaseFiles(project, "A50000000000000000000002").length, 2);
 });
 

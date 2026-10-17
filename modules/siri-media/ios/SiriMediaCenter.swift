@@ -211,19 +211,26 @@ enum SiriMediaPayload {
     return payload
   }
 
-  /// Payload for an App Intent. It carries only the spoken term, which
-  /// JavaScript treats like a media intent without a media type.
+  /// Payload for an App Intent, shaped like a media intent so JavaScript
+  /// parses both the same way. App Shortcuts only carry the spoken term.
   static func make(
     appIntent intent: String,
     query: String?,
+    mediaType: INMediaItemType = .unknown,
+    artistName: String? = nil,
+    albumName: String? = nil,
+    itemIdentifier: String? = nil,
     delivery: String,
     headlessStart: Bool = false
   ) -> [String: Any] {
     var payload = base(source: "appIntent", delivery: delivery, headlessStart: headlessStart)
     payload["intent"] = intent
-    payload["mediaType"] = INMediaItemType.unknown.rawValue
+    payload["mediaType"] = mediaType.rawValue
     payload["reference"] = INMediaReference.unknown.rawValue
     payload["mediaName"] = query
+    payload["artistName"] = artistName
+    payload["albumName"] = albumName
+    payload["itemIdentifier"] = itemIdentifier
     return payload
   }
 

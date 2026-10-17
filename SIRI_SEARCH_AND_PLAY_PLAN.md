@@ -498,6 +498,41 @@ Ausgewertet mit `sudo log collect --device-udid …` (Prozess
     erfüllen keines. Nächster Schritt: App-Schema-Domain `.audio` (s. u.).
     Ein freier Suchbegriff in der Phrase selbst geht mit App Shortcuts nicht,
     die erlauben dort nur `AppEntity`/`AppEnum`-Parameter.
+
+#### Umsetzung App Schemas für iOS 27 (2026-10-17)
+
+- [x] `plugins/ios/siri/ReactTubeAudioSchemaIntents.swift` (nur iOS 27, vom
+      Config-Plugin ins App-Target kopiert):
+  - `.system.searchInApp` (`SystemSearchInAppIntent`) öffnet die Musiksuche
+    mit `criteria.term`; gedacht für „Suche _X_ in ReactTube“;
+  - `.audio.playAudio` (`PlayAudioIntent`) mit `AudioItem` (Union aus Song,
+    Album, Künstler, Playlist), gedacht für „Spiele _X_ in ReactTube“;
+  - Entities `.audio.song/.album/.artist/.playlist`. Ihre `EntityStringQuery`
+    liefert nur einen Platzhalter mit dem gesprochenen Namen
+    (`search:<Name>`); YouTube Music ist nur aus JavaScript erreichbar, die
+    Suche läuft deshalb erst beim Ausführen über die bestehende Bridge (mit
+    dem Medientyp aus dem Union-Fall);
+  - Pflichttypen des Schemas: `WarmupAudioQueueResult`,
+    `PlaybackAttributes`, `QueueInsertionLocation`, `PlaylistOwner` (Union
+    aus `IntentPerson` und `String`). Shuffle, Wiederholen und Queue-Position
+    werden noch nicht ausgewertet.
+- [x] Das Makro prüft das Schema nicht; Fehler meldet erst
+      `appintentsmetadataprocessor` beim Build (z. B. falscher Typ von
+      `owner`, fehlende Query für `WarmupAudioQueueResult`). Die Metadaten
+      enthalten beide Intents mit `assistantDefinedSchemas` (`system`/`audio`).
+- [~] Gerätetest (2026-10-17): Keine der fünf Anfragen erreichte die
+  Schema-Intents.
+  - Die drei Wiedergaben (Bohemian Rhapsody, Queen, Queen bei beendeter App)
+    liefen weiter über SiriKit (`play from siriKit`,
+    `resolutionResultType: Inferred`).
+  - Beide Suchversuche kamen nicht in ReactTube an: einer ging per Media
+    Intent an Apple Music (`Default`), einer an Apple TV.
+  - Bei jeder Anfrage meldet `intelligenceflowd` „Tool retrieval failed“ /
+    „Tool Retrieval Model not found in OTA asset“ (dazu fehlt das
+    `planner.patches`-Asset). Der Planer kann auf diesem Gerät also gar keine
+    App-Intents von Dritt-Apps finden, die Schema-Intents bleiben unsichtbar.
+    Ursache liegt auf Systemseite (Asset nicht geladen, evtl. Beta oder
+    Sprache de-DE); erneut testen, sobald das Asset da ist.
 - [ ] Optional Siri-Vorschläge/„Zuletzt gespielt“ auf Sperrbildschirm und
       Watch über `INUpcomingMediaManager`.
 

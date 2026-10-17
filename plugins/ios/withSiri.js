@@ -52,6 +52,14 @@ function appIntentFiles(projectName) {
       kind: "source",
       source: "ReactTubeAppIntents.swift",
     },
+    // iOS 27 App Schema intents for the Apple Intelligence planner.
+    {
+      diskPath: `${projectName}/ReactTubeAudioSchemaIntents.swift`,
+      group: projectName,
+      filepath: `${projectName}/ReactTubeAudioSchemaIntents.swift`,
+      kind: "source",
+      source: "ReactTubeAudioSchemaIntents.swift",
+    },
     // A string catalog works on iOS 16, too; only App Shortcut phrases need
     // the legacy format.
     {

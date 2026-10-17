@@ -11,6 +11,16 @@
         }
       }
     },
+    "Next": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als Nächstes"
+          }
+        }
+      }
+    },
     "Opens the music search in ReactTube.": {
       "localizations": {
         "de": {
@@ -81,6 +91,16 @@
         }
       }
     },
+    "Repeat": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiederholen"
+          }
+        }
+      }
+    },
     "Resume Music": {
       "localizations": {
         "de": {
@@ -131,12 +151,32 @@
         }
       }
     },
+    "Shuffle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zufällig"
+          }
+        }
+      }
+    },
     "Siri playback is turned off. You can turn it on in the ReactTube settings.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Die Siri-Wiedergabe ist ausgeschaltet. Du kannst sie in den ReactTube-Einstellungen einschalten."
+          }
+        }
+      }
+    },
+    "Tail": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Am Ende"
           }
         }
       }

@@ -29,7 +29,7 @@ extension AppDelegate {
 }
 
 @MainActor
-private func startReactHeadless() -> UIView? {
+func startReactHeadless() -> UIView? {
   return (UIApplication.shared.delegate as? AppDelegate)?.makeHeadlessReactRootView()
 }
 
@@ -55,9 +55,8 @@ enum ReactTubeIntentError: Error, CustomLocalizedStringResourceConvertible {
 }
 
 /// Returns the started track, or throws the error Siri should read.
-@MainActor
-private func play(query: String?) async throws -> (title: String?, artist: String?) {
-  switch await SiriMediaAppIntentBridge.play(query: query, startReactHeadless: startReactHeadless) {
+func track(from outcome: SiriMediaAppIntentOutcome) throws -> (title: String?, artist: String?) {
+  switch outcome {
   case let .playing(title, artist):
     return (title, artist)
   case .notFound:
@@ -68,6 +67,25 @@ private func play(query: String?) async throws -> (title: String?, artist: Strin
     throw ReactTubeIntentError.disabled
   case .failed:
     throw ReactTubeIntentError.failed
+  }
+}
+
+@MainActor
+private func play(query: String?) async throws -> (title: String?, artist: String?) {
+  return try track(
+    from: await SiriMediaAppIntentBridge.play(query: query, startReactHeadless: startReactHeadless)
+  )
+}
+
+/// What Siri says once playback started.
+func playingDialog(title: String?, artist: String?) -> IntentDialog {
+  switch (title, artist) {
+  case let (title?, artist?):
+    return "Playing \(title) by \(artist)."
+  case let (title?, nil):
+    return "Playing \(title)."
+  default:
+    return "Playing music."
   }
 }
 
@@ -96,14 +114,7 @@ struct PlayMusicIntent: AppIntent {
   @MainActor
   func perform() async throws -> some IntentResult & ProvidesDialog {
     let track = try await play(query: query)
-    switch (track.title, track.artist) {
-    case let (title?, artist?):
-      return .result(dialog: "Playing \(title) by \(artist).")
-    case let (title?, nil):
-      return .result(dialog: "Playing \(title).")
-    default:
-      return .result(dialog: "Playing music.")
-    }
+    return .result(dialog: playingDialog(title: track.title, artist: track.artist))
   }
 }
 

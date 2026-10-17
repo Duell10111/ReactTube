@@ -1,4 +1,5 @@
 import Foundation
+import Intents
 import UIKit
 
 /// How a play request from an App Intent ended.
@@ -23,10 +24,17 @@ public enum SiriMediaAppIntentBridge {
   /// Searches and plays `query`; without a query JavaScript resumes playback
   /// (or starts the home feed), like "Play ReactTube".
   ///
-  /// - Parameter startReactHeadless: see `SiriMediaIntentRouter.handler`.
+  /// - Parameters:
+  ///   - mediaType: what `query` names, e.g. `.artist`; unknown means a song or video.
+  ///   - itemIdentifier: an `rt:video:<id>` item Siri already resolved.
+  ///   - startReactHeadless: see `SiriMediaIntentRouter.handler`.
   @MainActor
   public static func play(
     query: String?,
+    mediaType: INMediaItemType = .unknown,
+    artistName: String? = nil,
+    albumName: String? = nil,
+    itemIdentifier: String? = nil,
     startReactHeadless: @escaping @MainActor () -> UIView?
   ) async -> SiriMediaAppIntentOutcome {
     guard SiriMediaSettings.playbackEnabled else {
@@ -37,6 +45,10 @@ public enum SiriMediaAppIntentBridge {
     let payload = SiriMediaPayload.make(
       appIntent: "play",
       query: query,
+      mediaType: mediaType,
+      artistName: artistName,
+      albumName: albumName,
+      itemIdentifier: itemIdentifier,
       delivery: "handleInApp",
       headlessStart: headless
     )
