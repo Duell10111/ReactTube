@@ -35,7 +35,14 @@ The app UI can be switched between English and German in Settings. This is separ
 
 Install dependencies with npm and `npm install --legacy-peer-deps` before running Expo.
 
-For physical iOS or Apple TV devices, configure Apple development signing in Xcode.
+For iPhone and iPad, choose a build **without Siri** (`enabled: false`) for a free
+Personal Team, or **with Siri** (`enabled: true`) for a paid team with Siri and App
+Groups provisioning. See the [iOS build and signing guide](docs/IOS_LOCAL_BUILD.md)
+for the local steps, account limits and unsigned GitHub Actions artifacts.
+Changing the variant requires a clean iOS prebuild.
+
+For physical Apple devices, configure development signing in Xcode. An unsigned
+IPA from CI needs signing before it can be installed.
 
 For a local Apple TV build, see the [tvOS build guide](LOCALBUILD.md). It covers the TV-specific `app.json` settings and iOS prebuild step.
 

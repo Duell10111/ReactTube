@@ -1,18 +1,24 @@
 name: Build
 on:
-#  push:
-#    branches:
-#      - main
-  workflow_dispatch:  # Ermöglicht manuelle Auslöser
+  workflow_dispatch:
+    inputs:
+      build-ios-phone:
+        description: Build the experimental unsigned iOS variant without Siri
+        type: boolean
+        default: false
+      build-ios-siri:
+        description: Also build unsigned iOS with Siri (requires paid-team signing before installation)
+        type: boolean
+        default: false
   release:
-    types: [ published ]
+    types: [published]
 
 permissions:
   contents: write
 
 jobs:
   build_ios_without_signing_tvos:
-    name: Build Expo (tvOS) Without Signing
+    name: Build tvOS without Siri (unsigned)
     runs-on: macos-latest
     steps:
       - name: Checkout repository
@@ -21,64 +27,51 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
-      - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-      - name: Install sponge
-        run: brew install sponge
-      - name: Setup
-        uses: ./.github/actions/prebuild
+      - name: Archive tvOS
+        uses: ./.github/actions/apple-archive
         with:
-          is-tv: 'true'
-          platform: "ios"
-      - name: Build Expo IPA
-        run: |
-          cd ios
-          xcodebuild -scheme reacttube -workspace reacttube.xcworkspace -configuration release archive -archivePath reacttube.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
-          ../scripts/xcarchive_to_ipa.sh reacttube.xcarchive
-      - name: Upload IPA
-        uses: actions/upload-artifact@v5
+          is-tv: "true"
+          siri-enabled: "false"
+          artifact-name: reacttube-tvos-no-siri
+
+  # Phone archives remain opt-in until the existing native build failures have
+  # been verified on the hosted runner. Disabling Siri does not fix those errors.
+  build_ios_without_signing_phone:
+    name: Build iOS without Siri (unsigned, experimental)
+    if: github.event_name == 'workflow_dispatch' && inputs.build-ios-phone
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
         with:
-          name: tvos_ipa
-          path: ios/*.ipa
-      - name: Upload IPA to Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+          xcode-version: latest-stable
+      - name: Archive iOS without Siri
+        uses: ./.github/actions/apple-archive
         with:
-          files: ios/*.ipa
-#  build_ios_without_signing_phone: # Disabled as the compile phase throws an error
-#    name: Build Expo (iOS) Without Signing
-#    runs-on: macos-latest
-#    steps:
-#      - name: Checkout repository
-#        uses: actions/checkout@v5
-#      - name: Set up Homebrew
-#        id: set-up-homebrew
-#        uses: Homebrew/actions/setup-homebrew@master
-#      - name: Install sponge
-#        run: brew install sponge
-#      - name: Setup
-#        uses: ./.github/actions/prebuild
-#        with:
-#          is-tv: 'false'
-#          platform: "ios"
-#      - name: Prebuild iOS
-#        run: npx expo prebuild -p ios --clean
-#      - name: Build Expo IPA
-#        run: |
-#          cd ios
-#          xcodebuild -scheme reacttube -workspace reacttube.xcworkspace -configuration release archive -archivePath reacttube.xcarchive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
-#          ../scripts/xcarchive_to_ipa.sh reacttube.xcarchive
-#      - name: Upload IPA
-#        uses: actions/upload-artifact@v5
-#        with:
-#          name: ios_ipa
-#          path: ios/*.ipa
-#      - name: Upload IPA to Release
-#        if: ${{ github.event_name == 'release' }}
-#        uses: softprops/action-gh-release@v1
-#        with:
-#          files: ios/*.ipa
+          is-tv: "false"
+          siri-enabled: "false"
+          artifact-name: reacttube-ios-no-siri
+
+  build_ios_without_signing_siri:
+    name: Build iOS with Siri (unsigned, experimental)
+    if: github.event_name == 'workflow_dispatch' && inputs.build-ios-siri
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Archive iOS with Siri
+        uses: ./.github/actions/apple-archive
+        with:
+          is-tv: "false"
+          siri-enabled: "true"
+          artifact-name: reacttube-ios-siri
+
   build_apk_without_signing_phone:
     name: Build Expo Android Phone
     runs-on: ubuntu-latest
@@ -88,20 +81,18 @@ jobs:
       - name: Setup JDK
         uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
-          java-version: '17'
-      - name: Install moreutils
-        run: sudo apt-get install moreutils
+          distribution: temurin
+          java-version: "17"
       - name: Setup
         uses: ./.github/actions/prebuild
         with:
-          is-tv: 'false'
-          platform: "android"
+          is-tv: "false"
+          platform: android
       - name: Build Expo Android
         run: |
           cd android
           ./gradlew assembleRelease
-      - name: Upload IPA
+      - name: Upload APK
         uses: actions/upload-artifact@v5
         with:
           name: android_phone_apk

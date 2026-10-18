@@ -1,4 +1,4 @@
-import {useNavigation} from "@react-navigation/native";
+import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
 import {NativeStackNavigationProp} from "@react-navigation/native-stack";
 import _ from "lodash";
 import React, {
@@ -67,6 +67,20 @@ export function MusicSearchScreen() {
     }
   };
 
+  // Set when another part of the app opens the search, e.g. Siri.
+  const initialQuery =
+    useRoute<RouteProp<RootStackParamList, "MusicSearchScreen">>().params
+      ?.initialQuery;
+  useEffect(() => {
+    if (!initialQuery) {
+      return;
+    }
+    searchBarRef.current?.setText(initialQuery);
+    setSearchText(initialQuery);
+    debouncedOnChange.cancel();
+    search(initialQuery);
+  }, [initialQuery]);
+
   useEffect(() => {
     searchSuggestions(searchText)
       .then(new_suggestions => {
@@ -93,10 +107,12 @@ export function MusicSearchScreen() {
         headerIconColor: theme.colors.textPrimary,
         hintTextColor: theme.colors.textSecondary,
         hideWhenScrolling: false,
-        autoFocus: true,
+        // A focused bar shows suggestions instead of the results that were
+        // already requested.
+        autoFocus: !initialQuery,
       },
     });
-  }, [navigation, t, theme]);
+  }, [navigation, t, theme, initialQuery]);
 
   // Sections and a filtered shelf share one list, so switching a category
   // swaps rows instead of remounting the scroll view the header tracks.

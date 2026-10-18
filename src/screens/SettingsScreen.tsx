@@ -17,6 +17,7 @@ import {parseLanguage} from "../utils/YTLanguages";
 
 import {useAccountContext} from "@/context/AccountContext";
 import {useYoutubeTVContext} from "@/context/YoutubeContext";
+import {siriSupported} from "@/hooks/siri/useSiriSettings";
 import {useTranslation} from "@/localization";
 import {useAppTheme} from "@/ui/theme";
 
@@ -97,6 +98,19 @@ export default function SettingsScreen({navigation}: Props) {
           value={t(getLoudnessNormalizationLabel(appSettings))}
           onPress={() => navigate("LoudnessNormalizationSelector")}
         />
+        {siriSupported ? (
+          <SettingsItem
+            icon={"mic"}
+            iconBackground={theme.colors.brand}
+            label={t("settings.siri")}
+            value={t(
+              appSettings.siriPlaybackEnabled
+                ? "settings.value.true"
+                : "settings.value.false",
+            )}
+            onPress={() => navigate("SiriSettings")}
+          />
+        ) : null}
         {signedIn ? (
           <SettingsItem
             icon={"user"}

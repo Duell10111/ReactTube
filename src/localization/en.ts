@@ -84,6 +84,15 @@ export const en = {
     "Uses YouTube loudness data to play loud songs more quietly. Songs can only be turned down, so the overall volume drops slightly; raise the device volume once to compensate.",
   "settings.value.true": "On",
   "settings.value.false": "Off",
+  "settings.siri": "Siri",
+  "settings.siri.playback": "Play music with Siri",
+  "settings.siri.playback.hint":
+    "Say “Hey Siri, play … in ReactTube”. ReactTube searches YouTube Music and starts playback, also in the background.",
+  "settings.siri.donations": "Share playback with Siri",
+  "settings.siri.donations.hint":
+    "Tells Siri which songs you play, so it recognizes ReactTube more reliably and can suggest them. This stays on your device.",
+  "settings.siri.denied":
+    "Siri access is turned off for ReactTube. You can allow it in the iOS Settings.",
   "you.account": "Account",
   "you.signedIn": "You are signed in",
   "you.signedOut.title": "Not signed in",

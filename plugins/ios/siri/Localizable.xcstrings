@@ -1,0 +1,206 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "I couldn't find anything matching that in ReactTube.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dazu habe ich in ReactTube nichts gefunden."
+          }
+        }
+      }
+    },
+    "Next": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als Nächstes"
+          }
+        }
+      }
+    },
+    "Opens the music search in ReactTube.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnet die Musiksuche in ReactTube."
+          }
+        }
+      }
+    },
+    "Play Music": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Musik abspielen"
+          }
+        }
+      }
+    },
+    "Playing %@ by %@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ von %2$@ wird abgespielt."
+          }
+        }
+      }
+    },
+    "Playing %@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ wird abgespielt."
+          }
+        }
+      }
+    },
+    "Playing music.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Musik wird abgespielt."
+          }
+        }
+      }
+    },
+    "Please sign in to ReactTube first.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte melde dich zuerst in ReactTube an."
+          }
+        }
+      }
+    },
+    "ReactTube couldn't start playback.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ReactTube konnte die Wiedergabe nicht starten."
+          }
+        }
+      }
+    },
+    "Repeat": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiederholen"
+          }
+        }
+      }
+    },
+    "Resume Music": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Musik fortsetzen"
+          }
+        }
+      }
+    },
+    "Resumes playback in ReactTube, or starts music from the home feed.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setzt die Wiedergabe in ReactTube fort oder startet Musik von der Startseite."
+          }
+        }
+      }
+    },
+    "Search Music": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Musik suchen"
+          }
+        }
+      }
+    },
+    "Search Term": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suchbegriff"
+          }
+        }
+      }
+    },
+    "Searches ReactTube and plays the best match.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sucht in ReactTube und spielt den besten Treffer ab."
+          }
+        }
+      }
+    },
+    "Shuffle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zufällig"
+          }
+        }
+      }
+    },
+    "Siri playback is turned off. You can turn it on in the ReactTube settings.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Siri-Wiedergabe ist ausgeschaltet. Du kannst sie in den ReactTube-Einstellungen einschalten."
+          }
+        }
+      }
+    },
+    "Tail": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Am Ende"
+          }
+        }
+      }
+    },
+    "What do you want to listen to?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was möchtest du hören?"
+          }
+        }
+      }
+    },
+    "What do you want to search for?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wonach möchtest du suchen?"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

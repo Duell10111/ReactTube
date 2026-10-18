@@ -28,9 +28,19 @@ import {DownloaderContext} from "@/context/DownloaderContext";
 import {MusicPlayerContext} from "@/context/MusicPlayerContext";
 import {VideoSidePanelProvider} from "@/context/VideoSidePanelContext";
 import {WatchLibraryProvider} from "@/context/WatchLibraryContext";
+import useSiriLibrarySync from "@/hooks/siri/useSiriLibrarySync";
+import useSiriMediaBridge from "@/hooks/siri/useSiriMediaBridge";
 import {LocalizationProvider} from "@/localization";
 import {appStatusBarStyle} from "@/ui/layout/appShell";
 import {paperTheme, useAppTheme} from "@/ui/theme";
+
+// Renders nothing; needs the YouTube, music player and (migrated) database
+// contexts.
+function SiriMediaBridgeHost() {
+  useSiriMediaBridge();
+  useSiriLibrarySync();
+  return null;
+}
 
 function ThemedApp() {
   const {theme, reduceMotion} = useAppTheme();
@@ -88,6 +98,7 @@ function ThemedApp() {
                         titleStyle={theme.typography.label}
                       />
                       <PoTokenWebViewHost />
+                      <SiriMediaBridgeHost />
                     </WatchLibraryProvider>
                   </DownloaderContext>
                 </MusicPlayerContext>

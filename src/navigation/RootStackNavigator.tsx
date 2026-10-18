@@ -1,3 +1,4 @@
+import {NavigatorScreenParams} from "@react-navigation/native";
 import {
   createNativeStackNavigator,
   NativeStackNavigationProp,
@@ -5,7 +6,7 @@ import {
 import React from "react";
 import {Platform} from "react-native";
 
-import SettingsNavigator from "./SettingsNavigator";
+import SettingsNavigator, {SettingsStackParamList} from "./SettingsNavigator";
 
 import {VideoMenuScreen} from "@/components/general/VideoMenu";
 import {PlaylistManagerContextMenu} from "@/components/playlists/tv/PlaylistManagerContextMenu";
@@ -49,11 +50,11 @@ export type RootStackParamList = {
   };
   ChannelScreen: {channelId: string};
   PlaylistScreen: {playlistId: string};
-  Search: undefined;
+  Search: {initialQuery?: string} | undefined;
   SubscriptionScreen: undefined;
   History: undefined;
   LibraryScreen: undefined;
-  SettingsScreen: undefined;
+  SettingsScreen: NavigatorScreenParams<SettingsStackParamList> | undefined;
   LoginScreen: undefined;
   // TV
   VideoMenuContext: {element: ElementData};
@@ -73,7 +74,7 @@ export type RootStackParamList = {
   MusicPlaylistScreen: {playlistId: string};
   MusicChannelScreen: {artistId: string};
   MusicAlbumScreen: {albumId: string};
-  MusicSearchScreen: undefined;
+  MusicSearchScreen: {initialQuery?: string} | undefined;
   MusicLibraryScreen: undefined;
   MusicPlayerScreen: undefined;
 };

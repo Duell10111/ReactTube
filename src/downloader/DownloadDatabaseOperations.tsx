@@ -66,6 +66,14 @@ export function useVideos() {
   return data;
 }
 
+export async function getDownloadedVideos() {
+  return db
+    .select()
+    .from(schema.videos)
+    .where(isNotNull(schema.videos.fileUrl))
+    .execute();
+}
+
 export function useDownloadedVideos() {
   const {data} = useLiveQuery(
     db.select().from(schema.videos).where(isNotNull(schema.videos.fileUrl)),
@@ -248,36 +256,30 @@ export async function insertVideosIntoPlaylist(
   playlistID: string,
   videoIds: string[],
 ) {
-  console.log("TEST");
-  const all = videoIds.map(async videoId => {
-    // Get all videos from a playlist
+  // Sequential, and after the highest order instead of at the entry count:
+  // once an entry was removed, the count repeats an existing order and the
+  // new video lands at an arbitrary position among equal orders.
+  for (const videoId of videoIds) {
     const result = await db
       .select({
-        count: sql<number>`cast(count(
-            ${schema.playlistVideos.videoId}
-            )
-            as
-            int
-            )`,
+        maxOrder: sql<
+          number | null
+        >`max(${schema.playlistVideos.playlistOrder})`,
       })
       .from(schema.playlistVideos)
       .where(eq(schema.playlistVideos.playlistId, playlistID))
       .execute();
-
-    console.log(result);
-    console.log(result[0].count);
 
     await db
       .insert(schema.playlistVideos)
       .values({
         videoId,
         playlistId: playlistID,
-        playlistOrder: result[0].count,
+        playlistOrder: (result[0]?.maxOrder ?? -1) + 1,
       })
       .onConflictDoNothing()
       .execute();
-  });
-  await Promise.all(all);
+  }
 }
 
 export async function removeVideosIntoPlaylist(
