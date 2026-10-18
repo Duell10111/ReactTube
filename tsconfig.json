@@ -12,5 +12,18 @@
     "strict": false,
     "strictNullChecks": true // Needed for drizzle atm: https://github.com/drizzle-team/drizzle-orm/issues/2889#issuecomment-2407712651
   },
-  "extends": "expo/tsconfig.base"
+  "extends": "expo/tsconfig.base",
+  // Repeats the base excludes because "exclude" replaces them. Node tooling
+  // under scripts/ and test/ pulls in @types/node, whose globals do not apply
+  // to the React Native app.
+  "exclude": [
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js",
+    "android",
+    "ios",
+    "scripts",
+    "test"
+  ]
 }
