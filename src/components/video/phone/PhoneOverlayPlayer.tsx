@@ -65,6 +65,13 @@ const SCRIM_COLOR = "rgba(0, 0, 0, 0.45)";
 /** Hold time before a press turns into the 2x playback of YouTube. */
 const HOLD_MIN_DURATION_MS = 450;
 
+/**
+ * Distance of the fullscreen top bar from the screen edge. The status bar is
+ * hidden there, so without it the buttons sit in the rounded display corner
+ * and in the Control Center swipe zone, where taps are swallowed.
+ */
+const FULLSCREEN_TOP_BAR_OFFSET = 18;
+
 interface PhoneOverlayPlayerProps<T> {
   VideoComponent: React.ComponentType<
     VideoComponentType<T> & React.RefAttributes<VideoComponentRefType>
@@ -576,7 +583,15 @@ const PhoneOverlayPlayer = forwardRef<
             ]}>
             <View pointerEvents={"none"} style={styles.scrim} />
 
-            <View pointerEvents={"box-none"} style={styles.topBar}>
+            <View
+              pointerEvents={"box-none"}
+              style={[
+                styles.topBar,
+                fullscreen && {
+                  ...styles.topBarFullscreen,
+                  paddingTop: insets.top + FULLSCREEN_TOP_BAR_OFFSET,
+                },
+              ]}>
               {onClose && !fullscreen ? (
                 <ControlButton
                   icon={"keyboard-arrow-down"}
@@ -840,6 +855,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingTop: 6,
     gap: 4,
+  },
+  topBarFullscreen: {
+    paddingHorizontal: 16,
   },
   title: {
     flex: 1,
