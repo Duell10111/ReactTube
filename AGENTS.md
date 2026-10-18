@@ -125,6 +125,8 @@ For every code change:
 2. Confirm formatting with `npx prettier --check <changed-files>`.
 3. Run `npm run lint` and fix all warnings or errors introduced by the change.
 4. Run `npm run typecheck` and fix all TypeScript errors introduced by the change.
+   When a change touches imports or platform variants (`.tv`, `.ios`, `.android`),
+   also run `npm run typecheck:platforms`.
 5. Run `npm test`; add focused checks when the changed behavior is not covered by
    the current suite.
 
