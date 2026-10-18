@@ -14,6 +14,9 @@ export default function usePlaylistDetails(playlistId: string) {
   const youtube = useYoutubeContext();
   const [playlist, setPlaylist] =
     useState<ReturnType<typeof getElementDataFromYTMusicPlaylist>>();
+  // Kept apart from the playlist object: it is a class instance that grows
+  // and changes in place, which React would not see as a change.
+  const [items, setItems] = useState<ElementData[]>([]);
   const [liked, setLiked] = useState<boolean>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>();
@@ -40,6 +43,7 @@ export default function usePlaylistDetails(playlistId: string) {
     request
       .then(parsedPlaylist => {
         setPlaylist(parsedPlaylist);
+        setItems([...parsedPlaylist.items]);
         setLiked(parsedPlaylist.saved?.status);
       })
       .catch(loadError => {
@@ -56,7 +60,7 @@ export default function usePlaylistDetails(playlistId: string) {
   const fetchMore = useCallback(async () => {
     if (playlist) {
       await playlist.loadMore();
-      setPlaylist(playlist);
+      setItems([...playlist.items]);
     } else {
       LOGGER.warn("No Playlist available for fetchMore!");
     }
@@ -73,11 +77,23 @@ export default function usePlaylistDetails(playlistId: string) {
   };
 
   const deleteItemFromPlaylist = async (item: ElementData) => {
-    await removeVideoFromPlaylist([item.id], playlistId);
+    try {
+      await removeVideoFromPlaylist([item.id], playlistId);
+    } catch (removeError) {
+      LOGGER.warn(removeError);
+      return;
+    }
+    if (playlist) {
+      // The next page continues the same playlist object, so it has to lose
+      // the track as well.
+      playlist.items = playlist.items.filter(entry => entry !== item);
+    }
+    setItems(current => current.filter(entry => entry !== item));
   };
 
   return {
     playlist,
+    items,
     fetchMore,
     liked,
     togglePlaylistLike,
