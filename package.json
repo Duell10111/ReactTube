@@ -115,6 +115,7 @@
     "web": "expo start --web",
     "test": "node --test test/*.test.mjs",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:platforms": "node scripts/check-platform-imports.js"
   }
 }

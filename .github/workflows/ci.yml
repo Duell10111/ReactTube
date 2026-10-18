@@ -23,5 +23,10 @@ jobs:
       - name: Typecheck files
         run: npm run typecheck
 
+      # Resolves imports like Metro does per surface (.tv/.ios/.android), which
+      # catches a platform variant missing an export before it crashes a build.
+      - name: Check platform imports
+        run: npm run typecheck:platforms
+
       - name: Run tests
         run: npm test
