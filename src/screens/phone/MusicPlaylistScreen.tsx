@@ -22,6 +22,7 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
   const {playlistId} = route.params;
   const {
     playlist,
+    items,
     fetchMore,
     liked,
     togglePlaylistLike,
@@ -36,9 +37,8 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
   // A locally stored playlist carries no play endpoint. Starting its first
   // track is equivalent: the player fills the queue from `localPlaylistId`.
   const firstTrack = useMemo(
-    () =>
-      playlist?.items.find((item): item is VideoData => item.type === "video"),
-    [playlist],
+    () => items.find((item): item is VideoData => item.type === "video"),
+    [items],
   );
 
   const playAll = useCallback(() => {
@@ -76,7 +76,7 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
       <MusicTrackList
         editable={playlist?.editable}
         error={error}
-        items={playlist?.items ?? []}
+        items={items}
         loading={loading}
         onEndReached={fetchMore}
         onRemoveItem={item => deleteItemFromPlaylist(item)}
