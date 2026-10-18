@@ -11,6 +11,7 @@ import LoudnessNormalizationSelectorScreen from "@/components/settings/screens/L
 import SiriSettingsScreen from "@/components/settings/screens/SiriSettings";
 import TrackingSelector from "@/components/settings/screens/TrackingSelector";
 import UILanguageSelectorScreen from "@/components/settings/screens/UILanguageSelector";
+import {siriSupported} from "@/hooks/siri/useSiriSettings";
 
 export type SettingsStackParamList = {
   Root: undefined;
@@ -56,7 +57,9 @@ export default function SettingsNavigator() {
         name={"ChannelSelector"}
         component={ChannelSelectorScreen}
       />
-      <Stack.Screen name={"SiriSettings"} component={SiriSettingsScreen} />
+      {siriSupported ? (
+        <Stack.Screen name={"SiriSettings"} component={SiriSettingsScreen} />
+      ) : null}
       <Stack.Screen
         name={"PlaybackDiagnostics"}
         component={PlaybackDiagnosticsScreen}

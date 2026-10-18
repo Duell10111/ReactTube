@@ -1,4 +1,5 @@
 import {NativeModule, requireOptionalNativeModule} from "expo";
+import {Platform} from "react-native";
 
 import {
   SiriAuthorizationStatus,
@@ -13,6 +14,7 @@ import {
  * through `getPendingRequests()`.
  */
 declare class SiriMediaModule extends NativeModule<SiriMediaModuleEvents> {
+  readonly isSiriEnabled: boolean;
   /** Returns requests not yet delivered to JavaScript and marks them delivered. */
   getPendingRequests(): SiriMediaRequest[];
   /**
@@ -46,5 +48,10 @@ declare class SiriMediaModule extends NativeModule<SiriMediaModuleEvents> {
   requestSiriAuthorization(): Promise<SiriAuthorizationStatus>;
 }
 
-/** `null` where the native module is not linked (Android, web). */
-export default requireOptionalNativeModule<SiriMediaModule>("SiriMedia");
+const nativeModule =
+  Platform.OS === "ios" && !Platform.isTV
+    ? requireOptionalNativeModule<SiriMediaModule>("SiriMedia")
+    : null;
+
+/** `null` when Siri is disabled in this native build, even if the pod is linked. */
+export default nativeModule?.isSiriEnabled === true ? nativeModule : null;

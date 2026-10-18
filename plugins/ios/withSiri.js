@@ -13,21 +13,6 @@ const {
 const fs = require("fs");
 const path = require("path");
 
-/**
- * Wires the phone app up for SiriKit media intents (see
- * SIRI_SEARCH_AND_PLAY_PLAN.md):
- *  - Siri entitlement, the app group shared with the intents extension, usage
- *    description and the alternative app name;
- *  - `application(_:handlerFor:)` in the AppDelegate, because `ExpoAppDelegate`
- *    does not forward in-app intent handling to `modules/siri-media`;
- *  - the App Intents and App Shortcuts in `plugins/ios/siri/`, copied into the
- *    app target because App Intent metadata is only extracted from there.
- *
- * Skipped for tvOS builds, mirroring `@duell10111/apple-targets`, which also
- * leaves the intents extension out there.
- */
-const APP_GROUP = "group.com.duell10111.reacttube";
-
 const APP_INTENT_SOURCE_DIR = path.join(__dirname, "siri");
 const STRING_CATALOG_FILE_TYPE = "text.json.xcstrings";
 
@@ -37,6 +22,11 @@ const STRING_CATALOG_FILE_TYPE = "text.json.xcstrings";
  * `AppShortcuts.xcstrings` requires iOS 17.
  */
 const APP_SHORTCUT_PHRASES = require("./siri/AppShortcutPhrases.json");
+const {
+  getSiriAppGroup,
+  isSiriBuildEnabled,
+  isTVBuild,
+} = require("./siriBuildConfig");
 
 /**
  * Files of the App Intents feature: `diskPath` is relative to `ios/`, `filepath`
@@ -119,17 +109,6 @@ const HANDLER_SNIPPET = `  // SiriKit: intents the extension answered with .hand
   }
 `;
 
-function isTVBuild(config) {
-  if (process.env.EXPO_TV !== undefined) {
-    return true;
-  }
-  const tvPlugin = (config.plugins ?? []).find(
-    plugin =>
-      Array.isArray(plugin) && plugin[0] === "@react-native-tvos/config-tv",
-  );
-  return Boolean(tvPlugin?.[1]?.isTV);
-}
-
 // mergeContents throws when an anchor is missing, so template changes fail the
 // prebuild instead of silently dropping Siri support.
 function addSiriAppDelegateCode(appDelegate) {
@@ -208,26 +187,47 @@ function addAppIntentFilesToProject(project, projectName) {
   return project;
 }
 
-const withSiri = config => {
-  if (isTVBuild(config)) {
+/**
+ * Wires the phone app up for SiriKit media intents (see
+ * SIRI_SEARCH_AND_PLAY_PLAN.md):
+ *  - Siri entitlement, the app group shared with the intents extension, usage
+ *    description and the alternative app name;
+ *  - `application(_:handlerFor:)` in the AppDelegate, because `ExpoAppDelegate`
+ *    does not forward in-app intent handling to `modules/siri-media`;
+ *  - the App Intents and App Shortcuts in `plugins/ios/siri/`, copied into the
+ *    app target because App Intent metadata is only extracted from there.
+ *
+ * Skipped for tvOS builds, mirroring `@duell10111/apple-targets`, which also
+ * leaves the intents extension out there.
+ */
+const withSiri = (config, options = {}) => {
+  const enabled = isSiriBuildEnabled(config, options);
+  // A linked module alone does not mean this build has Siri capabilities.
+  config = withInfoPlist(config, modConfig => {
+    modConfig.modResults.ReactTubeSiriEnabled = enabled;
+    return modConfig;
+  });
+  if (!enabled) {
     return config;
   }
+  const appGroup = getSiriAppGroup(config, options);
 
   config = withEntitlementsPlist(config, modConfig => {
     modConfig.modResults["com.apple.developer.siri"] = true;
     // Shared with the intents extension (targets/siri-intents).
     const groups =
       modConfig.modResults["com.apple.security.application-groups"] ?? [];
-    if (!groups.includes(APP_GROUP)) {
+    if (!groups.includes(appGroup)) {
       modConfig.modResults["com.apple.security.application-groups"] = [
         ...groups,
-        APP_GROUP,
+        appGroup,
       ];
     }
     return modConfig;
   });
 
   config = withInfoPlist(config, modConfig => {
+    modConfig.modResults.ReactTubeSiriAppGroup = appGroup;
     modConfig.modResults.NSSiriUsageDescription =
       "ReactTube uses Siri to search and play music by voice.";
     // Handled by the app itself (SiriMediaIntentRouter): the extension cannot
@@ -261,6 +261,12 @@ const withSiri = config => {
     modConfig.modResults = addAppIntentFilesToProject(
       modConfig.modResults,
       projectName,
+    );
+    // The extension inherits this project setting even if apple-targets adds
+    // its target after this mod. Its Info.plist expands the same group as the app.
+    modConfig.modResults.addBuildProperty(
+      "REACTTUBE_SIRI_APP_GROUP",
+      JSON.stringify(appGroup),
     );
     return modConfig;
   });

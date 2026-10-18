@@ -11,6 +11,7 @@ public class SiriMediaAppDelegateSubscriber: ExpoAppDelegateSubscriber {
     continue userActivity: NSUserActivity,
     restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
   ) -> Bool {
+    guard SiriMediaBuild.isEnabled else { return false }
     let type = userActivity.activityType
     guard type == String(describing: INPlayMediaIntent.self)
       || type == String(describing: INSearchForMediaIntent.self) else {

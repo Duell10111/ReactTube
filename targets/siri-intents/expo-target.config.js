@@ -1,6 +1,10 @@
+/* eslint-env node */
+const {expo} = require("../../app.json");
+const {getSiriAppGroup} = require("../../plugins/ios/siriBuildConfig");
+
 /**
- * SiriKit media intents extension. The bundle id is derived from the folder
- * name: com.duell10111.reacttube.siri-intents.
+ * SiriKit extension. apple-targets derives its bundle ID from the app's ID and
+ * the camel-cased folder name: <app bundle ID>.siriIntents.
  * @type {import('@duell10111/apple-targets').Config}
  */
 module.exports = {
@@ -8,8 +12,7 @@ module.exports = {
   name: "SiriIntents",
   deploymentTarget: "16.4",
   entitlements: {
-    // Shared with the app (plugins/ios/withSiri.js) for diagnostics now and
-    // the library snapshot later.
-    "com.apple.security.application-groups": ["group.com.duell10111.reacttube"],
+    // The project uses static app.json configuration for all prebuild variants.
+    "com.apple.security.application-groups": [getSiriAppGroup(expo)],
   },
 };

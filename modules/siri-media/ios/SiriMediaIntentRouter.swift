@@ -17,6 +17,7 @@ public final class SiriMediaIntentRouter: NSObject {
     for intent: INIntent,
     startReactHeadless: @escaping @MainActor () -> UIView?
   ) -> Any? {
+    guard SiriMediaBuild.isEnabled else { return nil }
     SiriMediaLog.write("handlerFor \(type(of: intent))")
     switch intent {
     case is INPlayMediaIntent:
@@ -158,6 +159,7 @@ enum SiriHeadlessHost {
 
   /// Returns true when this call started React headless.
   static func startIfNeeded(_ start: @MainActor () -> UIView?) -> Bool {
+    guard SiriMediaBuild.isEnabled else { return false }
     let scenes = UIApplication.shared.connectedScenes.count
     let jsRunning = SiriMediaCenter.shared.jsRuntimeCreated
     SiriMediaLog.write(

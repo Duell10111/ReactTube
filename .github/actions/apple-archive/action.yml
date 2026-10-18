@@ -1,0 +1,77 @@
+name: Archive unsigned Apple app
+description: Build, package and verify a distinct unsigned Apple artifact
+
+inputs:
+  is-tv:
+    description: Whether to archive for tvOS
+    required: false
+    default: "false"
+  siri-enabled:
+    description: Include Siri in the iPhone/iPad archive
+    required: false
+    default: "false"
+  artifact-name:
+    description: Artifact and IPA filename without extension
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Clean prebuild
+      uses: ./.github/actions/prebuild
+      with:
+        is-tv: ${{ inputs.is-tv }}
+        platform: ios
+        siri-enabled: ${{ inputs.siri-enabled }}
+    - name: Archive without signing
+      shell: bash
+      env:
+        IS_TV: ${{ inputs.is-tv }}
+      run: |
+        destination="generic/platform=iOS"
+        if [ "$IS_TV" = "true" ]; then
+          destination="generic/platform=tvOS"
+        fi
+        xcodebuild -scheme reacttube -workspace ios/reacttube.xcworkspace \
+          -configuration Release -destination "$destination" \
+          -archivePath "$RUNNER_TEMP/reacttube.xcarchive" \
+          -resultBundlePath "$RUNNER_TEMP/reacttube-archive.xcresult" \
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+          archive 2>&1 | tee "$RUNNER_TEMP/reacttube-archive.log"
+    - name: Package IPA
+      shell: bash
+      env:
+        ARTIFACT_NAME: ${{ inputs.artifact-name }}
+      run: |
+        mkdir -p "$GITHUB_WORKSPACE/build-artifacts"
+        cd "$RUNNER_TEMP"
+        bash "$GITHUB_WORKSPACE/scripts/xcarchive_to_ipa.sh" reacttube.xcarchive
+        mv reacttube.ipa "$GITHUB_WORKSPACE/build-artifacts/$ARTIFACT_NAME.ipa"
+    - name: Verify packaged app
+      shell: bash
+      env:
+        ARTIFACT_NAME: ${{ inputs.artifact-name }}
+        SIRI_ENABLED: ${{ inputs.siri-enabled }}
+        IS_TV: ${{ inputs.is-tv }}
+      run: node scripts/verify-apple-build.js --ipa "build-artifacts/$ARTIFACT_NAME.ipa" --config app.json --siri "$SIRI_ENABLED" --tv "$IS_TV"
+    - name: Upload IPA
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: build-artifacts/${{ inputs.artifact-name }}.ipa
+        if-no-files-found: error
+    - name: Upload IPA to release
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v2
+      with:
+        files: build-artifacts/${{ inputs.artifact-name }}.ipa
+        fail_on_unmatched_files: true
+    - name: Upload archive diagnostics
+      if: failure()
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ inputs.artifact-name }}-diagnostics
+        path: |
+          ${{ runner.temp }}/reacttube-archive.log
+          ${{ runner.temp }}/reacttube-archive.xcresult
+        if-no-files-found: ignore

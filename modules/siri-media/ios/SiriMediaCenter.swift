@@ -86,6 +86,10 @@ final class SiriMediaCenter {
     timeout: TimeInterval = SiriMediaCenter.completionTimeout,
     completion: Completion?
   ) {
+    guard SiriMediaBuild.isEnabled else {
+      completion?(.failure, nil)
+      return
+    }
     guard let requestId = payload["requestId"] as? String else {
       return
     }
@@ -312,16 +316,20 @@ enum SiriMediaPayload {
 /// Settings the intents extension needs before the app runs. Kept in the app
 /// group; the keys are mirrored in `targets/siri-intents/IntentHandler.swift`.
 enum SiriMediaSettings {
-  static let appGroup = "group.com.duell10111.reacttube"
+  static var appGroup: String? {
+    Bundle.main.object(forInfoDictionaryKey: "ReactTubeSiriAppGroup") as? String
+  }
   static let playbackEnabledKey = "siriPlaybackEnabled"
 
   static func setPlaybackEnabled(_ enabled: Bool) {
+    guard SiriMediaBuild.isEnabled, let appGroup, appGroup.hasPrefix("group.") else { return }
     UserDefaults(suiteName: appGroup)?.set(enabled, forKey: playbackEnabledKey)
   }
 
   /// Siri playback is opt-in, so a missing value means disabled.
   static var playbackEnabled: Bool {
-    UserDefaults(suiteName: appGroup)?.bool(forKey: playbackEnabledKey) ?? false
+    guard SiriMediaBuild.isEnabled, let appGroup, appGroup.hasPrefix("group.") else { return false }
+    return UserDefaults(suiteName: appGroup)?.bool(forKey: playbackEnabledKey) ?? false
   }
 }
 

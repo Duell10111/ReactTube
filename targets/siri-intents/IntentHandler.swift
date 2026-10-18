@@ -6,12 +6,15 @@ private let log = Logger(subsystem: "com.duell10111.reacttube.siri", category: "
 /// Mirrors `SiriMediaSettings` in modules/siri-media; the app writes the value
 /// whenever the opt-in setting changes.
 private enum SharedSettings {
-  static let appGroup = "group.com.duell10111.reacttube"
+  static var appGroup: String? {
+    Bundle.main.object(forInfoDictionaryKey: "ReactTubeSiriAppGroup") as? String
+  }
   static let playbackEnabledKey = "siriPlaybackEnabled"
 
   /// Siri playback is opt-in, so a missing value means disabled.
   static var playbackEnabled: Bool {
-    UserDefaults(suiteName: appGroup)?.bool(forKey: playbackEnabledKey) ?? false
+    guard let appGroup, appGroup.hasPrefix("group.") else { return false }
+    return UserDefaults(suiteName: appGroup)?.bool(forKey: playbackEnabledKey) ?? false
   }
 }
 

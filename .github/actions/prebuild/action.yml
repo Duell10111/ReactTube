@@ -1,27 +1,40 @@
-name: Set TV as parameter
-description: Configure isTV in app.json
+name: Prebuild native project
+description: Configure platform and Siri options before a clean Expo prebuild
 
 inputs:
   is-tv:
-    description: 'Boolean if isTV prebuild is wanted'
+    description: Whether to build the TV variant
     required: true
-    default: 'false'
+    default: "false"
   platform:
-    description: 'Platform to prebuild - android or ios'
+    description: Platform to prebuild - android or ios
     required: true
+  siri-enabled:
+    description: Include Siri in iPhone/iPad builds (ignored on Android, disabled on TV)
+    required: false
+    default: "false"
 
 runs:
   using: composite
   steps:
     - name: Setup
       uses: ./.github/actions/setup
-    - name: Configure isTV in app.json
-      run: jq --argjson variable $EXPO_TV '.expo.plugins[0][1].isTV |= $variable | .expo.plugins[2][1].isTV |= $variable' app.json | sponge app.json
+    - name: Configure native build options
+      run: node scripts/configure-build.js "$BUILD_PLATFORM" "$IS_TV" "$SIRI_ENABLED"
       shell: bash
       env:
-        EXPO_TV: ${{ inputs.is-tv }}
+        BUILD_PLATFORM: ${{ inputs.platform }}
+        IS_TV: ${{ inputs.is-tv }}
+        SIRI_ENABLED: ${{ inputs.siri-enabled }}
     - name: Prebuild native files
-      run: npx expo prebuild -p $EXPO_PLATFORM --clean
+      run: npx expo prebuild --platform "$BUILD_PLATFORM" --clean
       shell: bash
       env:
-        EXPO_PLATFORM: ${{ inputs.platform }}
+        BUILD_PLATFORM: ${{ inputs.platform }}
+    - name: Verify generated Apple project
+      if: inputs.platform == 'ios'
+      run: node scripts/verify-apple-build.js --project . --siri "$SIRI_ENABLED" --tv "$IS_TV"
+      shell: bash
+      env:
+        SIRI_ENABLED: ${{ inputs.siri-enabled }}
+        IS_TV: ${{ inputs.is-tv }}

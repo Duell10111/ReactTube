@@ -1,5 +1,4 @@
 import {useCallback} from "react";
-import {Platform} from "react-native";
 
 import SiriMedia from "../../../modules/siri-media";
 
@@ -10,8 +9,8 @@ import {showMessage} from "@/utils/ShowFlashMessageHelper";
 
 const LOGGER = Logger.extend("SIRI");
 
-/** Siri needs the native module, which only the iPhone/iPad build ships. */
-export const siriSupported = Platform.OS === "ios" && !Platform.isTV;
+/** Availability comes from the native build, independently of saved settings. */
+export const siriSupported = SiriMedia !== null;
 
 export default function useSiriSettings() {
   const {appSettings, updateSettings} = useAppData();
@@ -40,13 +39,14 @@ export default function useSiriSettings() {
   );
 
   const setDonationsEnabled = useCallback(
-    (enabled: boolean) => updateSettings({siriDonationsEnabled: enabled}),
+    (enabled: boolean) =>
+      updateSettings({siriDonationsEnabled: siriSupported && enabled}),
     [updateSettings],
   );
 
   return {
-    playbackEnabled: !!appSettings.siriPlaybackEnabled,
-    donationsEnabled: !!appSettings.siriDonationsEnabled,
+    playbackEnabled: siriSupported && !!appSettings.siriPlaybackEnabled,
+    donationsEnabled: siriSupported && !!appSettings.siriDonationsEnabled,
     setPlaybackEnabled,
     setDonationsEnabled,
   };

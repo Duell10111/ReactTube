@@ -10,6 +10,7 @@ public class SiriMediaReactDelegateHandler: ExpoReactDelegateHandler {
     initialProperties: [AnyHashable: Any]?,
     launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> UIView? {
+    guard SiriMediaBuild.isEnabled else { return nil }
     return MainActor.assumeIsolated {
       guard !SiriHeadlessHost.isCreating, let view = SiriHeadlessHost.takeRootView() else {
         return nil

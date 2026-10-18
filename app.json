@@ -28,7 +28,7 @@
       [
         "@react-native-tvos/config-tv",
         {
-          "isTV": true,
+          "isTV": false,
           "showVerboseWarnings": false,
           "tvosDeploymentTarget": "16.4",
           "removeFlipperOnAndroid": false,
@@ -54,10 +54,10 @@
         }
       ],
       [
-        "@duell10111/apple-targets",
+        "./plugins/ios/withAppleTargets.js",
         {
           "appleTeamId": "XXXXXXXXXX",
-          "isTV": true
+          "isTV": false
         }
       ],
       [
@@ -90,7 +90,7 @@
       "./fmt_path.js",
       "./plugins/android/withTVDisplayScaling.js",
       "./plugins/ios/withStripVlcBitcode.js",
-      "./plugins/ios/withSiri.js"
+      ["./plugins/ios/withSiri.js", {"enabled": true}]
     ],
     "locales": {
       "en": "./assets/locales/en.json",
