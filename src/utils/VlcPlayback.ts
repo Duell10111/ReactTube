@@ -158,3 +158,42 @@ export function buildVlcInitOptions(options: {
 
   return initOptions;
 }
+
+/**
+ * A seek VLC has accepted but not finished yet. VLC keeps reporting the old
+ * time until it has buffered at the target, which would snap the overlay
+ * back and make the next double tap jump from the stale position.
+ */
+export interface VlcPendingSeek {
+  targetSeconds: number;
+  requestedAt: number;
+}
+
+/** Distance from the target at which a reported time counts as arrived. */
+export const VLC_SEEK_SETTLE_TOLERANCE_SECONDS = 1.5;
+
+/**
+ * Longest time the target stands in for the reported time. After that the
+ * seek counts as dropped, and the reported time is the truth again.
+ */
+export const VLC_SEEK_SETTLE_TIMEOUT_MS = 8000;
+
+/**
+ * Resolves the time to report while a seek may still be pending: the target
+ * until VLC arrives there (or gives up), the reported time afterwards.
+ */
+export function settleVlcSeek(
+  pending: VlcPendingSeek | undefined,
+  reportedSeconds: number,
+  now: number,
+): {pending?: VlcPendingSeek; seconds: number} {
+  if (
+    pending &&
+    Math.abs(reportedSeconds - pending.targetSeconds) >
+      VLC_SEEK_SETTLE_TOLERANCE_SECONDS &&
+    now - pending.requestedAt < VLC_SEEK_SETTLE_TIMEOUT_MS
+  ) {
+    return {pending, seconds: pending.targetSeconds};
+  }
+  return {seconds: reportedSeconds};
+}

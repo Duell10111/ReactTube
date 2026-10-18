@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {buildVlcInitOptions, pickVlcFormats} from "../src/utils/VlcPlayback.ts";
+import {
+  VLC_SEEK_SETTLE_TIMEOUT_MS,
+  buildVlcInitOptions,
+  pickVlcFormats,
+  settleVlcSeek,
+} from "../src/utils/VlcPlayback.ts";
 
 /** Builds a mime type such as `video/webm; codecs="vp9"`. */
 const mime = (container, codecs) => `${container}; codecs="${codecs}"`;
@@ -117,4 +122,35 @@ test("builds the player options", () => {
   assert.deepEqual(buildVlcInitOptions({startSeconds: 0}), [
     "--network-caching=3000",
   ]);
+});
+
+test("settleVlcSeek reports the target while VLC still reports the old time", () => {
+  const pending = {targetSeconds: 70, requestedAt: 1000};
+  const result = settleVlcSeek(pending, 60.4, 1500);
+  assert.equal(result.seconds, 70);
+  assert.equal(result.pending, pending);
+});
+
+test("settleVlcSeek hands back to VLC once it arrives at the target", () => {
+  const result = settleVlcSeek(
+    {targetSeconds: 70, requestedAt: 1000},
+    70.6,
+    2500,
+  );
+  assert.equal(result.seconds, 70.6);
+  assert.equal(result.pending, undefined);
+});
+
+test("settleVlcSeek gives up on a seek VLC never finishes", () => {
+  const result = settleVlcSeek(
+    {targetSeconds: 70, requestedAt: 1000},
+    62,
+    1000 + VLC_SEEK_SETTLE_TIMEOUT_MS,
+  );
+  assert.equal(result.seconds, 62);
+  assert.equal(result.pending, undefined);
+});
+
+test("settleVlcSeek passes the reported time through without a seek", () => {
+  assert.deepEqual(settleVlcSeek(undefined, 12, 0), {seconds: 12});
 });

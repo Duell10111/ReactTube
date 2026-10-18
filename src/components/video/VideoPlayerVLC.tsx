@@ -19,7 +19,11 @@ import {
 
 import Logger from "@/utils/Logger";
 import {PlaybackSize, toPlaybackSize} from "@/utils/PlaybackSize";
-import {buildVlcInitOptions} from "@/utils/VlcPlayback";
+import {
+  VlcPendingSeek,
+  buildVlcInitOptions,
+  settleVlcSeek,
+} from "@/utils/VlcPlayback";
 
 const LOGGER = Logger.extend("PLAYBACK");
 
@@ -65,6 +69,7 @@ const VideoPlayerVLC = forwardRef<
   // VLC seeks by fraction of the duration, so the duration has to be known.
   const durationSeconds = useRef(0);
   const currentSeconds = useRef(0);
+  const pendingSeek = useRef<VlcPendingSeek>(undefined);
   const reportedSize = useRef<string>(undefined);
 
   // The start position is baked into the player options. Taking it only from
@@ -126,6 +131,11 @@ const VideoPlayerVLC = forwardRef<
           currentTime: currentSeconds.current,
           seekTime: seconds,
         });
+        // Until VLC arrives, the target stands in for the stale time it
+        // keeps reporting.
+        const targetSeconds = position * durationSeconds.current;
+        pendingSeek.current = {targetSeconds, requestedAt: Date.now()};
+        currentSeconds.current = targetSeconds;
       },
       getCurrentPositionSeconds: async () => currentSeconds.current,
     };
@@ -172,12 +182,18 @@ const VideoPlayerVLC = forwardRef<
       onProgress={data => {
         // Playback runs — the watchdog is no longer needed.
         clearStallTimer();
-        currentSeconds.current = data.currentTime / 1000;
+        const settled = settleVlcSeek(
+          pendingSeek.current,
+          data.currentTime / 1000,
+          Date.now(),
+        );
+        pendingSeek.current = settled.pending;
+        currentSeconds.current = settled.seconds;
         if (data.duration > 0) {
           durationSeconds.current = data.duration / 1000;
         }
         props.onProgress?.({
-          currentTime: data.currentTime / 1000,
+          currentTime: settled.seconds,
           playableDuration: data.duration / 1000,
           seekableDuration: data.duration / 1000,
         });
