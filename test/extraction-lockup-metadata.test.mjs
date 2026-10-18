@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  getLockupPlaylistType,
   getLockupResolutionBadge,
   getResolutionBadge,
   isDurationLabel,
@@ -22,6 +23,20 @@ function rows(...values) {
 function badgeOnlyRow() {
   return {metadata_parts: []};
 }
+
+test("recognizes playlist lockups that start a mix directly", () => {
+  assert.equal(
+    getLockupPlaylistType({command: {type: "WatchEndpoint"}}),
+    "mix",
+  );
+  assert.equal(getLockupPlaylistType({name: "watchEndpoint"}), "mix");
+  assert.equal(
+    getLockupPlaylistType({command: {type: "BrowseEndpoint"}}),
+    "playlist",
+  );
+  assert.equal(getLockupPlaylistType({}), "playlist");
+  assert.equal(getLockupPlaylistType(undefined), "playlist");
+});
 
 test("reads author, views, and publish date from a video lockup", () => {
   assert.deepEqual(

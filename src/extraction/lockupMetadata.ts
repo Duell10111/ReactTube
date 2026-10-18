@@ -18,6 +18,17 @@ export function isDurationLabel(text?: string): boolean {
   return Boolean(text && durationPattern.test(text));
 }
 
+/** Mix lockups start playback directly instead of opening a playlist page. */
+export function getLockupPlaylistType(endpoint?: {
+  command?: {type: string};
+  name?: string;
+}): "mix" | "playlist" {
+  return endpoint?.command?.type === "WatchEndpoint" ||
+    endpoint?.name === "watchEndpoint"
+    ? "mix"
+    : "playlist";
+}
+
 export type ResolutionBadge = "4K" | "8K";
 
 /** Highest first, so a video carrying both is labeled by the higher one. */
