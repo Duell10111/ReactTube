@@ -16,6 +16,7 @@ import {
   VideoData,
 } from "./Types";
 import {
+  getLockupPlaylistType,
   getLockupResolutionBadge,
   getResolutionBadge,
   parseLockupMetadataRows,
@@ -366,7 +367,7 @@ export function getVideoData(
         music: true,
         author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
         videoCount: ytNode.item_count,
-        // TODO: Add Autor
+        // TODO: Add author
       } as PlaylistData;
     } else if (ytNode.item_type === "song" || ytNode.item_type === "video") {
       // console.log("Author: ", ytNode.author);
@@ -380,7 +381,7 @@ export function getVideoData(
         thumbnailImage: getThumbnail(ytNode.thumbnail[0]),
         music: true,
         author: ytNode.author ? getAuthorMusic(ytNode.author) : undefined,
-        // TODO: Add Autor
+        // TODO: Add author
       } as VideoData;
     } else if (ytNode.item_type === "artist") {
       // console.log("Author: ", ytNode.author);
@@ -567,7 +568,7 @@ export function getVideoData(
 
     if (ytNode.content_type === "PLAYLIST") {
       return {
-        type: "playlist",
+        type: getLockupPlaylistType(navEndpoint),
         originalNode: ytNode,
         id: ytNode.content_id,
         navEndpoint,
@@ -575,7 +576,7 @@ export function getVideoData(
         title: ytNode.metadata?.title?.text ?? "Unknown Playlist title",
         author: authorObject,
         videoCount: badges.videoCount,
-      } as PlaylistData;
+      } as PlaylistData | VideoData;
     } else if (
       ytNode.content_type === "VIDEO" ||
       ytNode.content_type === "SHORT"

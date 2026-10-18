@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import {getLockupPlaylistType} from "../src/extraction/lockupMetadata.ts";
 import {resolveTranslation} from "../src/localization/core.ts";
 import {de} from "../src/localization/de.ts";
 import {en} from "../src/localization/en.ts";
@@ -102,6 +103,24 @@ test("adds mix and download badges next to the duration", () => {
     model.badges.map(badge => badge.id),
     ["duration", "mix", "downloaded"],
   );
+});
+
+test("shows the mix badge for playlist lockups in both languages", () => {
+  const mix = video({
+    originalNode: {type: "LockupView"},
+    type: getLockupPlaylistType({command: {type: "WatchEndpoint"}}),
+    id: "RDvideo-1",
+  });
+
+  for (const translate of [t, tDe]) {
+    const model = createMediaCardViewModel(mix, {translate});
+
+    assert.equal(model.kind, "mix");
+    assert.deepEqual(model.badges, [
+      {id: "mix", label: "Mix", tone: "neutral", icon: "playlist-play"},
+    ]);
+    assert.ok(model.accessibilityLabel.includes("Mix"));
+  }
 });
 
 test("shows the resolution badge before the duration and drops it otherwise", () => {
