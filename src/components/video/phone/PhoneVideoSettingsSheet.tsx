@@ -12,8 +12,12 @@ import {useTranslation} from "@/localization";
 import {AppListItem, AppText} from "@/ui/components";
 import {SheetPanel} from "@/ui/patterns";
 import {useAppTheme} from "@/ui/theme";
+import {
+  parsePlayerResolution,
+  playerResolutions,
+} from "@/utils/PlayerResolution";
 
-type Page = "menu" | "speed" | "language" | "subtitles";
+type Page = "menu" | "resolution" | "speed" | "language" | "subtitles";
 
 interface PhoneVideoSettingsSheetProps {
   open: boolean;
@@ -45,6 +49,7 @@ export function PhoneVideoSettingsSheet({
   const subtitleOptions = useSubtitleOptions();
   const {appSettings, updateSettings} = useAppData();
   const autoplay = isAutoplayEnabled(appSettings);
+  const resolution = parsePlayerResolution(appSettings);
 
   // Every opening starts at the menu, not at the page left last time.
   useEffect(() => {
@@ -69,6 +74,7 @@ export function PhoneVideoSettingsSheet({
 
   const titles: Record<Page, string> = {
     menu: t("video.player.settings"),
+    resolution: t("settings.videoResolution"),
     speed: t("video.player.speed"),
     language: t("video.player.language"),
     subtitles: t("video.player.subtitles"),
@@ -93,6 +99,14 @@ export function PhoneVideoSettingsSheet({
         {back}
         {page === "menu" ? (
           <>
+            {!appSettings.vlcEnabled ? (
+              <AppListItem
+                icon={"high-quality"}
+                onPress={() => setPage("resolution")}
+                title={t("settings.videoResolution")}
+                subtitle={t(resolution.labelKey)}
+              />
+            ) : null}
             <AppListItem
               icon={"speed"}
               onPress={() => setPage("speed")}
@@ -127,6 +141,16 @@ export function PhoneVideoSettingsSheet({
             />
           </>
         ) : null}
+        {page === "resolution"
+          ? Object.values(playerResolutions).map(option => (
+              <AppListItem
+                key={option.key}
+                onPress={() => choose(() => updateSettings(option.settings))}
+                selected={resolution.key === option.key}
+                title={t(option.labelKey)}
+              />
+            ))
+          : null}
         {page === "speed"
           ? PLAYBACK_SPEEDS.map(value => (
               <AppListItem

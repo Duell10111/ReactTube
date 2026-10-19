@@ -33,6 +33,7 @@ import {
   sameLadder,
   type PlaybackStep,
 } from "@/utils/PlaybackLadder";
+import {playbackStartAfterReload} from "@/utils/PlaybackPosition";
 import {
   playbackModeFromSettings,
   resolveStreamingSource,
@@ -293,13 +294,21 @@ export default function useVideoDetails(
     [],
   );
   const [startTime, setStartTime] = useState<number>();
+  /** Last known playback position — survives source changes and refreshes. */
+  const positionRef = useRef<number>(undefined);
   /** The video the start time belongs to. */
   const startVideoRef = useRef(videoId);
 
-  // TODO: Maybe replace with fkt in the future?
+  // TODO: Consider replacing this with a function.
   const [refresh, setRefresh] = useState<boolean>(false);
 
   useEffect(() => {
+    const sameVideo = startVideoRef.current === videoId;
+    startVideoRef.current = videoId;
+    if (!sameVideo) {
+      positionRef.current = undefined;
+    }
+    const currentSeconds = positionRef.current;
     setLoading(true);
     setError(undefined);
     const startTimeSeconds =
@@ -458,18 +467,17 @@ export default function useVideoDetails(
             setLoading(false);
           });
     }
-    // TODO: Fix duplicate reset to starttime on refresh
     // A refresh or a changed setting keeps the position set before; a new
     // video, such as the one autoplay switches to on the same screen, starts
     // at its own time instead of the previous video's.
-    const sameVideo = startVideoRef.current === videoId;
-    startVideoRef.current = videoId;
-    setStartTime(prevSeconds => {
-      if (sameVideo && prevSeconds) {
-        return prevSeconds;
-      }
-      return startTimeSeconds;
-    });
+    setStartTime(previousStartSeconds =>
+      playbackStartAfterReload({
+        sameVideo,
+        currentSeconds,
+        previousStartSeconds,
+        requestedStartSeconds: startTimeSeconds,
+      }),
+    );
   }, [
     playbackMode,
     vlcEnabled,
@@ -627,9 +635,6 @@ export default function useVideoDetails(
     }
   }, [startTime, resumeSeconds, videoInfo?.durationSeconds]);
 
-  /** Last known playback position — survives step changes and refreshes. */
-  const positionRef = useRef(0);
-
   const reportProgress = useCallback((seconds: number) => {
     positionRef.current = seconds;
   }, []);
@@ -645,6 +650,7 @@ export default function useVideoDetails(
     const index = ladderIndexRef.current;
     const steps = ladderRef.current;
     const next = index + 1;
+    const position = positionRef.current;
 
     if (next >= steps.length) {
       LOGGER.warn(
@@ -656,8 +662,8 @@ export default function useVideoDetails(
     LOGGER.warn(
       `Wiedergabe gescheitert (${reason}) auf Stufe ${index + 1}/${steps.length} — ` +
         `weiter mit ${steps[next].label}${
-          positionRef.current > 0
-            ? ` ab ${Math.floor(positionRef.current)} s`
+          position !== undefined && position > 0
+            ? ` ab ${Math.floor(position)} s`
             : ""
         }.`,
     );
@@ -666,8 +672,8 @@ export default function useVideoDetails(
     setLadderIndex(next);
 
     // The next step starts where the previous one stopped.
-    if (positionRef.current > 0) {
-      setStartTime(positionRef.current);
+    if (position !== undefined) {
+      setStartTime(position);
     }
   }, []);
 
@@ -722,10 +728,10 @@ export default function useVideoDetails(
     const timer = setTimeout(() => {
       LOGGER.info(
         `Streaming-Daten laufen ab — Auffrischung bei ${Math.floor(
-          positionRef.current,
+          positionRef.current ?? 0,
         )} s.`,
       );
-      setStartTime(positionRef.current > 0 ? positionRef.current : undefined);
+      setStartTime(positionRef.current);
       setRefresh(previous => !previous);
     }, delay);
 
@@ -851,7 +857,8 @@ export default function useVideoDetails(
     removeRating,
     addToWatchHistory,
     refresh: (continueAtSeconds?: number) => {
-      setStartTime(continueAtSeconds ?? positionRef.current ?? undefined);
+      positionRef.current = continueAtSeconds ?? positionRef.current;
+      setStartTime(positionRef.current);
       setRefresh(previous => !previous);
     },
   };
