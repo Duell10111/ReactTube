@@ -2,6 +2,7 @@ import React, {createContext, useCallback, useContext, useState} from "react";
 import {createMMKV} from "react-native-mmkv";
 
 import type {UILanguage} from "@/localization/types";
+import type {PlayerResolutionType} from "@/utils/PlayerResolution";
 import type {LoudnessNormalizationMode} from "@/utils/music/LoudnessNormalization";
 
 const storage = createMMKV({id: "settings"});
@@ -11,6 +12,7 @@ const settingsKey = "appSettings";
 export interface AppSettings {
   vlcEnabled?: boolean;
   ownOverlayEnabled?: boolean;
+  playerResolutionType?: PlayerResolutionType;
   hlsEnabled?: boolean;
   localHlsEnabled?: boolean;
   /**

@@ -53,8 +53,14 @@ export const de = {
   "settings.player.nativeOverlay": "Natives Overlay (experimentell)",
   "settings.player.vlc": "VLC",
   "settings.resolution.localHls": "Lokales HLS — bis 1080p, mehrsprachig",
+  "settings.resolution.automatic":
+    "Automatisch — versucht verfügbare Wiedergabearten",
+  "video.playback.accessDenied":
+    "Dieses Video ist für dein Konto nicht verfügbar. Melde dich an oder nutze ein Konto, das es ansehen darf.",
+  "video.playback.exhausted":
+    "Keine der verfügbaren Wiedergabearten hat funktioniert. Bitte versuche es erneut.",
   "settings.resolution.localHlsAv1":
-    "Lokales HLS + AV1 — 4K (nur Apple TV 4K, 3. Generation)",
+    "Lokales HLS + AV1 — bis 4K (AV1-Decodierung erforderlich)",
   "settings.resolution.youtubeHls":
     "YouTube-HLS — bis 1080p, gemischter Ton (Standard)",
   "settings.resolution.progressive": "Progressiv (kann früh abbrechen)",

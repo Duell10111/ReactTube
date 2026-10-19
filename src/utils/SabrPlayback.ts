@@ -40,7 +40,10 @@ const SEGMENT_SEGMENT = "seg";
 /** From here on the stream counts as dead and failures are only logged. */
 const MAX_CONSECUTIVE_FAILURES = 3;
 
+const activeSabrStreams = new Set<symbol>();
+
 export interface SabrPlaybackOptions {
+  signal?: AbortSignal;
   /**
    * Allow AV1.
    *
@@ -139,6 +142,8 @@ export async function startSabrPlayback(
   } & SabrPlaybackOptions,
 ): Promise<SabrPlaybackSource | undefined> {
   const started = Date.now();
+  const server = MediaServer;
+  if (!server || options.signal?.aborted) return undefined;
 
   const rawStreamingUrl = info.streaming_data?.server_abr_streaming_url;
   const ustreamerConfig = (info as any).player_config?.media_common_config
@@ -162,7 +167,39 @@ export async function startSabrPlayback(
   let source: SegmentSource | undefined;
   /** Audio-only sources of the extra tracks, closed together with `source`. */
   const extraSources: SegmentSource[] = [];
+  const transportAbort = new AbortController();
+  type SabrFetch = NonNullable<
+    ConstructorParameters<typeof Sabr.SabrStream>[0]["fetch"]
+  >;
+  const streamFetch: SabrFetch = (input, init) =>
+    fetch(input as Parameters<typeof fetch>[0], {
+      ...(init as RequestInit),
+      signal: transportAbort.signal,
+    }) as ReturnType<SabrFetch>;
   let subscription: {remove: () => void} | undefined;
+  let lease: symbol | undefined;
+  let registrationRoot: string | undefined;
+  const cleanup = async () => {
+    transportAbort.abort();
+    subscription?.remove();
+    if (registrationRoot) server.unregisterPrefix?.(registrationRoot);
+    options.signal?.removeEventListener("abort", abort);
+    if (lease) {
+      activeSabrStreams.delete(lease);
+      if (!activeSabrStreams.size) await server.stopServer();
+    }
+    await Promise.all(
+      [source, ...extraSources].map(each => each?.close().catch(() => {})),
+    );
+  };
+  const abort = () => {
+    cleanup().catch(() => {});
+  };
+  const checkAbort = () => {
+    if (transportAbort.signal.aborted)
+      throw new Error("SABR preparation aborted");
+  };
+  options.signal?.addEventListener("abort", abort, {once: true});
 
   try {
     const streamingUrl = options.decipherUrl
@@ -173,6 +210,7 @@ export async function startSabrPlayback(
           return rawStreamingUrl;
         })
       : rawStreamingUrl;
+    checkAbort();
 
     // The first round brings format metadata and init segments — without
     // them there is no segment plan and therefore no playlist.
@@ -186,6 +224,7 @@ export async function startSabrPlayback(
         audio_format_id: toFormatId(audio),
         video_id: options.videoId,
         po_token: poToken,
+        fetch: streamFetch,
       });
       const segmentSource = new Sabr.SabrSegmentSource(stream);
       // Tracked outside so the error path below can close it.
@@ -195,6 +234,7 @@ export async function startSabrPlayback(
 
     let poToken = options.poToken;
     let opened = await open(poToken);
+    checkAbort();
 
     // A token the server accepted turns the status to `ok` right away; one it
     // did not leaves it `pending`, and the stream dies at the first seek.
@@ -221,6 +261,7 @@ export async function startSabrPlayback(
       );
     }
     const index = await Sabr.buildSabrHlsIndex(segmentSource);
+    checkAbort();
     const sourceByKey = new Map<string, SegmentSource>(
       Object.keys(index).map(key => [key, segmentSource]),
     );
@@ -239,6 +280,7 @@ export async function startSabrPlayback(
             enabled_track_types: Sabr.EnabledTrackTypes.AUDIO_ONLY,
             video_id: options.videoId,
             po_token: poToken,
+            fetch: streamFetch,
           }),
         );
         extraSources.push(extraSource);
@@ -271,9 +313,14 @@ export async function startSabrPlayback(
       }
     }
 
-    const {port} = await MediaServer.startServer();
+    checkAbort();
+    lease = Symbol("sabr-playback");
+    activeSabrStreams.add(lease);
+    const {port} = await server.startServer();
+    checkAbort();
     const token = randomToken();
     const root = `/sabr/${token}`;
+    registrationRoot = root;
     const base = `http://127.0.0.1:${port}${root}`;
 
     const manifest = await info.toHLS({
@@ -283,17 +330,19 @@ export async function startSabrPlayback(
       },
     });
 
+    checkAbort();
+
     // The master sits next to the media playlists because it references them
     // by relative name; the segments live one level deeper so their prefix
     // does not shadow the playlists.
-    MediaServer.registerText(
+    server.registerText(
       `${root}/master.m3u8`,
       manifest.master,
       "application/vnd.apple.mpegurl",
     );
 
     for (const playlist of manifest.playlists) {
-      MediaServer.registerText(
+      server.registerText(
         `${root}/${playlist.name}`,
         playlist.content,
         "application/vnd.apple.mpegurl",
@@ -313,9 +362,11 @@ export async function startSabrPlayback(
      */
     let consecutiveFailures = 0;
 
-    subscription = MediaServer.addListener(
+    subscription = server.addListener(
       "onSegmentRequest",
       ({requestId, path}) => {
+        // Other mounted videos can own independent SABR streams on this server.
+        if (!path.startsWith(segmentRoot)) return;
         // Every request **must** be answered, even on failure: otherwise the
         // connection waits for the native timeout and the player stands still
         // that long.
@@ -324,7 +375,7 @@ export async function startSabrPlayback(
             const request = parseSabrSegmentPath(segmentRoot, path);
 
             if (!request) {
-              MediaServer.failSegment(requestId, 404, "Unbekannter Pfad");
+              server.failSegment(requestId, 404, "Unbekannter Pfad");
               return;
             }
 
@@ -332,7 +383,7 @@ export async function startSabrPlayback(
               const data = await sourceFor(request.formatKey).getInit(
                 request.formatKey,
               );
-              MediaServer.respondToSegment(requestId, data, "video/mp4");
+              server.respondToSegment(requestId, data, "video/mp4");
               return;
             }
 
@@ -340,7 +391,7 @@ export async function startSabrPlayback(
               request.formatKey,
               request.sequenceNumber,
             );
-            MediaServer.respondToSegment(requestId, data, "video/iso.segment");
+            server.respondToSegment(requestId, data, "video/iso.segment");
             consecutiveFailures = 0;
           } catch (error: any) {
             consecutiveFailures++;
@@ -361,11 +412,7 @@ export async function startSabrPlayback(
             // 404 rather than 503: a 5xx invites AVPlayer to retry, a 404 says
             // "does not exist" and leads to the error faster — and with it to
             // the next stage.
-            MediaServer.failSegment(
-              requestId,
-              404,
-              String(error?.message ?? error),
-            );
+            server.failSegment(requestId, 404, String(error?.message ?? error));
           }
         };
 
@@ -373,7 +420,7 @@ export async function startSabrPlayback(
       },
     );
 
-    MediaServer.registerStreamPrefix(`${root}/${SEGMENT_SEGMENT}`);
+    server.registerStreamPrefix(`${root}/${SEGMENT_SEGMENT}`);
 
     LOGGER.info(
       `SABR bereit über ${options.client}: itag ${video.itag}+${audio.itag} · ` +
@@ -382,27 +429,15 @@ export async function startSabrPlayback(
         `Port ${port} · ${Date.now() - started}ms`,
     );
 
-    const activeSubscription = subscription;
-
     return {
       masterUri: `${base}/master.m3u8`,
       videoItag: video.itag,
       audioItag: audio.itag,
-      stop: async () => {
-        activeSubscription.remove();
-        await Promise.all(
-          [segmentSource, ...extraSources].map(each =>
-            each.close().catch(() => {}),
-          ),
-        );
-        await MediaServer.stopServer();
-      },
+      stop: cleanup,
     };
   } catch (error: any) {
     LOGGER.warn(`SABR nicht möglich: ${error?.message ?? error}`);
-    subscription?.remove();
-    await source?.close().catch(() => {});
-    await Promise.all(extraSources.map(each => each.close().catch(() => {})));
+    await cleanup().catch(() => {});
     return undefined;
   }
 }

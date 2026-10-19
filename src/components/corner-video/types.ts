@@ -1,6 +1,6 @@
-import {ReactElement} from "react";
+import {ReactElement, type ComponentProps} from "react";
 import {ViewStyle} from "react-native";
-import type {VideoNativeProps} from "react-native-video";
+import type Video from "react-native-video";
 
 // VideoProvider
 
@@ -25,5 +25,5 @@ export interface CornerVideoProps {
     bottom: number;
     left: number;
   };
-  videoProps: VideoNativeProps;
+  videoProps: ComponentProps<typeof Video>;
 }

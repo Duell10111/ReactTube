@@ -26,7 +26,6 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {ResizeMode} from "react-native-video";
 
 import VideoComponent from "../../components/VideoComponent";
-import ErrorComponent from "../../components/general/ErrorComponent";
 import ChannelIcon from "../../components/video/ChannelIcon";
 import PlayPauseAnimation from "../../components/video/phone/PlayPauseAnimation";
 import useVideoDetails from "../../hooks/useVideoDetails";
@@ -34,12 +33,17 @@ import {useReelPlaylist} from "../../hooks/video/useReelPlaylist";
 import {RootStackParamList} from "../../navigation/RootStackNavigator";
 import {YTNodes} from "../../utils/Youtube";
 
+import {useTranslation} from "@/localization";
+import {ErrorState} from "@/ui/components";
+
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 type NProp = NativeStackNavigationProp<RootStackParamList, "VideoScreen">;
 
 export default function ReelVideoScreen({route}: Props) {
   const {videoId, navEndpoint} = route.params;
-  const {YTVideoInfo} = useVideoDetails(navEndpoint ?? videoId);
+  const {YTVideoInfo, loading, error, refresh, playbackFailureKey} =
+    useVideoDetails(navEndpoint ?? videoId);
+  const {t} = useTranslation();
   const navigation = useNavigation<NProp>();
 
   const {width, height} = useWindowDimensions();
@@ -72,6 +76,15 @@ export default function ReelVideoScreen({route}: Props) {
   }, [context, playlistData, fetchMore]);
 
   if (!playlistData) {
+    if (error && !loading) {
+      return (
+        <ErrorState
+          title={t("video.unavailable.title")}
+          message={t(playbackFailureKey ?? "video.unavailable.message")}
+          onRetry={() => refresh()}
+        />
+      );
+    }
     return (
       <View
         style={[
@@ -116,21 +129,41 @@ function VideoItem({videoId, index}: ItemProps) {
   const {
     YTVideoInfo,
     videoUrl,
+    loading,
+    error,
+    startTime,
+    refresh,
     reportPlaybackFailure,
+    onPlaybackActive,
+    onPlaybackAdvanced,
+    playbackAttemptKey,
+    playbackFailureKey,
     reportProgress,
-    actionData,
-    like,
-    dislike,
-    removeRating,
   } = useVideoDetails(videoId);
 
+  const {t} = useTranslation();
   const {bottom} = useSafeAreaInsets();
 
   const [paused, setPaused] = useState(false);
 
   const {selected} = useContext(reelContext);
 
-  if (!YTVideoInfo) {
+  // Metadata without a playable source is final too, not only an error.
+  if (!videoUrl && !loading && (error || YTVideoInfo)) {
+    return (
+      <ErrorState
+        title={t("video.unavailable.title")}
+        message={
+          playbackFailureKey
+            ? t(playbackFailureKey)
+            : (YTVideoInfo?.originalData.playability_status?.reason ??
+              t("video.unavailable.message"))
+        }
+        onRetry={() => refresh()}
+      />
+    );
+  }
+  if (!YTVideoInfo || !videoUrl) {
     return (
       <View
         style={[
@@ -145,17 +178,6 @@ function VideoItem({videoId, index}: ItemProps) {
     );
   }
 
-  if (!videoUrl) {
-    return (
-      <ErrorComponent
-        text={
-          YTVideoInfo.originalData.playability_status?.reason ??
-          "Video source is not available"
-        }
-      />
-    );
-  }
-
   const gesture = Gesture.Tap().onStart(() => {
     runOnJS(setPaused)(!paused);
   });
@@ -166,7 +188,11 @@ function VideoItem({videoId, index}: ItemProps) {
       <Animated.View style={styles.videoContainer}>
         <VideoComponent
           url={videoUrl}
+          startPositionSeconds={startTime}
           onPlaybackFailure={reportPlaybackFailure}
+          onPlaybackActive={onPlaybackActive}
+          onPlaybackAdvanced={onPlaybackAdvanced}
+          playbackAttemptKey={playbackAttemptKey}
           onProgress={data => reportProgress(data.currentTime)}
           style={[styles.videoComponentFullscreen]}
           videoInfo={YTVideoInfo}

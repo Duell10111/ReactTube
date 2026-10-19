@@ -56,8 +56,18 @@ const ROOT_DIRECTORY = "generated-hls";
 
 /** After this time the segment URLs have expired anyway. */
 const MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const generatedDirectories = new Map<string, Directory>();
+let generation = 0;
+
+/** Release only the files owned by this prepared source. */
+export function releaseGeneratedHls(uri: string) {
+  const directory = generatedDirectories.get(uri);
+  generatedDirectories.delete(uri);
+  if (directory?.exists) directory.delete();
+}
 
 export interface GeneratedHlsOptions {
+  signal?: AbortSignal;
   /**
    * Also offer AV1 variants.
    *
@@ -158,6 +168,8 @@ export async function buildGeneratedHls(
   options?: GeneratedHlsOptions,
 ): Promise<string | undefined> {
   const started = Date.now();
+  if (options?.signal?.aborted) return undefined;
+  let directory: Directory | undefined;
 
   try {
     const manifest = await info.toHLS({
@@ -169,11 +181,13 @@ export async function buildGeneratedHls(
         max_height: options?.maxHeight,
       },
     });
+    if (options?.signal?.aborted) return undefined;
 
     // A fresh directory per call: the previous round's segment URLs are bound
     // to an expired session and must not live on.
-    const name = `${videoId.replace(/[^a-zA-Z0-9_-]/g, "_")}-${started}`;
-    const directory = new Directory(rootDirectory(), name);
+    const name = `${videoId.replace(/[^a-zA-Z0-9_-]/g, "_")}-${++generation}-${started}`;
+    directory = new Directory(rootDirectory(), name);
+    const outputDirectory = directory;
 
     directory.create({intermediates: true, idempotent: true});
 
@@ -190,7 +204,7 @@ export async function buildGeneratedHls(
     const duration = info.basic_info.duration ?? 0;
     if (duration > 0) {
       options?.subtitles?.tracks.forEach((track, index) => {
-        const file = new File(directory, `subtitles-${index}.m3u8`);
+        const file = new File(outputDirectory, `subtitles-${index}.m3u8`);
         file.create({overwrite: true});
         file.write(buildSubtitleMediaPlaylist(track, duration));
         renditions.push({
@@ -210,6 +224,7 @@ export async function buildGeneratedHls(
     // UTF-8 safe (track names can contain umlauts) and needs no extra
     // dependency. Checked with AVFoundation; it is accepted.
     const source = `data:application/vnd.apple.mpegurl,${encodeURIComponent(master)}`;
+    if (options?.signal) generatedDirectories.set(source, directory);
 
     pruneOldManifests(name);
 
@@ -234,6 +249,11 @@ export async function buildGeneratedHls(
 
     return source;
   } catch (error: any) {
+    try {
+      if (directory?.exists) directory.delete();
+    } catch {
+      // An incomplete cache directory can be pruned on a later preparation.
+    }
     LOGGER.warn(
       `Eigenes HLS nicht möglich (${String(
         error?.message ?? error,

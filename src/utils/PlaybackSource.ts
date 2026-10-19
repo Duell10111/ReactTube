@@ -10,6 +10,7 @@
  * The order comes from `YouTube.js/docs/playback-matrix.md`
  * (`npm run matrix` in the fork refreshes it).
  */
+import {PlaybackAccessError} from "@/utils/AutomaticPlayback";
 import Logger from "@/utils/Logger";
 import {
   PLAYBACK_CLIENTS_DEFAULT,
@@ -19,6 +20,7 @@ import {
   resolvePlaybackInfo,
   sabrPlaybackClients,
 } from "@/utils/PlaybackResolver";
+import {parsePlayerResolution} from "@/utils/PlayerResolution";
 import {Innertube, YT, YTNodes} from "@/utils/Youtube";
 import {poTokenForClient, poTokenMinter} from "@/utils/potoken/PoTokenProvider";
 import {needsSignedInPlayback} from "@/utils/signedInPlayback";
@@ -116,7 +118,12 @@ function hasIndexedMp4Formats(info: YT.VideoInfo): boolean {
 export async function resolveStreamingSource(
   youtube: Innertube,
   target: string | YTNodes.NavigationEndpoint,
-  options?: {mode?: PlaybackMode; signedInYoutube?: Innertube},
+  options?: {
+    mode?: PlaybackMode;
+    signedInYoutube?: Innertube;
+    signal?: AbortSignal;
+    throwOnAccessDenied?: boolean;
+  },
 ): Promise<StreamingSource | undefined> {
   const mode = options?.mode ?? "generated";
   const sabrClients = sabrPlaybackClients(poTokenMinter.isSupported);
@@ -126,11 +133,16 @@ export async function resolveStreamingSource(
       : (target.payload?.videoId as string | undefined);
 
   let signedInOnly = false;
+  let accessDenied = false;
 
   const resolved = await resolvePlaybackInfo(youtube, target, {
+    signal: options?.signal,
     profile: mode,
     onFailure: attempts => {
       signedInOnly = needsSignedInPlayback(attempts);
+      accessDenied =
+        attempts.length > 0 &&
+        attempts.every(attempt => attempt.status === "LOGIN_REQUIRED");
     },
     poTokenFor: videoId ? poTokenForClient(videoId) : undefined,
     clients:
@@ -182,9 +194,19 @@ export async function resolveStreamingSource(
   });
 
   if (!resolved) {
-    return signedInOnly && options?.signedInYoutube?.session.logged_in
-      ? resolveSignedInSource(options.signedInYoutube, target)
-      : undefined;
+    if (options?.signal?.aborted) return undefined;
+    if (signedInOnly && options?.signedInYoutube?.session.logged_in) {
+      const authenticated = await resolveSignedInSource(
+        options.signedInYoutube,
+        target,
+        options.signal,
+      );
+      if (authenticated || options.signal?.aborted) return authenticated;
+    }
+    if (options?.throwOnAccessDenied && (signedInOnly || accessDenied)) {
+      throw new PlaybackAccessError("No account access to this video");
+    }
+    return undefined;
   }
 
   const hasHlsManifest = !!resolved.info.streaming_data?.hls_manifest_url;
@@ -246,8 +268,10 @@ export async function resolveStreamingSource(
 export async function resolveSignedInSource(
   signedInYoutube: Innertube,
   target: string | YTNodes.NavigationEndpoint,
+  signal?: AbortSignal,
 ): Promise<StreamingSource | undefined> {
   const resolved = await resolvePlaybackInfo(signedInYoutube, target, {
+    signal,
     profile: "signed-in",
     clients: PLAYBACK_CLIENTS_SIGNED_IN,
     // Credentials are the point here; `TV_DOWNGRADED` accepts the TV token.
@@ -297,18 +321,13 @@ export async function resolveSignedInSource(
  * server that was never built and now carries the app's own generator.
  * `hlsEnabled: false` remains the emergency exit to the progressive path.
  */
-export function playbackModeFromSettings(settings: {
-  hlsEnabled?: boolean;
-  localHlsEnabled?: boolean;
-  sabrEnabled?: boolean;
-}): PlaybackMode {
-  if (settings.sabrEnabled) {
-    return "sabr";
-  }
-
-  if (settings.hlsEnabled === false && !settings.localHlsEnabled) {
-    return "progressive";
-  }
-
-  return settings.localHlsEnabled ? "generated" : "youtube-hls";
+export function playbackModeFromSettings(
+  settings: Parameters<typeof parsePlayerResolution>[0],
+): PlaybackMode {
+  const type = parsePlayerResolution(settings).key;
+  if (type === "sabr") return "sabr";
+  if (type === "http") return "progressive";
+  return type === "hlsLocal" || type === "hlsLocalAv1"
+    ? "generated"
+    : "youtube-hls";
 }
