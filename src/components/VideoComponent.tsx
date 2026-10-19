@@ -1,5 +1,5 @@
 import {useIsFocused} from "@react-navigation/native";
-import React, {useCallback, useEffect, useMemo, useRef} from "react";
+import React, {useEffect, useMemo, useRef} from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -18,16 +18,13 @@ import Video, {
 import Logger from "../utils/Logger";
 
 import {YTChapter, YTVideoInfo} from "@/extraction/Types";
+import {
+  usePlaybackWatchdog,
+  withPlaybackWatchdog,
+} from "@/hooks/video/usePlaybackWatchdog";
 import {PlaybackSize, toPlaybackSize} from "@/utils/PlaybackSize";
 
 const LOGGER = Logger.extend("VIDEO");
-
-/**
- * How long a load may stay without a result before the source counts as
- * failed. Generous on purpose: a slow connection should not wrongly cost a
- * ladder step, but a dead decoder should not hang forever either.
- */
-const STALL_TIMEOUT_MS = 20_000;
 
 interface Props {
   /**
@@ -46,6 +43,9 @@ interface Props {
    * The ladder decides what follows from it.
    */
   onPlaybackFailure?: (reason: string) => void;
+  onPlaybackActive?: (active: boolean) => void;
+  onPlaybackAdvanced?: () => void;
+  playbackAttemptKey?: string;
   style?: StyleProp<ViewStyle>;
   videoInfo?: YTVideoInfo;
   chapters?: YTChapter[];
@@ -73,6 +73,9 @@ export default function VideoComponent({
   url,
   startPositionSeconds,
   onPlaybackFailure,
+  onPlaybackActive,
+  onPlaybackAdvanced,
+  playbackAttemptKey,
   videoInfo,
   fullscreen,
   style,
@@ -86,35 +89,13 @@ export default function VideoComponent({
   const playerRef = useRef<VideoRef>(undefined);
   const isFocused = useIsFocused();
 
-  /**
-   * Stall watchdog — plan phase 4.1.
-   *
-   * **Why `onError` is not enough:** when the device lacks the decoder,
-   * AVPlayer reports no error. Measured with a manifest that only offered AV1,
-   * the media server process died, and neither `onLoad` nor `onError` ever
-   * arrived — an endless spinner for the user. So if loading stays without a
-   * result for too long, the source counts as failed.
-   */
-  const stallTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const clearStallTimer = useCallback(() => {
-    if (stallTimer.current) {
-      clearTimeout(stallTimer.current);
-      stallTimer.current = undefined;
-    }
-  }, []);
-
-  const armStallTimer = useCallback(() => {
-    clearStallTimer();
-    stallTimer.current = setTimeout(() => {
-      onPlaybackFailure?.(
-        `kein Ladeergebnis nach ${STALL_TIMEOUT_MS / 1000} s`,
-      );
-    }, STALL_TIMEOUT_MS);
-  }, [clearStallTimer, onPlaybackFailure]);
-
-  // A source change clears the watchdog; the new load arms it again.
-  useEffect(() => clearStallTimer, [clearStallTimer, url]);
+  const watchdog = usePlaybackWatchdog({
+    sourceKey: playbackAttemptKey ?? url,
+    paused: paused ?? !isFocused,
+    onFailure: onPlaybackFailure,
+    onActive: onPlaybackActive,
+    onAdvance: onPlaybackAdvanced,
+  });
 
   const parsedChapters = useMemo(() => {
     return videoInfo?.chapters?.map(mapChapters) ?? [];
@@ -141,7 +122,7 @@ export default function VideoComponent({
     <>
       <ActivityIndicator style={styles.activityIndicator} size={"large"} />
       <Video
-        key={videoURL}
+        key={playbackAttemptKey ?? videoURL}
         // @ts-ignore
         ref={playerRef}
         source={{
@@ -178,7 +159,6 @@ export default function VideoComponent({
         reportBandwidth
         // Event listener
         onLoad={(data: any) => {
-          clearStallTimer();
           LOGGER.debug(
             `Video geladen (${describeSource(videoURL)}): ` +
               `${data?.naturalSize?.width}x${data?.naturalSize?.height}, ` +
@@ -194,25 +174,20 @@ export default function VideoComponent({
         // The load event only knows the first HLS variant; adaptive switches
         // afterwards arrive here with the newly rendered size.
         onBandwidthUpdate={data => reportPlaybackSize(data)}
-        onProgress={data => {
-          // Playback runs — the watchdog is no longer needed.
-          clearStallTimer();
-          callbacks.onProgress?.(data);
-        }}
+        {...withPlaybackWatchdog(watchdog, {
+          onProgress: callbacks.onProgress,
+          onError: error => {
+            LOGGER.warn(
+              `Player error (${describeSource(videoURL)}): ${error?.error?.errorCode ?? "unknown"}`,
+            );
+          },
+          onEnd: () => {
+            LOGGER.debug("End reached");
+            callbacks.onEndReached?.();
+          },
+        })}
         onLoadStart={() => {
           LOGGER.debug(`Video lädt… (${describeSource(videoURL)})`);
-          armStallTimer();
-        }}
-        onError={(error: any) => {
-          clearStallTimer();
-          LOGGER.warn(
-            `Player-Fehler (${describeSource(videoURL)}): ${JSON.stringify(error)}`,
-          );
-          onPlaybackFailure?.(JSON.stringify(error?.error ?? error));
-        }}
-        onEnd={() => {
-          LOGGER.debug("End reached");
-          callbacks.onEndReached?.();
         }}
       />
     </>

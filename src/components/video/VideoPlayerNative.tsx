@@ -1,10 +1,4 @@
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-} from "react";
+import {forwardRef, useCallback, useImperativeHandle, useRef} from "react";
 import {StyleSheet} from "react-native";
 import Video, {
   OnVideoErrorData,
@@ -18,21 +12,14 @@ import {
   VideoComponentType,
 } from "./videoPlayer/VideoPlayer";
 
+import {
+  usePlaybackWatchdog,
+  withPlaybackWatchdog,
+} from "@/hooks/video/usePlaybackWatchdog";
 import Logger from "@/utils/Logger";
 import {PlaybackSize, toPlaybackSize} from "@/utils/PlaybackSize";
 
 const LOGGER = Logger.extend("PLAYBACK");
-
-/**
- * How long a load may stay without a result before the source counts as
- * failed — plan phase 4.1.
- *
- * `onError` alone is not enough: when the device lacks the decoder, AVPlayer
- * reports nothing and silently stays in the loading state (measured with a
- * manifest that only offered AV1 — the media server process died, `onLoad`
- * never arrived).
- */
-const STALL_TIMEOUT_MS = 20_000;
 
 const NO_TEXT_TRACK = {type: SelectedTrackType.DISABLED};
 
@@ -47,6 +34,13 @@ const VideoPlayerNative = forwardRef<
 
   const onPlaybackFailure: ((reason: string) => void) | undefined =
     props.props.onPlaybackFailure;
+  const watchdog = usePlaybackWatchdog({
+    sourceKey: props.props.playbackAttemptKey ?? props.props.url,
+    paused: props.paused,
+    onFailure: onPlaybackFailure,
+    onActive: props.props.onPlaybackActive,
+    onAdvance: props.props.onPlaybackAdvanced,
+  });
   const onPlaybackInfoUpdate: ((size: PlaybackSize) => void) | undefined =
     props.props.onPlaybackInfoUpdate;
 
@@ -57,27 +51,6 @@ const VideoPlayerNative = forwardRef<
       onPlaybackInfoUpdate?.(size);
     }
   };
-
-  const stallTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const clearStallTimer = useCallback(() => {
-    if (stallTimer.current) {
-      clearTimeout(stallTimer.current);
-      stallTimer.current = undefined;
-    }
-  }, []);
-
-  // Every new source gets a fresh watchdog.
-  useEffect(() => {
-    clearStallTimer();
-    stallTimer.current = setTimeout(() => {
-      onPlaybackFailure?.(
-        `kein Ladeergebnis nach ${STALL_TIMEOUT_MS / 1000} s`,
-      );
-    }, STALL_TIMEOUT_MS);
-
-    return clearStallTimer;
-  }, [clearStallTimer, onPlaybackFailure, props.props.url]);
 
   // Plan phase 0.4: log native player errors together with the source —
   // the basis for the error ladder from phase 4.
@@ -94,27 +67,27 @@ const VideoPlayerNative = forwardRef<
       LOGGER.warn(
         `Player-Fehler · source=${source} · ` +
           `host=${uri?.split("/")[2] ?? "?"} · ` +
-          `error=${JSON.stringify(errorData?.error ?? errorData)}`,
+          `error=${errorData?.error?.errorCode ?? "unknown"}`,
       );
-      clearStallTimer();
-      onPlaybackFailure?.(JSON.stringify(errorData?.error ?? errorData));
       props.onError?.(errorData);
     },
-    [props, clearStallTimer, onPlaybackFailure],
+    [props],
   );
 
   useImperativeHandle(ref, () => {
     return {
       seek: seconds => {
+        watchdog.seek();
         videoRef.current?.seek?.(seconds);
       },
       getCurrentPositionSeconds: async () =>
         (await videoRef.current?.getCurrentPosition?.()) ?? 0,
     };
-  }, []);
+  }, [watchdog]);
 
   return (
     <Video
+      key={props.props.playbackAttemptKey ?? props.props.url}
       // @ts-ignore
       ref={videoRef}
       style={styles.fullScreen}
@@ -143,7 +116,6 @@ const VideoPlayerNative = forwardRef<
       // manifest would otherwise be rendered a second time by AVPlayer.
       selectedTextTrack={NO_TEXT_TRACK}
       onLoad={data => {
-        clearStallTimer();
         reportPlaybackSize(data.naturalSize);
         props.onLoad?.(data);
       }}
@@ -152,16 +124,14 @@ const VideoPlayerNative = forwardRef<
       // HLS variant switches after the load event arrive here with the newly
       // rendered size.
       onBandwidthUpdate={data => reportPlaybackSize(data)}
-      onSeek={props.onSeek}
-      onError={onError}
-      onProgress={data => {
-        // Playback runs — the watchdog is no longer needed.
-        clearStallTimer();
-        props.onProgress?.(data);
-      }}
-      onEnd={props.onEnd}
+      {...withPlaybackWatchdog(watchdog, {
+        onSeek: props.onSeek,
+        onError,
+        onProgress: props.onProgress,
+        onEnd: props.onEnd,
+        onBuffer: data => props.onBuffer?.(data.isBuffering),
+      })}
       onAudioTracks={props.onAudioTracks}
-      onBuffer={data => props.onBuffer?.(data.isBuffering)}
       // Phone-only behavior; the TV screen leaves these unset.
       playInBackground={props.props.playInBackground}
       enterPictureInPictureOnLeave={props.props.enterPictureInPictureOnLeave}

@@ -18,6 +18,12 @@ class MediaServerWebModule extends NativeModule<MediaServerModuleEvents> {
     return false;
   }
 
+  supportsAv1(): boolean {
+    return false;
+  }
+
+  unregisterPrefix(): void {}
+
   registerText(): void {
     throw new Error("The local media server is not available on web");
   }
@@ -31,4 +37,5 @@ class MediaServerWebModule extends NativeModule<MediaServerModuleEvents> {
   failSegment(): void {}
 }
 
+export const isMediaServerAvailable = false;
 export default registerWebModule(MediaServerWebModule, "MediaServerModule");

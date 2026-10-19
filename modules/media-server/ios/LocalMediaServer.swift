@@ -194,6 +194,19 @@ public final class LocalMediaServer {
     lock.unlock()
   }
 
+  /// Removes one stream's registrations without affecting other mounted players.
+  public func unregister(prefix: String) {
+    let root = normalize(prefix)
+    let descendant = root.hasSuffix("/") ? root : root + "/"
+    lock.lock()
+    texts = texts.filter { $0.key != root && !$0.key.hasPrefix(descendant) }
+    streamPrefixes.removeAll { $0 == root || $0.hasPrefix(descendant) }
+    if streamPrefixes.isEmpty {
+      provider = nil
+    }
+    lock.unlock()
+  }
+
   private func normalize(_ path: String) -> String {
     path.hasPrefix("/") ? path : "/\(path)"
   }

@@ -75,8 +75,16 @@ export default function VideoDetailScreen({route, navigation}: Props) {
     playbackSource,
     startTime,
     reportPlaybackFailure,
+    onPlaybackActive,
+    onPlaybackAdvanced,
+    playbackAttemptKey,
+    playbackFailureKey,
     reportProgress,
-  } = useVideoDetails(navEndpoint ?? videoId);
+  } = useVideoDetails(
+    navEndpoint ?? videoId,
+    undefined,
+    route.params.startSeconds,
+  );
 
   const {appSettings, updateSettings} = useAppData();
   const autoplay = isAutoplayEnabled(appSettings);
@@ -201,7 +209,7 @@ export default function VideoDetailScreen({route, navigation}: Props) {
     if (error) {
       return (
         <ErrorState
-          message={t("video.unavailable.message")}
+          message={t(playbackFailureKey ?? "video.unavailable.message")}
           onRetry={() => refresh()}
           title={t("video.unavailable.title")}
         />
@@ -215,8 +223,10 @@ export default function VideoDetailScreen({route, navigation}: Props) {
     return (
       <ErrorState
         message={
-          YTVideoInfo.originalData.playability_status?.reason ??
-          t("video.unavailable.message")
+          playbackFailureKey
+            ? t(playbackFailureKey)
+            : (YTVideoInfo.originalData.playability_status?.reason ??
+              t("video.unavailable.message"))
         }
         onRetry={() => refresh()}
         title={t("video.unavailable.title")}
@@ -258,6 +268,9 @@ export default function VideoDetailScreen({route, navigation}: Props) {
             startPosition: startTime ? startTime * 1000 : undefined,
             videoInfo: YTVideoInfo.originalData,
             onPlaybackFailure: reportPlaybackFailure,
+            onPlaybackActive,
+            onPlaybackAdvanced,
+            playbackAttemptKey,
             // Kept from the native-controls player of this screen.
             playInBackground: Platform.OS === "android",
             enterPictureInPictureOnLeave: Platform.OS === "ios",
@@ -294,6 +307,12 @@ export default function VideoDetailScreen({route, navigation}: Props) {
           onPipPress={() => videoRef.current?.pause()}
           ref={videoRef}
           sourceURL={videoUrl}
+          startPositionSeconds={startTime}
+          onPlaybackFailure={reportPlaybackFailure}
+          onPlaybackActive={onPlaybackActive}
+          onPlaybackAdvanced={onPlaybackAdvanced}
+          playbackAttemptKey={playbackAttemptKey}
+          onProgress={data => reportProgress(data.currentTime)}
           style={styles.player}
         />
       ) : (

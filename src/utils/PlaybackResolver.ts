@@ -32,6 +32,7 @@ export interface PlaybackInfoResolution {
 }
 
 interface PlaybackResolverOptions {
+  signal?: AbortSignal;
   profile: string;
   clients: InnerTubeClient[];
   accept: (info: YT.VideoInfo) => boolean;
@@ -140,6 +141,7 @@ export async function resolvePlaybackInfo(
   target: string | YTNodes.NavigationEndpoint,
   options: PlaybackResolverOptions,
 ): Promise<PlaybackInfoResolution | undefined> {
+  if (options.signal?.aborted) return undefined;
   const clients = preferRecentClient(options.profile, options.clients);
 
   try {
@@ -154,16 +156,22 @@ export async function resolvePlaybackInfo(
       // The `reason` belongs in the log: it tells an IP-wide bot gate apart
       // from a real session or video problem. Without it both look the same
       // (plan §0c).
-      on_attempt: attempt =>
+      on_attempt: attempt => {
+        // The fork has no fetch signal yet. Stop its client chain as soon as
+        // the pending request returns, and never publish the abandoned result.
+        if (options.signal?.aborted)
+          throw new Error("Playback resolution aborted");
         LOGGER.debug(
           `${options.profile}: Client ${attempt.client}: ${
             attempt.error ?? attempt.status ?? "unbekannt"
           }${attempt.reason ? ` (${attempt.reason})` : ""} (${
             attempt.duration_ms
           } ms)`,
-        ),
+        );
+      },
     });
 
+    if (options.signal?.aborted) return undefined;
     recoverRejectedSession(options.profile, resolved.attempts);
 
     if (resolved.satisfied === "primary") {
@@ -177,6 +185,7 @@ export async function resolvePlaybackInfo(
       attempts: resolved.attempts.length,
     };
   } catch (error: any) {
+    if (options.signal?.aborted) return undefined;
     recoverRejectedSession(options.profile, error?.attempts);
     options.onFailure?.(error?.attempts ?? []);
     LOGGER.warn(

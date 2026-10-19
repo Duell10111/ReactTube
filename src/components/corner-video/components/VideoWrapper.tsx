@@ -22,9 +22,7 @@ const VideoWrapper = React.forwardRef<VideoRef, CornerVideoProps>(
 
     const onProgress = (data: OnProgressData) => {
       currentTime = data.currentTime;
-      props.videoProps.onVideoProgress &&
-        // @ts-ignore Ignore strict type issue
-        props.videoProps.onVideoProgress(data);
+      props.videoProps.onProgress?.(data);
     };
 
     const onPress = () => {

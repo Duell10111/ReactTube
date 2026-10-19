@@ -102,7 +102,15 @@ export function TVShortItem({
   const {
     YTVideoInfo,
     videoUrl,
+    loading,
+    error,
+    startTime,
+    refresh,
     reportPlaybackFailure,
+    onPlaybackActive,
+    onPlaybackAdvanced,
+    playbackAttemptKey,
+    playbackFailureKey,
     reportProgress,
     actionData,
     like,
@@ -199,9 +207,11 @@ export function TVShortItem({
     YTVideoInfo?.thumbnailImage?.url ??
     `https://i.ytimg.com/vi/${videoId}/hq2.jpg`;
   const unavailableReason =
-    YTVideoInfo && !videoUrl
-      ? (YTVideoInfo.originalData.playability_status?.reason ??
-        t("video.unavailable.message"))
+    !videoUrl && !loading && (YTVideoInfo || error)
+      ? playbackFailureKey
+        ? t(playbackFailureKey)
+        : (YTVideoInfo?.originalData.playability_status?.reason ??
+          t("video.unavailable.message"))
       : undefined;
 
   const slotProps = (slot: ShortFocusSlot) => ({
@@ -272,8 +282,12 @@ export function TVShortItem({
               {mountPlayer && videoUrl && YTVideoInfo ? (
                 <VideoComponent
                   url={videoUrl}
+                  startPositionSeconds={startTime}
                   videoInfo={YTVideoInfo}
                   onPlaybackFailure={reportPlaybackFailure}
+                  onPlaybackActive={onPlaybackActive}
+                  onPlaybackAdvanced={onPlaybackAdvanced}
+                  playbackAttemptKey={playbackAttemptKey}
                   onProgress={data => {
                     reportProgress(data.currentTime);
                     trackWatchTime(data.currentTime);
@@ -296,6 +310,12 @@ export function TVShortItem({
                   <AppText align={"center"} style={styles.onMedia}>
                     {unavailableReason}
                   </AppText>
+                  {active ? (
+                    <AppButton
+                      label={t("common.retry")}
+                      onPress={() => refresh()}
+                    />
+                  ) : null}
                 </View>
               ) : active && paused ? (
                 <View

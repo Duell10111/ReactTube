@@ -42,11 +42,16 @@ export default function VideoScreen({route, navigation}: Props) {
   const {
     YTVideoInfo,
     videoUrl,
+    loading,
     error,
     playbackSource,
     playbackLadderStep,
     playbackLadderSize,
     reportPlaybackFailure,
+    onPlaybackActive,
+    onPlaybackAdvanced,
+    playbackAttemptKey,
+    playbackFailureKey,
     reportProgress,
     startTime,
     watchNextFeed,
@@ -124,7 +129,7 @@ export default function VideoScreen({route, navigation}: Props) {
     if (error) {
       return (
         <ErrorState
-          message={t("video.unavailable.message")}
+          message={t(playbackFailureKey ?? "video.unavailable.message")}
           onRetry={() => refresh()}
           title={t("video.unavailable.title")}
         />
@@ -134,12 +139,16 @@ export default function VideoScreen({route, navigation}: Props) {
     return <VideoDetailSkeleton />;
   }
 
+  if (!videoUrl && loading) return <VideoDetailSkeleton />;
+
   if (!videoUrl) {
     return (
       <ErrorState
         message={
-          YTVideoInfo.originalData.playability_status?.reason ??
-          t("video.unavailable.message")
+          playbackFailureKey
+            ? t(playbackFailureKey)
+            : (YTVideoInfo.originalData.playability_status?.reason ??
+              t("video.unavailable.message"))
         }
         onRetry={() => refresh()}
         title={t("video.unavailable.title")}
@@ -165,6 +174,9 @@ export default function VideoScreen({route, navigation}: Props) {
             startPosition: startTime ? startTime * 1000 : undefined,
             videoInfo: YTVideoInfo.originalData,
             onPlaybackFailure: reportPlaybackFailure,
+            onPlaybackActive,
+            onPlaybackAdvanced,
+            playbackAttemptKey,
             onPlaybackInfoUpdate: infos => {
               setPlaybackInfos({
                 // Phase 4.3: expose the active source, fallback step, and
@@ -286,6 +298,9 @@ export default function VideoScreen({route, navigation}: Props) {
           url={videoUrl}
           startPositionSeconds={startTime}
           onPlaybackFailure={reportPlaybackFailure}
+          onPlaybackActive={onPlaybackActive}
+          onPlaybackAdvanced={onPlaybackAdvanced}
+          playbackAttemptKey={playbackAttemptKey}
           videoInfo={YTVideoInfo}
           selectedTextTrack={nativeTextTrack}
           onProgress={data => {

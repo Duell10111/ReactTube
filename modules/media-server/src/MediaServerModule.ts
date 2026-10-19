@@ -1,4 +1,4 @@
-import {NativeModule, requireNativeModule} from "expo";
+import {NativeModule, requireOptionalNativeModule} from "expo";
 
 import {MediaServerModuleEvents, StartServerResult} from "./MediaServer.types";
 
@@ -17,6 +17,9 @@ declare class MediaServerModule extends NativeModule<MediaServerModuleEvents> {
   /** Stops the listener and drops every registration. */
   stopServer(): Promise<void>;
   isRunning(): boolean;
+  /** Optional for compatibility with installations built before automatic playback. */
+  supportsAv1?(): boolean;
+  unregisterPrefix?(prefix: string): void;
   /** Stores a body to serve verbatim — the manifests. */
   registerText(path: string, body: string, contentType: string): void;
   /**
@@ -38,4 +41,7 @@ declare class MediaServerModule extends NativeModule<MediaServerModuleEvents> {
   failSegment(requestId: number, status: number, message: string): void;
 }
 
-export default requireNativeModule<MediaServerModule>("MediaServer");
+const mediaServer =
+  requireOptionalNativeModule<MediaServerModule>("MediaServer");
+export const isMediaServerAvailable = !!mediaServer;
+export default mediaServer;

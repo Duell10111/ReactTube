@@ -23,23 +23,44 @@ import {
   useSubtitleTranslationLanguages,
 } from "@/hooks/video/useSubtitleChoices";
 import {
+  AutomaticPlaybackSession,
+  automaticPlaybackOrder,
+  type AutomaticPlaybackState,
+} from "@/utils/AutomaticPlayback";
+import {
+  createAutomaticVideoPreparer,
+  type AutomaticVideoSource,
+} from "@/utils/AutomaticVideoSource";
+import {
   buildGeneratedHls,
+  releaseGeneratedHls,
   type GeneratedHlsOptions,
 } from "@/utils/GeneratedHls";
 import Logger from "@/utils/Logger";
+import {getPlaybackCapabilities} from "@/utils/PlaybackCapabilities";
 import {describeStreamingData} from "@/utils/PlaybackDiagnostics";
 import {
   buildPlaybackLadder,
   sameLadder,
   type PlaybackStep,
 } from "@/utils/PlaybackLadder";
-import {playbackStartAfterReload} from "@/utils/PlaybackPosition";
+import {
+  clampPlaybackResumePosition,
+  playbackStartAfterReload,
+  playbackStartAt,
+  type PlaybackStart,
+} from "@/utils/PlaybackPosition";
 import {
   playbackModeFromSettings,
   resolveStreamingSource,
   type PlaybackMode,
   type StreamingSource,
 } from "@/utils/PlaybackSource";
+import {parsePlayerResolution} from "@/utils/PlayerResolution";
+import {
+  chooseProgressiveFormat,
+  decipherProgressiveUrl,
+} from "@/utils/ProgressiveSource";
 import {startSabrPlayback, type SabrPlaybackSource} from "@/utils/SabrPlayback";
 import {getSubtitleChoices, getSubtitleTrackList} from "@/utils/Subtitles";
 import {pickVlcFormats} from "@/utils/VlcPlayback";
@@ -53,40 +74,6 @@ import {
 const LOGGER = Logger.extend("VIDEO");
 
 /**
- * Distance from the end of the video within which a resume marker no longer
- * applies.
- *
- * Someone who watched almost to the end wants to start over next time instead
- * of jumping into the credits. More importantly, a marker **past** the end
- * makes AVPlayer hang — measured with a 218.778 s video and a marker at 219 s,
- * the player stayed silently in its loading state without reporting an error.
- */
-const RESUME_DEAD_ZONE_SECONDS = 5;
-
-/**
- * Brings a resume marker into the valid range.
- *
- * @returns the second playback starts at, or `undefined` for "from the
- *   beginning".
- */
-function clampResumePosition(
-  seconds: number | undefined,
-  durationSeconds: number | undefined,
-): number | undefined {
-  if (!seconds || seconds <= 0) {
-    return undefined;
-  }
-
-  if (!durationSeconds) {
-    return seconds;
-  }
-
-  return seconds < durationSeconds - RESUME_DEAD_ZONE_SECONDS
-    ? seconds
-    : undefined;
-}
-
-/**
  * Starts SABR playback when the setting and the source allow it (plan phase
  * 6.5).
  *
@@ -97,7 +84,7 @@ function clampResumePosition(
 async function startSabrIfPossible(
   streaming: StreamingSource,
   mode: PlaybackMode,
-  options: {youtube: Innertube; allowAv1?: boolean},
+  options: {youtube: Innertube; allowAv1?: boolean; signal?: AbortSignal},
 ) {
   if (mode !== "sabr" || !streaming.canUseSabr) {
     return undefined;
@@ -113,6 +100,7 @@ async function startSabrIfPossible(
     client: streaming.client,
     clientVersion: options.youtube.session.context.client.clientVersion,
     allowAv1: options.allowAv1,
+    signal: options.signal,
     poToken: needsPoToken ? await getContentPoToken(videoId) : undefined,
     refreshPoToken: needsPoToken
       ? () => {
@@ -212,6 +200,51 @@ async function resolveVlcSource(
   }
 }
 
+/** TV metadata and stream formats come from separate responses. */
+function videoDetailsFromSource(
+  streaming: StreamingSource,
+  tvInfo?: YTTV.VideoInfo,
+) {
+  const parsed = getElementDataFromVideoInfo(streaming.info);
+  if (!tvInfo) return parsed;
+  const metadata = getElementDataFromTVVideoInfo(tvInfo);
+  const detailFallback = resolveVideoDetailFallback(metadata, parsed);
+  return {
+    ...metadata,
+    chapters: parsed.chapters,
+    hls_manifest_url: parsed.hls_manifest_url,
+    expires: parsed.expires,
+    best_format: parsed.best_format,
+    subtitles: parsed.subtitles,
+    durationSeconds: metadata.durationSeconds ?? parsed.durationSeconds,
+    playlist: metadata.playlist ?? parsed.playlist,
+    description: detailFallback.description,
+    commentsEntryPointHeader: detailFallback.commentsEntryPointHeader,
+  };
+}
+
+/**
+ * An access restriction is not a delivery problem: claiming that every playback
+ * type failed would suggest a retry that cannot help.
+ */
+function automaticPlaybackFailureKey(
+  automatic: boolean,
+  state: AutomaticVideoState | undefined,
+): "video.playback.exhausted" | "video.playback.accessDenied" | undefined {
+  if (!automatic || state?.phase !== "failed") return undefined;
+  return state.reason === "access"
+    ? "video.playback.accessDenied"
+    : "video.playback.exhausted";
+}
+
+type AutomaticVideoState = AutomaticPlaybackState<AutomaticVideoSource> & {
+  session: AutomaticPlaybackSession<AutomaticVideoSource>;
+  target: string | YTNodes.NavigationEndpoint;
+  refresh: boolean;
+  runId: number;
+  sessionOrderSize: number;
+};
+
 export default function useVideoDetails(
   videoId: string | YTNodes.NavigationEndpoint,
   client?: InnerTubeClient,
@@ -238,7 +271,13 @@ export default function useVideoDetails(
     useState<HorizontalData[]>();
   const {appSettings} = useAppData();
   /** The selected path — decides the client chain, manifest build, and ladder order. */
+  const selectedResolution = parsePlayerResolution(appSettings).key;
   const playbackMode = playbackModeFromSettings(appSettings);
+  const automatic = selectedResolution === "auto" && !appSettings.vlcEnabled;
+  const allowAv1 =
+    selectedResolution === "hlsLocalAv1" || selectedResolution === "sabr";
+  const [autoState, setAutoState] = useState<AutomaticVideoState>();
+  const autoRunRef = useRef(0);
   const vlcEnabled = !!appSettings.vlcEnabled;
   /**
    * VLC plays the adaptive formats directly and needs uncapped clients — the
@@ -293,7 +332,9 @@ export default function useVideoDetails(
     },
     [],
   );
-  const [startTime, setStartTime] = useState<number>();
+  const [startTime, setStartTime] = useState<PlaybackStart>({
+    fromPlayback: false,
+  });
   /** Last known playback position — survives source changes and refreshes. */
   const positionRef = useRef<number>(undefined);
   /** The video the start time belongs to. */
@@ -303,185 +344,237 @@ export default function useVideoDetails(
   const [refresh, setRefresh] = useState<boolean>(false);
 
   useEffect(() => {
+    let active = true;
     const sameVideo = startVideoRef.current === videoId;
     startVideoRef.current = videoId;
     if (!sameVideo) {
       positionRef.current = undefined;
+      setVideoInfo(undefined);
+      setWatchNextFeed(undefined);
+      setWatchNextSections(undefined);
     }
-    const currentSeconds = positionRef.current;
     setLoading(true);
     setError(undefined);
     const startTimeSeconds =
       typeof videoId !== "string"
         ? ((videoId.payload.startTimeSeconds as number) ?? passedStartSeconds)
         : passedStartSeconds;
-    if (client === "TV") {
-      // Plan phase 1.8: fetch the endpoints separately. The metadata comes from
-      // the signed-in TV instance (only it provides watch-next and transport
-      // controls), the streams from the anonymous instance via the client
-      // chain — the TV client answers /player with UNPLAYABLE regardless of login.
-      Promise.all([
-        tvYoutube?.tv?.getInfo(videoId),
-        youtube
-          ? resolveStreamingSource(youtube, videoId, {
-              mode: streamMode,
-              signedInYoutube: tvYoutube,
-            })
-          : undefined,
-      ])
-        .then(async ([tvInfo, streaming]) => {
-          // Plan phase 0.4: record what the clients actually delivered.
-          LOGGER.info(describeStreamingData(tvInfo, "TV (Metadaten)"));
-          if (streaming) {
-            LOGGER.info(
-              describeStreamingData(
-                streaming.info,
-                `${streaming.client} (Streams)`,
-              ),
-            );
-          }
-          if (tvInfo) {
-            videoTVRef.current = tvInfo;
-            const parsedDataTV = getElementDataFromTVVideoInfo(tvInfo);
-            if (streaming) {
-              const parsed = getElementDataFromVideoInfo(streaming.info);
-              parsedDataTV.chapters = parsed.chapters;
-              parsedDataTV.hls_manifest_url = parsed.hls_manifest_url;
-              parsedDataTV.expires = parsed.expires;
-              // The TV response contains no formats — the playback format has
-              // to come from the stream client's response.
-              parsedDataTV.best_format = parsed.best_format;
-              // Caption tracks are missing from the TV response as well.
-              parsedDataTV.subtitles = parsed.subtitles;
-              // The duration decides whether a resume marker still applies —
-              // if the TV response has none (it is UNPLAYABLE and carries no
-              // streaming_data), it comes from the stream client.
-              parsedDataTV.durationSeconds =
-                parsedDataTV.durationSeconds ?? parsed.durationSeconds;
-              parsedDataTV.playlist = parsedDataTV.playlist ?? parsed.playlist;
-              const detailFallback = resolveVideoDetailFallback(
-                parsedDataTV,
-                parsed,
-              );
-              parsedDataTV.description = detailFallback.description;
-              parsedDataTV.commentsEntryPointHeader =
-                detailFallback.commentsEntryPointHeader;
-            }
-            // Before publishing the metadata: otherwise the player would get
-            // YouTube's manifest first and ours half a second later — a
-            // visible restart of playback.
-            if (streaming && vlcEnabled) {
-              // `youtube` is necessarily present here — the streams come from
-              // this instance — but only the check makes that visible to the
-              // type checker.
-              // A SABR stream from before the switch must not keep running.
-              replaceSabrSource(undefined);
-              parsedDataTV.vlc_source = youtube
-                ? await resolveVlcSource(streaming, youtube)
-                : undefined;
-            } else if (streaming) {
-              parsedDataTV.generated_hls_url = await generateIfPossible(
-                streaming,
-                playbackMode,
-                {
-                  allowAv1: appSettings.av1Enabled,
-                  subtitles: nativeSubtitleOptions(streaming),
-                },
-              );
-              // See above: the check only informs the type checker.
-              if (youtube) {
-                parsedDataTV.sabr_hls_url = replaceSabrSource(
-                  await startSabrIfPossible(streaming, playbackMode, {
-                    youtube,
-                    allowAv1: appSettings.av1Enabled,
-                  }),
-                )?.masterUri;
-              }
-            }
-            setVideoInfo(parsedDataTV);
-            setWatchNextSections(parsedDataTV.watchNextSections);
-            setWatchNextFeed(
-              parsedDataTV.watchNextSections?.[parsedDataTV.playlist ? 1 : 0]
-                ?.parsedData,
-            );
-            setLoading(false);
-          } else {
-            LOGGER.warn("No TVInfo available! This should never happen.");
-            setError(new Error("No video info available"));
-            setLoading(false);
-          }
-        })
-        .catch(reason => {
-          LOGGER.warn(reason);
-          setError(reason);
-          setLoading(false);
-        });
-    } else {
-      youtube &&
-        resolveStreamingSource(youtube, videoId, {
-          mode: streamMode,
-          signedInYoutube: tvYoutube,
-        })
-          .then(async streaming => {
-            if (!streaming) {
-              setError(new Error("No streaming source available"));
-              setLoading(false);
-              return;
-            }
-            LOGGER.info(
-              describeStreamingData(streaming.info, `${streaming.client}`),
-            );
-            videoRef.current = streaming.info;
-            const parsedData = getElementDataFromVideoInfo(streaming.info);
-            if (vlcEnabled) {
-              // A SABR stream from before the switch must not keep running.
-              replaceSabrSource(undefined);
-              parsedData.vlc_source = await resolveVlcSource(
-                streaming,
-                youtube,
-              );
-            } else {
-              parsedData.generated_hls_url = await generateIfPossible(
-                streaming,
-                playbackMode,
-                {
-                  allowAv1: appSettings.av1Enabled,
-                  subtitles: nativeSubtitleOptions(streaming),
-                },
-              );
-              parsedData.sabr_hls_url = replaceSabrSource(
-                await startSabrIfPossible(streaming, playbackMode, {
-                  youtube,
-                  allowAv1: appSettings.av1Enabled,
-                }),
-              )?.masterUri;
-            }
-            setVideoInfo(parsedData);
-            parsedData.watchNextFeed &&
-              setWatchNextFeed(parsedData.watchNextFeed);
-            setLoading(false);
-          })
-          .catch(reason => {
-            LOGGER.warn(reason);
-            setError(reason);
-            setLoading(false);
-          });
-    }
-    // A refresh or a changed setting keeps the position set before; a new
-    // video, such as the one autoplay switches to on the same screen, starts
-    // at its own time instead of the previous video's.
-    setStartTime(previousStartSeconds =>
-      playbackStartAfterReload({
+    setStartTime(previous => ({
+      seconds: playbackStartAfterReload({
         sameVideo,
-        currentSeconds,
-        previousStartSeconds,
+        currentSeconds: positionRef.current,
+        previousStartSeconds: previous.seconds,
         requestedStartSeconds: startTimeSeconds,
       }),
-    );
+      fromPlayback:
+        sameVideo &&
+        (positionRef.current !== undefined || previous.fromPlayback),
+    }));
+
+    if (!youtube) {
+      return () => {
+        active = false;
+      };
+    }
+
+    const publish = (parsed: YTVideoInfo, publishFeed = true) => {
+      if (!active) return;
+      setVideoInfo(previous => ({
+        ...parsed,
+        endscreen:
+          previous?.id === parsed.id
+            ? (previous.endscreen ?? parsed.endscreen)
+            : parsed.endscreen,
+        storyboard:
+          previous?.id === parsed.id
+            ? (previous.storyboard ?? parsed.storyboard)
+            : parsed.storyboard,
+      }));
+      if (publishFeed) {
+        setWatchNextSections(parsed.watchNextSections);
+        const feed =
+          client === "TV"
+            ? parsed.watchNextSections?.[parsed.playlist ? 1 : 0]?.parsedData
+            : parsed.watchNextFeed;
+        if (feed) setWatchNextFeed(feed);
+      }
+    };
+
+    const tvMetadata =
+      client === "TV" ? tvYoutube?.tv?.getInfo(videoId) : undefined;
+
+    if (automatic) {
+      const runId = ++autoRunRef.current;
+      let session: AutomaticPlaybackSession<AutomaticVideoSource> | undefined;
+      let tvInfo: YTTV.VideoInfo | undefined;
+      let published = false;
+      setAutoState(undefined);
+      const publishAutomaticSource = (source: AutomaticVideoSource) => {
+        if (!active) return;
+        if (!published && client !== "TV")
+          videoRef.current = source.streaming.info;
+        const parsed = videoDetailsFromSource(source.streaming, tvInfo);
+        if (source.kind === "generated-hls")
+          parsed.generated_hls_url = source.uri;
+        if (source.kind === "sabr-hls") parsed.sabr_hls_url = source.uri;
+        publish(parsed, !published);
+        published = true;
+      };
+      tvMetadata
+        ?.then(info => {
+          if (!active || !info) return;
+          tvInfo = info;
+          videoTVRef.current = info;
+          if (session?.state.source) {
+            published = false;
+            publishAutomaticSource(session.state.source);
+          }
+        })
+        .catch(() => {
+          // Stream metadata still allows playback if TV recommendations fail.
+        });
+
+      getPlaybackCapabilities()
+        .then(capabilities => {
+          if (!active) return;
+          const order = automaticPlaybackOrder(capabilities);
+          const prepare = createAutomaticVideoPreparer({
+            resolve: (mode, signal) =>
+              resolveStreamingSource(youtube, videoId, {
+                mode,
+                signal,
+                signedInYoutube: tvYoutube,
+                throwOnAccessDenied: true,
+              }),
+            generate: async (streaming, av1Allowed, signal) => {
+              const uri = await buildGeneratedHls(
+                streaming.info,
+                streaming.info.basic_info.id ?? "video",
+                {
+                  allowAv1: av1Allowed,
+                  signal,
+                  subtitles: nativeSubtitleOptions(streaming),
+                },
+              );
+              return uri
+                ? {uri, dispose: () => releaseGeneratedHls(uri)}
+                : undefined;
+            },
+            sabr: (streaming, signal) =>
+              startSabrIfPossible(streaming, "sabr", {
+                youtube,
+                allowAv1: false,
+                signal,
+              }),
+            progressive: streaming =>
+              decipherProgressiveUrl(
+                chooseProgressiveFormat(streaming.info),
+                youtube.session.player,
+              ),
+          });
+          session = new AutomaticPlaybackSession({
+            order,
+            prepare,
+            onChange: state => {
+              if (!active || !session) return;
+              LOGGER.info(
+                `Automatic playback: attempt ${state.index + 1}/${order.length}, type=${state.type ?? "none"}, phase=${state.phase}, reason=${state.reason ?? "none"}${state.source ? `, client=${state.source.streaming.client}` : ""}`,
+              );
+              setAutoState({
+                ...state,
+                session,
+                target: videoId,
+                refresh,
+                runId,
+                sessionOrderSize: order.length,
+              });
+              setLoading(state.phase === "preparing");
+              if (state.source) {
+                if (state.phase === "starting") {
+                  setStartTime(previous =>
+                    positionRef.current !== undefined
+                      ? playbackStartAt(positionRef.current)
+                      : previous,
+                  );
+                  publishAutomaticSource(state.source);
+                }
+              } else if (state.phase === "failed") {
+                setError(new Error("Automatic playback exhausted"));
+              }
+            },
+          });
+          session.start();
+        })
+        .catch(() => {
+          if (active) {
+            setError(new Error("Playback capabilities unavailable"));
+            setLoading(false);
+          }
+        });
+      return () => {
+        active = false;
+        session?.dispose();
+      };
+    }
+
+    Promise.all([
+      tvMetadata,
+      resolveStreamingSource(youtube, videoId, {
+        mode: streamMode,
+        signedInYoutube: tvYoutube,
+      }),
+    ])
+      .then(async ([tvInfo, streaming]) => {
+        if (!active) return;
+        if (!streaming || (client === "TV" && !tvInfo)) {
+          throw new Error("No video source available");
+        }
+        if (tvInfo) videoTVRef.current = tvInfo;
+        if (client !== "TV") videoRef.current = streaming.info;
+        LOGGER.info(describeStreamingData(streaming.info, streaming.client));
+        const parsed = videoDetailsFromSource(streaming, tvInfo);
+        if (vlcEnabled) {
+          parsed.vlc_source = await resolveVlcSource(streaming, youtube);
+        } else {
+          parsed.generated_hls_url = await generateIfPossible(
+            streaming,
+            playbackMode,
+            {
+              allowAv1,
+              subtitles: nativeSubtitleOptions(streaming),
+            },
+          );
+          if (!active) return;
+          const sabr = await startSabrIfPossible(streaming, playbackMode, {
+            youtube,
+            allowAv1,
+          });
+          if (!active) {
+            await sabr?.stop();
+            return;
+          }
+          parsed.sabr_hls_url = replaceSabrSource(sabr)?.masterUri;
+        }
+        if (!active) return;
+        publish(parsed);
+        setLoading(false);
+      })
+      .catch(reason => {
+        if (active) {
+          LOGGER.warn("Video source resolution failed");
+          setError(reason);
+          setLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+      replaceSabrSource(undefined);
+    };
   }, [
     playbackMode,
+    automatic,
     vlcEnabled,
-    appSettings.av1Enabled,
+    allowAv1,
     videoId,
     youtube,
     tvYoutube,
@@ -499,31 +592,24 @@ export default function useVideoDetails(
   const [httpVideoURL, setHttpVideoURL] = useState<string>();
 
   useEffect(() => {
-    if (!youtube?.actions.session.player) {
+    let active = true;
+    setHttpVideoURL(undefined);
+    if (automatic || !youtube?.actions.session.player) {
       setHttpVideoURL(undefined);
       return;
     }
-    const format = videoInfo?.best_format;
-    format?.originalFormat
-      ?.decipher(youtube.actions.session.player)
-      .then(url => {
-        LOGGER.info(
-          `Decipher ok: itag=${format.originalFormat?.itag} ${format.type} ` +
-            `${format.originalFormat?.quality_label ?? ""} · host=${url.split("/")[2]}`,
-        );
-        setHttpVideoURL(url);
-      })
-      .catch(e => {
-        LOGGER.warn(
-          `Decipher fehlgeschlagen (itag=${format?.originalFormat?.itag}): ${String(
-            e?.message ?? e,
-          )} — unter Hermes ist das der erwartete Ausfall, siehe Einstellungen ▸ Playback diagnostics`,
-        );
-        setHttpVideoURL(undefined);
-      });
+    decipherProgressiveUrl(
+      videoInfo?.best_format?.originalFormat,
+      youtube.actions.session.player,
+    ).then(url => {
+      if (active) setHttpVideoURL(url);
+    });
     // Keyed on the format, not the whole info: the end screen arriving later
     // replaces the info object and must not decipher the stream again.
-  }, [videoInfo?.best_format, youtube]);
+    return () => {
+      active = false;
+    };
+  }, [automatic, videoInfo?.best_format, youtube]);
 
   // The end screen and the storyboard are part of the WEB /player response
   // only: the TV response is UNPLAYABLE and the stream clients leave them out,
@@ -613,7 +699,39 @@ export default function useVideoDetails(
     }
   }, [ladder]);
 
-  const currentStep = ladder[Math.min(ladderIndex, ladder.length - 1)];
+  const automaticState =
+    automatic &&
+    autoState?.target === videoId &&
+    autoState.refresh === refresh &&
+    autoState.session.state.phase !== "disposed"
+      ? autoState
+      : undefined;
+  const currentStep = automatic
+    ? automaticState?.source
+    : ladder[Math.min(ladderIndex, ladder.length - 1)];
+  const automaticSession = automaticState?.session;
+  const automaticAttemptId = automaticState?.attemptId;
+  const automaticCallbacks = useMemo(
+    () => ({
+      current: () =>
+        automaticAttemptId !== undefined &&
+        automaticSession?.state.attemptId === automaticAttemptId &&
+        !!automaticSession.state.source,
+      fail: (_reason: string) => {
+        if (automaticAttemptId !== undefined)
+          automaticSession?.fail(automaticAttemptId);
+      },
+      active: (active: boolean) => {
+        if (automaticAttemptId !== undefined)
+          automaticSession?.setActive(automaticAttemptId, active);
+      },
+      advance: () => {
+        if (automaticAttemptId !== undefined)
+          automaticSession?.progress(automaticAttemptId);
+      },
+    }),
+    [automaticSession, automaticAttemptId],
+  );
 
   /**
    * The second playback starts at — checked against the video duration.
@@ -621,23 +739,32 @@ export default function useVideoDetails(
    * Only here, because the duration comes from the metadata and is not yet
    * known when the marker is set.
    */
-  const resumeSeconds = useMemo(
-    () => clampResumePosition(startTime, videoInfo?.durationSeconds),
-    [startTime, videoInfo?.durationSeconds],
+  const resumeSeconds = clampPlaybackResumePosition(
+    startTime.seconds,
+    videoInfo?.durationSeconds,
+    startTime.fromPlayback,
   );
 
   useEffect(() => {
-    if (startTime && resumeSeconds === undefined) {
+    if (startTime.seconds && resumeSeconds === undefined) {
       LOGGER.info(
-        `Fortsetzungsmarke bei ${Math.floor(startTime)} s liegt am Ende des ` +
+        `Fortsetzungsmarke bei ${Math.floor(startTime.seconds)} s liegt am Ende des ` +
           `${videoInfo?.durationSeconds ?? "?"} s langen Videos — Start von vorn.`,
       );
     }
-  }, [startTime, resumeSeconds, videoInfo?.durationSeconds]);
+  }, [startTime.seconds, resumeSeconds, videoInfo?.durationSeconds]);
 
-  const reportProgress = useCallback((seconds: number) => {
-    positionRef.current = seconds;
-  }, []);
+  const reportProgress = useCallback(
+    (seconds: number) => {
+      if (
+        startVideoRef.current !== videoId ||
+        (automatic && !automaticCallbacks.current())
+      )
+        return;
+      if (Number.isFinite(seconds)) positionRef.current = seconds;
+    },
+    [automatic, automaticCallbacks, videoId],
+  );
 
   /**
    * Reports that the current step does not work — as an error or as a stall.
@@ -673,7 +800,7 @@ export default function useVideoDetails(
 
     // The next step starts where the previous one stopped.
     if (position !== undefined) {
-      setStartTime(position);
+      setStartTime(playbackStartAt(position));
     }
   }, []);
 
@@ -731,7 +858,7 @@ export default function useVideoDetails(
           positionRef.current ?? 0,
         )} s.`,
       );
-      setStartTime(positionRef.current);
+      setStartTime(playbackStartAt(positionRef.current));
       setRefresh(previous => !previous);
     }, delay);
 
@@ -841,10 +968,22 @@ export default function useVideoDetails(
     /** The source currently in effect — the result of the plan phase 4.1 ladder. */
     videoUrl: currentStep?.uri,
     playbackSource: currentStep,
-    playbackLadderSize: ladder.length,
-    playbackLadderStep:
-      Math.min(ladderIndex, Math.max(ladder.length - 1, 0)) + 1,
-    reportPlaybackFailure,
+    playbackLadderSize: automatic
+      ? (automaticState?.sessionOrderSize ?? 0)
+      : ladder.length,
+    playbackLadderStep: automatic
+      ? (automaticState?.index ?? 0) + 1
+      : Math.min(ladderIndex, Math.max(ladder.length - 1, 0)) + 1,
+    reportPlaybackFailure: automatic
+      ? automaticCallbacks.fail
+      : reportPlaybackFailure,
+    onPlaybackActive: automatic ? automaticCallbacks.active : undefined,
+    onPlaybackAdvanced: automatic ? automaticCallbacks.advance : undefined,
+    playbackAttemptKey: automaticState
+      ? `auto:${automaticState.runId}:${automaticState.attemptId}`
+      : undefined,
+    /** Why automatic playback gave up, as a message key for the screens. */
+    playbackFailureKey: automaticPlaybackFailureKey(automatic, automaticState),
     reportProgress,
     startTime: resumeSeconds,
     watchNextFeed,
@@ -858,7 +997,7 @@ export default function useVideoDetails(
     addToWatchHistory,
     refresh: (continueAtSeconds?: number) => {
       positionRef.current = continueAtSeconds ?? positionRef.current;
-      setStartTime(positionRef.current);
+      setStartTime(playbackStartAt(positionRef.current));
       setRefresh(previous => !previous);
     },
   };

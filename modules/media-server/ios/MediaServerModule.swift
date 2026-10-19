@@ -1,26 +1,16 @@
-// JavaScript-Anbindung für `LocalMediaServer` — Plan-Phase 3.1.
-//
-// Der Server selbst weiß nichts von Expo (siehe `LocalMediaServer.swift`); hier
-// wird nur übersetzt. Zwei Wege führen herein:
-//
-//  - **Texte**: die Manifeste. JavaScript kennt sie vollständig und legt sie ab.
-//  - **Segmente**: kann JavaScript nicht vorab kennen — ein SABR-Segment entsteht
-//    erst, wenn danach gefragt wird. Dafür dreht sich die Richtung: der Server
-//    stellt eine Frage nach JavaScript (`onSegmentRequest`) und wartet auf
-//    `respondToSegment` oder `failSegment`.
-//
-// Die Antwort kommt als `Uint8Array` und wird **sofort** in `Data` kopiert:
-// ein typisiertes Array zeigt in den Speicher der JS-Laufzeit und gilt nur
-// innerhalb des Aufrufs. Deshalb ist `respondToSegment` bewusst eine synchrone
-// `Function` — ihr Rumpf läuft auf dem JS-Thread, wo der Puffer gültig ist.
+// Expo bridge for the loopback HLS server and JavaScript-backed SABR segments.
+// Segment bytes are copied synchronously while the JavaScript buffer is valid.
 
+import CoreMedia
 import ExpoModulesCore
+import VideoToolbox
 
 public class MediaServerModule: Module {
   private let server = LocalMediaServer()
 
-  /// Offene Segmentanfragen, auf die JavaScript noch antworten muss.
-  private var pending: [Int: (Result<MediaServerResponse, MediaServerError>) -> Void] = [:]
+  private typealias PendingSegment = (path: String, completion: (Result<MediaServerResponse, MediaServerError>) -> Void)
+  private var pending: [Int: PendingSegment] = [:]
+  private var registeredPrefixes = Set<String>()
   private var nextRequestId = 1
   private let lock = NSLock()
 
@@ -30,8 +20,7 @@ public class MediaServerModule: Module {
     Events("onSegmentRequest")
 
     OnDestroy {
-      // Ohne das überlebt der Listener einen Reload der JS-Laufzeit und der Port
-      // bleibt belegt, während niemand mehr auf die Ereignisse hört.
+      // A JavaScript reload must not leave a listener without a segment provider.
       self.server.stop()
       self.clearPending()
     }
@@ -46,11 +35,23 @@ public class MediaServerModule: Module {
       self.clearPending()
     }
 
+    Function("supportsAv1") { () -> Bool in
+      VTIsHardwareDecodeSupported(kCMVideoCodecType_AV1)
+    }
+
+    Function("unregisterPrefix") { (prefix: String) in
+      self.server.unregister(prefix: prefix)
+      self.clearPending(prefix: prefix)
+    }
+
     Function("registerText") { (path: String, body: String, contentType: String) in
       self.server.registerText(path: path, body: body, contentType: contentType)
     }
 
     Function("registerStreamPrefix") { (prefix: String) in
+      self.lock.lock()
+      self.registeredPrefixes.insert(prefix)
+      self.lock.unlock()
       self.server.registerStreamPrefix(prefix) { [weak self] path, completion in
         guard let self else {
           completion(.failure(.unavailable(status: 503, message: "Media server is gone")))
@@ -58,9 +59,14 @@ public class MediaServerModule: Module {
         }
 
         self.lock.lock()
+        guard self.registeredPrefixes.contains(where: { path == $0 || path.hasPrefix($0 + "/") }) else {
+          self.lock.unlock()
+          completion(.failure(.unavailable(status: 503, message: "Media stream stopped")))
+          return
+        }
         let requestId = self.nextRequestId
         self.nextRequestId += 1
-        self.pending[requestId] = completion
+        self.pending[requestId] = (path: path, completion: completion)
         self.lock.unlock()
 
         self.sendEvent("onSegmentRequest", [
@@ -72,12 +78,11 @@ public class MediaServerModule: Module {
 
     Function("respondToSegment") { (requestId: Int, data: Uint8Array, contentType: String) in
       guard let completion = self.takePending(requestId) else {
-        // Der Server hat die Anfrage schon mit 504 beantwortet. Kein Fehler,
-        // aber die Bytes sind nicht mehr zu gebrauchen.
+        // The request already timed out or its stream was removed.
         return
       }
 
-      // Kopie, solange der JS-Puffer gültig ist — siehe Kopfkommentar.
+      // Copy while the JavaScript buffer is valid.
       let bytes = Data(bytes: data.rawPointer, count: data.byteLength)
 
       completion(.success(MediaServerResponse(data: bytes, contentType: contentType)))
@@ -103,18 +108,26 @@ public class MediaServerModule: Module {
   private func takePending(_ requestId: Int) -> ((Result<MediaServerResponse, MediaServerError>) -> Void)? {
     lock.lock()
     defer { lock.unlock() }
-    return pending.removeValue(forKey: requestId)
+    return pending.removeValue(forKey: requestId)?.completion
   }
 
-  /// Beantwortet alles Offene, damit keine Verbindung bis zum Zeitablauf hängt.
-  private func clearPending() {
+  /// Finish removed requests immediately instead of waiting for their timeout.
+  private func clearPending(prefix: String? = nil) {
     lock.lock()
-    let open = pending
-    pending.removeAll()
+    if let prefix {
+      registeredPrefixes = registeredPrefixes.filter { $0 != prefix && !$0.hasPrefix(prefix + "/") }
+    } else {
+      registeredPrefixes.removeAll()
+    }
+    let open = pending.filter { _, request in
+      guard let prefix else { return true }
+      return request.path == prefix || request.path.hasPrefix(prefix + "/")
+    }
+    for id in open.keys { pending.removeValue(forKey: id) }
     lock.unlock()
 
-    for completion in open.values {
-      completion(.failure(.unavailable(status: 503, message: "Media server stopped")))
+    for request in open.values {
+      request.completion(.failure(.unavailable(status: 503, message: "Media server stopped")))
     }
   }
 }
