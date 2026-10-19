@@ -13,6 +13,7 @@ import {PlaylistManagerContextMenu} from "@/components/playlists/tv/PlaylistMana
 import {HistoryScreen} from "@/components/screens/phone/HistoryScreen";
 import {VideoSidePanelScreen} from "@/components/video/tv/VideoSidePanelScreen";
 import {VideoPlayerLanguage} from "@/components/video/videoPlayer/settings/VideoPlayerLanguage";
+import {VideoPlayerResolution} from "@/components/video/videoPlayer/settings/VideoPlayerResolution";
 import {VideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettings";
 import {VideoPlayerSpeed} from "@/components/video/videoPlayer/settings/VideoPlayerSpeed";
 import {VideoPlayerSubtitles} from "@/components/video/videoPlayer/settings/VideoPlayerSubtitles";
@@ -63,6 +64,7 @@ export type RootStackParamList = {
   VideoPlayerInfo: undefined;
   VideoPlayerPlaySpeed: undefined;
   VideoPlayerLanguage: undefined;
+  VideoPlayerResolution: undefined;
   VideoPlayerSubtitles: undefined;
   // Downloads
   ActiveDownloadScreen: undefined;
@@ -155,6 +157,11 @@ export default function RootStackNavigator() {
               <Stack.Screen
                 name={"VideoPlayerLanguage"}
                 component={VideoPlayerLanguage}
+                options={{presentation: "transparentModal"}}
+              />
+              <Stack.Screen
+                name={"VideoPlayerResolution"}
+                component={VideoPlayerResolution}
                 options={{presentation: "transparentModal"}}
               />
               <Stack.Screen

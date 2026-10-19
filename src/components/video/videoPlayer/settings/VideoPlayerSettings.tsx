@@ -4,14 +4,25 @@ import {FlatList} from "react-native";
 
 import {VideoMenuContainer} from "@/components/general/VideoMenuContainer";
 import {VideoMenuTextItem} from "@/components/video/videoPlayer/settings/VideoMenuTextItem";
+import {useAppData} from "@/context/AppDataContext";
 import {useTranslation} from "@/localization";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
 import {AppText} from "@/ui/components";
 
 export function VideoPlayerSettings() {
   const navigation = useNavigation<RootNavProp>();
+  const {appSettings} = useAppData();
   const {t} = useTranslation();
   const options = [
+    ...(!appSettings.vlcEnabled
+      ? [
+          {
+            title: t("settings.videoResolution"),
+            screen: "VideoPlayerResolution" as const,
+            iconName: "high-quality" as const,
+          },
+        ]
+      : []),
     {
       title: t("video.player.speed"),
       screen: "VideoPlayerPlaySpeed" as const,
