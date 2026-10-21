@@ -9,6 +9,9 @@ import Foundation
 import SDDownloadManager
 import SwiftData
 
+/// Main-actor isolated because SwiftUI observes its state. SDDownloadManager
+/// already delivers progress and completion callbacks on the main queue.
+@MainActor
 @Observable
 class DownloadManager {
   static let shared = DownloadManager()
@@ -19,6 +22,9 @@ class DownloadManager {
   var pendingDownloads: Set<Video> = []
   /// Video ids waiting for fresh stream metadata from the phone before they can be downloaded.
   var awaitingMetadata: Set<String> = []
+  /// Reason of the last failed attempt per video id. Kept in memory only, like
+  /// the queues, until the download state moves into the database.
+  var failedDownloads: [String: String] = [:]
   /// SDDownloadManager keys of running audio downloads, needed to cancel them.
   private var downloadKeys: [String: String] = [:]
 
@@ -26,6 +32,7 @@ class DownloadManager {
   /// metadata first; `videoMetadataUpdated` continues once it arrives.
   func enqueue(_ video: Video) {
     guard !video.downloaded, !activeDownloads.contains(where: { $0.id == video.id }) else { return }
+    failedDownloads.removeValue(forKey: video.id)
     if video.downloadURL != nil, let validUntil = video.validUntil, validUntil > Date() {
       pendingDownloads.insert(video)
     } else {
@@ -34,7 +41,6 @@ class DownloadManager {
     }
   }
 
-  @MainActor
   func videoMetadataUpdated(id: String) {
     guard awaitingMetadata.remove(id) != nil else { return }
     let descriptor = FetchDescriptor<Video>(predicate: #Predicate { $0.id == id })
@@ -49,6 +55,7 @@ class DownloadManager {
     pendingDownloads = pendingDownloads.filter { !ids.contains($0.id) }
     awaitingMetadata.subtract(ids)
     for id in ids {
+      failedDownloads.removeValue(forKey: id)
       // SDDownloadManager drops the completion block of a cancelled task, so the
       // bookkeeping normally done there has to happen here.
       if let key = downloadKeys.removeValue(forKey: id) {
@@ -58,6 +65,17 @@ class DownloadManager {
     }
     activeDownloads.removeAll { ids.contains($0.id) }
     notifyProgress()
+    checkDownloads()
+  }
+
+  /// Queues a failed download again; expired metadata is re-requested first.
+  func retry(id: String) {
+    let descriptor = FetchDescriptor<Video>(predicate: #Predicate { $0.id == id })
+    guard let video = try? DataController.shared.container.mainContext.fetch(descriptor).first else {
+      failedDownloads.removeValue(forKey: id)
+      return
+    }
+    enqueue(video)
     checkDownloads()
   }
 
@@ -71,6 +89,7 @@ class DownloadManager {
     SDDownloadManager.shared.cancelAllDownloads()
     pendingDownloads.removeAll()
     awaitingMetadata.removeAll()
+    failedDownloads.removeAll()
     downloadKeys.removeAll()
     progressDownloads.removeAll()
     activeDownloads.removeAll()
@@ -83,13 +102,15 @@ class DownloadManager {
     playlist.videos.filter { video in
       video.downloaded == false
     }.forEach { video in
-      pendingDownloads.insert(video)
+      enqueue(video)
     }
     checkDownloads()
   }
 
+  /// Starts the transfer right away. Callers go through `enqueue` so the
+  /// parallel limit and the metadata refresh apply.
   @discardableResult
-  func downloadVideo(video: Video) -> Bool {
+  private func downloadVideo(video: Video) -> Bool {
     var didStartAudioDownload = false
 
     if let streamURL = video.downloadURL, video.validUntil != nil, let uri = URL(string: streamURL) {
@@ -102,16 +123,17 @@ class DownloadManager {
       }) { error, fileUrl in
         if let error = error {
           WatchLog.shared.error("Download", "Failed for \(video.title ?? video.id): \(error.localizedDescription)")
+          self.failedDownloads[video.id] = error.localizedDescription
         } else {
           if let url = fileUrl {
             print("Downloaded file's url is \(url.path)")
             // TODO: Remove hardcode fileExt
             let saveDownload = saveDownloadFile(id: video.id, filePath: url, fileExtension: "mp4")
             if let saveURL = saveDownload {
-              Task {
-                await self.receiveFileUpload(id: video.id, fileURL: saveURL, duration: video.durationMillis)
-                print("Saved Download")
-              }
+              self.receiveFileUpload(id: video.id, fileURL: saveURL, duration: video.durationMillis)
+              print("Saved Download")
+            } else {
+              self.failedDownloads[video.id] = "The downloaded file could not be saved."
             }
           }
         }
@@ -133,6 +155,7 @@ class DownloadManager {
       didStartAudioDownload = true
     } else {
       WatchLog.shared.warning("Download", "No download URL for \(video.title ?? video.id)")
+      failedDownloads[video.id] = "No download URL available."
     }
     // TODO: Add clear function to delete images without downloaded audio
     // Image Download
@@ -150,12 +173,10 @@ class DownloadManager {
             // TODO: Remove hardcode fileExt
             let saveDownload = saveDownloadFile(id: video.id, filePath: url, fileExtension: "png")
             if let saveURL = saveDownload {
-              Task {
-                await self.receiveFileUploadImage(id: video.id, coverURL: saveURL, duration: video.durationMillis)
-                print("Saved Image Download")
-                // Check for new downloads on end of another download
-                self.checkDownloads()
-              }
+              self.receiveFileUploadImage(id: video.id, coverURL: saveURL, duration: video.durationMillis)
+              print("Saved Image Download")
+              // Check for new downloads on end of another download
+              self.checkDownloads()
             }
           }
         }
@@ -166,10 +187,12 @@ class DownloadManager {
   }
 
   func checkDownloads() {
-    Task(priority: .background) {
+    // Deferred so callers can finish their own bookkeeping first. The task
+    // inherits the main actor, so the queues are never mutated concurrently.
+    Task {
       print("Checking downloads...")
 
-      // Iterate over a snapshot so successfully started downloads can be
+      // Iterate over a snapshot so attempted downloads can be
       // removed from the pending set without mutating the collection being
       // enumerated.
       for video in Array(pendingDownloads) {
@@ -186,19 +209,18 @@ class DownloadManager {
           print("More than 4 downloads active. Exiting loop for now...")
           break
         }
-        if downloadVideo(video: video) {
-          pendingDownloads.remove(video)
-        }
+        // A video that cannot start is recorded in `failedDownloads` and
+        // leaves the queue, otherwise every check would retry it silently.
+        downloadVideo(video: video)
+        pendingDownloads.remove(video)
       }
     }
   }
 
-  @MainActor
   private func receiveFileUpload(id: String, fileURL: String, duration: Int) {
     addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true, duration: duration, fileURL: fileURL)
   }
 
-  @MainActor
   private func receiveFileUploadImage(id: String, coverURL: String, duration: Int) {
     addDownloadData(DataController.shared.container.mainContext, id: id, duration: duration, coverURL: coverURL)
   }

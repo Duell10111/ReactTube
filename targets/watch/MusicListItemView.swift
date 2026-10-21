@@ -21,6 +21,8 @@ struct MusicListItemView: View {
     @Environment(DownloadManager.self) private var downloadManager: DownloadManager
     var video: Video
     var clicked: () -> Void
+    /// Replaces the download swipe action of a downloaded title with a delete action.
+    var onDelete: (() -> Void)? = nil
   
     var body: some View {
       Button {
@@ -54,12 +56,21 @@ struct MusicListItemView: View {
           }
         }
       }.swipeActions {
-        Button {
-          DownloadManager.shared.downloadVideo(video: video)
-        } label: {
-          Label("Download", systemImage: "arrow.down")
+        if let onDelete, video.downloaded {
+          Button(role: .destructive) {
+            onDelete()
+          } label: {
+            Label("Delete", systemImage: "trash.fill")
+          }
+        } else {
+          Button {
+            DownloadManager.shared.enqueue(video)
+            DownloadManager.shared.checkDownloads()
+          } label: {
+            Label("Download", systemImage: "arrow.down")
+          }
+          .tint(.blue)
         }
-        .tint(.blue)
         NavigationLink(destination: AddToPlaylistView(video: video)) {
             Label("Add to Playlist", systemImage: "text.badge.plus")
         }

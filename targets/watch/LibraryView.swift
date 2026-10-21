@@ -9,6 +9,22 @@ import SwiftUI
 import SwiftData
 
 struct LibraryView: View {
+    @Environment(DownloadManager.self) private var downloadManager: DownloadManager
+
+    /// Only shown while something is in flight, so the row stays a single line otherwise.
+    private var downloadsSummary: LocalizedStringKey? {
+      let running = downloadManager.activeDownloads.count
+        + downloadManager.pendingDownloads.count
+        + downloadManager.awaitingMetadata.count
+      if running > 0 {
+        return "\(running) in progress"
+      }
+      if !downloadManager.failedDownloads.isEmpty {
+        return "\(downloadManager.failedDownloads.count) failed"
+      }
+      return nil
+    }
+
     var body: some View {
       List {
         NavigationLink {
@@ -22,9 +38,9 @@ struct LibraryView: View {
           MenuIconLabel(title: "Videos", systemImage: "play.rectangle.fill", color: .orange)
         }
         NavigationLink {
-          LibraryDownloadedVideos()
+          DownloadsScreen()
         } label: {
-          MenuIconLabel(title: "Downloaded", systemImage: "arrow.down.circle.fill", color: .blue)
+          MenuIconLabel(title: "Downloads", subtitle: downloadsSummary, systemImage: "arrow.down.circle.fill", color: .blue)
         }
         NavigationLink {
           LibraryAvailableVideos()
@@ -220,6 +236,7 @@ struct LibraryVideos: View {
 #Preview {
     LibraryView()
     .modelContext(DataController.previewContainer.mainContext)
+    .environment(DownloadManager.shared)
 }
 struct LibraryAvailableVideos: View {
   @State private var date: Date = Date()
@@ -259,39 +276,5 @@ struct LibraryAvailableVideos: View {
 
 #Preview {
   LibraryAvailableVideos()
-    .modelContext(DataController.previewContainer.mainContext)
-}
-
-struct LibraryDownloadedVideos: View {
-  @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
-  @Environment(DownloadManager.self) private var downloadManager: DownloadManager
-  @Query(filter: #Predicate<Video> { video in
-    video.downloaded == true
-  }, sort: \Video.title, order: .reverse) var videos: [Video]
-  
-  var body: some View {
-    List {
-      Button("Shuffle", systemImage: "shuffle") {
-        musicPlayerManager.updatePlaylist(newPlaylist: Array(videos).shuffled())
-      }
-      ForEach(Array(videos.enumerated()), id: \.element.id) { index, video in
-        VStack {
-          MusicListItemView(video: video) {
-            musicPlayerManager.updatePlaylist(newPlaylist: Array(videos[index...]))
-          }
-        }
-      }
-    }.toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
-        NavigationLink(destination: MusikPlayer()) {
-            Label("Music", systemImage: "music.note.list")
-          }
-      }
-    }
-  }
-}
-
-#Preview {
-    LibraryDownloadedVideos()
     .modelContext(DataController.previewContainer.mainContext)
 }
