@@ -88,11 +88,13 @@ final class VideoMetadataRequests {
   }
   private var pending: [String: Pending] = [:]
   private let timeout: Duration
+  private let notReadyDelay: Duration
   private let sendRequest: (String, String) -> Void
   private let onFailure: (String) -> Void
 
-  init(timeout: Duration = .seconds(20), sendRequest: @escaping (String, String) -> Void, onFailure: @escaping (String) -> Void) {
+  init(timeout: Duration = .seconds(20), notReadyDelay: Duration = .seconds(3), sendRequest: @escaping (String, String) -> Void, onFailure: @escaping (String) -> Void) {
     self.timeout = timeout
+    self.notReadyDelay = notReadyDelay
     self.sendRequest = sendRequest
     self.onFailure = onFailure
   }
@@ -124,6 +126,18 @@ final class VideoMetadataRequests {
     guard pending[id]?.token == requestID else { return false }
     pending.removeValue(forKey: id)?.timeout?.cancel()
     return true
+  }
+
+  /// The phone answered before it could resolve metadata. Retries sooner than
+  /// the timeout, but within the same attempt budget.
+  func retrySoon(id: String, requestID: String?) {
+    guard let requestID, let request = pending[id], request.token == requestID else { return }
+    request.timeout?.cancel()
+    pending[id]?.timeout = Task { [weak self, notReadyDelay] in
+      do { try await Task.sleep(for: notReadyDelay) } catch { return }
+      guard let self, self.pending[id]?.token == requestID else { return }
+      self.begin(id: id, attempt: request.attempt + 1)
+    }
   }
 
   /// Resends with a fresh token. Only timeouts count as attempts, so a flapping
@@ -193,6 +207,10 @@ func saveVideoResponse(_ session: WCSession, message: [String: Any]) {
   guard let id = message["id"] as? String else { return }
   let isResponse = message["type"] as? String == "videoResponse"
   if isResponse {
+    if message["error"] as? String == "metadata_not_ready" {
+      VideoMetadataRequests.shared.retrySoon(id: id, requestID: message["requestId"] as? String)
+      return
+    }
     guard VideoMetadataRequests.shared.acceptsResponse(id: id, requestID: message["requestId"] as? String) else { return }
     if message["error"] != nil {
       DownloadManager.shared.videoMetadataFailed(id: id)
