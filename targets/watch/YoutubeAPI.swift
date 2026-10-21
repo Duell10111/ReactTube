@@ -187,6 +187,7 @@ func processYoutubeAPIMessage(_ session: WCSession, message: [String: Any]) {
 
 @MainActor
 func saveVideoResponse(_ session: WCSession, message: [String: Any]) {
+  guard let context = DataController.shared.container?.mainContext else { return }
   guard let id = message["id"] as? String else { return }
   let isResponse = message["type"] as? String == "videoResponse"
   if isResponse {
@@ -199,7 +200,7 @@ func saveVideoResponse(_ session: WCSession, message: [String: Any]) {
   }
   let validUntil = (message["validUntil"] as? NSNumber).map { Date(timeIntervalSince1970: $0.doubleValue / 1000) }
   addDownloadData(
-    DataController.shared.container.mainContext, id: id,
+    context, id: id,
     title: message["title"] as? String, artist: message["artist"] as? String,
     duration: message["duration"] as? Int ?? 0,
     streamURL: message["streamURL"] as? String, validUntil: validUntil,
@@ -216,6 +217,7 @@ func saveVideoResponse(_ session: WCSession, message: [String: Any]) {
 
 @MainActor
 func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestVideos: Bool = false) {
+  guard let context = DataController.shared.container?.mainContext else { return }
   if let id = message["id"] as? String, let title = message["title"] as? String {
     print("Received Playlist Response for id: \(id)")
     let coverURL = message["coverUrl"] as? String
@@ -242,7 +244,7 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestV
       videos.forEach { video in
         if let id = video["id"] as? String, let title = video["title"] as? String {
           // Use expired date as no video urls are present
-          addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, validUntil: Calendar.current.date(byAdding: .hour, value: -2, to: Date()), coverURL: video["coverUrl"] as? String, temp: message["temp"] as? Bool)
+          addDownloadData(context, id: id, title: title, duration: 0, validUntil: Calendar.current.date(byAdding: .hour, value: -2, to: Date()), coverURL: video["coverUrl"] as? String, temp: message["temp"] as? Bool)
           print("Saving Playlist Video ID: \(id)")
         } else {
           print("Playlist VideoData incomplete")
@@ -251,7 +253,7 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestV
     } else {
       print("No Video data provided or fetched")
     }
-    addPlaylistData(DataController.shared.container.mainContext, id: id, title: title, videoIds: videoIds, coverURL: coverURL, temp: message["temp"] as? Bool)
+    addPlaylistData(context, id: id, title: title, videoIds: videoIds, coverURL: coverURL, temp: message["temp"] as? Bool)
   } else {
     print("YT Playlist Response incomplete")
   }
@@ -259,6 +261,7 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestV
 
 @MainActor
 func saveHomeScreenResponse(_ session: WCSession, message: [String: Any]) {
+  guard let context = DataController.shared.container?.mainContext else { return }
   print("Received Home Screen Response")
   if let sections = message["sections"] as? [[String: Any]], !sections.isEmpty {
     sections.forEach { section in
@@ -267,7 +270,7 @@ func saveHomeScreenResponse(_ session: WCSession, message: [String: Any]) {
           return parseHomeSectionData(session, data: sectionData)
         }
         print("Found elements: \(elements)")
-        let section = addHomeScreenSection(DataController.shared.container.mainContext, title: title, date: Date())
+        let section = addHomeScreenSection(context, title: title, date: Date())
         print("Section: \(section)")
         section?.elements = elements
       } else {
@@ -281,13 +284,14 @@ func saveHomeScreenResponse(_ session: WCSession, message: [String: Any]) {
 
 @MainActor
 func parseHomeSectionData(_ session: WCSession, data: [String: Any]) -> HomeScreenElement? {
+  guard let context = DataController.shared.container?.mainContext else { return nil }
   if let type = data["type"] as? String, let id = data["id"] as? String {
     if type == "playlist" {
       savePlaylistResponse(session, message: data, requestVideos: false)
-      return addHomeScreenElement(DataController.shared.container.mainContext, videoID: nil, playlistID: id)
+      return addHomeScreenElement(context, videoID: nil, playlistID: id)
     } else if type == "video" {
       saveVideoResponse(session, message: data)
-      return addHomeScreenElement(DataController.shared.container.mainContext, videoID: id, playlistID: nil)
+      return addHomeScreenElement(context, videoID: id, playlistID: nil)
     }
   }
   return nil

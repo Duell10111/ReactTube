@@ -64,9 +64,8 @@ class DownloadManager {
   }
 
   func restore() async {
-    guard !restored, !restoring else { return }
+    guard !restored, !restoring, let context = DataController.shared.container?.mainContext else { return }
     restoring = true
-    let context = DataController.shared.container.mainContext
     for video in (try? context.fetch(FetchDescriptor<Video>())) ?? [] where video.downloaded {
       if video.fileURL.map({ FileManager.default.fileExists(atPath: getDownloadDirectory().appendingPathComponent($0).path) }) != true {
         video.downloaded = false
@@ -119,7 +118,7 @@ class DownloadManager {
   func videoMetadataUpdated(id: String) {
     guard awaitingMetadata.remove(id) != nil else { return }
     let descriptor = FetchDescriptor<Video>(predicate: #Predicate { $0.id == id })
-    if let video = try? DataController.shared.container.mainContext.fetch(descriptor).first, !video.downloaded {
+    if let video = try? DataController.shared.container?.mainContext.fetch(descriptor).first, !video.downloaded {
       guard video.downloadURL != nil, let expiry = video.validUntil, expiry > Date() else {
         failedDownloads[id] = DownloadMessages.unavailable
         persistQueue()
@@ -165,7 +164,7 @@ class DownloadManager {
   /// Queues a failed download again; expired metadata is re-requested first.
   func retry(id: String) {
     let descriptor = FetchDescriptor<Video>(predicate: #Predicate { $0.id == id })
-    guard let video = try? DataController.shared.container.mainContext.fetch(descriptor).first else {
+    guard let video = try? DataController.shared.container?.mainContext.fetch(descriptor).first else {
       failedDownloads.removeValue(forKey: id)
       return
     }
@@ -237,6 +236,7 @@ class DownloadManager {
 
   /// Keeps the staging copy until both the final file and SwiftData are saved.
   private func complete(job: WatchDownloadJob, file: URL?, error: Error?) -> Bool {
+    guard let context = DataController.shared.container?.mainContext else { return false }
     let id = job.videoID
     guard generations[id] == job.generation else { return true }
     guard let video = existingVideo(id: id) else {
@@ -259,7 +259,7 @@ class DownloadManager {
         let relativePath = id + (isAudio ? "/audio.mp4" : "/cover.png")
         if isAudio { video.downloaded = true; video.fileURL = relativePath }
         else { video.coverURL = relativePath }
-        try DataController.shared.container.mainContext.save()
+        try context.save()
         if isAudio { requestedIDs.remove(id); failedDownloads.removeValue(forKey: id) }
       } catch {
         failedDownloads[id] = DownloadMessages.saveFailed
@@ -303,7 +303,7 @@ class DownloadManager {
 
   private func existingVideo(id: String) -> Video? {
     let descriptor = FetchDescriptor<Video>(predicate: #Predicate { $0.id == id })
-    return try? DataController.shared.container.mainContext.fetch(descriptor).first
+    return try? DataController.shared.container?.mainContext.fetch(descriptor).first
   }
 
 
@@ -315,13 +315,48 @@ struct ActiveDownload {
   //var session: URLSessionDownloadTask
 }
 
-/// Centralized until the native watch gains a UI localization boundary.
 enum DownloadMessages {
-  static let saveFailed = "The downloaded file could not be saved."
-  static let startFailed = "The download could not be started."
-  static let unavailable = "No download URL available."
-  static let metadataFailed = "The iPhone could not load download information. Please try again."
-  static let connectionFailed = "Download information timed out. Reconnect the iPhone and try again."
+  static var saveFailed: String { WatchStabilityCopy.text(.downloadSaveFailed) }
+  static var startFailed: String { WatchStabilityCopy.text(.downloadStartFailed) }
+  static var unavailable: String { WatchStabilityCopy.text(.downloadUnavailable) }
+  static var metadataFailed: String { WatchStabilityCopy.text(.downloadMetadataFailed) }
+  static var connectionFailed: String { WatchStabilityCopy.text(.downloadConnectionFailed) }
+}
+
+/// Typed native copy for stability and recovery UI. This preference is separate
+/// from the language sent to YouTube and can be selected before the store opens.
+enum WatchStabilityCopy {
+  enum Key: CaseIterable {
+    case downloadSaveFailed, downloadStartFailed, downloadUnavailable
+    case downloadMetadataFailed, downloadConnectionFailed
+    case recoveryLoading, recoveryTitle, recoveryExplanation, recoveryRetry
+    case recoveryRebuild, recoveryCancel, recoveryConfirmation, recoveryBackup
+    case appLanguage, switchLanguage
+  }
+
+  static func text(_ key: Key, language: String? = nil) -> String {
+    let value: (en: String, de: String)
+    switch key {
+    case .downloadSaveFailed: value = ("The downloaded file could not be saved.", "Die heruntergeladene Datei konnte nicht gespeichert werden.")
+    case .downloadStartFailed: value = ("The download could not be started.", "Der Download konnte nicht gestartet werden.")
+    case .downloadUnavailable: value = ("No download URL available.", "Kein Download-Link verfügbar.")
+    case .downloadMetadataFailed: value = ("The iPhone could not load download information. Please try again.", "Das iPhone konnte die Downloadinformationen nicht laden. Bitte erneut versuchen.")
+    case .downloadConnectionFailed: value = ("Download information timed out. Reconnect the iPhone and try again.", "Zeitüberschreitung beim Laden der Downloadinformationen. Das iPhone erneut verbinden und noch einmal versuchen.")
+    case .recoveryLoading: value = ("Opening library…", "Bibliothek wird geöffnet …")
+    case .recoveryTitle: value = ("Library unavailable", "Bibliothek nicht verfügbar")
+    case .recoveryExplanation: value = ("The library could not be opened. Retry, or back it up and create an empty library.", "Die Bibliothek konnte nicht geöffnet werden. Erneut versuchen oder nach einer Sicherung eine leere Bibliothek anlegen.")
+    case .recoveryRetry: value = ("Try again", "Erneut versuchen")
+    case .recoveryRebuild: value = ("Back up and reset library", "Bibliothek sichern und zurücksetzen")
+    case .recoveryCancel: value = ("Cancel", "Abbrechen")
+    case .recoveryConfirmation: value = ("Your playlists and library entries will be reset. The existing database will be backed up first. Downloaded files will be kept.", "Playlists und Bibliothekseinträge werden zurückgesetzt. Die bisherige Datenbank wird vorher gesichert. Heruntergeladene Dateien bleiben erhalten.")
+    case .recoveryBackup: value = ("Database backup:", "Datenbanksicherung:")
+    case .appLanguage: value = ("App language", "App-Sprache")
+    case .switchLanguage: value = ("Deutsch", "English")
+    }
+    let selected = language ?? UserDefaults.standard.string(forKey: "uiLanguage")
+      ?? Locale.current.language.languageCode?.identifier ?? "en"
+    return selected == "de" ? value.de : value.en
+  }
 }
 
 struct WatchDownloadJob: Codable {

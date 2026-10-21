@@ -204,7 +204,7 @@ class MusicPlayerManager {
   /// Continues the last title where it stopped.
   @MainActor
   func resumePlayback(_ state: ResumeState) {
-    let context = DataController.shared.container.mainContext
+    guard let context = DataController.shared.container?.mainContext else { return }
 
     if let playlistID = state.playlistID {
       let descriptor = FetchDescriptor<Playlist>(predicate: #Predicate { $0.id == playlistID })

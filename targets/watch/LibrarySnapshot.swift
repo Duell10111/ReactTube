@@ -159,7 +159,7 @@ final class LibrarySync {
   private var lastProgressSentAt = Date.distantPast
 
   private var session: WCSession { WCSession.default }
-  private var modelContext: ModelContext { DataController.shared.container.mainContext }
+  private var modelContext: ModelContext? { DataController.shared.container?.mainContext }
 
   private init() {}
 
@@ -248,7 +248,7 @@ final class LibrarySync {
       guard !Task.isCancelled else { return }
       self.playlistChangeTasks[id] = nil
       let descriptor = FetchDescriptor<Playlist>(predicate: #Predicate { $0.id == id })
-      guard let playlist = try? self.modelContext.fetch(descriptor).first, playlist.linked else { return }
+      guard let context = self.modelContext, let playlist = try? context.fetch(descriptor).first, playlist.linked else { return }
       send([
         "type": WatchLibraryProtocol.playlistChangedType,
         "protocolVersion": WatchLibraryProtocol.version,
@@ -284,7 +284,7 @@ final class LibrarySync {
   /// Publishes the short status through the application context. Only the latest
   /// value matters, so this is cheap and safe to call often.
   func publishStatus() {
-    guard WCSession.isSupported(), session.activationState == .activated else { return }
+    guard let modelContext, WCSession.isSupported(), session.activationState == .activated else { return }
     let status = LibrarySnapshotBuilder.status(modelContext, revision: revision)
     do {
       try session.updateApplicationContext([WatchLibraryProtocol.statusContextKey: status.dictionary])
@@ -300,7 +300,7 @@ final class LibrarySync {
   }
 
   func sendSnapshot() {
-    guard WCSession.isSupported(), session.activationState == .activated else { return }
+    guard let modelContext, WCSession.isSupported(), session.activationState == .activated else { return }
     do {
       let snapshot = try LibrarySnapshotBuilder.build(modelContext, revision: revision)
       let data = try JSONEncoder().encode(snapshot)
