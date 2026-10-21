@@ -68,9 +68,9 @@ class DownloadManager {
     restoring = true
     for video in (try? context.fetch(FetchDescriptor<Video>())) ?? [] where video.downloaded {
       if video.fileURL.map({ FileManager.default.fileExists(atPath: getDownloadDirectory().appendingPathComponent($0).path) }) != true {
+        // Only reset the state; downloading again is left to the user.
         video.downloaded = false
         video.fileURL = nil
-        requestedIDs.insert(video.id)
       }
     }
     do { if context.hasChanges { try context.save() } }

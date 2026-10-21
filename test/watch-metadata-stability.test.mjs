@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {runSwift, swiftMethod, watchSource} from "./helpers/watchNative.mjs";
-import {completeWatchVideoRequest} from "../src/hooks/watchSync/watchVideoMetadata.ts";
+import {
+  completeWatchVideoRequest,
+  WATCH_METADATA_NOT_READY,
+} from "../src/hooks/watchSync/watchVideoMetadata.ts";
 
 test("W03 returns a correlated response on success, unavailable metadata, and exceptions", async () => {
   const request = {videoId: "video", requestId: "attempt-1"};
@@ -25,6 +28,16 @@ test("W03 returns a correlated response on success, unavailable metadata, and ex
     (await completeWatchVideoRequest(request, async () => undefined, log))
       .error,
     "metadata_unavailable",
+  );
+  assert.equal(
+    (
+      await completeWatchVideoRequest(
+        request,
+        async () => WATCH_METADATA_NOT_READY,
+        log,
+      )
+    ).error,
+    "metadata_not_ready",
   );
   const response = await completeWatchVideoRequest(
     request,
@@ -83,6 +96,22 @@ ${coordinator}
     precondition(sent.filter { $0.0 == "d" }.count == 6 && failed == ["b"])
     try? await Task.sleep(for: .milliseconds(80))
     precondition(sent.filter { $0.0 == "d" }.count == 8 && failed == ["b", "d"])
+    // A not-ready phone is asked again before the timeout, within the attempt budget.
+    var soonSent: [String] = []
+    var soonFailed: [String] = []
+    let soon = VideoMetadataRequests(timeout: .seconds(60), notReadyDelay: .milliseconds(5), sendRequest: { soonSent.append($1) }, onFailure: { soonFailed.append($0) })
+    soon.request(id: "e")
+    soon.retrySoon(id: "e", requestID: "stale")
+    try? await Task.sleep(for: .milliseconds(30))
+    precondition(soonSent.count == 1)
+    for expected in 2...3 {
+      soon.retrySoon(id: "e", requestID: soonSent.last!)
+      try? await Task.sleep(for: .milliseconds(30))
+      precondition(soonSent.count == expected && soonFailed.isEmpty)
+    }
+    soon.retrySoon(id: "e", requestID: soonSent.last!)
+    try? await Task.sleep(for: .milliseconds(30))
+    precondition(soonSent.count == 3 && soonFailed == ["e"])
   }
 }
 `);
@@ -103,6 +132,10 @@ test("W03 invalidates omitted URLs and resolves partial metadata responses", () 
     "func saveVideoResponse(",
   );
   assert.match(save, /refreshStreamData: isResponse/);
+  assert.match(
+    save,
+    /"metadata_not_ready"[\s\S]*?retrySoon[\s\S]*?acceptsResponse/,
+  );
   assert.match(save, /DownloadManager.shared.videoMetadataUpdated/);
   assert.match(
     watchSource("DownloadManager.swift"),

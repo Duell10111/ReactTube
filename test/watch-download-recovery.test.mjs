@@ -90,6 +90,11 @@ test("W05 wires startup and background events to recovery and persists queue int
     /guard self.restored else \{[\s\S]*?await self.restore\(\)/,
   );
   assert.match(source, /struct QueueState: Codable/);
+  // Missing local files only reset the download state; nothing is re-queued.
+  assert.doesNotMatch(
+    swiftMethod(source, "func restore()"),
+    /video.fileURL = nil\s*requestedIDs.insert/,
+  );
   assert.match(source, /task.taskDescription = id/);
   assert.doesNotMatch(source, /SDDownloadManager/);
 });

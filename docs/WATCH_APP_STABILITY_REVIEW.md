@@ -410,14 +410,18 @@ Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Buil
   pausiert/leert den Player, gibt seine Instanz frei und setzt Queue, Cover,
   Position und Seek-Wunsch zurück. `setupPlayer` meldet Erfolg; nur eine
   erfolgreich eingerichtete Queue startet. Eine Playlist mit ausstehenden
-  Streamdaten behält lediglich den Startwunsch für W02. Der Regressionstest
-  (`test/watch-resume-stability.test.mjs`) prüft den Quelltext: Der Abbau setzt
-  `player` auf `nil`, leert die Queue, entfernt Listener und Now-Playing-Daten;
-  `setupPlayer` gibt `Bool` zurück und `updatePlaylist` startet nur nach
-  erfolgreicher Einrichtung. Ein nativer Prüffall, der von einem Titel zu einer
-  leeren Playlist wechselt und Playerinstanz, Queue und Startaufrufe zur
-  Laufzeit prüft, fehlt noch. `npm test` (509 Tests), Typecheck,
-  Plattformprüfung und watchOS-Typecheck bestanden.
+  Streamdaten behält lediglich den Startwunsch für W02. Der native
+  Regressionstest (`test/watch-resume-stability.test.mjs`, im Nachreview
+  ergänzt) führt die Originalmethoden `updatePlaylist(newPlaylist:)` und
+  `deinitPlayer` mit Testdoubles aus. Er wechselt von einem laufenden Titel zu
+  einer leeren Playlist und prüft: Die alte Playerinstanz ist freigegeben, alle
+  sechs Listener sind entfernt, Queue und Titelanzeige sind leer, und es gibt
+  keinen weiteren Startaufruf. Anschließend baut eine nicht leere Playlist eine
+  neue Queue auf und startet genau einmal. `setupPlayer` ist dabei durch ein
+  Testdouble mit derselben Abbruchbedingung ersetzt, weil die echte Einrichtung
+  `AVAudioSession` und SwiftAudioEx benötigt. Ursprünglich prüfte der Test nur
+  den Quelltext. `npm test` (509 Tests), Typecheck, Plattformprüfung und
+  watchOS-Typecheck bestanden.
 
 - **W08 behoben:** Home-Elemente verwenden typisierte Schlüssel (`video:` /
   `playlist:`) und gesetzte ID-Felder. Es gibt keinen optionalen ODER-Vergleich
@@ -465,7 +469,7 @@ Regressionstest prüft alle Texte beider Sprachen und den englischen Fallback.
 
 ### Nachreview
 
-Ein Review der Umsetzung ergab drei weitere Korrekturen:
+Ein Review der Umsetzung ergab weitere Korrekturen:
 
 - **Downloads nach Hintergrundstart:** `checkDownloads` holt eine noch
   ausstehende Wiederherstellung nach, statt still abzubrechen. Auch der
@@ -481,3 +485,16 @@ Ein Review der Umsetzung ergab drei weitere Korrekturen:
   nicht mehr innerhalb von Sekunden zu einem endgültigen Fehler. Der native
   Regressionstest prüft fünf Wiederverbindungen ohne Fehler und das
   anschließende Zeitlimit.
+- **iPhone noch nicht bereit:** Ist der YouTube-Client auf dem iPhone noch nicht
+  initialisiert, antwortet es mit `metadata_not_ready` statt mit einem
+  endgültigen Fehler. Die Watch fragt dann nach drei Sekunden erneut, statt das
+  Zeitlimit abzuwarten. Jeder solche Versuch zählt zum Limit von drei Versuchen.
+  Fehlt das HLS-Manifest, bleibt die Antwort `metadata_unavailable` und damit
+  endgültig. Der native Regressionstest prüft veraltete Kennungen, die
+  vorgezogenen Wiederholungen und den Fehler nach dem dritten Versuch.
+- **Fehlende lokale Dateien:** Beim Start setzt die Wiederherstellung Titel mit
+  fehlender Audiodatei nur auf „nicht heruntergeladen“ zurück. Sie werden nicht
+  mehr automatisch erneut heruntergeladen.
+- **W07-Regressionstest:** Der reine Quelltexttest ist durch den oben
+  beschriebenen nativen Prüffall ersetzt. Eine Gegenprobe ohne `player = nil`
+  im Abbau lässt den Test fehlschlagen.

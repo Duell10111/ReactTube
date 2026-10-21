@@ -17,7 +17,10 @@ import {
 } from "@/extraction/YTElements";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
 import {getMusicPlaylistDetails} from "@/hooks/music/useMusicPlaylistDetails";
-import {completeWatchVideoRequest} from "@/hooks/watchSync/watchVideoMetadata";
+import {
+  completeWatchVideoRequest,
+  WATCH_METADATA_NOT_READY,
+} from "@/hooks/watchSync/watchVideoMetadata";
 import {resolveStreamingSource} from "@/utils/PlaybackSource";
 import {YT} from "@/utils/Youtube";
 import {getLoudnessDb} from "@/utils/music/LoudnessNormalization";
@@ -125,7 +128,7 @@ export async function handleWatchMessage(
       async () => {
         if (!youtube) {
           LOGGER.warn("No video info found or youtube uninitialized.");
-          return;
+          return WATCH_METADATA_NOT_READY;
         }
 
         // The same client chain as playback on the phone (plan phase 1.4) instead
