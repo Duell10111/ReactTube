@@ -77,6 +77,12 @@ ${coordinator}
     precondition(!requests.acceptsResponse(id: "c", requestID: cancelled))
     try? await Task.sleep(for: .milliseconds(50))
     precondition(failed == ["b"])
+    // Reconnects resend without spending attempts; only timeouts are counted.
+    requests.request(id: "d")
+    for _ in 0..<5 { requests.retryAfterReconnect() }
+    precondition(sent.filter { $0.0 == "d" }.count == 6 && failed == ["b"])
+    try? await Task.sleep(for: .milliseconds(80))
+    precondition(sent.filter { $0.0 == "d" }.count == 8 && failed == ["b", "d"])
   }
 }
 `);

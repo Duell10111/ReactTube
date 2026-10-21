@@ -281,7 +281,12 @@ class DownloadManager {
     // Deferred so callers can finish their own bookkeeping first. The task
     // inherits the main actor, so the queues are never mutated concurrently.
     Task {
-      guard self.restored, !self.restoring else { return }
+      guard self.restored else {
+        // A background launch can enqueue before any view has run the restore.
+        // Restoring checks the queue again once it has finished.
+        await self.restore()
+        return
+      }
       print("Checking downloads...")
 
       // Iterate over a snapshot so attempted downloads can be

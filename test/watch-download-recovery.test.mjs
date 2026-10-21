@@ -80,6 +80,15 @@ test("W05 wires startup and background events to recovery and persists queue int
     /await downloadManager.handleBackgroundEvents/,
   );
   assert.match(watchSource("watchApp.swift"), /await downloadManager.restore/);
+  // Background launches without UI still restore before starting queued downloads.
+  assert.match(
+    watchSource("watchApp.swift"),
+    /backgroundTask\(\.watchConnectivity\) \{[\s\S]*?await downloadManager.restore\(\)/,
+  );
+  assert.match(
+    swiftMethod(source, "func checkDownloads()"),
+    /guard self.restored else \{[\s\S]*?await self.restore\(\)/,
+  );
   assert.match(source, /struct QueueState: Codable/);
   assert.match(source, /task.taskDescription = id/);
   assert.doesNotMatch(source, /SDDownloadManager/);
