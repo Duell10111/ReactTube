@@ -310,6 +310,7 @@ private func notifyLocalPlaylistEdit(_ playlist: Playlist) {
   }
 }
 
+@MainActor
 func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
   playlist.videoIDs.removeAll { id in
     id == video.id
@@ -320,6 +321,7 @@ func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
   // Check if video is contained in any other playlist otherwise delete
   do {
     if let modelContext = playlist.modelContext, try !checkIfVideoExistsInOtherPlaylist(modelContext, oldPlaylist: playlist, video: video) {
+      prepareForVideoDeletion(ids: [video.id])
       // Free the download as well, otherwise the file stays without an entry.
       if video.downloaded { deleteDownloadedVideoFile(id: video.id) }
       modelContext.delete(video)
@@ -335,7 +337,9 @@ func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
 
 /// Deletes the downloaded file of a video and resets its download state, so the
 /// entry no longer claims to be playable offline. The caller is responsible for saving.
+@MainActor
 func deleteDownloadedVideo(_ modelContext: ModelContext, id: String) {
+  prepareForVideoDeletion(ids: [id])
   deleteDownloadedVideoFile(id: id)
   do {
     let descriptor = FetchDescriptor<Video>(
@@ -365,8 +369,10 @@ private func deleteDownloadedVideoFile(id: String) {
   }
 }
 
+@MainActor
 func deleteDownloadedPlaylist(_ modelContext: ModelContext, playlist: Playlist) {
   let playlistId = playlist.id
+  MusicPlayerManager.shared.prepareForLibraryDeletion(ids: [], playlistID: playlistId)
   // Find all videos only saved in the playlist
   for video in playlist.videos {
     // Check if other playlist exists with this video
@@ -379,8 +385,8 @@ func deleteDownloadedPlaylist(_ modelContext: ModelContext, playlist: Playlist) 
     do {
       let otherPlaylists = try modelContext.fetch(descriptor)
       if !otherPlaylists.isEmpty { continue }
-      if video.downloaded { deleteDownloadedVideoFile(id: video.id) }
-      
+      prepareForVideoDeletion(ids: [video.id])
+      deleteDownloadedVideoFile(id: video.id)
       modelContext.delete(video)
     } catch {
       print("Error deleting video \(video.id) from playlist \(playlist.id): \(error)")
@@ -403,6 +409,7 @@ private func checkIfVideoExistsInOtherPlaylist(_ modelContext: ModelContext, old
   return !otherPlaylists.isEmpty
 }
 
+@MainActor
 func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
   if backupFile.videos.isEmpty {
     print("No Videos available")
@@ -425,6 +432,8 @@ func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
 @MainActor
 func clearDownloads(modelContext: ModelContext) {
   do {
+    let ids = Set(((try? modelContext.fetch(FetchDescriptor<Video>())) ?? []).map(\.id))
+    MusicPlayerManager.shared.prepareForLibraryDeletion(ids: ids)
     DownloadManager.shared.cancelAll()
     if FileManager.default.fileExists(atPath: getDownloadDirectory().path()) {
       try FileManager.default.removeItem(at: getDownloadDirectory())
@@ -449,7 +458,11 @@ func clearDownloads(modelContext: ModelContext) {
   }
 }
 
+@MainActor
 func clearDatabase(modelContext: ModelContext) {
+  let ids = Set(((try? modelContext.fetch(FetchDescriptor<Video>())) ?? []).map(\.id))
+  MusicPlayerManager.shared.prepareForLibraryDeletion(ids: ids)
+  DownloadManager.shared.cancelAll()
   do {
       try modelContext.delete(model: Video.self)
       try modelContext.delete(model: Playlist.self)
@@ -462,4 +475,10 @@ func clearDatabase(modelContext: ModelContext) {
   } catch {
       print("Failed to clear all Video and Playlist data. \(error)")
   }
+}
+
+@MainActor
+private func prepareForVideoDeletion(ids: Set<String>) {
+  DownloadManager.shared.cancel(ids: ids)
+  MusicPlayerManager.shared.prepareForLibraryDeletion(ids: ids)
 }

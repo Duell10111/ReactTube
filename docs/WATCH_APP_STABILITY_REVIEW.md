@@ -373,3 +373,13 @@ Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Buil
   löschen den alten Link. Regressionen prüfen Erfolg, Fehler, Zusammenfassung,
   Timeout, Wiederverbindung und veraltete Antworten. `npm test` (503 Tests),
   Typecheck und Plattformprüfung bestanden; watchOS-Typecheck ebenfalls.
+
+- **W04 behoben:** Lokale und entfernte Löschpfade brechen Audio-, Cover- und
+  Metadatenaufträge vor dem Entfernen exklusiver Titel ab. Geteilte Titel
+  bleiben erhalten. Playerreferenzen werden vor Modell-/Dateilöschung
+  freigegeben. Abschlüsse verwenden unveränderliche IDs und eine
+  Auftragsgeneration und aktualisieren nur vorhandene Modelle. Der native
+  Regressionstest liefert alte Audio-/Coverabschlüsse nach Abbruch, Löschung
+  und Neustart desselben Titels: keine Datei und kein Modell werden angelegt;
+  aktuelle Abschlüsse funktionieren. `npm test` (505 Tests), Typecheck,
+  Plattformprüfung und watchOS-Typecheck bestanden.

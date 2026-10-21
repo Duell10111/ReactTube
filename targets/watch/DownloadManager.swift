@@ -27,6 +27,8 @@ class DownloadManager {
   var failedDownloads: [String: String] = [:]
   /// SDDownloadManager keys of running audio downloads, needed to cancel them.
   private var downloadKeys: [String: String] = [:]
+  private var coverKeys: [String: String] = [:]
+  private var generations: [String: UUID] = [:]
 
   /// Queues a download. Videos without a valid download URL request fresh
   /// metadata first; `videoMetadataUpdated` continues once it arrives.
@@ -65,7 +67,12 @@ class DownloadManager {
   func cancel(ids: Set<String>) {
     pendingDownloads = pendingDownloads.filter { !ids.contains($0.id) }
     awaitingMetadata.subtract(ids)
+    VideoMetadataRequests.shared.cancel(ids: ids)
     for id in ids {
+      generations.removeValue(forKey: id)
+      if let key = coverKeys.removeValue(forKey: id) {
+        SDDownloadManager.shared.cancelDownload(forUniqueKey: key)
+      }
       failedDownloads.removeValue(forKey: id)
       // SDDownloadManager drops the completion block of a cancelled task, so the
       // bookkeeping normally done there has to happen here.
@@ -97,6 +104,9 @@ class DownloadManager {
   }
 
   func cancelAll() {
+    VideoMetadataRequests.shared.cancel(ids: awaitingMetadata)
+    generations.removeAll()
+    coverKeys.removeAll()
     SDDownloadManager.shared.cancelAllDownloads()
     pendingDownloads.removeAll()
     awaitingMetadata.removeAll()
@@ -122,79 +132,54 @@ class DownloadManager {
   /// parallel limit and the metadata refresh apply.
   @discardableResult
   private func downloadVideo(video: Video) -> Bool {
-    var didStartAudioDownload = false
-
-    if let streamURL = video.downloadURL, let expiry = video.validUntil, expiry > Date(), let uri = URL(string: streamURL) {
-      WatchLog.shared.info("Download", "Started: \(video.title ?? video.id)")
-      let request = URLRequest(url: uri)
-      let key = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
-        print("Progrss: \(progress)")
-        self.progressDownloads[video.id] = Double(progress)
-        self.notifyProgress()
-      }) { error, fileUrl in
-        if let error = error {
-          WatchLog.shared.error("Download", "Failed for \(video.title ?? video.id): \(error.localizedDescription)")
-          self.failedDownloads[video.id] = error.localizedDescription
-        } else {
-          if let url = fileUrl {
-            print("Downloaded file's url is \(url.path)")
-            // TODO: Remove hardcode fileExt
-            let saveDownload = saveDownloadFile(id: video.id, filePath: url, fileExtension: "mp4")
-            if let saveURL = saveDownload {
-              self.receiveFileUpload(id: video.id, fileURL: saveURL, duration: video.durationMillis)
-              print("Saved Download")
-            } else {
-              self.failedDownloads[video.id] = "The downloaded file could not be saved."
-            }
-          }
-        }
-        self.activeDownloads.removeAll { download in
-          download.id == video.id
-        }
-        self.progressDownloads.removeValue(forKey: video.id)
-        self.downloadKeys.removeValue(forKey: video.id)
-        self.notifyProgress()
-        // Keep draining the queue even when the video has no cover or the
-        // optional cover download fails.
-        self.checkDownloads()
-      }
-      if let key {
-        downloadKeys[video.id] = key
-      }
-      activeDownloads.append(ActiveDownload(id: video.id))
-      notifyProgress()
-      didStartAudioDownload = true
-    } else {
-      WatchLog.shared.warning("Download", "No download URL for \(video.title ?? video.id)")
-      failedDownloads[video.id] = "No download URL available."
+    let id = video.id
+    let duration = video.durationMillis
+    let title = video.title ?? id
+    guard let streamURL = video.downloadURL, let expiry = video.validUntil, expiry > Date(), let uri = URL(string: streamURL) else {
+      failedDownloads[id] = DownloadMessages.unavailable
+      return false
     }
-    // TODO: Add clear function to delete images without downloaded audio
-    // Image Download
-    if let coverURL = video.coverURL, let uri = URL(string: coverURL) {
-      print("Started image download \(video.id)")
-      let request = URLRequest(url: uri)
-      _ = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
-        print("Progrss Image: \(progress)")
-      }) { error, fileUrl in
-        if let error = error {
-          print("Error is \(error as NSError)")
-        } else {
-          if let url = fileUrl {
-            print("Downloaded cover url is \(url.path)")
-            // TODO: Remove hardcode fileExt
-            let saveDownload = saveDownloadFile(id: video.id, filePath: url, fileExtension: "png")
-            if let saveURL = saveDownload {
-              self.receiveFileUploadImage(id: video.id, coverURL: saveURL, duration: video.durationMillis)
-              print("Saved Image Download")
-              // Check for new downloads on end of another download
-              self.checkDownloads()
-            }
-          }
-        }
+    let generation = UUID()
+    generations[id] = generation
+    let key = SDDownloadManager.shared.downloadFile(withRequest: URLRequest(url: uri), shouldDownloadInBackground: true, onProgress: { progress in
+      guard self.generations[id] == generation else { return }
+      self.progressDownloads[id] = Double(progress)
+      self.notifyProgress()
+    }) { error, fileURL in
+      guard self.generations[id] == generation, self.existingVideo(id: id) != nil else { return }
+      if let error {
+        WatchLog.shared.error("Download", "Failed for \(title): \(error.localizedDescription)")
+        self.failedDownloads[id] = error.localizedDescription
+      } else if let fileURL, let saved = saveDownloadFile(id: id, filePath: fileURL, fileExtension: "mp4") {
+        self.receiveFileUpload(id: id, fileURL: saved, duration: duration)
+      } else {
+        self.failedDownloads[id] = DownloadMessages.saveFailed
+      }
+      self.activeDownloads.removeAll { $0.id == id }
+      self.progressDownloads.removeValue(forKey: id)
+      self.downloadKeys.removeValue(forKey: id)
+      self.notifyProgress()
+      self.checkDownloads()
+    }
+    guard let key else {
+      generations.removeValue(forKey: id)
+      failedDownloads[id] = DownloadMessages.startFailed
+      return false
+    }
+    downloadKeys[id] = key
+    activeDownloads.append(ActiveDownload(id: id))
+    notifyProgress()
+
+    if let coverURL = video.coverURL, let uri = URL(string: coverURL), uri.scheme == "https" || uri.scheme == "http" {
+      coverKeys[id] = SDDownloadManager.shared.downloadFile(withRequest: URLRequest(url: uri), shouldDownloadInBackground: true, onProgress: nil) { error, fileURL in
+        guard self.generations[id] == generation, self.existingVideo(id: id) != nil else { return }
+        self.coverKeys.removeValue(forKey: id)
+        guard error == nil, let fileURL,
+              let saved = saveDownloadFile(id: id, filePath: fileURL, fileExtension: "png", fileName: "cover") else { return }
+        self.receiveFileUploadImage(id: id, coverURL: saved, duration: duration)
       }
     }
-
-    return didStartAudioDownload
+    return true
   }
 
   func checkDownloads() {
@@ -228,12 +213,22 @@ class DownloadManager {
     }
   }
 
+  private func existingVideo(id: String) -> Video? {
+    let descriptor = FetchDescriptor<Video>(predicate: #Predicate { $0.id == id })
+    return try? DataController.shared.container.mainContext.fetch(descriptor).first
+  }
+
   private func receiveFileUpload(id: String, fileURL: String, duration: Int) {
-    addDownloadData(DataController.shared.container.mainContext, id: id, downloaded: true, duration: duration, fileURL: fileURL)
+    guard let video = existingVideo(id: id) else { return }
+    video.downloaded = true
+    video.fileURL = fileURL
+    try? DataController.shared.container.mainContext.save()
   }
 
   private func receiveFileUploadImage(id: String, coverURL: String, duration: Int) {
-    addDownloadData(DataController.shared.container.mainContext, id: id, duration: duration, coverURL: coverURL)
+    guard let video = existingVideo(id: id) else { return }
+    video.coverURL = coverURL
+    try? DataController.shared.container.mainContext.save()
   }
 
 }
@@ -246,6 +241,8 @@ struct ActiveDownload {
 
 /// Centralized until the native watch gains a UI localization boundary.
 enum DownloadMessages {
+  static let saveFailed = "The downloaded file could not be saved."
+  static let startFailed = "The download could not be started."
   static let unavailable = "No download URL available."
   static let metadataFailed = "The iPhone could not load download information. Please try again."
   static let connectionFailed = "Download information timed out. Reconnect the iPhone and try again."
