@@ -397,3 +397,11 @@ Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Buil
   bestanden. Systembedingte Prozessbeendigung und Hintergrundlaufzeit müssen
   zusätzlich auf einer echten Watch geprüft werden; dies wurde hier nicht
   als Geräteerfolg verifiziert.
+
+- **W06 behoben:** Fortsetzungspositionen enthalten die Video-ID, gelten nur
+  für denselben aktuellen Titel und werden gegen dessen Dauer begrenzt. Ein
+  normaler Start verwirft alte Seek-Wünsche. Der alte Wiedergabestand wird
+  vor Änderung der Playlist-Metadaten gespeichert. Native Regressionen prüfen
+  Playlist-Zuordnung, Ersatztitel, passende Position, Überlänge und ungültige
+  Zahlenwerte. `npm test` (508 Tests), Typecheck, Plattformprüfung und
+  watchOS-Typecheck bestanden.

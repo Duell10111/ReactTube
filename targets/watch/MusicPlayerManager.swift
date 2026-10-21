@@ -48,7 +48,11 @@ class MusicPlayerManager {
     private var currentPlaylistTitle: String? = nil
 
     /// Position that still has to be restored once the player is ready.
-    private var pendingSeek: TimeInterval? = nil
+    private struct PendingSeek {
+      let videoID: String
+      let position: TimeInterval
+    }
+    private var pendingSeek: PendingSeek? = nil
     private var lastPersistedPosition: TimeInterval = 0
 
     // Utils
@@ -76,7 +80,9 @@ class MusicPlayerManager {
     type == .local && player != nil && duration > 0
   }
 
-  func updatePlaylist(newPlaylist: [Video]) {
+  func updatePlaylist(newPlaylist: [Video], resume: ResumeState? = nil) {
+    deinitPlayer()
+    pendingSeek = resume.map { PendingSeek(videoID: $0.videoID, position: $0.position) }
     self.type = .local
     requestedStartVideoID = nil
     waitingForVideoID = nil
@@ -96,7 +102,9 @@ class MusicPlayerManager {
   ///   title always plays in order from there, because jumping into a shuffled
   ///   queue would land somewhere else than the title that was tapped.
   /// - Parameter shuffle: `nil` uses the persisted preference.
-  func updatePlaylist(playlist: Playlist, startVideoID: String? = nil, shuffle: Bool? = nil) {
+  func updatePlaylist(playlist: Playlist, startVideoID: String? = nil, shuffle: Bool? = nil, resume: ResumeState? = nil) {
+    deinitPlayer()
+    pendingSeek = resume.map { PendingSeek(videoID: $0.videoID, position: $0.position) }
     self.type = .local
     requestedStartVideoID = startVideoID
     waitingForVideoID = nil
@@ -202,8 +210,7 @@ class MusicPlayerManager {
     if let playlistID = state.playlistID {
       let descriptor = FetchDescriptor<Playlist>(predicate: #Predicate { $0.id == playlistID })
       if let playlist = try? context.fetch(descriptor).first {
-        pendingSeek = state.position
-        updatePlaylist(playlist: playlist, startVideoID: state.videoID, shuffle: false)
+        updatePlaylist(playlist: playlist, startVideoID: state.videoID, shuffle: false, resume: state)
         return
       }
     }
@@ -216,8 +223,7 @@ class MusicPlayerManager {
       return
     }
 
-    pendingSeek = state.position
-    updatePlaylist(newPlaylist: [video])
+    updatePlaylist(newPlaylist: [video], resume: state)
   }
 
   /// Queue position of a title. The queue only holds playable titles, so its
@@ -247,9 +253,6 @@ class MusicPlayerManager {
   private func setupPlayer() {
       sessionGeneration += 1
       playbackRevision += 1
-      if player != nil {
-        deinitPlayer()
-      }
       let generation = sessionGeneration
       // Set up AVAudioSession for background audio playback
       do {
@@ -399,12 +402,20 @@ class MusicPlayerManager {
 
   /// Applies the position of a resumed title once the item is loaded — seeking
   /// before that is dropped by the player.
+  private func pendingSeekPosition() -> TimeInterval? {
+    guard let pendingSeek, pendingSeek.videoID == currentVideo?.id, pendingSeek.position.isFinite else { return nil }
+    let position = max(0, pendingSeek.position)
+    let knownDuration = duration > 0 ? duration : TimeInterval(currentVideo?.durationMillis ?? 0) / 1000
+    return knownDuration > 0 ? min(position, knownDuration) : position
+  }
+
   private func applyPendingSeek() {
-    guard let pendingSeek, let player else { return }
-    self.pendingSeek = nil
-    guard pendingSeek > 1 else { return }
-    player.seek(to: pendingSeek)
-    currentTime = pendingSeek
+    guard pendingSeek != nil, let player else { return }
+    let position = pendingSeekPosition()
+    pendingSeek = nil
+    guard let position, position > 1 else { return }
+    player.seek(to: position)
+    currentTime = position
   }
 
   private func refreshDuration() {
@@ -502,11 +513,11 @@ class MusicPlayerManager {
       if self.wantsPlayback { self.requestedStartVideoID = nil }
       // A resumed title starts at its stored position, so the position must not
       // be reported as 0 before the seek has been applied.
-      self.currentTime = self.pendingSeek ?? 0
       self.duration = 0
+      self.refreshDuration()
+      self.currentTime = self.pendingSeekPosition() ?? 0
       self.lastPersistedPosition = self.currentTime
       self.applyLoudnessNormalization()
-      self.refreshDuration()
       self.updateNowPlayingMetadata()
       self.storeResumeState()
     }
