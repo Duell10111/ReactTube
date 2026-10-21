@@ -12,7 +12,10 @@ import WatchConnectivity
 
 enum LibrarySnapshotBuilder {
   @MainActor
-  static func build(_ modelContext: ModelContext, revision: Int, downloadManager: DownloadManager = .shared) throws -> LibrarySnapshot {
+  static func build(_ modelContext: ModelContext, revision: Int, downloadManager: DownloadManager? = nil) throws -> LibrarySnapshot {
+    // Default arguments are evaluated outside the main actor, so the shared
+    // instance is resolved here instead.
+    let downloadManager = downloadManager ?? .shared
     let playlists = try modelContext.fetch(FetchDescriptor<Playlist>())
     let videos = try modelContext.fetch(FetchDescriptor<Video>())
     let sizes = downloadSizes()

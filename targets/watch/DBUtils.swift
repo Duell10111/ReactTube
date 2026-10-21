@@ -424,6 +424,7 @@ func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
   }
 }
 
+@MainActor
 func clearDownloads(modelContext: ModelContext) {
   do {
     DownloadManager.shared.cancelAll()
