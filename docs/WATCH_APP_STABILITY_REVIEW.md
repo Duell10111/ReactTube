@@ -1,6 +1,6 @@
 # Watch-App: Stabilitätsprüfung
 
-Prüfdatum: 21. Oktober 2026  
+Prüfdatum: 21. Oktober 2026 (überarbeitet am 22. Oktober 2026: W03–W06)  
 Geprüfter Stand: `e4b57b3e317829cd1feb1d04321949b563324903`  
 Umfang: native Watch-App unter `targets/watch/` und zugehörige
 iPhone-Kommunikation unter `src/hooks/watchSync/` und
@@ -21,7 +21,7 @@ auf watchOS reproduzierte Abstürze zu verstehen.
 | W02 | Hoch               | Neue Stream-Links erreichen die laufende Wiedergabeliste nicht | Codeanalyse                                                    |
 | W03 | Hoch               | Downloads warten unbegrenzt auf Metadaten                      | Codeanalyse                                                    |
 | W04 | Hoch               | Löschaktionen lassen Downloadaufträge weiterlaufen             | Codeanalyse                                                    |
-| W05 | Hoch               | Unvollständige Wiederherstellung von Hintergrunddownloads      | Codeanalyse und Bibliotheksdokumentation                       |
+| W05 | Hoch               | Hintergrunddownloads gehen nach Prozessneustart verloren       | Codeanalyse, Bibliotheksquelltext und -dokumentation           |
 | W06 | Mittel             | Fortsetzen übernimmt Position oder Playlist-Zuordnung falsch   | Isolierte Swift-Prüffälle mit Originalmethoden und Testdoubles |
 | W07 | Mittel             | Leere Playlist kann den vorherigen Player wiederverwenden      | Codeanalyse; Erhalt der Playerinstanz isoliert bestätigt       |
 | W08 | Mittel             | Unterschiedliche Home-Einträge überschreiben sich              | Isolierter SwiftData-Prüffall                                  |
@@ -96,6 +96,21 @@ Ein Zeitlimit und eine automatische Wiederholung fehlen. Auf iPhone-Seite könne
 fehlende Initialisierung, ein fehlendes HLS-Manifest oder ein Fehler dazu führen,
 dass keine Antwort an die Watch zurückgeht.
 
+Auch eine eintreffende Antwort beendet den Wartezustand nicht in jedem Fall:
+
+- Der zweite Zweig von `saveVideoResponse`
+  ([YoutubeAPI.swift](../targets/watch/YoutubeAPI.swift), Zeilen 127–128) speichert
+  eine Antwort ohne Stream-Daten, ruft aber `videoMetadataUpdated` nicht auf.
+- `enqueue` prüft nicht, ob die ID bereits in `awaitingMetadata` steht. Wiederholte
+  Aufrufe senden deshalb doppelte Anfragen an das iPhone.
+- Scheitert auf dem iPhone `decipher`, fehlt `downloadURL` in der Antwort
+  ([WatchYoutubeAPI.ts](../src/hooks/watchSync/WatchYoutubeAPI.ts), Zeile 294).
+  `addDownloadData` ([DBUtils.swift](../targets/watch/DBUtils.swift), Zeilen
+  104–119) behält dann die alte, abgelaufene `downloadURL`, setzt aber ein neues
+  `validUntil`. `enqueue` und `downloadVideo` halten den veralteten Link dadurch
+  für gültig; der Download scheitert anschließend mit einem HTTP-Fehler, dessen
+  Ursache im UI falsch zugeordnet ist.
+
 **Auswirkung:** Ein Titel bleibt als wartend sichtbar, ohne einen abschließenden
 Fehlerzustand zu erreichen. Eine erneute Verbindung allein startet keinen
 koordinierten Wiederholungsversuch.
@@ -104,34 +119,50 @@ koordinierten Wiederholungsversuch.
 Erfolgs- beziehungsweise Fehlerantworten versehen. Wiederholungen begrenzen,
 identische Anfragen zusammenfassen und bei wiederhergestellter Verbindung erneut
 prüfen. Im UI zwischen fehlender Verbindung und endgültigem Fehler unterscheiden.
+Jede Antwort, auch eine unvollständige, muss den Wartezustand auflösen. Eine
+fehlende `downloadURL` in einer Antwort muss die gespeicherte URL invalidieren,
+statt sie zu behalten.
 
 ## W04: Löschaktionen lassen Downloadaufträge weiterlaufen
 
 **Code:** [LibraryView.swift](../targets/watch/LibraryView.swift), Zeilen 125–133;
 [PlaylistListView.swift](../targets/watch/PlaylistListView.swift), Zeilen 36–39;
 [DBUtils.swift](../targets/watch/DBUtils.swift), Zeilen 315–335, 370–394 und 454–467;
-[DownloadManager.swift](../targets/watch/DownloadManager.swift), Zeilen 123–149.
+[DownloadManager.swift](../targets/watch/DownloadManager.swift), Zeilen 53–69,
+123–149, 162–184 und 224–226;
+[RemoteLibraryCommands.swift](../targets/watch/RemoteLibraryCommands.swift),
+Zeilen 275–289 und 311–321.
 
 Das lokale Löschen einer Playlist, das Entfernen ihres letzten Verweises auf
 einen Titel und das Leeren der Datenbank koordinieren sich nicht durchgängig mit
 laufenden Downloadaufträgen. Der Audio-Abschluss verarbeitet weiterhin das
-erfasste `Video` und ruft bei Erfolg `addDownloadData` auf. Diese Funktion kann
-einen inzwischen gelöschten Eintrag neu anlegen.
+erfasste `Video` und ruft bei Erfolg `addDownloadData` auf. Diese Funktion legt
+einen fehlenden Eintrag neu an und hängt ihn wieder an jede Playlist, deren
+`videoIDs` die ID noch enthalten.
+
+Auch die Pfade, die `DownloadManager.cancel(ids:)` aufrufen (Remote-Löschen einer
+Playlist, `freeVideos`, `deleteDownload`), brechen nur den Audio-Download ab. Der
+parallel gestartete Cover-Download wird ohne Schlüssel gestartet
+(`_ = SDDownloadManager.shared.downloadFile(...)`) und ist dadurch nicht
+abbrechbar. Sein Abschluss ruft `receiveFileUploadImage` und damit ebenfalls
+`addDownloadData` auf und liest `video.durationMillis` vom erfassten, inzwischen
+gelöschten Modell. Nur `clearDownloads` erfasst über `cancelAll` auch die
+Cover-Downloads.
 
 **Auswirkung:** Ein gelöschter Titel kann wieder auftauchen oder ein verspäteter
-Abschluss greift auf ein bereits gelöschtes Modell zu. Die genaue Auswirkung
-hängt vom Zeitpunkt des Abschlusses ab.
-
-Der Remote-Pfad für das Löschen einer Playlist bricht betroffene Downloads
-bereits ab. Auch `clearDownloads` ruft `cancelAll` auf. Die Lücke betrifft die
-anderen genannten Löschpfade.
+Abschluss greift auf ein bereits gelöschtes Modell zu. Das betrifft alle
+Löschpfade außer `clearDownloads`; die genaue Auswirkung hängt vom Zeitpunkt des
+Abschlusses ab.
 
 **Vorschlag:** Löschen über einen gemeinsamen Ablauf koordinieren: benötigte IDs
 ermitteln, betroffene Aufträge abbrechen, verspätete Rückmeldungen entwerten und
 erst danach Dateien und Modelle entfernen. Geteilte Titel anderer Playlists
-erhalten. Laufende Playerreferenzen ebenfalls berücksichtigen.
+erhalten. Laufende Playerreferenzen ebenfalls berücksichtigen. Auch die Schlüssel
+der Cover-Downloads speichern und beim Abbrechen berücksichtigen. Abschlüsse sollen
+nur mit der Video-ID arbeiten, nicht mit dem erfassten Modell, und einen fehlenden
+Eintrag nicht neu anlegen.
 
-## W05: Unvollständige Wiederherstellung von Hintergrunddownloads
+## W05: Hintergrunddownloads gehen nach Prozessneustart verloren
 
 **Code:** [watchApp.swift](../targets/watch/watchApp.swift), Zeilen 33–35;
 [DownloadManager.swift](../targets/watch/DownloadManager.swift), Zeilen 19–29 und
@@ -148,15 +179,32 @@ beschreibt eine zusätzliche Anbindung für den Abschluss von Hintergrundereigni
 Das dortige AppDelegate-Beispiel ist für iOS geschrieben; die Watch benötigt eine
 passende watchOS-/SwiftUI-Integration.
 
-**Risiko:** Nach einer vom System veranlassten Prozessbeendigung passen
-weiterlaufende Systemdownloads und der neu initialisierte Appzustand nicht mehr
-zusammen. Dieses Szenario wurde nicht auf einem Gerät getestet.
+Der Quelltext der eingebundenen Bibliothek (SDDownloadManager, Revision
+`4cbd4468947b3f6226cfb17f16024248df81f678`, `SDDownloadManager.swift`) zeigt, dass
+das Problem über eine bloße Zustandsabweichung hinausgeht:
+
+- Ein abgeschlossener Task wird über `_ongoingDownloads[key]` zugeordnet; der
+  Schlüssel ist die Anfrage-URL. Dieses Dictionary liegt nur im Speicher. Nach
+  einem Prozessneustart ist es leer, und `didFinishDownloadingTo` kehrt ohne
+  Verarbeitung zurück (Zeilen 200–205). Die temporäre Datei wird danach vom
+  System verworfen.
+- `urlSessionDidFinishEvents` ruft `backgroundCompletionHandler` auf (Zeilen
+  281–292). Die Watch-App setzt diesen Handler nicht. Der
+  `.backgroundTask(.urlSession)`-Handler kehrt sofort zurück, ohne die
+  Hintergrundsession neu aufzubauen oder auf die Ereignisse zu warten.
+
+**Auswirkung:** Ein Download, der nach einer vom System veranlassten
+Prozessbeendigung abgeschlossen wird, geht nach dieser Codeanalyse
+verloren. Der Titel bleibt nicht heruntergeladen und erhält keinen Fehlerzustand.
+Dieses Szenario wurde nicht auf einem Gerät getestet.
 
 **Vorschlag:** Downloadaufträge samt Video-ID, Status und Task-Zuordnung
 persistieren. Beim Start vorhandene URLSession-Aufgaben und gespeicherte Dateien
 abgleichen. Hintergrundarbeit bis zur tatsächlichen Verarbeitung der Ereignisse
-offenhalten. Den Fall einer systembedingten Prozessbeendigung getrennt von einem
-bewussten Beenden durch den Benutzer testen.
+offenhalten. Da die Bibliothek abgeschlossene Tasks ohne bekannten Schlüssel
+verwirft, ist dafür entweder eine Anpassung der Bibliothek (Patch oder Fork) oder
+ein eigener `URLSessionDownloadDelegate` nötig. Den Fall einer systembedingten
+Prozessbeendigung getrennt von einem bewussten Beenden durch den Benutzer testen.
 
 ## W06: Fortsetzen übernimmt Position oder Playlist-Zuordnung falsch
 
@@ -168,9 +216,11 @@ verfügbaren Titel. `pendingSeek` enthält nur eine Zeitposition und wird ohne
 Abgleich der Video-ID auf den Player angewendet. Dadurch kann der nächste Titel
 beispielsweise direkt bei 123 Sekunden starten.
 
-Beim Playlistwechsel werden außerdem die neue Playlist-ID und der neue Titel
-gesetzt, bevor `setupPlayer` den alten Player abbaut. `deinitPlayer` speichert
-dadurch zwischenzeitlich die alte Video-ID mit der neuen Playlist-Zuordnung.
+Beim Playlistwechsel werden außerdem `currentPlaylistID` und
+`currentPlaylistTitle` der neuen Playlist gesetzt, bevor `setupPlayer` den alten
+Player abbaut. `currentVideo` stammt zu diesem Zeitpunkt noch aus den alten
+`playerPlaylistItems`. `deinitPlayer` speichert dadurch zwischenzeitlich die alte
+Video-ID mit der neuen Playlist-Zuordnung.
 
 Beide Zustandsfehler wurden mit extrahierten Originalmethoden und Testdoubles in
 einem isolierten Swift-Prüffall bestätigt:
@@ -278,7 +328,8 @@ Anschließend W06–W09 mit gezielten Regressionstests absichern.
 | Mehrfach schnell Playlist wechseln, dann Pause drücken            | Nur die letzte Sitzung bleibt gültig; ein alter Aktivierungsabschluss startet nichts neu.                                        |
 | Playlist mit ausschließlich abgelaufenen Links starten            | Metadaten werden nachgeladen; die aktuelle Startabsicht wird korrekt fortgesetzt oder verständlich als fehlgeschlagen angezeigt. |
 | iPhone während einer Metadatenanfrage nicht erreichbar            | Wartestatus bleibt nachvollziehbar; Zeitlimit und erneute Verbindung führen zu einem kontrollierten Folgeversuch.                |
-| Playlist oder Datenbank während eines Downloads löschen           | Betroffene Downloads werden abgebrochen; verspätete Rückmeldungen legen nichts neu an.                                           |
+| Playlist oder Datenbank während eines Downloads löschen           | Betroffene Downloads einschließlich Cover werden abgebrochen; verspätete Rückmeldungen legen nichts neu an.                      |
+| iPhone liefert eine Videoantwort ohne `downloadURL`               | Der Wartezustand endet; ein veralteter Download-Link wird nicht weiterverwendet.                                                 |
 | Display während eines Downloads ausschalten                       | Hintergrundabschluss wird verarbeitet; Datei und Datenbankzustand stimmen überein.                                               |
 | System beendet die Watch-App während eines Downloads              | Beim nächsten Start werden Aufträge, Systemtasks und vorhandene Dateien abgeglichen.                                             |
 | Flugmodus, WLAN-Abbruch oder Bluetooth-Ausfall während Wiedergabe | Playerzustand bleibt korrekt; es gibt einen begrenzten Wiederanlauf oder einen verständlichen Fehler.                            |
