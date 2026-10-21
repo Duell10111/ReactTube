@@ -92,10 +92,9 @@ class MusicPlayerManager {
     self.currentPlaylistTitle = nil
 
     // TODO: Put into setupPlayer?
-    self.setupPlayer()
-
-    // Play music after setup
-    self.playMusic()
+    let didSetup = self.setupPlayer()
+    wantsPlayback = playlistManager.hasTitles
+    if didSetup { self.playMusic() }
   }
 
   /// - Parameter startVideoID: Title to start with. Starting at a specific
@@ -116,7 +115,7 @@ class MusicPlayerManager {
     self.currentPlaylistID = playlistID
     self.currentPlaylistTitle = playlistTitle
 
-    self.setupPlayer()
+    let didSetup = self.setupPlayer()
 
     // Disable jump on shuffle play
     if let startVideoID, shouldShuffle == false,
@@ -130,8 +129,8 @@ class MusicPlayerManager {
       }
     }
 
-    // Start playing after setup
-    self.playMusic()
+    wantsPlayback = playlistManager.hasTitles
+    if didSetup { self.playMusic() }
   }
 
   /// Extends only the current queue, in the order selected for this session.
@@ -250,7 +249,8 @@ class MusicPlayerManager {
     return nil
   }
 
-  private func setupPlayer() {
+  @discardableResult
+  private func setupPlayer() -> Bool {
       sessionGeneration += 1
       playbackRevision += 1
       let generation = sessionGeneration
@@ -264,14 +264,15 @@ class MusicPlayerManager {
 
 
 
-      if (playlistManager.videos?.isEmpty ?? true) {
+      if !playlistManager.hasTitles {
         WatchLog.shared.warning("Player", "Queue setup skipped: playlist is empty")
-        return
+        return false
       }
 
       let pItems = playlistManager.getFirstBatchOfAvailable()
       print("Setup Videos: \(pItems)")
 
+      guard !pItems.isEmpty else { return false }
       let (videoItems, playerItems) = unzip(pItems)
 //      self.playerItems = playerItems
       self.playerPlaylistItems = videoItems
@@ -282,6 +283,8 @@ class MusicPlayerManager {
         try player?.add(items: playerItems, at: 0)
       } catch {
         WatchLog.shared.error("Player", "Could not add titles to the queue: \(error.localizedDescription)")
+        deinitPlayer()
+        return false
       }
 
       player?.remoteCommands = [
@@ -368,14 +371,31 @@ class MusicPlayerManager {
         self?.volume = outputVolume
       }
     }
-
+    return true
   }
 
   private func deinitPlayer() {
     sessionGeneration += 1
     playbackRevision += 1
-    player?.pause()
     storeResumeState()
+    player?.event.currentItem.removeListener(self)
+    player?.event.fail.removeListener(self)
+    player?.event.stateChange.removeListener(self)
+    player?.event.secondElapse.removeListener(self)
+    player?.event.updateDuration.removeListener(self)
+    player?.event.seek.removeListener(self)
+    player?.remoteCommands = []
+    player?.pause()
+    player?.clear()
+    NowPlayingCenter.clear(player: player)
+    player = nil
+    playerPlaylistItems.removeAll()
+    pendingSeek = nil
+    wantsPlayback = false
+    trackIndex = 0
+    currentTitle = "Unknown Title"
+    currentArtist = nil
+    currentCover = nil
     isPlaying = false
     isStalled = false
     currentTrackIndex = 0
@@ -383,6 +403,7 @@ class MusicPlayerManager {
     duration = 0
     lastPersistedPosition = 0
     volumeObserver?.invalidate()
+    volumeObserver = nil
   }
 
   // MARK: - Position

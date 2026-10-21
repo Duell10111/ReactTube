@@ -405,3 +405,13 @@ Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Buil
   Playlist-Zuordnung, Ersatztitel, passende Position, Überlänge und ungültige
   Zahlenwerte. `npm test` (508 Tests), Typecheck, Plattformprüfung und
   watchOS-Typecheck bestanden.
+
+- **W07 behoben:** Der Abbau entfernt Listener und Fernsteuerungsbefehle,
+  pausiert/leert den Player, gibt seine Instanz frei und setzt Queue, Cover,
+  Position und Seek-Wunsch zurück. `setupPlayer` meldet Erfolg; nur eine
+  erfolgreich eingerichtete Queue startet. Eine Playlist mit ausstehenden
+  Streamdaten behält lediglich den Startwunsch für W02. Der native
+  Regressionstest wechselt von einem Titel zu einer leeren Playlist und prüft
+  freigegebene Instanz, leere Queue und unveränderte Anzahl von Startaufrufen.
+  `npm test` (509 Tests), Typecheck, Plattformprüfung und watchOS-Typecheck
+  bestanden.
