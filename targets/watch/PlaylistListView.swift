@@ -32,7 +32,7 @@ struct PlaylistListView: View {
         ForEach(Array(playlist.orderedVideos.enumerated()), id: \.element) { index, video in
           MusicListItemView(video: video) {
             print("Playlist: ", playlist.videoIDs)
-            musicPlayerManager.updatePlaylist(playlist: playlist, index: index)
+            musicPlayerManager.updatePlaylist(playlist: playlist, startVideoID: video.id)
           }.swipeActions(edge: .leading) {
             Button {
               removeVideoFromPlaylist(playlist, video: video)

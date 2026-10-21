@@ -85,14 +85,16 @@ class MusicPlayerManager {
     self.playMusic()
   }
 
-  /// - Parameter shuffle: `nil` uses the persisted preference. Starting at a
-  ///   specific index always plays in order from there, because jumping into a
-  ///   shuffled queue would land somewhere else than the title that was tapped.
-  func updatePlaylist(playlist: Playlist, index: Int? = nil, shuffle: Bool? = nil) {
+  /// - Parameter startVideoID: Title to start with. Starting at a specific
+  ///   title always plays in order from there, because jumping into a shuffled
+  ///   queue would land somewhere else than the title that was tapped.
+  /// - Parameter shuffle: `nil` uses the persisted preference.
+  func updatePlaylist(playlist: Playlist, startVideoID: String? = nil, shuffle: Bool? = nil) {
     self.type = .local
-    let shouldShuffle = shuffle ?? (index == nil && preferences.shuffleEnabled)
+    let shouldShuffle = shuffle ?? (startVideoID == nil && preferences.shuffleEnabled)
     let playlistID = playlist.id
     let playlistTitle = playlist.title
+    let orderedVideoIDs = playlist.orderedVideos.map(\.id)
     queue.async {
       self.playlistManager.setPlaylist(playlist, shuffle: shouldShuffle)
       self.currentPlaylistID = playlistID
@@ -101,10 +103,10 @@ class MusicPlayerManager {
       self.setupPlayer()
 
       // Disable jump on shuffle play
-      if let index = index, shouldShuffle == false {
+      if let startVideoID, shouldShuffle == false,
+         let index = self.queueIndex(startingAt: startVideoID, orderedVideoIDs: orderedVideoIDs) {
         self.trackIndex = index
         self.currentTrackIndex = index
-        // TODO: Could not work if index changes when elements not available, maybe better map to id
         do {
           try self.player?.jumpToItem(atIndex: index)
         } catch {
@@ -126,7 +128,7 @@ class MusicPlayerManager {
       let descriptor = FetchDescriptor<Playlist>(predicate: #Predicate { $0.id == playlistID })
       if let playlist = try? context.fetch(descriptor).first {
         pendingSeek = state.position
-        updatePlaylist(playlist: playlist, index: state.index, shuffle: false)
+        updatePlaylist(playlist: playlist, startVideoID: state.videoID, shuffle: false)
         return
       }
     }
@@ -141,6 +143,30 @@ class MusicPlayerManager {
 
     pendingSeek = state.position
     updatePlaylist(newPlaylist: [video])
+  }
+
+  /// Queue position of a title. The queue only holds playable titles, so its
+  /// indices differ from the playlist order whenever a title is not downloaded
+  /// and its stream expired. Such a title is refetched in the background; until
+  /// then playback starts at the next playable title in playlist order.
+  private func queueIndex(startingAt videoID: String, orderedVideoIDs: [String]) -> Int? {
+    let queuedIDs = playerPlaylistItems.map(\.id)
+    if let index = queuedIDs.firstIndex(of: videoID) {
+      return index
+    }
+    guard let position = orderedVideoIDs.firstIndex(of: videoID) else {
+      WatchLog.shared.warning("Player", "Start title \(videoID) is not part of the playlist")
+      return nil
+    }
+    let followingIDs = orderedVideoIDs[(position + 1)...] + orderedVideoIDs[..<position]
+    for id in followingIDs {
+      if let index = queuedIDs.firstIndex(of: id) {
+        WatchLog.shared.warning("Player", "Start title \(videoID) is not playable yet, starting at the next available title")
+        return index
+      }
+    }
+    WatchLog.shared.warning("Player", "Start title \(videoID) is not playable and no other title is available")
+    return nil
   }
 
   private func setupPlayer() {
