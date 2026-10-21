@@ -159,6 +159,13 @@ class MusicPlayerManager {
     if wantsPlayback && !isPlaying { playMusic() }
   }
 
+  func videoMetadataFailed(id: String) {
+    guard waitingForVideoID == id || (playerPlaylistItems.isEmpty && playlistManager.contains(id: id)) else { return }
+    isPlaying = false
+    isStalled = true
+    WatchLog.shared.warning("Player", "Stream metadata unavailable for \(id); retry playback after reconnecting")
+  }
+
   private func validateCurrentStream() -> Bool {
     guard let video = currentVideo, !playlistManager.isPlayable(video) else { return true }
     waitingForVideoID = video.id

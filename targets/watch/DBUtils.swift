@@ -66,7 +66,7 @@ func removeURLPrefix(url: String, prefix: String) -> String {
 }
 
 // TODO: Rename to VideoData?
-func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, artist: String? = nil, downloaded: Bool? = nil, duration: Int, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil, loudnessDb: Double? = nil) {
+func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, artist: String? = nil, downloaded: Bool? = nil, duration: Int, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil, loudnessDb: Double? = nil, refreshStreamData: Bool = false) {
 
   do {
     let descriptor = FetchDescriptor<Video>(
@@ -101,6 +101,12 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
       video.durationMillis = duration
     }
     
+    if refreshStreamData {
+      // A new validity period must never revive a URL omitted by the phone.
+      video.streamURL = streamURL
+      video.downloadURL = downloadURL
+      video.validUntil = validUntil
+    }
     if let vUntil = validUntil, let sURL = streamURL {
       video.validUntil = vUntil
       video.streamURL = sURL

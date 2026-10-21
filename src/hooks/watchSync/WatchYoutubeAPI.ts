@@ -17,6 +17,7 @@ import {
 } from "@/extraction/YTElements";
 import useMusicLibrary from "@/hooks/music/useMusicLibrary";
 import {getMusicPlaylistDetails} from "@/hooks/music/useMusicPlaylistDetails";
+import {completeWatchVideoRequest} from "@/hooks/watchSync/watchVideoMetadata";
 import {resolveStreamingSource} from "@/utils/PlaybackSource";
 import {YT} from "@/utils/Youtube";
 import {getLoudnessDb} from "@/utils/music/LoudnessNormalization";
@@ -34,6 +35,7 @@ type YoutubeAPIRequest =
 interface YoutubeVideoRequest {
   request: "video";
   videoId: string;
+  requestId?: string;
 }
 
 interface YoutubeVideoResponse {
@@ -118,82 +120,92 @@ export async function handleWatchMessage(
 ) {
   LOGGER.debug("Handle watch request: ", request);
   if (request.request === "video") {
-    if (!youtube) {
-      LOGGER.warn("No video info found or youtube uninitialized.");
-      return;
-    }
+    return completeWatchVideoRequest(
+      request,
+      async () => {
+        if (!youtube) {
+          LOGGER.warn("No video info found or youtube uninitialized.");
+          return;
+        }
 
-    // The same client chain as playback on the phone (plan phase 1.4) instead
-    // of a fixed `IOS` client: previously the song was dead on the watch as
-    // soon as that one client failed. `youtube-hls` is the watch mode: it plays
-    // YouTube's own manifest through AVPlayer. The self-built one cannot be
-    // handed over because its master references the phone's cache.
-    const streaming = await resolveStreamingSource(youtube, request.videoId, {
-      mode: "youtube-hls",
-    });
-
-    const hlsManifestUrl = streaming?.info.streaming_data?.hls_manifest_url;
-
-    if (!streaming || !hlsManifestUrl) {
-      LOGGER.warn(
-        `No client returned an HLS manifest for ${request.videoId}; ` +
-          "the watch gets no streaming data.",
-      );
-      return;
-    }
-
-    let info = getElementDataFromVideoInfo(streaming.info);
-    // TODO: Fetch from music endpoint?
-
-    // The watch downloads a single file and needs a direct URL for it; for
-    // playback it uses the manifest. Without an audio format streaming still
-    // works, so this does not abort.
-    const format = chooseAudioFormat(streaming.info);
-    const downloadURL = await format
-      ?.decipher(youtube.session.player)
-      .catch(e => {
-        LOGGER.warn(
-          `Deciphering the download URL failed (itag=${format?.itag}): ${String(
-            e?.message ?? e,
-          )}`,
+        // The same client chain as playback on the phone (plan phase 1.4) instead
+        // of a fixed `IOS` client: previously the song was dead on the watch as
+        // soon as that one client failed. `youtube-hls` is the watch mode: it plays
+        // YouTube's own manifest through AVPlayer. The self-built one cannot be
+        // handed over because its master references the phone's cache.
+        const streaming = await resolveStreamingSource(
+          youtube,
+          request.videoId,
+          {
+            mode: "youtube-hls",
+          },
         );
-        return undefined;
-      });
 
-    // The real expiry from the streaming data instead of the former estimate
-    // of 5.5 hours: the watch discards expired entries itself (`DBUtils.swift`),
-    // so the value has to be correct.
-    //
-    // Without `expiresInSeconds` in the response this becomes an invalid date,
-    // and `NaN` cannot be encoded in a message. Then the old estimate is used.
-    const expiresAt = streaming.info.streaming_data!.expires?.getTime();
-    const validUntil = Number.isFinite(expiresAt)
-      ? expiresAt
-      : Date.now() + 19800000; // 5.5 hours from now.
-    LOGGER.debug(
-      `Streams from ${streaming.client}, valid until ${new Date(
-        validUntil,
-      ).toISOString()}`,
-    );
+        const hlsManifestUrl = streaming?.info.streaming_data?.hls_manifest_url;
 
-    try {
-      // Override normal info with music info
-      // @ts-ignore Ignore typo issues
-      info = getElementDataFromTrackInfo(
-        await youtube.music.getInfo(request.videoId),
-      );
-    } catch (e) {
-      LOGGER.warn("Error fetching music info. Skipping musicInfo data", e);
-    }
+        if (!streaming || !hlsManifestUrl) {
+          LOGGER.warn(
+            `No client returned an HLS manifest for ${request.videoId}; ` +
+              "the watch gets no streaming data.",
+          );
+          return;
+        }
 
-    return toVideoResponse(
-      info,
-      downloadURL,
-      hlsManifestUrl,
-      validUntil,
-      format?.approx_duration_ms ??
-        (streaming.info.basic_info.duration ?? 0) * 1000,
-      getLoudnessDb(streaming.info, format),
+        let info = getElementDataFromVideoInfo(streaming.info);
+        // TODO: Fetch from music endpoint?
+
+        // The watch downloads a single file and needs a direct URL for it; for
+        // playback it uses the manifest. Without an audio format streaming still
+        // works, so this does not abort.
+        const format = chooseAudioFormat(streaming.info);
+        const downloadURL = await format
+          ?.decipher(youtube.session.player)
+          .catch(e => {
+            LOGGER.warn(
+              `Deciphering the download URL failed (itag=${format?.itag}): ${String(
+                e?.message ?? e,
+              )}`,
+            );
+            return undefined;
+          });
+
+        // The real expiry from the streaming data instead of the former estimate
+        // of 5.5 hours: the watch discards expired entries itself (`DBUtils.swift`),
+        // so the value has to be correct.
+        //
+        // Without `expiresInSeconds` in the response this becomes an invalid date,
+        // and `NaN` cannot be encoded in a message. Then the old estimate is used.
+        const expiresAt = streaming.info.streaming_data!.expires?.getTime();
+        const validUntil = Number.isFinite(expiresAt)
+          ? expiresAt
+          : Date.now() + 19800000; // 5.5 hours from now.
+        LOGGER.debug(
+          `Streams from ${streaming.client}, valid until ${new Date(
+            validUntil,
+          ).toISOString()}`,
+        );
+
+        try {
+          // Override normal info with music info
+          // @ts-ignore Ignore typo issues
+          info = getElementDataFromTrackInfo(
+            await youtube.music.getInfo(request.videoId),
+          );
+        } catch (e) {
+          LOGGER.warn("Error fetching music info. Skipping musicInfo data", e);
+        }
+
+        return toVideoResponse(
+          info,
+          downloadURL,
+          hlsManifestUrl,
+          validUntil,
+          format?.approx_duration_ms ??
+            (streaming.info.basic_info.duration ?? 0) * 1000,
+          getLoudnessDb(streaming.info, format),
+        );
+      },
+      error => LOGGER.warn("Watch metadata request failed", error),
     );
   } else if (request.request === "playlist") {
     const playlist = await getMusicPlaylistDetails(request.playlistId, youtube);

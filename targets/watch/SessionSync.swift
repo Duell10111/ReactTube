@@ -119,6 +119,7 @@ extension SessionSync: WCSessionDelegate {
     status.update(from: session, activationError: error)
     if activationState == .activated {
       Task { @MainActor in
+        VideoMetadataRequests.shared.retryAfterReconnect()
         LibrarySync.shared.publishStatus()
       }
     }
@@ -128,6 +129,7 @@ extension SessionSync: WCSessionDelegate {
     status.setReachable(session.isReachable)
     if session.isReachable {
       Task { @MainActor in
+        VideoMetadataRequests.shared.retryAfterReconnect()
         LibrarySync.shared.sendSnapshotIfOutdated()
       }
     }
