@@ -364,3 +364,12 @@ Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Buil
   Titelwechsel und vor dem Start erneut geprüft; abgelaufene Playeritems werden
   nach der Antwort ersetzt. Native Regressionen prüfen Reihenfolge, aktive
   Position, leeren Start und verspätete Antworten nach Pause/Wechsel.
+
+- **W03 behoben:** Videoanfragen werden zusammengefasst, mit Kennung versehen
+  und nach jeweils 20 Sekunden höchstens dreimal versucht. Wiederverbindung
+  prüft offene Anfragen erneut; alte Antworten werden verworfen. Das iPhone
+  antwortet auch bei fehlenden Daten oder Exceptions. Unvollständige Antworten
+  lösen den Download-Wartezustand in einen Fehler auf; fehlende Download-URLs
+  löschen den alten Link. Regressionen prüfen Erfolg, Fehler, Zusammenfassung,
+  Timeout, Wiederverbindung und veraltete Antworten. `npm test` (503 Tests),
+  Typecheck und Plattformprüfung bestanden; watchOS-Typecheck ebenfalls.

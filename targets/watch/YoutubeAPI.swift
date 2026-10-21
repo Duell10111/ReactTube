@@ -64,8 +64,78 @@ private func sendVideoAPIMessage(message: [String: Any]) {
 }
 
 func requestVideo(id: String) {
-  sendVideoAPIMessage(message: ["request": "video", "videoId": id])
+  Task { @MainActor in VideoMetadataRequests.shared.request(id: id) }
 }
+
+/// Coalesces requests and prevents stale responses from completing a newer attempt.
+@MainActor
+final class VideoMetadataRequests {
+  static let shared = VideoMetadataRequests(
+    sendRequest: { id, token in
+      sendVideoAPIMessage(message: ["request": "video", "videoId": id, "requestId": token])
+    },
+    onFailure: { id in
+      DownloadManager.shared.videoMetadataFailed(id: id)
+      MusicPlayerManager.shared.videoMetadataFailed(id: id)
+    }
+  )
+
+  private struct Pending {
+    var token: String
+    var attempt: Int
+    var timeout: Task<Void, Never>?
+  }
+  private var pending: [String: Pending] = [:]
+  private let timeout: Duration
+  private let sendRequest: (String, String) -> Void
+  private let onFailure: (String) -> Void
+
+  init(timeout: Duration = .seconds(20), sendRequest: @escaping (String, String) -> Void, onFailure: @escaping (String) -> Void) {
+    self.timeout = timeout
+    self.sendRequest = sendRequest
+    self.onFailure = onFailure
+  }
+
+  func request(id: String) {
+    guard pending[id] == nil else { return }
+    begin(id: id, attempt: 1)
+  }
+
+  private func begin(id: String, attempt: Int) {
+    pending[id]?.timeout?.cancel()
+    guard attempt <= 3 else {
+      pending.removeValue(forKey: id)
+      onFailure(id)
+      return
+    }
+    let token = UUID().uuidString
+    let timer = Task { [weak self, timeout] in
+      do { try await Task.sleep(for: timeout) } catch { return }
+      guard let self, self.pending[id]?.token == token else { return }
+      self.begin(id: id, attempt: attempt + 1)
+    }
+    pending[id] = Pending(token: token, attempt: attempt, timeout: timer)
+    sendRequest(id, token)
+  }
+
+  func acceptsResponse(id: String, requestID: String?) -> Bool {
+    guard let requestID else { return pending[id] == nil }
+    guard pending[id]?.token == requestID else { return false }
+    pending.removeValue(forKey: id)?.timeout?.cancel()
+    return true
+  }
+
+  func retryAfterReconnect() {
+    for (id, request) in Array(pending) {
+      begin(id: id, attempt: request.attempt + 1)
+    }
+  }
+
+  func cancel(ids: Set<String>) {
+    for id in ids { pending.removeValue(forKey: id)?.timeout?.cancel() }
+  }
+}
+
 
 func requestPlaylist(id: String) {
   sendVideoAPIMessage(message: ["request": "playlist", "playlistId": id])
@@ -116,19 +186,30 @@ func processYoutubeAPIMessage(_ session: WCSession, message: [String: Any]) {
 
 @MainActor
 func saveVideoResponse(_ session: WCSession, message: [String: Any]) {
-  print("VideoResponse: \(message)")
-  if let id = message["id"] as? String, let title = message["title"] as? String, let duration = message["duration"] as? Int, let streamURL = message["streamURL"] as? String, let validUntil = message["validUntil"] as? Int64, let coverURL = message["coverUrl"] as? String {
-    print("Received Video Response for id: \(id)")
-    let date = Date(timeIntervalSince1970: (Double(validUntil) / 1000.0))
-    // The phone omits the artist when YouTube does not provide one, so a
-    // refresh does not replace a known artist with a placeholder.
-    addDownloadData(DataController.shared.container.mainContext, id: id, title: title, artist: message["artist"] as? String, duration: duration, streamURL: streamURL, validUntil: date, coverURL: coverURL, temp: message["temp"] as? Bool, downloadURL: message["downloadURL"] as? String, loudnessDb: (message["loudnessDb"] as? NSNumber)?.doubleValue)
+  guard let id = message["id"] as? String else { return }
+  let isResponse = message["type"] as? String == "videoResponse"
+  if isResponse {
+    guard VideoMetadataRequests.shared.acceptsResponse(id: id, requestID: message["requestId"] as? String) else { return }
+    if message["error"] != nil {
+      DownloadManager.shared.videoMetadataFailed(id: id)
+      MusicPlayerManager.shared.videoMetadataFailed(id: id)
+      return
+    }
+  }
+  let validUntil = (message["validUntil"] as? NSNumber).map { Date(timeIntervalSince1970: $0.doubleValue / 1000) }
+  addDownloadData(
+    DataController.shared.container.mainContext, id: id,
+    title: message["title"] as? String, artist: message["artist"] as? String,
+    duration: message["duration"] as? Int ?? 0,
+    streamURL: message["streamURL"] as? String, validUntil: validUntil,
+    coverURL: message["coverUrl"] as? String, temp: message["temp"] as? Bool,
+    downloadURL: message["downloadURL"] as? String,
+    loudnessDb: (message["loudnessDb"] as? NSNumber)?.doubleValue,
+    refreshStreamData: isResponse
+  )
+  if isResponse {
     DownloadManager.shared.videoMetadataUpdated(id: id)
     MusicPlayerManager.shared.videoMetadataUpdated(id: id)
-  } else if let id = message["id"] as? String, let title = message["title"] as? String, let coverURL = message["coverUrl"] as? String {
-    addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, coverURL: coverURL, temp: message["temp"] as? Bool)
-  } else {
-    print("YT Video Response incomplete")
   }
 }
 

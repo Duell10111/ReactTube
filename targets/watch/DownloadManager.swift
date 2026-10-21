@@ -31,7 +31,7 @@ class DownloadManager {
   /// Queues a download. Videos without a valid download URL request fresh
   /// metadata first; `videoMetadataUpdated` continues once it arrives.
   func enqueue(_ video: Video) {
-    guard !video.downloaded, !activeDownloads.contains(where: { $0.id == video.id }) else { return }
+    guard !video.downloaded, !awaitingMetadata.contains(video.id), !pendingDownloads.contains(video), !activeDownloads.contains(where: { $0.id == video.id }) else { return }
     failedDownloads.removeValue(forKey: video.id)
     if video.downloadURL != nil, let validUntil = video.validUntil, validUntil > Date() {
       pendingDownloads.insert(video)
@@ -45,9 +45,20 @@ class DownloadManager {
     guard awaitingMetadata.remove(id) != nil else { return }
     let descriptor = FetchDescriptor<Video>(predicate: #Predicate { $0.id == id })
     if let video = try? DataController.shared.container.mainContext.fetch(descriptor).first, !video.downloaded {
+      guard video.downloadURL != nil, let expiry = video.validUntil, expiry > Date() else {
+        failedDownloads[id] = DownloadMessages.unavailable
+        notifyProgress()
+        return
+      }
       pendingDownloads.insert(video)
       checkDownloads()
     }
+  }
+
+  func videoMetadataFailed(id: String) {
+    guard awaitingMetadata.remove(id) != nil else { return }
+    failedDownloads[id] = WatchStatus.shared.isReachable ? DownloadMessages.metadataFailed : DownloadMessages.connectionFailed
+    notifyProgress()
   }
 
   /// Removes the videos from all queues and cancels running downloads.
@@ -113,7 +124,7 @@ class DownloadManager {
   private func downloadVideo(video: Video) -> Bool {
     var didStartAudioDownload = false
 
-    if let streamURL = video.downloadURL, video.validUntil != nil, let uri = URL(string: streamURL) {
+    if let streamURL = video.downloadURL, let expiry = video.validUntil, expiry > Date(), let uri = URL(string: streamURL) {
       WatchLog.shared.info("Download", "Started: \(video.title ?? video.id)")
       let request = URLRequest(url: uri)
       let key = SDDownloadManager.shared.downloadFile(withRequest: request, shouldDownloadInBackground: true, onProgress: { progress in
@@ -231,4 +242,11 @@ struct ActiveDownload {
   var id: String
   var image: Bool = false
   //var session: URLSessionDownloadTask
+}
+
+/// Centralized until the native watch gains a UI localization boundary.
+enum DownloadMessages {
+  static let unavailable = "No download URL available."
+  static let metadataFailed = "The iPhone could not load download information. Please try again."
+  static let connectionFailed = "Download information timed out. Reconnect the iPhone and try again."
 }
