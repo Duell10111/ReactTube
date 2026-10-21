@@ -159,6 +159,23 @@ class MusicPlayerManager {
     if wantsPlayback && !isPlaying { playMusic() }
   }
 
+  /// Drops model references before library objects or their local files are deleted.
+  func prepareForLibraryDeletion(ids: Set<String>, playlistID: String? = nil) {
+    guard currentPlaylistID == playlistID && playlistID != nil || playlistManager.videos?.contains(where: { ids.contains($0.id) }) == true else { return }
+    wantsPlayback = false
+    deinitPlayer()
+    player?.clear()
+    player = nil
+    playerPlaylistItems.removeAll()
+    playlistManager.setPlaylist(nil, videos: [])
+    pendingSeek = nil
+    requestedStartVideoID = nil
+    waitingForVideoID = nil
+    currentPlaylistID = nil
+    currentPlaylistTitle = nil
+    if let resume = preferences.resumeState, ids.contains(resume.videoID) { preferences.clearResumeState() }
+  }
+
   func videoMetadataFailed(id: String) {
     guard waitingForVideoID == id || (playerPlaylistItems.isEmpty && playlistManager.contains(id: id)) else { return }
     isPlaying = false

@@ -284,6 +284,7 @@ final class RemoteLibraryCommands {
       // Deletes the playlist and all videos that are in no other playlist.
       deleteDownloadedPlaylist(modelContext, playlist: playlist)
     } else {
+      MusicPlayerManager.shared.prepareForLibraryDeletion(ids: [], playlistID: id)
       modelContext.delete(playlist)
     }
     return save()

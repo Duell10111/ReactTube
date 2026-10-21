@@ -63,8 +63,9 @@ private func sendVideoAPIMessage(message: [String: Any]) {
   send(["type": "youtubeAPI", "payload": message], as: .guaranteed)
 }
 
+@MainActor
 func requestVideo(id: String) {
-  Task { @MainActor in VideoMetadataRequests.shared.request(id: id) }
+  VideoMetadataRequests.shared.request(id: id)
 }
 
 /// Coalesces requests and prevents stale responses from completing a newer attempt.
