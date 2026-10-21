@@ -124,6 +124,7 @@ func saveVideoResponse(_ session: WCSession, message: [String: Any]) {
     // refresh does not replace a known artist with a placeholder.
     addDownloadData(DataController.shared.container.mainContext, id: id, title: title, artist: message["artist"] as? String, duration: duration, streamURL: streamURL, validUntil: date, coverURL: coverURL, temp: message["temp"] as? Bool, downloadURL: message["downloadURL"] as? String, loudnessDb: (message["loudnessDb"] as? NSNumber)?.doubleValue)
     DownloadManager.shared.videoMetadataUpdated(id: id)
+    MusicPlayerManager.shared.videoMetadataUpdated(id: id)
   } else if let id = message["id"] as? String, let title = message["title"] as? String, let coverURL = message["coverUrl"] as? String {
     addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, coverURL: coverURL, temp: message["temp"] as? Bool)
   } else {
