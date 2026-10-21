@@ -13,6 +13,7 @@ import MediaPlayer
 import Combine
 import SwiftAudioEx
 
+@MainActor
 @Observable
 class MusicPlayerManager {
     static let shared = MusicPlayerManager()
@@ -51,7 +52,8 @@ class MusicPlayerManager {
     private var lastPersistedPosition: TimeInterval = 0
 
     // Utils
-    private let queue = DispatchQueue(label: "music.player.queue")
+    private var sessionGeneration = 0
+    private var playbackRevision = 0
     private let playlistManager = PlaylistManager()
 
     private init() {
@@ -95,28 +97,26 @@ class MusicPlayerManager {
     let playlistID = playlist.id
     let playlistTitle = playlist.title
     let orderedVideoIDs = playlist.orderedVideos.map(\.id)
-    queue.async {
-      self.playlistManager.setPlaylist(playlist, shuffle: shouldShuffle)
-      self.currentPlaylistID = playlistID
-      self.currentPlaylistTitle = playlistTitle
+    self.playlistManager.setPlaylist(playlist, shuffle: shouldShuffle)
+    self.currentPlaylistID = playlistID
+    self.currentPlaylistTitle = playlistTitle
 
-      self.setupPlayer()
+    self.setupPlayer()
 
-      // Disable jump on shuffle play
-      if let startVideoID, shouldShuffle == false,
-         let index = self.queueIndex(startingAt: startVideoID, orderedVideoIDs: orderedVideoIDs) {
-        self.trackIndex = index
-        self.currentTrackIndex = index
-        do {
-          try self.player?.jumpToItem(atIndex: index)
-        } catch {
-          WatchLog.shared.warning("Player", "Could not jump to start index \(index): \(error.localizedDescription)")
-        }
+    // Disable jump on shuffle play
+    if let startVideoID, shouldShuffle == false,
+       let index = self.queueIndex(startingAt: startVideoID, orderedVideoIDs: orderedVideoIDs) {
+      self.trackIndex = index
+      self.currentTrackIndex = index
+      do {
+        try self.player?.jumpToItem(atIndex: index)
+      } catch {
+        WatchLog.shared.warning("Player", "Could not jump to start index \(index): \(error.localizedDescription)")
       }
-
-      // Start playing after setup
-      self.playMusic()
     }
+
+    // Start playing after setup
+    self.playMusic()
   }
 
   /// Continues the last title where it stopped.
@@ -170,9 +170,12 @@ class MusicPlayerManager {
   }
 
   private func setupPlayer() {
+      sessionGeneration += 1
+      playbackRevision += 1
       if player != nil {
         deinitPlayer()
       }
+      let generation = sessionGeneration
       // Set up AVAudioSession for background audio playback
       do {
           // .longFormAudio needed to play audio when screnn is off?
@@ -210,7 +213,11 @@ class MusicPlayerManager {
         .next
       ]
 
-      player?.event.currentItem.addListener(self, handleAudioPlayerCurrentItemChange)
+      player?.event.currentItem.addListener(self) { [weak self] data in
+        self?.onMain(generation: generation) {
+          self?.handleAudioPlayerCurrentItemChange(item: data.item, index: data.index, lastItem: data.lastItem, lastIndex: data.lastIndex, lastPosition: data.lastPosition)
+        }
+      }
 
     player?.event.fail.addListener(self, { data in
       WatchLog.shared.error("Player", "Playback failed: \(data?.localizedDescription ?? "unknown error")")
@@ -218,7 +225,7 @@ class MusicPlayerManager {
 
     player?.event.stateChange.addListener(self, { state in
       print("State changed \(state)")
-      self.onMain {
+      self.onMain(generation: generation) {
         if state == .playing {
           self.isPlaying = true
         } else if state == .paused || state == .ended {
@@ -236,7 +243,7 @@ class MusicPlayerManager {
     // Position and duration are the basis for the progress display and for the
     // resume state, so they have to be written along instead of staying at 0.
     player?.event.secondElapse.addListener(self, { seconds in
-      self.onMain {
+      self.onMain(generation: generation) {
         self.currentTime = seconds
         if self.duration <= 0 { self.refreshDuration() }
         self.persistResumePositionIfNeeded(seconds)
@@ -244,7 +251,7 @@ class MusicPlayerManager {
     })
 
     player?.event.updateDuration.addListener(self, { duration in
-      self.onMain {
+      self.onMain(generation: generation) {
         // The database duration wins: a cropped stream reports the length of the
         // full asset here.
         if let millis = self.currentVideo?.durationMillis, millis > 0 {
@@ -256,29 +263,29 @@ class MusicPlayerManager {
     })
 
     player?.event.seek.addListener(self, { data in
-      self.onMain {
+      self.onMain(generation: generation) {
         self.currentTime = data.seconds
       }
     })
 
 
     player?.remoteCommandController.handlePlayCommand = { [weak self] _ in
-      self?.player?.play()
+      self?.onMain(generation: generation) { self?.playMusic() }
       return MPRemoteCommandHandlerStatus.success
     }
 
     player?.remoteCommandController.handlePauseCommand = { [weak self] _ in
-      self?.player?.pause()
+      self?.onMain(generation: generation) { self?.pauseMusic() }
       return MPRemoteCommandHandlerStatus.success
     }
 
-    // setupPlayer can run on the background queue, but `volume` drives the UI.
+    // All player state and model access stay on the main actor.
     let initialVolume = Double(AVAudioSession.sharedInstance().outputVolume)
-    onMain { self.volume = initialVolume }
+    self.volume = initialVolume
 
     volumeObserver = AVAudioSession.sharedInstance().observe(\.outputVolume) { [weak self] session, _ in
       let outputVolume = Double(session.outputVolume)
-      self?.onMain {
+      self?.onMain(generation: generation) {
         self?.volume = outputVolume
       }
     }
@@ -286,6 +293,8 @@ class MusicPlayerManager {
   }
 
   private func deinitPlayer() {
+    sessionGeneration += 1
+    playbackRevision += 1
     player?.pause()
     storeResumeState()
     isPlaying = false
@@ -304,10 +313,8 @@ class MusicPlayerManager {
     let upperBound = duration > 0 ? duration : time
     let clamped = min(max(time, 0), upperBound)
     player.seek(to: clamped)
-    onMain {
-      self.currentTime = clamped
-      self.persistResumePosition(clamped)
-    }
+    self.currentTime = clamped
+    self.persistResumePosition(clamped)
   }
 
   func skip(by offset: TimeInterval) {
@@ -389,11 +396,10 @@ class MusicPlayerManager {
     persistResumePosition(seconds)
   }
 
-  private func onMain(_ block: @escaping () -> Void) {
-    if Thread.isMainThread {
+  nonisolated private func onMain(generation: Int? = nil, _ block: @escaping @MainActor () -> Void) {
+    Task { @MainActor [weak self] in
+      guard let self, generation == nil || generation == self.sessionGeneration else { return }
       block()
-    } else {
-      DispatchQueue.main.async(execute: block)
     }
   }
 
@@ -407,7 +413,8 @@ class MusicPlayerManager {
           lastPosition: Double?
   ) {
     print("Current item change: \(item?.getTitle() ?? "nil")")
-    onMain {
+    let generation = sessionGeneration
+    onMain(generation: generation) {
       self.currentTitle = item?.getTitle() ?? "Unknown Title"
       self.currentArtist = item?.getArtist()
       if let i = index {
@@ -425,7 +432,7 @@ class MusicPlayerManager {
       self.storeResumeState()
     }
     item?.getArtwork({ audioImage in
-      self.onMain {
+      self.onMain(generation: generation) {
         // A slow load of a previous title must not replace the cover of the
         // title that is playing now.
         guard (self.player?.currentItem as AnyObject?) === (item as AnyObject?) else { return }
@@ -448,6 +455,7 @@ class MusicPlayerManager {
   /// audio in that case, so it also must not claim the now playing slot.
   func applyPhonePlaybackState(title: String?, isPlaying: Bool?) {
     onMain {
+      self.playbackRevision += 1
       let wasLocal = self.type == .local
       self.type = .phone
       if wasLocal {
@@ -480,9 +488,11 @@ class MusicPlayerManager {
         WatchLog.shared.warning("Player", "Play skipped: the queue is empty")
         return
       }
-      // Set up AVAudioSession for background audio playback
+      playbackRevision += 1
+      let revision = playbackRevision
+      let generation = sessionGeneration
+      // Long-form audio keeps playback active when the screen is off.
       do {
-          // .longFormAudio needed to play audio when screnn is off
           try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, policy: .longFormAudio, options: [])
       } catch {
           print("Failed to set up AVAudioSession: \(error)")
@@ -499,7 +509,7 @@ class MusicPlayerManager {
                 currentTitle = title
                 currentArtist = curItem.getArtist()
                 curItem.getArtwork({ audioImage in
-                  self.currentCover = audioImage
+                  self.onMain(generation: generation) { self.currentCover = audioImage }
                 })
               }
           } catch {
@@ -508,7 +518,8 @@ class MusicPlayerManager {
       #else
         AVAudioSession.sharedInstance().activate { [self] success, error in
           if success {
-            DispatchQueue.main.async { [self] in
+            onMain(generation: generation) { [self] in
+              guard revision == playbackRevision, type == .local else { return }
               player?.play()
               isPlaying = true
               isStalled = false
@@ -532,6 +543,7 @@ class MusicPlayerManager {
         return
       }
 
+      playbackRevision += 1
       do {
           try AVAudioSession.sharedInstance().setActive(false)
       } catch {

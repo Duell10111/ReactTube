@@ -341,3 +341,19 @@ Anschließend W06–W09 mit gezielten Regressionstests absichern.
 Die Hintergrund-, Verbindungs- und Audio-Routing-Szenarien sollten auf einer
 echten Apple Watch geprüft werden; die isolierten macOS-Prüffälle ersetzen diese
 Tests nicht.
+
+## Umsetzung und Nachprüfung
+
+Die folgenden Nachprüfungen beziehen sich auf die jeweilige Umsetzung. Native
+Prüffälle laufen auf macOS mit Originalmethoden und Testdoubles. Der watchOS-
+Typecheck prüft alle Swift-Dateien mit dem watchOS-SDK und den vorhandenen
+Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Build.
+
+- **W01 behoben:** Player und PlaylistManager sind MainActor-isoliert;
+  SwiftData-Prüfungen verwenden keine Hintergrundqueue mehr. Ereignisse sind an
+  die Playersitzung gebunden, Audioaktivierungen zusätzlich an die letzte
+  Wiedergabeaktion. Regressionstest bestätigt: Pause und Sitzungswechsel
+  entwerten einen verspäteten Start; der aktuelle Start funktioniert weiterhin.
+  watchOS-Typecheck und `npm test` (498 Tests) bestanden. Projektweites ESLint
+  meldet bereits im Ausgangsstand 630 Fehler und 832 Warnungen; die neuen
+  Testdateien werden separat geprüft.

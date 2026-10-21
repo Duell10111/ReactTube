@@ -132,7 +132,7 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
 //      predicate: #Predicate { $0.videoIDs.contains(id) }
     )
 
-    // Slow workarround as swiftdata is a bitch
+    // Filter in memory because this relationship predicate is not supported by SwiftData.
     let allPlaylists = try modelContext.fetch(playlistDescriptor)
 
     let playlists = allPlaylists.filter { p in
@@ -272,31 +272,23 @@ func addHomeScreenElement(_ modelContext: ModelContext, videoID: String?, playli
   return nil
 }
 
-let queue = DispatchQueue(label: "db.utils.queue")
-
+@MainActor
 func checkVideosForExpiration(_ videos: [Video]) {
-  queue.async {
-    for video in videos {
-      if let validUntil = video.validUntil, validUntil < Date() {
-        print("Refetch expired videoID")
-        requestVideo(id: video.id)
-      }
+  for video in videos {
+    if let validUntil = video.validUntil, validUntil < Date() {
+      requestVideo(id: video.id)
     }
   }
 }
 
+@MainActor
 func checkPlaylist(_ playlist: Playlist) {
-  queue.async {
-    let ids = playlist.videoIDs.filter { id in
-      !playlist.videos.contains { video in
-        video.id == id && (video.downloaded || (video.validUntil != nil && video.validUntil! > Date())) && video.durationMillis > 0
-      }
-    }
-    print("Fetching Playlist Ids: \(ids)")
-    ids.forEach { id in
-      requestVideo(id: id)
+  let ids = playlist.videoIDs.filter { id in
+    !playlist.videos.contains { video in
+      video.id == id && (video.downloaded || (video.validUntil != nil && video.validUntil! > Date())) && video.durationMillis > 0
     }
   }
+  ids.forEach { requestVideo(id: $0) }
 }
 
 func addVideoToPlaylist(_ playlist: Playlist, video: Video) {
