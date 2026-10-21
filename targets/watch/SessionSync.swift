@@ -141,11 +141,13 @@ extension SessionSync: WCSessionDelegate {
     debugPrint("WCSession didReceiveApplicationContext activationState:\(appContext)")
     applicationContext = appContext
     
-    if(MusicPlayerManager.shared.type == .phone || !MusicPlayerManager.shared.isPlaying) {
+    Task { @MainActor in
+      if MusicPlayerManager.shared.type == .phone || !MusicPlayerManager.shared.isPlaying {
       MusicPlayerManager.shared.applyPhonePlaybackState(
         title: appContext["title"] as? String,
         isPlaying: appContext["playing"] as? Bool
       )
+      }
     }
   }
 

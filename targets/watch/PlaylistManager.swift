@@ -9,6 +9,7 @@ import Foundation
 import AVFoundation
 import SwiftAudioEx
 
+@MainActor
 class PlaylistManager {
 
   private var playlist: Playlist?
