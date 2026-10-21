@@ -73,7 +73,7 @@ final class Transport {
 final class Context { func save() throws {} }
 final class DataController {
   static let shared = DataController()
-  let container = Container()
+  let container: Container? = Container()
 }
 final class Container { let mainContext = Context() }
 let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

@@ -423,3 +423,39 @@ Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Buil
   prüft zwei Videos, zwei Playlists, gleiche IDs über Typgrenzen, wiederholtes
   Aktualisieren und die Bereinigung eines alten Cacheeintrags. `npm test`
   (510 Tests), Typecheck, Plattformprüfung und watchOS-Typecheck bestanden.
+
+- **W09 behoben:** Ein fehlgeschlagener Datenbankstart zeigt einen modellfreien
+  Fehler-/Wiederherstellungsbildschirm mit Diagnose und erneutem Öffnen. Ein
+  bestätigtes Zurücksetzen sichert Store, WAL und SHM vollständig vor dem
+  Entfernen der Originale; Audiodateien bleiben erhalten. Hintergrundabschlüsse
+  behalten ihre Zwischendateien, solange keine Datenbank bereitsteht.
+  Modellzugriffe und Sync-Einstiegspunkte prüfen den verfügbaren Container.
+  Native SwiftData-Regressionen prüfen wiederholtes Öffnungsversagen ohne
+  Dateilöschung, gesichertes Zurücksetzen, In-Memory-Konfiguration und das
+  erneute Öffnen einer bestehenden Bibliothek samt Playlistbeziehung.
+  `npm test` (514 Tests), Typecheck, Plattformprüfung und watchOS-Typecheck
+  bestanden.
+
+Projektweites `npm run lint` meldet abschließend dieselben **630 Fehler und
+832 Warnungen** wie vor der Umsetzung, insbesondere in lokal vorhandenen
+Ruby-Vendor-JavaScript-Dateien (z. B.
+`vendor/bundle/ruby/4.0.0/gems/rdoc-8.0.0/lib/rdoc/generator/template/aliki/js/aliki.js`:
+`Strings must use doublequote`, `'document' is not defined`) und vorhandenen
+App-Dateien. Alle in dieser Umsetzung geänderten JavaScript-/TypeScript- und
+Testdateien werden separat ohne ESLint-Befunde geprüft. Die Swift-Prüfung
+meldet nur bereits vorhandene Warnungen; ein Simulator-/Geräte-Audiotest und
+ein vollständiger Xcode-Build sind weiterhin offen.
+
+Die gemeinsame abschließende Nachprüfung ergänzt W02 um Playlists, deren
+Titelmodelle erst nach der Auswahl eintreffen: angeforderte IDs und einmal
+gewählte Reihenfolge (einschließlich Shuffle) bleiben erhalten. Eine Playlist
+mit ausstehenden Modellen gilt dabei nicht als leer. Auch eine anfangs
+vollständig modellfreie Playlist ist durch einen nativen Regressionstest
+abgedeckt. Abschließender Stand: **514 Tests erfolgreich**, TypeScript- und
+Plattformprüfung sowie watchOS-SDK-Typecheck erfolgreich.
+
+Die neue native Wiederherstellungsoberfläche und Download-Fehlertexte haben
+übereinstimmende, typisierte englische und deutsche Texte. Die Sprachauswahl
+auf dem Wiederherstellungsbildschirm speichert `uiLanguage`, unabhängig von
+der YouTube-Inhaltssprache, und wirkt ohne Neustart. Ein weiterer nativer
+Regressionstest prüft alle Texte beider Sprachen und den englischen Fallback.

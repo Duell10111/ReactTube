@@ -12,7 +12,10 @@ import SwiftData
 
 @MainActor
 final class RemoteLibraryCommands {
-  static let shared = RemoteLibraryCommands()
+  static var shared: RemoteLibraryCommands? {
+    guard let context = DataController.shared.container?.mainContext else { return nil }
+    return RemoteLibraryCommands(context: context)
+  }
 
   private enum Key {
     static let processedCommands = "watchLibrary.processedCommands"
@@ -30,9 +33,9 @@ final class RemoteLibraryCommands {
   }
 
   private let defaults = UserDefaults.standard
-  private var modelContext: ModelContext { DataController.shared.container.mainContext }
+  private let modelContext: ModelContext
 
-  private init() {}
+  private init(context: ModelContext) { modelContext = context }
 
   func handle(_ message: [String: Any]) async {
     guard let commandId = message["commandId"] as? String, !commandId.isEmpty else {

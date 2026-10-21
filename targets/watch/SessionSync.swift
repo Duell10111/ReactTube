@@ -186,7 +186,7 @@ extension SessionSync: WCSessionDelegate {
         processYoutubeAPIMessage(session, message: payload)
       } else if type == WatchLibraryProtocol.commandType {
         Task { @MainActor in
-          await RemoteLibraryCommands.shared.handle(message)
+          await RemoteLibraryCommands.shared?.handle(message)
         }
       }
     }
@@ -219,13 +219,13 @@ extension SessionSync: WCSessionDelegate {
     if metadata["type"] as? String == WatchLibraryProtocol.videoCoverType {
       let savedPath = saveDownloadFile(id: id, filePath: file.fileURL, fileExtension: metadata["fileExtension"] as? String, fileName: "cover")
       Task { @MainActor in
-        RemoteLibraryCommands.shared.handleReceivedCover(id: id, savedPath: savedPath)
+        RemoteLibraryCommands.shared?.handleReceivedCover(id: id, savedPath: savedPath)
       }
       return
     }
     let savedPath = saveDownloadFile(id: id, filePath: file.fileURL, fileExtension: metadata["fileExtension"] as? String)
     Task { @MainActor in
-      await RemoteLibraryCommands.shared.handleReceivedVideoFile(metadata: metadata, savedPath: savedPath)
+      await RemoteLibraryCommands.shared?.handleReceivedVideoFile(metadata: metadata, savedPath: savedPath)
     }
   }
 
@@ -242,11 +242,12 @@ extension SessionSync: WCSessionDelegate {
 
   @MainActor
   func overrideDatabaseCommand(_ session: WCSession, message: [String: Any]) {
+    guard let context = DataController.shared.container?.mainContext else { return }
     if let jsonData = message["data"] as? String, let data = jsonData.data(using: .utf8) {
       let decoder = JSONDecoder()
       do {
         let backupFile = try decoder.decode(JSONBackupFile.self, from: data)
-        overrideDatabase(modelContext: DataController.shared.container.mainContext, backupFile: backupFile)
+        overrideDatabase(modelContext: context, backupFile: backupFile)
       } catch {
         print("Exception in override Database \(error)")
       }
