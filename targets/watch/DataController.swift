@@ -49,7 +49,12 @@ final class DataController {
     failure = nil
     do {
       let opened = try openContainer(configuration)
-      try repairHomeScreenCache(opened.mainContext)
+      do {
+        try repairHomeScreenCache(opened.mainContext)
+      } catch {
+        // The home feed is disposable and refetched, so it must not block the library.
+        WatchLog.shared.error("Database", "Repairing the home cache failed: \(error.localizedDescription)")
+      }
       container = opened
       state = .ready
     } catch {

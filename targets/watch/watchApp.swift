@@ -37,6 +37,8 @@ struct watchApp: App {
     }.backgroundTask(.urlSession) { id in
       await downloadManager.handleBackgroundEvents(identifier: id)
     }.backgroundTask(.watchConnectivity) {
+      // Phone commands can queue downloads without the UI ever appearing.
+      await downloadManager.restore()
       await SessionSyncStruct.shared.waitForPendingContent()
     }
   }

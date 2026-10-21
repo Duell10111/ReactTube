@@ -410,11 +410,14 @@ Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Buil
   pausiert/leert den Player, gibt seine Instanz frei und setzt Queue, Cover,
   Position und Seek-Wunsch zurück. `setupPlayer` meldet Erfolg; nur eine
   erfolgreich eingerichtete Queue startet. Eine Playlist mit ausstehenden
-  Streamdaten behält lediglich den Startwunsch für W02. Der native
-  Regressionstest wechselt von einem Titel zu einer leeren Playlist und prüft
-  freigegebene Instanz, leere Queue und unveränderte Anzahl von Startaufrufen.
-  `npm test` (509 Tests), Typecheck, Plattformprüfung und watchOS-Typecheck
-  bestanden.
+  Streamdaten behält lediglich den Startwunsch für W02. Der Regressionstest
+  (`test/watch-resume-stability.test.mjs`) prüft den Quelltext: Der Abbau setzt
+  `player` auf `nil`, leert die Queue, entfernt Listener und Now-Playing-Daten;
+  `setupPlayer` gibt `Bool` zurück und `updatePlaylist` startet nur nach
+  erfolgreicher Einrichtung. Ein nativer Prüffall, der von einem Titel zu einer
+  leeren Playlist wechselt und Playerinstanz, Queue und Startaufrufe zur
+  Laufzeit prüft, fehlt noch. `npm test` (509 Tests), Typecheck,
+  Plattformprüfung und watchOS-Typecheck bestanden.
 
 - **W08 behoben:** Home-Elemente verwenden typisierte Schlüssel (`video:` /
   `playlist:`) und gesetzte ID-Felder. Es gibt keinen optionalen ODER-Vergleich
@@ -459,3 +462,22 @@ Die neue native Wiederherstellungsoberfläche und Download-Fehlertexte haben
 auf dem Wiederherstellungsbildschirm speichert `uiLanguage`, unabhängig von
 der YouTube-Inhaltssprache, und wirkt ohne Neustart. Ein weiterer nativer
 Regressionstest prüft alle Texte beider Sprachen und den englischen Fallback.
+
+### Nachreview
+
+Ein Review der Umsetzung ergab drei weitere Korrekturen:
+
+- **Downloads nach Hintergrundstart:** `checkDownloads` holt eine noch
+  ausstehende Wiederherstellung nach, statt still abzubrechen. Auch der
+  `.watchConnectivity`-Hintergrundhandler stellt die Downloads wieder her.
+  Vom iPhone angestoßene Downloads starten dadurch auch dann, wenn die
+  Oberfläche nicht erscheint.
+- **Home-Cache-Reparatur:** Ein Fehler beim Bereinigen des Home-Caches wird nur
+  protokolliert. Die bereits geöffnete Datenbank gilt weiterhin als bereit, statt
+  den Wiederherstellungsbildschirm mit Zurücksetzen anzubieten.
+- **Wiederverbindung und Metadatenanfragen:** Eine Wiederverbindung sendet offene
+  Anfragen mit neuer Kennung erneut, verbraucht aber keinen Versuch. Nur
+  Zeitüberschreitungen zählen. Eine instabile Bluetooth-Verbindung führt damit
+  nicht mehr innerhalb von Sekunden zu einem endgültigen Fehler. Der native
+  Regressionstest prüft fünf Wiederverbindungen ohne Fehler und das
+  anschließende Zeitlimit.

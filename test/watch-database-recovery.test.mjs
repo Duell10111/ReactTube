@@ -87,6 +87,11 @@ test("W09 exposes recovery before model views and keeps background files when th
   assert.match(app, /DatabaseRecoveryView\(controller: dataController\)/);
   assert.match(app, /\.alert\(DatabaseRecoveryCopy.rebuild/);
   assert.doesNotMatch(controller, /fatalError/);
+  // A failing home-cache repair must not turn an opened store into a failure.
+  assert.match(
+    swiftMethod(controller, "func retry()"),
+    /do \{\s*try repairHomeScreenCache\(opened.mainContext\)\s*\} catch \{/,
+  );
   assert.match(
     watchSource("DownloadManager.swift"),
     /guard let context = DataController.shared.container\?\.mainContext else \{ return false \}/,

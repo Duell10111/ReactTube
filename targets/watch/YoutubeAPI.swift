@@ -126,9 +126,11 @@ final class VideoMetadataRequests {
     return true
   }
 
+  /// Resends with a fresh token. Only timeouts count as attempts, so a flapping
+  /// connection cannot exhaust the retry budget within seconds.
   func retryAfterReconnect() {
     for (id, request) in Array(pending) {
-      begin(id: id, attempt: request.attempt + 1)
+      begin(id: id, attempt: request.attempt)
     }
   }
 
