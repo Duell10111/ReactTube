@@ -383,3 +383,17 @@ Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Buil
   und Neustart desselben Titels: keine Datei und kein Modell werden angelegt;
   aktuelle Abschlüsse funktionieren. `npm test` (505 Tests), Typecheck,
   Plattformprüfung und watchOS-Typecheck bestanden.
+
+- **W05 behoben (Code und isolierte Nachprüfung):** Die Watch verwendet einen
+  eigenen URLSessionDownloadDelegate statt SDDownloadManager. Aufträge mit
+  Video-ID, Generation und Taskkennung sowie Warteschlange/Fehler werden atomar
+  gespeichert. Delegate-Dateien werden vor Rückkehr aus dem Callback dauerhaft
+  zwischengespeichert und erst nach Datei-/Datenbankspeicherung freigegeben.
+  Appstart gleicht Journal, Systemtasks, Zwischendateien und lokale Audiodateien
+  ab. Der SwiftUI-Hintergrundhandler wartet auf verarbeitete Sessionereignisse.
+  Native Regressionen prüfen Neustart, fehlenden Task, fehlgeschlagene
+  Verbuchung, erneute Verarbeitung und verspäteten Abschluss nach Abbruch.
+  `npm test` (507 Tests), Typecheck, Plattformprüfung und watchOS-Typecheck
+  bestanden. Systembedingte Prozessbeendigung und Hintergrundlaufzeit müssen
+  zusätzlich auf einer echten Watch geprüft werden; dies wurde hier nicht
+  als Geräteerfolg verifiziert.

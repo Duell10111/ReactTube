@@ -20,7 +20,7 @@ test("W04 cancels audio, cover and metadata before deleting library entries", ()
   }
   assert.match(swiftMethod(db, "func clearDatabase("), /cancelAll/);
   assert.doesNotMatch(
-    swiftMethod(source, "private func receiveFileUpload("),
+    swiftMethod(source, "private func complete("),
     /addDownloadData/,
   );
 });
@@ -33,6 +33,8 @@ test(
 import Foundation
 final class Video: Hashable {
   let id = "a"
+  var downloaded = false
+  var fileURL: String?
   var durationMillis = 1000
   var title: String? = "Title"
   var downloadURL: String? = "https://example.test/audio"
@@ -51,19 +53,35 @@ final class VideoMetadataRequests {
   static let shared = VideoMetadataRequests()
   func cancel(ids: Set<String>) {}
 }
-final class SDDownloadManager {
-  static let shared = SDDownloadManager()
-  var completions: [(Error?, URL?) -> Void] = []
-  var cancelled: [String] = []
-  func downloadFile(withRequest: URLRequest, shouldDownloadInBackground: Bool, onProgress: ((Float) -> Void)?, completion: @escaping (Error?, URL?) -> Void) -> String? {
-    completions.append(completion)
-    return String(completions.count)
-  }
-  func cancelDownload(forUniqueKey key: String) { cancelled.append(key) }
+struct WatchDownloadJob {
+  let id: String
+  let videoID: String
+  let kind: String
+  let generation: UUID
+  let duration: Int
 }
-var savedFiles = 0
-func saveDownloadFile(id: String, filePath: URL, fileExtension: String, fileName: String = "audio") -> String? { savedFiles += 1; return "saved" }
+final class Transport {
+  var jobs: [WatchDownloadJob] = []
+  var cancelled: [String] = []
+  func start(videoID: String, kind: String, generation: UUID, duration: Int, url: URL) -> String? {
+    let key = String(jobs.count + 1)
+    jobs.append(WatchDownloadJob(id: key, videoID: videoID, kind: kind, generation: generation, duration: duration))
+    return key
+  }
+  func cancel(key: String) { cancelled.append(key) }
+}
+final class Context { func save() throws {} }
+final class DataController {
+  static let shared = DataController()
+  let container = Container()
+}
+final class Container { let mainContext = Context() }
+let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+func getDownloadVideoDirectory(id: String) -> URL { directory.appendingPathComponent(id) }
 final class Probe {
+  let transport = Transport()
+  var requestedIDs: Set<String> = []
+  func persistQueue() {}
   var pendingDownloads: Set<Video> = []
   var awaitingMetadata: Set<String> = []
   var failedDownloads: [String: String] = [:]
@@ -77,28 +95,33 @@ final class Probe {
   func notifyProgress() {}
   func checkDownloads() {}
   func existingVideo(id: String) -> Video? { video }
-  func receiveFileUpload(id: String, fileURL: String, duration: Int) { updates += 1 }
-  func receiveFileUploadImage(id: String, coverURL: String, duration: Int) { updates += 1 }
+
   ${swiftMethod(source, "private func downloadVideo(")}
   ${swiftMethod(source, "func cancel(ids:")}
-  func run() {
+  ${swiftMethod(source, "private func complete(")}
+  func run() throws {
+    defer { try? FileManager.default.removeItem(at: directory) }
     precondition(downloadVideo(video: video!))
-    let oldCallbacks = SDDownloadManager.shared.completions
-    precondition(oldCallbacks.count == 2)
+    let oldJobs = transport.jobs
+    precondition(oldJobs.count == 2)
     cancel(ids: ["a"])
-    precondition(Set(SDDownloadManager.shared.cancelled) == ["1", "2"])
+    precondition(Set(transport.cancelled) == ["1", "2"])
     video = nil
-    oldCallbacks.forEach { $0(nil, URL(fileURLWithPath: "/tmp/completed")) }
-    precondition(savedFiles == 0 && updates == 0 && activeDownloads.isEmpty)
+    oldJobs.forEach { precondition(complete(job: $0, file: URL(fileURLWithPath: "/tmp/missing"), error: nil)) }
+    precondition(!FileManager.default.fileExists(atPath: directory.path) && activeDownloads.isEmpty)
     video = Video()
     precondition(downloadVideo(video: video!))
-    oldCallbacks.forEach { $0(nil, URL(fileURLWithPath: "/tmp/completed")) }
-    precondition(savedFiles == 0 && updates == 0)
-    SDDownloadManager.shared.completions.suffix(2).forEach { $0(nil, URL(fileURLWithPath: "/tmp/completed")) }
-    precondition(savedFiles == 2 && updates == 2)
+    oldJobs.forEach { precondition(complete(job: $0, file: URL(fileURLWithPath: "/tmp/missing"), error: nil)) }
+    precondition(!FileManager.default.fileExists(atPath: directory.path))
+    let input = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try Data("audio".utf8).write(to: input)
+    defer { try? FileManager.default.removeItem(at: input) }
+    transport.jobs.suffix(2).forEach { precondition(complete(job: $0, file: input, error: nil)) }
+    precondition(video!.downloaded && video!.fileURL == "a/audio.mp4" && video!.coverURL == "a/cover.png")
+    precondition(FileManager.default.fileExists(atPath: directory.appendingPathComponent("a/audio.mp4").path))
   }
 }
-@main struct Main { static func main() { Probe().run() } }
+@main struct Main { static func main() throws { try Probe().run() } }
 `);
   },
 );

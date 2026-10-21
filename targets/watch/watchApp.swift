@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import SDDownloadManager
 
 struct ContentView: View {
     var body: some View {
@@ -30,9 +29,9 @@ struct watchApp: App {
             .environment(musicPlayerManager)
             .environment(downloadManager)
             .environment(watchStatus)
+            .task { await downloadManager.restore() }
         }.backgroundTask(.urlSession) { id in
-          debugPrint("handleEventsForBackgroundURLSession: \(id)")
-          // TODO: Adapt for DownloadManager
+          await downloadManager.handleBackgroundEvents(identifier: id)
         }.backgroundTask(.watchConnectivity) {
           // Lets queued phone commands (transferUserInfo) run without the app
           // being in the foreground, as far as watchOS allows.
