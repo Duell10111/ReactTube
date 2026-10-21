@@ -415,3 +415,11 @@ Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Buil
   freigegebene Instanz, leere Queue und unveränderte Anzahl von Startaufrufen.
   `npm test` (509 Tests), Typecheck, Plattformprüfung und watchOS-Typecheck
   bestanden.
+
+- **W08 behoben:** Home-Elemente verwenden typisierte Schlüssel (`video:` /
+  `playlist:`) und gesetzte ID-Felder. Es gibt keinen optionalen ODER-Vergleich
+  mehr. Inkonsistente alte Home-Caches werden beim Datenbankstart verworfen;
+  Videos und Playlists bleiben erhalten. Ein echter SwiftData-In-Memory-Test
+  prüft zwei Videos, zwei Playlists, gleiche IDs über Typgrenzen, wiederholtes
+  Aktualisieren und die Bereinigung eines alten Cacheeintrags. `npm test`
+  (510 Tests), Typecheck, Plattformprüfung und watchOS-Typecheck bestanden.

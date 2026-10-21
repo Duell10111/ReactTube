@@ -232,49 +232,48 @@ func addHomeScreenSection(_ modelContext: ModelContext, title: String, date: Dat
 }
 
 func addHomeScreenElement(_ modelContext: ModelContext, videoID: String?, playlistID: String?) -> HomeScreenElement? {
-  if let id = videoID ?? playlistID {
-    do {
-      let descriptor = FetchDescriptor<HomeScreenElement>(
-          predicate: #Predicate { $0.videoID == videoID || $0.playlistID == playlistID }
-          )
-      let contents = try modelContext.fetch(descriptor)
-
-      let existingEntry = !contents.isEmpty
-
-      let type = videoID != nil ? HomeScreenElementType.video : .playlist
-
-      let homeScreenElement = contents.first ?? HomeScreenElement(id: id, type: type)
-
-      if let videoID = videoID {
-        let descriptor = FetchDescriptor<Video>(
-          predicate: #Predicate { $0.id == videoID }
-        )
-        let video = try modelContext.fetch(descriptor)
-
-        homeScreenElement.video = video.first
-      }
-
-      if let playlistID = playlistID {
-        let descriptor = FetchDescriptor<Playlist>(
-          predicate: #Predicate { $0.id == playlistID }
-        )
-        let playlist = try modelContext.fetch(descriptor)
-
-        homeScreenElement.playlist = playlist.first
-      }
-
-      if !existingEntry {
-        modelContext.insert(homeScreenElement)
-      }
-      
-      return homeScreenElement
-    } catch {
-      print("Error inserting HomeScreenElement: \(error)")
+  guard (videoID == nil) != (playlistID == nil), let sourceID = videoID ?? playlistID, !sourceID.isEmpty else { return nil }
+  let type: HomeScreenElementType = videoID != nil ? .video : .playlist
+  let key = (videoID != nil ? "video:" : "playlist:") + sourceID
+  do {
+    let descriptor = FetchDescriptor<HomeScreenElement>(predicate: #Predicate { $0.id == key })
+    let existing = try modelContext.fetch(descriptor).first
+    let element = existing ?? HomeScreenElement(id: key, type: type)
+    element.videoID = videoID
+    element.playlistID = playlistID
+    if let videoID {
+      element.video = try modelContext.fetch(FetchDescriptor<Video>(predicate: #Predicate { $0.id == videoID })).first
+      element.playlist = nil
+    } else if let playlistID {
+      element.playlist = try modelContext.fetch(FetchDescriptor<Playlist>(predicate: #Predicate { $0.id == playlistID })).first
+      element.video = nil
     }
-  } else {
-    print("HomeScreenElement can not contain videoID and playlistID?!")
+    if existing == nil { modelContext.insert(element) }
+    return element
+  } catch {
+    print("Error inserting HomeScreenElement: \(error)")
+    return nil
   }
-  return nil
+}
+
+/// The home feed is disposable. Legacy entries lost their identity fields and
+/// may already reference the wrong model, so refetch rather than guessing.
+func repairHomeScreenCache(_ modelContext: ModelContext) throws {
+  let elements = try modelContext.fetch(FetchDescriptor<HomeScreenElement>())
+  let invalid = elements.contains { element in
+    switch element.type {
+    case .video:
+      guard let id = element.videoID, !id.isEmpty else { return true }
+      return element.id != "video:" + id || element.playlistID != nil || element.video?.id != id
+    case .playlist:
+      guard let id = element.playlistID, !id.isEmpty else { return true }
+      return element.id != "playlist:" + id || element.videoID != nil || element.playlist?.id != id
+    }
+  }
+  guard invalid else { return }
+  try modelContext.delete(model: HomeScreenSection.self)
+  try modelContext.delete(model: HomeScreenElement.self)
+  try modelContext.save()
 }
 
 @MainActor

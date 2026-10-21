@@ -33,6 +33,7 @@ class DataController {
         let config = ModelConfiguration(isStoredInMemoryOnly: false)
         let container = try ModelContainer(for: Video.self, Playlist.self, HomeScreenSection.self, HomeScreenElement.self, configurations: config)
 
+        try repairHomeScreenCache(container.mainContext)
         self.container = container
     } catch {
         fatalError("Failed to create model container: \(error.localizedDescription)")
