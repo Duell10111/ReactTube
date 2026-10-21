@@ -357,3 +357,10 @@ Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Buil
   watchOS-Typecheck und `npm test` (498 Tests) bestanden. Projektweites ESLint
   meldet bereits im Ausgangsstand 630 Fehler und 832 Warnungen; die neuen
   Testdateien werden separat geprüft.
+
+- **W02 behoben:** Metadatenantworten ergänzen ausschließlich die aktuelle
+  Warteschlange in ihrer gewählten Reihenfolge. Ein leerer Start wird nachgeholt;
+  Pause und Playlistwechsel bleiben wirksam. Stream-Gültigkeit wird beim
+  Titelwechsel und vor dem Start erneut geprüft; abgelaufene Playeritems werden
+  nach der Antwort ersetzt. Native Regressionen prüfen Reihenfolge, aktive
+  Position, leeren Start und verspätete Antworten nach Pause/Wechsel.

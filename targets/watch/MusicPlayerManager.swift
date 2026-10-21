@@ -54,6 +54,9 @@ class MusicPlayerManager {
     // Utils
     private var sessionGeneration = 0
     private var playbackRevision = 0
+    private var wantsPlayback = false
+    private var requestedStartVideoID: String?
+    private var waitingForVideoID: String?
     private let playlistManager = PlaylistManager()
 
     private init() {
@@ -75,6 +78,8 @@ class MusicPlayerManager {
 
   func updatePlaylist(newPlaylist: [Video]) {
     self.type = .local
+    requestedStartVideoID = nil
+    waitingForVideoID = nil
     // TODO: Check if playlist already present?
     self.playlistManager.setPlaylist(nil, videos: newPlaylist)
     self.currentPlaylistID = nil
@@ -93,11 +98,13 @@ class MusicPlayerManager {
   /// - Parameter shuffle: `nil` uses the persisted preference.
   func updatePlaylist(playlist: Playlist, startVideoID: String? = nil, shuffle: Bool? = nil) {
     self.type = .local
+    requestedStartVideoID = startVideoID
+    waitingForVideoID = nil
     let shouldShuffle = shuffle ?? (startVideoID == nil && preferences.shuffleEnabled)
     let playlistID = playlist.id
     let playlistTitle = playlist.title
-    let orderedVideoIDs = playlist.orderedVideos.map(\.id)
     self.playlistManager.setPlaylist(playlist, shuffle: shouldShuffle)
+    let orderedVideoIDs = self.playlistManager.orderedVideoIDs
     self.currentPlaylistID = playlistID
     self.currentPlaylistTitle = playlistTitle
 
@@ -117,6 +124,50 @@ class MusicPlayerManager {
 
     // Start playing after setup
     self.playMusic()
+  }
+
+  /// Extends only the current queue, in the order selected for this session.
+  func videoMetadataUpdated(id: String) {
+    guard type == .local, playlistManager.contains(id: id) else { return }
+    let available = playlistManager.checkForNewVideos()
+    let orderedIDs = playlistManager.orderedVideoIDs
+    if player == nil { setupPlayer() }
+    guard let player else { return }
+    for (video, item) in available where !playerPlaylistItems.contains(where: { $0.id == video.id }) {
+      let position = orderedIDs.firstIndex(of: video.id) ?? orderedIDs.count
+      let index = playerPlaylistItems.firstIndex { existing in
+        (orderedIDs.firstIndex(of: existing.id) ?? orderedIDs.count) > position
+      } ?? playerPlaylistItems.count
+      do {
+        try player.add(items: [item], at: index)
+        playerPlaylistItems.insert(video, at: index)
+      } catch {
+        WatchLog.shared.error("Player", "Could not extend queue: \(error.localizedDescription)")
+      }
+    }
+    currentTrackIndex = max(0, player.currentIndex)
+    trackIndex = currentTrackIndex
+    if waitingForVideoID == id, let replacement = available.first(where: { $0.0.id == id }) {
+      waitingForVideoID = nil
+      player.load(item: replacement.1, playWhenReady: false)
+    }
+    if let requestedStartVideoID, let index = playerPlaylistItems.firstIndex(where: { $0.id == requestedStartVideoID }), !isPlaying {
+      self.requestedStartVideoID = nil
+      jumpToIndex(index)
+    }
+    updateNowPlayingMetadata()
+    if wantsPlayback && !isPlaying { playMusic() }
+  }
+
+  private func validateCurrentStream() -> Bool {
+    guard let video = currentVideo, !playlistManager.isPlayable(video) else { return true }
+    waitingForVideoID = video.id
+    playbackRevision += 1
+    player?.pause()
+    isPlaying = false
+    isStalled = true
+    requestVideo(id: video.id)
+    return false
   }
 
   /// Continues the last title where it stopped.
@@ -227,6 +278,7 @@ class MusicPlayerManager {
       print("State changed \(state)")
       self.onMain(generation: generation) {
         if state == .playing {
+          guard self.wantsPlayback, self.waitingForVideoID == nil else { self.player?.pause(); return }
           self.isPlaying = true
         } else if state == .paused || state == .ended {
           self.isPlaying = false
@@ -415,12 +467,15 @@ class MusicPlayerManager {
     print("Current item change: \(item?.getTitle() ?? "nil")")
     let generation = sessionGeneration
     onMain(generation: generation) {
+      guard (self.player?.currentItem as AnyObject?) === (item as AnyObject?) else { return }
       self.currentTitle = item?.getTitle() ?? "Unknown Title"
       self.currentArtist = item?.getArtist()
       if let i = index {
         self.currentTrackIndex = i
         self.trackIndex = i
       }
+      guard self.validateCurrentStream() else { return }
+      if self.wantsPlayback { self.requestedStartVideoID = nil }
       // A resumed title starts at its stored position, so the position must not
       // be reported as 0 before the seek has been applied.
       self.currentTime = self.pendingSeek ?? 0
@@ -484,10 +539,12 @@ class MusicPlayerManager {
         return
       }
 
+      wantsPlayback = true
       if player?.items.isEmpty ?? true {
         WatchLog.shared.warning("Player", "Play skipped: the queue is empty")
         return
       }
+      guard validateCurrentStream() else { return }
       playbackRevision += 1
       let revision = playbackRevision
       let generation = sessionGeneration
@@ -543,6 +600,7 @@ class MusicPlayerManager {
         return
       }
 
+      wantsPlayback = false
       playbackRevision += 1
       do {
           try AVAudioSession.sharedInstance().setActive(false)
