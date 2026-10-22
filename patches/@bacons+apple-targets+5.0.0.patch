@@ -1,0 +1,36 @@
+diff --git a/node_modules/@bacons/apple-targets/build/with-xcode-changes.js b/node_modules/@bacons/apple-targets/build/with-xcode-changes.js
+index 96ded68..05a4e16 100644
+--- a/node_modules/@bacons/apple-targets/build/with-xcode-changes.js
++++ b/node_modules/@bacons/apple-targets/build/with-xcode-changes.js
+@@ -218,23 +218,20 @@ async function applyXcodeChanges(config, project, props) {
+         }
+     }
+     if (targetToUpdate) {
+-        // Remove existing build phases
+-        targetToUpdate.props.buildConfigurationList.props.buildConfigurations.forEach((config) => {
++        // Create the replacement while target lookup can still inspect every target.
++        const existingConfigurationList = targetToUpdate.props.buildConfigurationList;
++        targetToUpdate.props.buildConfigurationList =
++            (0, configuration_list_1.createConfigurationListForType)(project, props);
++        [...existingConfigurationList.props.buildConfigurations].forEach((config) => {
+             config.getReferrers().forEach((ref) => {
+                 ref.removeReference(config.uuid);
+             });
+             config.removeFromProject();
+         });
+-        // Remove existing build configuration list
+-        targetToUpdate.props.buildConfigurationList
+-            .getReferrers()
+-            .forEach((ref) => {
+-            ref.removeReference(targetToUpdate.props.buildConfigurationList.uuid);
++        existingConfigurationList.getReferrers().forEach((ref) => {
++            ref.removeReference(existingConfigurationList.uuid);
+         });
+-        targetToUpdate.props.buildConfigurationList.removeFromProject();
+-        // Create new build phases
+-        targetToUpdate.props.buildConfigurationList =
+-            (0, configuration_list_1.createConfigurationListForType)(project, props);
++        existingConfigurationList.removeFromProject();
+     }
+     else {
+         const productType = (0, target_1.productTypeForType)(props.type);

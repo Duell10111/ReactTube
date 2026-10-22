@@ -197,8 +197,7 @@ function addAppIntentFilesToProject(project, projectName) {
  *  - the App Intents and App Shortcuts in `plugins/ios/siri/`, copied into the
  *    app target because App Intent metadata is only extracted from there.
  *
- * Skipped for tvOS builds, mirroring `@duell10111/apple-targets`, which also
- * leaves the intents extension out there.
+ * Skipped for tvOS builds, matching the local Apple Targets wrapper.
  */
 const withSiri = (config, options = {}) => {
   const enabled = isSiriBuildEnabled(config, options);
