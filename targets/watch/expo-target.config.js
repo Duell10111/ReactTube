@@ -11,10 +11,5 @@ module.exports = {
       repository: "https://github.com/Duell10111/SwiftAudioEx.git",
       branch: "watchos-support-add-crop",
     },
-    {
-      name: "SDDownloadManager",
-      repository: "https://github.com/SagarSDagdu/SDDownloadManager.git",
-      branch: "master",
-    },
   ],
 };

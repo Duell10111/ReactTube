@@ -63,9 +63,96 @@ private func sendVideoAPIMessage(message: [String: Any]) {
   send(["type": "youtubeAPI", "payload": message], as: .guaranteed)
 }
 
+@MainActor
 func requestVideo(id: String) {
-  sendVideoAPIMessage(message: ["request": "video", "videoId": id])
+  VideoMetadataRequests.shared.request(id: id)
 }
+
+/// Coalesces requests and prevents stale responses from completing a newer attempt.
+@MainActor
+final class VideoMetadataRequests {
+  static let shared = VideoMetadataRequests(
+    sendRequest: { id, token in
+      sendVideoAPIMessage(message: ["request": "video", "videoId": id, "requestId": token])
+    },
+    onFailure: { id in
+      DownloadManager.shared.videoMetadataFailed(id: id)
+      MusicPlayerManager.shared.videoMetadataFailed(id: id)
+    }
+  )
+
+  private struct Pending {
+    var token: String
+    var attempt: Int
+    var timeout: Task<Void, Never>?
+  }
+  private var pending: [String: Pending] = [:]
+  private let timeout: Duration
+  private let notReadyDelay: Duration
+  private let sendRequest: (String, String) -> Void
+  private let onFailure: (String) -> Void
+
+  init(timeout: Duration = .seconds(20), notReadyDelay: Duration = .seconds(3), sendRequest: @escaping (String, String) -> Void, onFailure: @escaping (String) -> Void) {
+    self.timeout = timeout
+    self.notReadyDelay = notReadyDelay
+    self.sendRequest = sendRequest
+    self.onFailure = onFailure
+  }
+
+  func request(id: String) {
+    guard pending[id] == nil else { return }
+    begin(id: id, attempt: 1)
+  }
+
+  private func begin(id: String, attempt: Int) {
+    pending[id]?.timeout?.cancel()
+    guard attempt <= 3 else {
+      pending.removeValue(forKey: id)
+      onFailure(id)
+      return
+    }
+    let token = UUID().uuidString
+    let timer = Task { [weak self, timeout] in
+      do { try await Task.sleep(for: timeout) } catch { return }
+      guard let self, self.pending[id]?.token == token else { return }
+      self.begin(id: id, attempt: attempt + 1)
+    }
+    pending[id] = Pending(token: token, attempt: attempt, timeout: timer)
+    sendRequest(id, token)
+  }
+
+  func acceptsResponse(id: String, requestID: String?) -> Bool {
+    guard let requestID else { return pending[id] == nil }
+    guard pending[id]?.token == requestID else { return false }
+    pending.removeValue(forKey: id)?.timeout?.cancel()
+    return true
+  }
+
+  /// The phone answered before it could resolve metadata. Retries sooner than
+  /// the timeout, but within the same attempt budget.
+  func retrySoon(id: String, requestID: String?) {
+    guard let requestID, let request = pending[id], request.token == requestID else { return }
+    request.timeout?.cancel()
+    pending[id]?.timeout = Task { [weak self, notReadyDelay] in
+      do { try await Task.sleep(for: notReadyDelay) } catch { return }
+      guard let self, self.pending[id]?.token == requestID else { return }
+      self.begin(id: id, attempt: request.attempt + 1)
+    }
+  }
+
+  /// Resends with a fresh token. Only timeouts count as attempts, so a flapping
+  /// connection cannot exhaust the retry budget within seconds.
+  func retryAfterReconnect() {
+    for (id, request) in Array(pending) {
+      begin(id: id, attempt: request.attempt)
+    }
+  }
+
+  func cancel(ids: Set<String>) {
+    for id in ids { pending.removeValue(forKey: id)?.timeout?.cancel() }
+  }
+}
+
 
 func requestPlaylist(id: String) {
   sendVideoAPIMessage(message: ["request": "playlist", "playlistId": id])
@@ -116,23 +203,41 @@ func processYoutubeAPIMessage(_ session: WCSession, message: [String: Any]) {
 
 @MainActor
 func saveVideoResponse(_ session: WCSession, message: [String: Any]) {
-  print("VideoResponse: \(message)")
-  if let id = message["id"] as? String, let title = message["title"] as? String, let duration = message["duration"] as? Int, let streamURL = message["streamURL"] as? String, let validUntil = message["validUntil"] as? Int64, let coverURL = message["coverUrl"] as? String {
-    print("Received Video Response for id: \(id)")
-    let date = Date(timeIntervalSince1970: (Double(validUntil) / 1000.0))
-    // The phone omits the artist when YouTube does not provide one, so a
-    // refresh does not replace a known artist with a placeholder.
-    addDownloadData(DataController.shared.container.mainContext, id: id, title: title, artist: message["artist"] as? String, duration: duration, streamURL: streamURL, validUntil: date, coverURL: coverURL, temp: message["temp"] as? Bool, downloadURL: message["downloadURL"] as? String, loudnessDb: (message["loudnessDb"] as? NSNumber)?.doubleValue)
+  guard let context = DataController.shared.container?.mainContext else { return }
+  guard let id = message["id"] as? String else { return }
+  let isResponse = message["type"] as? String == "videoResponse"
+  if isResponse {
+    if message["error"] as? String == "metadata_not_ready" {
+      VideoMetadataRequests.shared.retrySoon(id: id, requestID: message["requestId"] as? String)
+      return
+    }
+    guard VideoMetadataRequests.shared.acceptsResponse(id: id, requestID: message["requestId"] as? String) else { return }
+    if message["error"] != nil {
+      DownloadManager.shared.videoMetadataFailed(id: id)
+      MusicPlayerManager.shared.videoMetadataFailed(id: id)
+      return
+    }
+  }
+  let validUntil = (message["validUntil"] as? NSNumber).map { Date(timeIntervalSince1970: $0.doubleValue / 1000) }
+  addDownloadData(
+    context, id: id,
+    title: message["title"] as? String, artist: message["artist"] as? String,
+    duration: message["duration"] as? Int ?? 0,
+    streamURL: message["streamURL"] as? String, validUntil: validUntil,
+    coverURL: message["coverUrl"] as? String, temp: message["temp"] as? Bool,
+    downloadURL: message["downloadURL"] as? String,
+    loudnessDb: (message["loudnessDb"] as? NSNumber)?.doubleValue,
+    refreshStreamData: isResponse
+  )
+  if isResponse {
     DownloadManager.shared.videoMetadataUpdated(id: id)
-  } else if let id = message["id"] as? String, let title = message["title"] as? String, let coverURL = message["coverUrl"] as? String {
-    addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, coverURL: coverURL, temp: message["temp"] as? Bool)
-  } else {
-    print("YT Video Response incomplete")
+    MusicPlayerManager.shared.videoMetadataUpdated(id: id)
   }
 }
 
 @MainActor
 func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestVideos: Bool = false) {
+  guard let context = DataController.shared.container?.mainContext else { return }
   if let id = message["id"] as? String, let title = message["title"] as? String {
     print("Received Playlist Response for id: \(id)")
     let coverURL = message["coverUrl"] as? String
@@ -159,7 +264,7 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestV
       videos.forEach { video in
         if let id = video["id"] as? String, let title = video["title"] as? String {
           // Use expired date as no video urls are present
-          addDownloadData(DataController.shared.container.mainContext, id: id, title: title, duration: 0, validUntil: Calendar.current.date(byAdding: .hour, value: -2, to: Date()), coverURL: video["coverUrl"] as? String, temp: message["temp"] as? Bool)
+          addDownloadData(context, id: id, title: title, duration: 0, validUntil: Calendar.current.date(byAdding: .hour, value: -2, to: Date()), coverURL: video["coverUrl"] as? String, temp: message["temp"] as? Bool)
           print("Saving Playlist Video ID: \(id)")
         } else {
           print("Playlist VideoData incomplete")
@@ -168,7 +273,7 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestV
     } else {
       print("No Video data provided or fetched")
     }
-    addPlaylistData(DataController.shared.container.mainContext, id: id, title: title, videoIds: videoIds, coverURL: coverURL, temp: message["temp"] as? Bool)
+    addPlaylistData(context, id: id, title: title, videoIds: videoIds, coverURL: coverURL, temp: message["temp"] as? Bool)
   } else {
     print("YT Playlist Response incomplete")
   }
@@ -176,6 +281,7 @@ func savePlaylistResponse(_ session: WCSession, message: [String: Any], requestV
 
 @MainActor
 func saveHomeScreenResponse(_ session: WCSession, message: [String: Any]) {
+  guard let context = DataController.shared.container?.mainContext else { return }
   print("Received Home Screen Response")
   if let sections = message["sections"] as? [[String: Any]], !sections.isEmpty {
     sections.forEach { section in
@@ -184,7 +290,7 @@ func saveHomeScreenResponse(_ session: WCSession, message: [String: Any]) {
           return parseHomeSectionData(session, data: sectionData)
         }
         print("Found elements: \(elements)")
-        let section = addHomeScreenSection(DataController.shared.container.mainContext, title: title, date: Date())
+        let section = addHomeScreenSection(context, title: title, date: Date())
         print("Section: \(section)")
         section?.elements = elements
       } else {
@@ -198,13 +304,14 @@ func saveHomeScreenResponse(_ session: WCSession, message: [String: Any]) {
 
 @MainActor
 func parseHomeSectionData(_ session: WCSession, data: [String: Any]) -> HomeScreenElement? {
+  guard let context = DataController.shared.container?.mainContext else { return nil }
   if let type = data["type"] as? String, let id = data["id"] as? String {
     if type == "playlist" {
       savePlaylistResponse(session, message: data, requestVideos: false)
-      return addHomeScreenElement(DataController.shared.container.mainContext, videoID: nil, playlistID: id)
+      return addHomeScreenElement(context, videoID: nil, playlistID: id)
     } else if type == "video" {
       saveVideoResponse(session, message: data)
-      return addHomeScreenElement(DataController.shared.container.mainContext, videoID: id, playlistID: nil)
+      return addHomeScreenElement(context, videoID: id, playlistID: nil)
     }
   }
   return nil

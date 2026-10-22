@@ -31,7 +31,11 @@ import {
   YTVideoInfo,
   YTVideoInfoCommentEntryPointHeader,
 } from "./Types";
-import {withAlbumCover} from "./albumTracks";
+import {
+  getAlbumPlaylistId,
+  getSharedAlbum,
+  withAlbumCover,
+} from "./albumTracks";
 import {
   YT,
   YTTV,
@@ -573,6 +577,7 @@ export function getElementDataFromYTAlbum(album: YTMusic.Album, id: string) {
     description,
     thumbnail,
     playEndpoint: endpoint,
+    playlistId: getAlbumPlaylistId(endpoint?.payload?.playlistId, album.url),
     data: withAlbumCover(parseObservedArray(album.contents), thumbnail),
   } as YTMusicAlbum;
 }
@@ -761,6 +766,16 @@ class YTMusicPlaylistClass implements YTPlaylist {
       // this.author = getAuthor(playlist.header?.author);
     } else if (playlist.header?.is(YTNodes.MusicEditablePlaylistDetailHeader)) {
       console.log(`Unknown music detail header: ${playlist.header}`);
+    }
+
+    // Album playlists (`OLAK5uy_…`) come without any header; the album only
+    // shows up on its tracks.
+    if (!this.title) {
+      const album = getSharedAlbum(this.items);
+      if (album) {
+        this.title = album.name;
+        this.thumbnailImage ??= album.cover;
+      }
     }
   }
 

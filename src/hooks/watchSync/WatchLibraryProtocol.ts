@@ -1150,8 +1150,21 @@ export interface LinkedPlaylistVideo {
 }
 
 /**
- * Arguments for `upsertPlaylist`. Metadata is only sent for titles the watch
- * does not know yet, which keeps large playlists small on the wire.
+ * Cover URL the watch can load itself. Local phone covers point at files of the
+ * phone, so they fall back to the YouTube thumbnail of the video.
+ */
+export function getWatchCoverUrl(video: LinkedPlaylistVideo): string {
+  if (video.coverUrl && /^https?:\/\//.test(video.coverUrl)) {
+    return video.coverUrl;
+  }
+  return `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/hqdefault.jpg`;
+}
+
+/**
+ * Arguments for `upsertPlaylist`. Full metadata is only sent for titles the
+ * watch does not know yet, which keeps large playlists small on the wire.
+ * Known titles without a cover in the snapshot still get a cover URL; the
+ * watch only uses it when it has no usable cover of its own.
  */
 export function createUpsertPlaylistArgs(
   link: LinkedPlaylist,
@@ -1160,11 +1173,19 @@ export function createUpsertPlaylistArgs(
   videos: readonly LinkedPlaylistVideo[],
   snapshot: WatchLibrarySnapshot | null,
 ): Record<string, unknown> {
-  const known = new Set((snapshot?.videos ?? []).map(video => video.id));
+  const known = new Map(
+    (snapshot?.videos ?? []).map(video => [video.id, video]),
+  );
   const wanted = new Set(state.videoIds);
   const metadata = videos
-    .filter(video => wanted.has(video.id) && !known.has(video.id))
-    .map(video => {
+    .filter(video => wanted.has(video.id))
+    .flatMap(video => {
+      const knownVideo = known.get(video.id);
+      if (knownVideo) {
+        return knownVideo.coverUrl === undefined
+          ? [{id: video.id, coverUrl: getWatchCoverUrl(video)}]
+          : [];
+      }
       const entry: Record<string, string | number> = {id: video.id};
       if (video.title !== undefined) {
         entry.title = video.title;
@@ -1175,10 +1196,8 @@ export function createUpsertPlaylistArgs(
       if (video.durationMillis !== undefined) {
         entry.durationMillis = Math.round(video.durationMillis);
       }
-      if (video.coverUrl && /^https?:\/\//.test(video.coverUrl)) {
-        entry.coverUrl = video.coverUrl;
-      }
-      return entry;
+      entry.coverUrl = getWatchCoverUrl(video);
+      return [entry];
     });
   return {
     id: link.id,
