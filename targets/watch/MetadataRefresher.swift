@@ -3,8 +3,9 @@
 //  watch
 //
 //  Re-requests the YouTube metadata of titles through the iPhone. Downloads
-//  made by older app versions lack fields such as the artist, the cover or the
-//  loudness offset; the regular video response fills them in.
+//  made by older app versions and titles synced without full metadata lack
+//  fields such as the artist, the cover or the loudness offset; the regular
+//  video response fills them in.
 //
 
 import Foundation
@@ -27,15 +28,14 @@ final class MetadataRefresher {
 
   private init() {}
 
-  /// Whether a downloaded title misses metadata that a refresh can provide.
+  /// Whether a title misses metadata that a refresh can provide. The loudness
+  /// offset only counts for downloads; streams receive it when they start.
   static func isIncomplete(_ video: Video) -> Bool {
-    video.downloaded && (
-      video.title == nil
-        || video.artist == nil
-        || !isCoverUsable(video.coverURL)
-        || video.loudnessDb == nil
-        || video.durationMillis <= 0
-    )
+    video.title == nil
+      || video.artist == nil
+      || !isCoverUsable(video.coverURL)
+      || video.durationMillis <= 0
+      || (video.downloaded && video.loudnessDb == nil)
   }
 
   /// Refreshes a single title. Queued by Watch Connectivity if the phone is
@@ -45,7 +45,7 @@ final class MetadataRefresher {
     requestVideo(id: video.id)
   }
 
-  /// Refreshes every incomplete downloaded title one after another. Requires a
+  /// Refreshes every incomplete title one after another. Requires a
   /// reachable phone so a bulk refresh does not pile up in the transfer queue,
   /// and stops early once the phone becomes unreachable.
   func refreshIncomplete(_ videos: [Video]) {

@@ -23,6 +23,8 @@ enum WatchStabilityCopy {
     case batchDownloadedOne, batchDownloadedOther
     case batchFailedOne, batchFailedOther
     case batchPartial
+    case metadataSection, metadataRefresh, metadataRemaining, metadataStop
+    case metadataFooter
   }
 
   static func text(_ key: Key, language: String? = nil) -> String {
@@ -59,6 +61,11 @@ enum WatchStabilityCopy {
     case .batchFailedOne: value = ("%@ title could not be downloaded", "%@ Titel konnte nicht geladen werden")
     case .batchFailedOther: value = ("%@ titles could not be downloaded", "%@ Titel konnten nicht geladen werden")
     case .batchPartial: value = ("%1$@ of %2$@ titles downloaded, %3$@ failed", "%1$@ von %2$@ Titeln geladen, %3$@ fehlgeschlagen")
+    case .metadataSection: value = ("Metadata", "Metadaten")
+    case .metadataRefresh: value = ("Load Missing Info (%@)", "Fehlende Infos laden (%@)")
+    case .metadataRemaining: value = ("%@ remaining", "%@ ausstehend")
+    case .metadataStop: value = ("Stop", "Stoppen")
+    case .metadataFooter: value = ("Requests title, artist, cover and loudness of library titles that are missing them. Requires the iPhone app.", "Fragt Titel, Interpret, Cover und Lautstärke für Bibliothekstitel an, bei denen sie fehlen. Benötigt die iPhone-App.")
     }
     return resolvedLanguage(language) == "de" ? value.de : value.en
   }

@@ -90,7 +90,6 @@ struct MaintenanceScreen: View {
             WatchLog.shared.info("Maintenance", "Artwork cache cleared")
           }
         }
-        MetadataRefreshSection()
         Section("Database") {
           Button("Delete Database", role: .destructive) {
             confirmDeleteDatabase = true
@@ -112,41 +111,6 @@ struct MaintenanceScreen: View {
           WatchLog.shared.warning("Maintenance", "Database deleted")
         }
         Button("Cancel", role: .cancel) {}
-      }
-    }
-}
-
-/// Bulk refresh for downloads that older app versions stored without some of
-/// their metadata.
-struct MetadataRefreshSection: View {
-    @Query(filter: #Predicate<Video> { $0.downloaded }) var downloadedVideos: [Video]
-    private let refresher = MetadataRefresher.shared
-
-    private var incompleteCount: Int {
-      downloadedVideos.filter(MetadataRefresher.isIncomplete).count
-    }
-
-    var body: some View {
-      Section {
-        if refresher.isRunning {
-          HStack {
-            ProgressView()
-              .frame(width: 24)
-            Text("\(refresher.remaining) remaining")
-          }
-          Button("Stop", role: .cancel) {
-            refresher.cancel()
-          }
-        } else {
-          Button("Refresh Incomplete (\(incompleteCount))") {
-            refresher.refreshIncomplete(downloadedVideos)
-          }
-          .disabled(incompleteCount == 0)
-        }
-      } header: {
-        Text("Metadata")
-      } footer: {
-        Text("Reloads title, artist, cover and loudness of downloads that are missing them. Requires the iPhone app.")
       }
     }
 }
