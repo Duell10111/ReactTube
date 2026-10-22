@@ -166,9 +166,82 @@ class MusicPlayerManager {
     if wantsPlayback && !isPlaying { playMusic() }
   }
 
-  /// Drops model references before library objects or their local files are deleted.
+  /// Drops model references before library objects are deleted. Deleting the
+  /// current playlist, or every remaining title, stops playback; otherwise only
+  /// the affected titles leave the queue and playback continues.
   func prepareForLibraryDeletion(ids: Set<String>, playlistID: String? = nil) {
-    guard currentPlaylistID == playlistID && playlistID != nil || playlistManager.videos?.contains(where: { ids.contains($0.id) }) == true else { return }
+    if let playlistID, currentPlaylistID == playlistID {
+      stopForLibraryDeletion(ids: ids)
+      return
+    }
+    let queuedIDs = Set(playlistManager.orderedVideoIDs).union(playerPlaylistItems.map(\.id))
+    guard !queuedIDs.isDisjoint(with: ids) || playlistManager.videos?.contains(where: { ids.contains($0.id) }) == true else { return }
+    guard !queuedIDs.isSubset(of: ids) else {
+      stopForLibraryDeletion(ids: ids)
+      return
+    }
+    playlistManager.remove(ids: ids)
+    if let requestedStartVideoID, ids.contains(requestedStartVideoID) { self.requestedStartVideoID = nil }
+    if let pendingSeek, ids.contains(pendingSeek.videoID) { self.pendingSeek = nil }
+    guard removeFromQueue(ids: ids) else {
+      stopForLibraryDeletion(ids: ids)
+      return
+    }
+    if let resume = preferences.resumeState, ids.contains(resume.videoID) { preferences.clearResumeState() }
+  }
+
+  /// A freed download keeps its model, but its queued item still points to the
+  /// local file. Removes the item before the file is deleted.
+  func prepareForDownloadRemoval(ids: Set<String>) {
+    guard player != nil, playerPlaylistItems.contains(where: { ids.contains($0.id) }) else { return }
+    if !removeFromQueue(ids: ids) { stopForLibraryDeletion(ids: []) }
+  }
+
+  /// Re-adds freed titles once their download state is reset, streaming them
+  /// when the stored link is still valid and requesting a new one otherwise.
+  func downloadRemoved(ids: Set<String>) {
+    for id in ids where playlistManager.contains(id: id) {
+      if let video = playlistManager.videos?.first(where: { $0.id == id }), playlistManager.isPlayable(video) {
+        videoMetadataUpdated(id: id)
+      } else {
+        requestVideo(id: id)
+      }
+    }
+  }
+
+  /// Removes titles from the running queue while playback continues with the
+  /// next remaining title. Returns false when no queued title would remain.
+  private func removeFromQueue(ids: Set<String>) -> Bool {
+    guard let player else { return true }
+    guard playerPlaylistItems.contains(where: { !ids.contains($0.id) }) else { return false }
+    let current = player.currentIndex
+    let removesCurrent = currentVideo.map { ids.contains($0.id) } ?? false
+    let hasLaterTitle = playerPlaylistItems.indices.contains { $0 > current && !ids.contains(playerPlaylistItems[$0].id) }
+    if let waitingForVideoID, ids.contains(waitingForVideoID) {
+      self.waitingForVideoID = nil
+      isStalled = false
+    }
+    for index in playerPlaylistItems.indices.reversed() where ids.contains(playerPlaylistItems[index].id) {
+      do {
+        try player.removeItem(at: index)
+        playerPlaylistItems.remove(at: index)
+      } catch {
+        WatchLog.shared.error("Player", "Could not remove a title from the queue: \(error.localizedDescription)")
+        return false
+      }
+    }
+    currentTrackIndex = max(0, player.currentIndex)
+    trackIndex = currentTrackIndex
+    // The next title starts from the beginning; the removed title's position must not carry over.
+    if removesCurrent { currentTime = 0 }
+    // Removing the last title wraps the queue around to its start; stop there
+    // as if the queue had finished instead of playing it again.
+    if removesCurrent && !hasLaterTitle { pauseMusic() }
+    updateNowPlayingMetadata()
+    return true
+  }
+
+  private func stopForLibraryDeletion(ids: Set<String>) {
     wantsPlayback = false
     deinitPlayer()
     player?.clear()

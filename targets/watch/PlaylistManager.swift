@@ -89,6 +89,12 @@ class PlaylistManager {
 
   }
 
+  /// Forgets deleted titles; the playlist relationship can still list them until it is saved.
+  func remove(ids: Set<String>) {
+    orderedVideoIDs.removeAll { ids.contains($0) }
+    videos?.removeAll { ids.contains($0.id) }
+  }
+
   func checkForNewVideos() -> [(Video, AudioItem)] {
     refreshModels()
     return getAll()

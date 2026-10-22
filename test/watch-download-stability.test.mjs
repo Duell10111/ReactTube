@@ -14,10 +14,14 @@ test("W04 cancels audio, cover and metadata before deleting library entries", ()
   for (const signature of [
     "func removeVideoFromPlaylist(",
     "func deleteDownloadedPlaylist(",
-    "func deleteDownloadedVideo(",
   ]) {
     assert.match(swiftMethod(db, signature), /prepareForVideoDeletion/);
   }
+  // Freeing a download keeps the title: cancel, drop the file item, delete, re-add.
+  assert.match(
+    swiftMethod(db, "func deleteDownloadedVideo("),
+    /DownloadManager.shared.cancel\(ids: \[id\]\)[\s\S]*?prepareForDownloadRemoval[\s\S]*?deleteDownloadedVideoFile[\s\S]*?downloadRemoved/,
+  );
   assert.match(swiftMethod(db, "func clearDatabase("), /cancelAll/);
   assert.doesNotMatch(
     swiftMethod(source, "private func complete("),

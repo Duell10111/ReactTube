@@ -337,7 +337,9 @@ func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
 /// entry no longer claims to be playable offline. The caller is responsible for saving.
 @MainActor
 func deleteDownloadedVideo(_ modelContext: ModelContext, id: String) {
-  prepareForVideoDeletion(ids: [id])
+  DownloadManager.shared.cancel(ids: [id])
+  // The title stays in the library, so the player keeps it and only drops the local item.
+  MusicPlayerManager.shared.prepareForDownloadRemoval(ids: [id])
   deleteDownloadedVideoFile(id: id)
   do {
     let descriptor = FetchDescriptor<Video>(
@@ -354,6 +356,7 @@ func deleteDownloadedVideo(_ modelContext: ModelContext, id: String) {
   } catch {
     print("Error resetting download state of video \(id): \(error)")
   }
+  MusicPlayerManager.shared.downloadRemoved(ids: [id])
 }
 
 private func deleteDownloadedVideoFile(id: String) {
