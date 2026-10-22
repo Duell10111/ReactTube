@@ -32,7 +32,7 @@ ursprünglich geplant. Teil 2 ist offen.
 | 2: Eigene Hintergrundsession          | Umgesetzt mit W04/W05 (`1448a6f`, `1285b52`)                   |
 | 3: Appstart und Hintergrundereignisse | Umgesetzt (`1285b52`, `8dc5ba3`, `69bf46d`, Nachtrag)          |
 | 4: Zusammengefasste Mitteilungen      | Offen; benötigt zuerst Batches                                 |
-| 5: Prüfung                            | Isolierte Prüfungen vorhanden; Entwicklerhilfe und Gerät offen |
+| 5: Prüfung                            | Isolierte Prüfungen und Entwicklerhilfe vorhanden; Gerät offen |
 
 Weitere Änderungen auf dem Branch, die den Plan betreffen:
 
@@ -230,10 +230,11 @@ Prüffälle laufen über den Node-Test-Runner mit `swiftc` auf macOS
 
 **Entwicklerhilfe.**
 
-- [ ] In [`DevTests.swift`](../targets/watch/DevTests.swift) einen Eintrag
-      „Prozess beenden“ ergänzen, der `exit(0)` aufruft. Anders als das Wischen
-      im App-Umschalter beendet das die App so, wie es das System tut;
-      Hintergrundtransfers laufen dabei weiter. Nur in Debug-Builds sichtbar.
+- [x] [`DevTests.swift`](../targets/watch/DevTests.swift) enthält den Eintrag
+      „Terminate process“ (Developer Tools → Dev Tests), der nach einer
+      Bestätigung `exit(0)` aufruft. Anders als das Wischen im App-Umschalter
+      beendet das die App so, wie es das System tut; Hintergrundtransfers
+      laufen dabei weiter. Nur in Debug-Builds (`#if DEBUG`) vorhanden.
 
 **Szenarien auf einer echten Apple Watch** (noch keines auf dem Gerät geprüft):
 
@@ -241,7 +242,7 @@ Prüffälle laufen über den Node-Test-Runner mit `swiftc` auf macOS
 | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Playlist-Download starten, App im Vordergrund lassen     | Fortschritt sichtbar, keine Mitteilung, alle Titel geladen.                                           |
 | Playlist-Download starten, Handgelenk senken             | Titel werden im Hintergrund fertig; eine Mitteilung fasst das Ergebnis zusammen.                      |
-| Download starten, dann „Prozess beenden“                 | Nach dem Wecken bzw. Neustart werden die Dateien übernommen; Mitteilung erscheint.                    |
+| Download starten, dann „Terminate process“               | Nach dem Wecken bzw. Neustart werden die Dateien übernommen; Mitteilung erscheint.                    |
 | Download starten, Playlist während des Downloads löschen | Audio und Cover werden abgebrochen; kein Titel taucht wieder auf; keine Mitteilung.                   |
 | Download mit abgelaufenem Link, iPhone nicht erreichbar  | Nach Zeitlimit und drei Versuchen Fehler „Zeitüberschreitung“; Batch-Mitteilung nennt den Fehler.     |
 | iPhone-App startet gerade (`metadata_not_ready`)         | Watch fragt nach drei Sekunden erneut; Download startet, sobald das iPhone bereit ist.                |
@@ -258,7 +259,7 @@ offen bleibt.
 ## Reihenfolge und nächste Schritte
 
 1. Geräteprüfung der bereits umgesetzten Szenarien (ohne Mitteilungen) mit der
-   neuen Entwicklerhilfe „Prozess beenden“. Erst damit ist W05 auf watchOS
+   Entwicklerhilfe „Terminate process“. Erst damit ist W05 auf watchOS
    bestätigt.
 2. Phase 4: zuerst Batches samt Persistenz und Abschlusserkennung, dann
    Mitteilungen, Einstellung und Texte.
