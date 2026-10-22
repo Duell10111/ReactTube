@@ -105,3 +105,11 @@ test("P02 crops downloads only when their duration is known", () => {
     /CMTime\(value: Int64\(video\.durationMillis\), timescale: 1000\)/,
   );
 });
+
+test("P03 registers the queue listeners before adding the first titles", () => {
+  const setup = swiftMethod(player, "private func setupPlayer()");
+  const listener = setup.indexOf("event.currentItem.addListener");
+  const add = setup.indexOf("player?.add(items: playerItems, at: 0)");
+  assert.ok(listener >= 0 && add >= 0);
+  assert.ok(listener < add, "The first currentItem event would be lost");
+});
