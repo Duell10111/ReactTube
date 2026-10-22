@@ -110,7 +110,7 @@ final class RemoteLibraryCommands {
         duration: durationMillis,
         fileURL: savedPath
       )
-      if let video = fetchVideo(id), video.coverURL == nil {
+      if let video = fetchVideo(id), !isCoverUsable(video.coverURL) {
         video.coverURL = metadata["coverUrl"] as? String
       }
       outcome = save()
@@ -236,7 +236,9 @@ final class RemoteLibraryCommands {
         // Fill in what the watch did not know yet, never overwrite.
         if video.title == nil { video.title = entry?["title"] as? String }
         if video.artist == nil { video.artist = entry?["artist"] as? String }
-        if video.coverURL == nil { video.coverURL = entry?["coverUrl"] as? String }
+        if !isCoverUsable(video.coverURL), let coverURL = entry?["coverUrl"] as? String {
+          video.coverURL = coverURL
+        }
         video.temp = false
       } else {
         let video = Video(id: videoId, durationMillis: entry?["durationMillis"] as? Int ?? 0, title: entry?["title"] as? String)

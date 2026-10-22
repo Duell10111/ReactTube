@@ -30,6 +30,10 @@ final class ArtworkCache {
   private let session: URLSession = {
     let configuration = URLSessionConfiguration.default
     configuration.requestCachePolicy = .returnCacheDataElseLoad
+    // Without this a request started while the watch has no connection fails
+    // at once; waiting lets covers load as soon as a network is reachable.
+    configuration.waitsForConnectivity = true
+    configuration.timeoutIntervalForResource = 60
     return URLSession(configuration: configuration)
   }()
 
@@ -67,21 +71,40 @@ final class ArtworkCache {
         self?.finish(key: key, image: image)
       }
     } else {
-      session.dataTask(with: url) { [weak self] data, _, error in
-        var image: UIImage?
-        if let data, error == nil {
-          image = UIImage(data: data)
-        }
-        if let error {
-          WatchLog.shared.warning("Artwork", "Cover download failed: \(error.localizedDescription)")
-        }
-        self?.finish(key: key, image: image)
+      session.dataTask(with: url) { [weak self] data, response, error in
+        self?.finish(key: key, image: Self.decodeRemote(url: url, data: data, response: response, error: error))
       }.resume()
+    }
+  }
+
+  /// Async variant for views; same caching and coalescing as the handler variant.
+  func image(for url: URL, isLocal: Bool) async -> UIImage? {
+    await withCheckedContinuation { continuation in
+      image(for: url, isLocal: isLocal) { continuation.resume(returning: $0) }
     }
   }
 
   func clear() {
     memoryCache.removeAllObjects()
+  }
+
+  /// Logs why a remote cover could not be used, so connection problems, HTTP
+  /// errors and undecodable images can be told apart.
+  private static func decodeRemote(url: URL, data: Data?, response: URLResponse?, error: Error?) -> UIImage? {
+    let source = "\(url.host() ?? "?")/\(url.lastPathComponent)"
+    if let error {
+      WatchLog.shared.warning("Artwork", "Cover download failed (\(source)): \(error.localizedDescription)")
+      return nil
+    }
+    if let status = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(status) {
+      WatchLog.shared.warning("Artwork", "Cover download returned HTTP \(status) (\(source))")
+      return nil
+    }
+    guard let data, let image = UIImage(data: data) else {
+      WatchLog.shared.warning("Artwork", "Cover could not be decoded (\(source), \(data?.count ?? 0) bytes)")
+      return nil
+    }
+    return image
   }
 
   private func finish(key: String, image: UIImage?) {

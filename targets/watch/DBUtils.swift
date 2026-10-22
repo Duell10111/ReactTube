@@ -111,7 +111,7 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
       video.streamURL = sURL
     }
 
-    if let cURL = coverURL {
+    if let cURL = coverURL, shouldReplaceCover(video.coverURL, with: cURL) {
       video.coverURL = cURL
     }
 
@@ -348,8 +348,9 @@ func deleteDownloadedVideo(_ modelContext: ModelContext, id: String) {
     for video in try modelContext.fetch(descriptor) {
       video.downloaded = false
       video.fileURL = nil
-      // A downloaded cover lived in the deleted directory as well.
-      if video.coverURL?.hasPrefix("/") == true {
+      // A downloaded cover lived in the deleted directory as well. Covers are
+      // stored with and without a leading slash.
+      if isLocalCoverPath(video.coverURL) {
         video.coverURL = nil
       }
     }
