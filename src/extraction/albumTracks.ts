@@ -19,3 +19,20 @@ export function withAlbumCover(
       : item,
   );
 }
+
+/**
+ * The playlist behind an album (`OLAK5uy_…`). The album itself is addressed by
+ * a browse id (`MPREb_…`) that the playlist endpoints do not accept, so
+ * features that work on playlists, like linking to the watch, need this id.
+ * The play button carries it; the canonical URL is the fallback.
+ */
+export function getAlbumPlaylistId(
+  playEndpointPlaylistId?: unknown,
+  canonicalUrl?: string,
+): string | undefined {
+  if (typeof playEndpointPlaylistId === "string" && playEndpointPlaylistId) {
+    return playEndpointPlaylistId;
+  }
+  const match = canonicalUrl?.match(/[?&]list=([^&#]+)/);
+  return match ? decodeURIComponent(match[1]) : undefined;
+}

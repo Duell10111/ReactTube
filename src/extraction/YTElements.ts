@@ -31,7 +31,7 @@ import {
   YTVideoInfo,
   YTVideoInfoCommentEntryPointHeader,
 } from "./Types";
-import {withAlbumCover} from "./albumTracks";
+import {getAlbumPlaylistId, withAlbumCover} from "./albumTracks";
 import {
   YT,
   YTTV,
@@ -573,6 +573,7 @@ export function getElementDataFromYTAlbum(album: YTMusic.Album, id: string) {
     description,
     thumbnail,
     playEndpoint: endpoint,
+    playlistId: getAlbumPlaylistId(endpoint?.payload?.playlistId, album.url),
     data: withAlbumCover(parseObservedArray(album.contents), thumbnail),
   } as YTMusicAlbum;
 }

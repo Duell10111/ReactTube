@@ -343,6 +343,8 @@ export interface YTMusicAlbum {
   thumbnail?: Thumbnail;
   // Endpoints
   playEndpoint?: YTNodes.NavigationEndpoint;
+  /** The album's playlist id (`OLAK5uy_…`), used where playlists are expected. */
+  playlistId?: string;
   data: ElementData[];
 }
 
