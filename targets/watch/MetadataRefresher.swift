@@ -32,7 +32,7 @@ final class MetadataRefresher {
     video.downloaded && (
       video.title == nil
         || video.artist == nil
-        || video.coverURL == nil
+        || !isCoverUsable(video.coverURL)
         || video.loudnessDb == nil
         || video.durationMillis <= 0
     )

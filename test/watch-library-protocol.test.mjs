@@ -18,6 +18,7 @@ import {
   applyWatchPlaylistChange,
   createLinkedPlaylist,
   createUpsertPlaylistArgs,
+  getWatchCoverUrl,
   getLinkedPlaylistStatus,
   parseWatchPlaylistChanged,
   parseWatchPlaylistDeleted,
@@ -641,30 +642,71 @@ test("unlinking drops pending playlist commands and newer upserts replace older"
   );
 });
 
-test("sends metadata only for titles the watch does not know", () => {
+test("sends full metadata only for titles the watch does not know", () => {
   const args = createUpsertPlaylistArgs(
     linked({autoDownload: true}),
-    {title: "Mix", videoIds: ["a", "new"]},
+    {title: "Mix", videoIds: ["a", "b", "new"]},
     4,
     [
-      {id: "a", title: "Alpha"},
+      {id: "a", title: "Alpha", coverUrl: "https://example.test/a.jpg"},
+      {id: "b", title: "Beta"},
       {
         id: "new",
         title: "Fresh",
         durationMillis: 1500.4,
-        coverUrl: "file:///local.png",
+        coverUrl: "https://example.test/new.jpg",
       },
     ],
-    parseWatchLibrarySnapshot(snapshot()),
+    parseWatchLibrarySnapshot(
+      snapshot({
+        videos: [
+          {id: "a", durationMillis: 1000, downloaded: true},
+          {
+            id: "b",
+            durationMillis: 1000,
+            downloaded: false,
+            coverUrl: "https://example.test/b.jpg",
+          },
+        ],
+      }),
+    ),
   );
   assert.deepEqual(args, {
     id: "LC-1",
     title: "Mix",
-    videoIds: ["a", "new"],
-    videos: [{id: "new", title: "Fresh", durationMillis: 1500}],
+    videoIds: ["a", "b", "new"],
+    videos: [
+      // Known, but without a cover in the snapshot.
+      {id: "a", coverUrl: "https://example.test/a.jpg"},
+      {
+        id: "new",
+        title: "Fresh",
+        durationMillis: 1500,
+        coverUrl: "https://example.test/new.jpg",
+      },
+    ],
     autoDownload: true,
     syncVersion: 4,
   });
+});
+
+test("replaces local phone covers with the YouTube thumbnail", () => {
+  assert.equal(
+    getWatchCoverUrl({id: "abc", coverUrl: "abc/cover.jpg"}),
+    "https://i.ytimg.com/vi/abc/hqdefault.jpg",
+  );
+  assert.equal(
+    getWatchCoverUrl({id: "abc", coverUrl: "file:///local.png"}),
+    "https://i.ytimg.com/vi/abc/hqdefault.jpg",
+  );
+  assert.equal(
+    getWatchCoverUrl({id: "abc"}),
+    "https://i.ytimg.com/vi/abc/hqdefault.jpg",
+  );
+  assert.equal(
+    getWatchCoverUrl({id: "abc", coverUrl: "https://example.test/c.jpg"}),
+    "https://example.test/c.jpg",
+  );
 });
 
 test("parses playlist messages from the watch", () => {

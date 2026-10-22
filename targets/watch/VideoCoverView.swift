@@ -24,6 +24,25 @@ func resolvedCoverURL(_ coverURL: String?) -> (url: URL, isLocal: Bool)? {
   return (url, url.isFileURL)
 }
 
+/// Whether a stored cover string points into the download directory.
+func isLocalCoverPath(_ coverURL: String?) -> Bool {
+  resolvedCoverURL(coverURL)?.isLocal ?? false
+}
+
+/// Whether a stored cover can be shown: remote URLs are assumed to be
+/// loadable, local covers need their file.
+func isCoverUsable(_ coverURL: String?) -> Bool {
+  guard let resolved = resolvedCoverURL(coverURL) else { return false }
+  return !resolved.isLocal || FileManager.default.fileExists(atPath: resolved.url.path)
+}
+
+/// Whether `newCover` may replace `currentCover`. A remote URL from a metadata
+/// update must not replace a downloaded cover that still exists, because the
+/// local file also works offline.
+func shouldReplaceCover(_ currentCover: String?, with newCover: String) -> Bool {
+  isLocalCoverPath(newCover) || !isLocalCoverPath(currentCover) || !isCoverUsable(currentCover)
+}
+
 /// Small cover thumbnail for title lists.
 struct VideoCoverView: View {
   var video: Video
@@ -43,6 +62,18 @@ struct CoverImageView: View {
   var placeholderSymbol = "music.note"
 
   @State private var image: UIImage?
+  /// Bumped to load a missing cover again, e.g. when the app becomes active.
+  @State private var reloadCount = 0
+  @Environment(\.scenePhase) private var scenePhase
+
+  /// Pauses before further attempts at a remote cover. The watch often has no
+  /// connection right after waking up, and a failed load is not cached.
+  private static let retryDelays: [Duration] = [.seconds(5), .seconds(20)]
+
+  private struct LoadKey: Equatable {
+    var url: URL?
+    var reloadCount: Int
+  }
 
   var body: some View {
     ZStack {
@@ -60,12 +91,17 @@ struct CoverImageView: View {
     .frame(width: size, height: size)
     .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     .accessibilityHidden(true)
-    .task(id: cover?.url) {
-      loadCover()
+    .task(id: LoadKey(url: cover?.url, reloadCount: reloadCount)) {
+      await loadCover()
+    }
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .active, image == nil, cover != nil {
+        reloadCount += 1
+      }
     }
   }
 
-  private func loadCover() {
+  private func loadCover() async {
     guard let resolved = cover else {
       image = nil
       return
@@ -77,12 +113,18 @@ struct CoverImageView: View {
     }
 
     image = nil
-    let requestedURL = resolved.url
-    ArtworkCache.shared.image(for: resolved.url, isLocal: resolved.isLocal) { loaded in
-      DispatchQueue.main.async {
-        // The row may already show a different cover by now.
-        guard requestedURL == cover?.url else { return }
+    // A missing local file does not appear by waiting.
+    let delays = resolved.isLocal ? [] : Self.retryDelays
+    for attempt in 0...delays.count {
+      if attempt > 0 {
+        try? await Task.sleep(for: delays[attempt - 1])
+      }
+      // Cancelled once the row shows a different cover.
+      guard !Task.isCancelled else { return }
+      if let loaded = await ArtworkCache.shared.image(for: resolved.url, isLocal: resolved.isLocal) {
+        guard !Task.isCancelled else { return }
         image = loaded
+        return
       }
     }
   }
