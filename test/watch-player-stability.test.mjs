@@ -23,6 +23,7 @@ test(
 import Foundation
 final class WatchLog {
   static let shared = WatchLog()
+  func info(_ category: String, _ message: String) {}
   func warning(_ category: String, _ message: String) {}
 }
 final class Player {
