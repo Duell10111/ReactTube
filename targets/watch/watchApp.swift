@@ -2,9 +2,15 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+  @State private var downloadsNavigation = DownloadsNavigation.shared
+
   var body: some View {
     NavigationStack {
       HomeList()
+        // Tapping a download notification opens the downloads screen.
+        .navigationDestination(isPresented: $downloadsNavigation.isPresented) {
+          DownloadsScreen()
+        }
     }
   }
 }
@@ -18,6 +24,10 @@ struct watchApp: App {
   @Environment(\.scenePhase) private var scenePhase
 
   let session = SessionSyncStruct.shared
+
+  init() {
+    DownloadNotifications.shared.activate()
+  }
 
   var body: some Scene {
     WindowGroup {
@@ -45,6 +55,7 @@ struct watchApp: App {
       // Phone commands can queue downloads without the UI ever appearing.
       await downloadManager.restore()
       await SessionSyncStruct.shared.waitForPendingContent()
+      await downloadManager.waitForReports()
     }
   }
 }

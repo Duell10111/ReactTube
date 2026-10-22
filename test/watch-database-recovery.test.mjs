@@ -103,7 +103,7 @@ test(
   {skip: process.platform !== "darwin"},
   () => {
     const copy = swiftMethod(
-      watchSource("DownloadManager.swift"),
+      watchSource("WatchStabilityCopy.swift"),
       "enum WatchStabilityCopy",
     );
     runSwift(`

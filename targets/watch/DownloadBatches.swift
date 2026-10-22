@@ -61,22 +61,25 @@ struct DownloadBatches: Codable, Equatable {
     }
   }
 
-  /// Makes a retried video pending again in the open batches that contain it.
-  /// Returns false when no open batch contains it.
+  /// Makes a retried video pending again in the unfinished batches that contain
+  /// it. A finished batch is already being reported, so it is not reopened.
+  /// Returns false when no unfinished batch contains the video.
   mutating func reopen(_ id: String) -> Bool {
     var reopened = false
-    for index in open.indices where open[index].videoIDs.contains(id) {
+    for index in open.indices where open[index].videoIDs.contains(id) && !open[index].isFinished {
       open[index].outcomes.removeValue(forKey: id)
       reopened = true
     }
     return reopened
   }
 
-  /// Removes and returns the batches in which every video has an outcome.
-  mutating func takeFinished() -> [DownloadBatch] {
-    let finished = open.filter(\.isFinished)
-    open.removeAll(where: \.isFinished)
-    return finished
+  /// Batches in which every video has an outcome. They stay stored until their
+  /// report is delivered, so a process exit in between cannot lose it.
+  var finished: [DownloadBatch] { open.filter(\.isFinished) }
+
+  /// Removes a reported batch.
+  mutating func remove(id: String) {
+    open.removeAll { $0.id == id && $0.isFinished }
   }
 
   mutating func removeAll() {

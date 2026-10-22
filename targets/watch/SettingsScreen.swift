@@ -10,6 +10,7 @@ import SwiftData
 
 struct SettingsScreen: View {
     @Environment(MusicPlayerManager.self) private var musicManager: MusicPlayerManager
+    @AppStorage(DownloadNotifications.settingKey) private var downloadNotifications = true
 
     var body: some View {
       List {
@@ -48,6 +49,10 @@ struct SettingsScreen: View {
           Button("Refresh Playlists") {
             requestLibraryPlaylists()
           }
+          Toggle(WatchStabilityCopy.text(.downloadNotificationsSetting), isOn: $downloadNotifications)
+            .onChange(of: downloadNotifications) { _, enabled in
+              if enabled { DownloadNotifications.shared.requestAuthorizationIfNeeded() }
+            }
         }
         Section {
           // Diagnostics and developer tools stay available in a release build —

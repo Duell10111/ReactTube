@@ -55,7 +55,7 @@ final class WatchLog {
   func error(_ category: String, _ message: String) {}
 }
 ${swiftMethod(source, "enum DownloadMessages")}
-${swiftMethod(source, "enum WatchStabilityCopy")}
+${swiftMethod(watchSource("WatchStabilityCopy.swift"), "enum WatchStabilityCopy")}
 ${swiftMethod(source, "enum WatchDownloadError")}
 final class VideoMetadataRequests {
   static let shared = VideoMetadataRequests()
