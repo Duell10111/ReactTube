@@ -192,4 +192,9 @@ test("W05 wires startup and background events to recovery and persists queue int
     /onChange\(of: scenePhase\)[\s\S]*?await downloadManager.refresh\(\)/,
   );
   assert.doesNotMatch(source, /SDDownloadManager/);
+  // The developer exit used for device checks never ships in release builds.
+  assert.match(
+    watchSource("DevTests.swift"),
+    /#if DEBUG[\s\S]*?exit\(0\)[\s\S]*?#endif/,
+  );
 });
