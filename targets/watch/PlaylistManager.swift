@@ -113,7 +113,12 @@ class PlaylistManager {
       let coverURL = resolvedCoverURL(for: video)?.url.absoluteString
       print("Coverurl: \(coverURL ?? "none")")
       
-      if let item = TrackEndtime(url: uri, artworkUrl: coverURL, endTiming: CMTime(value: Int64(video.durationMillis/1000), timescale: 1)) {
+      // Without a known duration the item must not be cropped: an end time of 0
+      // ends it right away and the title cannot be played at all.
+      let item: Track? = video.durationMillis > 0
+        ? TrackEndtime(url: uri, artworkUrl: coverURL, endTiming: CMTime(value: Int64(video.durationMillis), timescale: 1000))
+        : Track(url: uri, artworkUrl: coverURL)
+      if let item {
         item.title = video.title
         item.artist = video.artist
 

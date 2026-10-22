@@ -93,9 +93,10 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
     
     if let fURL = fileURL {
       video.fileURL = fURL
-      video.durationMillis = duration
     }
-    
+
+    // A missing duration arrives as 0 and must not replace a known one: a
+    // download is cropped to its duration and would end immediately.
     if duration > 0 {
       video.durationMillis = duration
     }
