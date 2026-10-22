@@ -26,15 +26,20 @@ class DownloadManager {
   private var downloadKeys: [String: String] = [:]
   private var coverKeys: [String: String] = [:]
   private var generations: [String: UUID] = [:]
+  /// Videos already restarted once after the OS lost their task.
+  private var restartedIDs: Set<String> = []
 
   private let transport = WatchDownloadTransport()
   private var requestedIDs: Set<String> = []
   private var restored = false
   private var restoring = false
+  private var refreshing = false
 
   private struct QueueState: Codable {
     var requestedIDs: Set<String>
     var failures: [String: String]
+    /// Optional so queue files written before this field still decode.
+    var restartedIDs: Set<String>?
   }
 
   private init() {
@@ -42,6 +47,7 @@ class DownloadManager {
     if let data = try? Data(contentsOf: queueFile), let state = try? JSONDecoder().decode(QueueState.self, from: data) {
       requestedIDs.formUnion(state.requestedIDs)
       failedDownloads.merge(state.failures, uniquingKeysWith: { current, _ in current })
+      restartedIDs.formUnion(state.restartedIDs ?? [])
     }
 
     transport.onProgress = { [weak self] job, progress in
@@ -56,7 +62,7 @@ class DownloadManager {
 
   private func persistQueue() {
     do {
-      let state = QueueState(requestedIDs: requestedIDs, failures: failedDownloads)
+      let state = QueueState(requestedIDs: requestedIDs, failures: failedDownloads, restartedIDs: restartedIDs)
       try JSONEncoder().encode(state).write(to: transport.stagingDirectory.appendingPathComponent("queue.json"), options: .atomic)
     } catch {
       WatchLog.shared.error("Download", "Could not persist download queue: \(error.localizedDescription)")
@@ -93,6 +99,16 @@ class DownloadManager {
     persistQueue()
     checkDownloads()
     notifyProgress()
+  }
+
+  /// Reconciles again when the app returns to the foreground, so a task the OS
+  /// dropped while the app was suspended does not stay visible as running.
+  func refresh() async {
+    guard restored, !restoring, !refreshing, DataController.shared.container != nil else { return }
+    refreshing = true
+    await transport.reconcile()
+    refreshing = false
+    checkDownloads()
   }
 
   func handleBackgroundEvents(identifier: String) async {
@@ -143,6 +159,7 @@ class DownloadManager {
     awaitingMetadata.subtract(ids)
     requestedIDs.subtract(ids)
     VideoMetadataRequests.shared.cancel(ids: ids)
+    restartedIDs.subtract(ids)
     for id in ids {
       generations.removeValue(forKey: id)
       if let key = coverKeys.removeValue(forKey: id) {
@@ -182,6 +199,7 @@ class DownloadManager {
   func cancelAll() {
     VideoMetadataRequests.shared.cancel(ids: awaitingMetadata)
     generations.removeAll()
+    restartedIDs.removeAll()
     coverKeys.removeAll()
     transport.cancelAll()
     requestedIDs.removeAll()
@@ -246,8 +264,21 @@ class DownloadManager {
       return true
     }
     defer { persistQueue(); notifyProgress(); checkDownloads() }
-    if let error {
-      if job.kind == "audio" { failedDownloads[id] = error.localizedDescription }
+    var restart = false
+    if let error, job.kind == "audio" {
+      if case .taskMissing? = error as? WatchDownloadError, !restartedIDs.contains(id) {
+        // The OS can drop a background task without a callback. Start over once
+        // before reporting it; the generation ignores the old task's callbacks.
+        restartedIDs.insert(id)
+        restart = true
+      } else {
+        failedDownloads[id] = DownloadMessages.reason(for: error)
+        if DownloadMessages.isExpiredLink(error) {
+          // A retry must request a fresh link instead of reusing the rejected one.
+          video.downloadURL = nil
+          try? context.save()
+        }
+      }
     } else if let file {
       let isAudio = job.kind == "audio"
       let directory = getDownloadVideoDirectory(id: id)
@@ -260,7 +291,7 @@ class DownloadManager {
         if isAudio { video.downloaded = true; video.fileURL = relativePath }
         else { video.coverURL = relativePath }
         try context.save()
-        if isAudio { requestedIDs.remove(id); failedDownloads.removeValue(forKey: id) }
+        if isAudio { requestedIDs.remove(id); restartedIDs.remove(id); failedDownloads.removeValue(forKey: id) }
       } catch {
         failedDownloads[id] = DownloadMessages.saveFailed
         activeDownloads.removeAll { $0.id == id }
@@ -274,6 +305,7 @@ class DownloadManager {
       downloadKeys.removeValue(forKey: id)
       progressDownloads.removeValue(forKey: id)
     } else { coverKeys.removeValue(forKey: id) }
+    if restart { enqueue(video) }
     return true
   }
 
@@ -326,6 +358,32 @@ enum DownloadMessages {
   static var unavailable: String { WatchStabilityCopy.text(.downloadUnavailable) }
   static var metadataFailed: String { WatchStabilityCopy.text(.downloadMetadataFailed) }
   static var connectionFailed: String { WatchStabilityCopy.text(.downloadConnectionFailed) }
+
+  /// Maps transfer errors to localized reasons instead of system descriptions.
+  static func reason(for error: Error) -> String {
+    if isExpiredLink(error) { return WatchStabilityCopy.text(.downloadLinkExpired) }
+    switch error {
+    case WatchDownloadError.httpStatus(let status):
+      return String(format: WatchStabilityCopy.text(.downloadServerError), status)
+    case WatchDownloadError.taskMissing:
+      return WatchStabilityCopy.text(.downloadInterrupted)
+    case let error as URLError where networkErrors.contains(error.code):
+      return WatchStabilityCopy.text(.downloadNetworkFailed)
+    default:
+      return WatchStabilityCopy.text(.downloadFailed)
+    }
+  }
+
+  /// Stream links are signed and time limited; YouTube rejects expired ones with 403.
+  static func isExpiredLink(_ error: Error) -> Bool {
+    guard case WatchDownloadError.httpStatus(let status) = error else { return false }
+    return status == 403 || status == 410
+  }
+
+  private static let networkErrors: Set<URLError.Code> = [
+    .notConnectedToInternet, .networkConnectionLost, .timedOut, .cannotConnectToHost,
+    .cannotFindHost, .dnsLookupFailed, .dataNotAllowed, .internationalRoamingOff,
+  ]
 }
 
 /// Typed native copy for stability and recovery UI. This preference is separate
@@ -334,6 +392,8 @@ enum WatchStabilityCopy {
   enum Key: CaseIterable {
     case downloadSaveFailed, downloadStartFailed, downloadUnavailable
     case downloadMetadataFailed, downloadConnectionFailed
+    case downloadLinkExpired, downloadServerError, downloadNetworkFailed
+    case downloadInterrupted, downloadFailed
     case recoveryLoading, recoveryTitle, recoveryExplanation, recoveryRetry
     case recoveryRebuild, recoveryCancel, recoveryConfirmation, recoveryBackup
     case appLanguage, switchLanguage
@@ -347,6 +407,11 @@ enum WatchStabilityCopy {
     case .downloadUnavailable: value = ("No download URL available.", "Kein Download-Link verfügbar.")
     case .downloadMetadataFailed: value = ("The iPhone could not load download information. Please try again.", "Das iPhone konnte die Downloadinformationen nicht laden. Bitte erneut versuchen.")
     case .downloadConnectionFailed: value = ("Download information timed out. Reconnect the iPhone and try again.", "Zeitüberschreitung beim Laden der Downloadinformationen. Das iPhone erneut verbinden und noch einmal versuchen.")
+    case .downloadLinkExpired: value = ("The download link has expired. Try again to request a new one.", "Der Download-Link ist abgelaufen. Erneut versuchen, um einen neuen anzufordern.")
+    case .downloadServerError: value = ("The server rejected the download (HTTP %d).", "Der Server hat den Download abgelehnt (HTTP %d).")
+    case .downloadNetworkFailed: value = ("The connection was lost during the download.", "Die Verbindung ist während des Downloads abgebrochen.")
+    case .downloadInterrupted: value = ("The system stopped the download.", "Das System hat den Download abgebrochen.")
+    case .downloadFailed: value = ("The download failed.", "Der Download ist fehlgeschlagen.")
     case .recoveryLoading: value = ("Opening library…", "Bibliothek wird geöffnet …")
     case .recoveryTitle: value = ("Library unavailable", "Bibliothek nicht verfügbar")
     case .recoveryExplanation: value = ("The library could not be opened. Retry, or back it up and create an empty library.", "Die Bibliothek konnte nicht geöffnet werden. Erneut versuchen oder nach einer Sicherung eine leere Bibliothek anlegen.")
@@ -364,6 +429,12 @@ enum WatchStabilityCopy {
   }
 }
 
+enum WatchDownloadError: Error, Equatable {
+  /// The journal knows the job, but the session no longer has its task.
+  case taskMissing
+  case httpStatus(Int)
+}
+
 struct WatchDownloadJob: Codable {
   let id: String
   let videoID: String
@@ -379,6 +450,7 @@ final class WatchDownloadTransport: NSObject, URLSessionDownloadDelegate {
   static let sessionIdentifier = "com.duell10111.reacttube.watch.downloads.v2"
   nonisolated let stagingDirectory: URL
   private let background: Bool
+  private let delegateQueue = OperationQueue()
   private(set) var jobs: [String: WatchDownloadJob] = [:]
   private var waiters: [UUID: CheckedContinuation<Void, Never>] = [:]
   private var finishedEvents = false
@@ -391,9 +463,8 @@ final class WatchDownloadTransport: NSObject, URLSessionDownloadDelegate {
       : URLSessionConfiguration.ephemeral
     configuration.sessionSendsLaunchEvents = background
     configuration.waitsForConnectivity = true
-    let queue = OperationQueue()
-    queue.maxConcurrentOperationCount = 1
-    return URLSession(configuration: configuration, delegate: self, delegateQueue: queue)
+    delegateQueue.maxConcurrentOperationCount = 1
+    return URLSession(configuration: configuration, delegate: self, delegateQueue: delegateQueue)
   }()
 
   init(directory: URL = getDocumentsDirectory().appendingPathComponent("download-transfers"), background: Bool = true) {
@@ -452,6 +523,11 @@ final class WatchDownloadTransport: NSObject, URLSessionDownloadDelegate {
   /// Processes staged files first, then reconciles persisted jobs with OS tasks.
   func reconcile() async {
     let tasks = await session.allTasks
+    // A task can leave the session before its delegate callback is delivered.
+    // Draining the delegate queue first keeps such a task from counting as lost.
+    await withCheckedContinuation { continuation in
+      delegateQueue.addOperation { DispatchQueue.main.async { continuation.resume() } }
+    }
     let taskKeys = Set(tasks.compactMap(\.taskDescription))
     for task in tasks where task.taskDescription.flatMap({ jobs[$0] }) == nil { task.cancel() }
     for key in Array(jobs.keys) {
@@ -459,7 +535,7 @@ final class WatchDownloadTransport: NSObject, URLSessionDownloadDelegate {
       if FileManager.default.fileExists(atPath: staged.path) {
         deliver(key: key, file: staged, error: nil)
       } else if !taskKeys.contains(key) {
-        deliver(key: key, file: nil, error: URLError(.networkConnectionLost))
+        deliver(key: key, file: nil, error: WatchDownloadError.taskMissing)
       }
     }
     // A cancelled task may have staged a file just before its cancellation.
@@ -486,11 +562,21 @@ final class WatchDownloadTransport: NSObject, URLSessionDownloadDelegate {
     }
   }
 
-  func waitForBackgroundEvents(identifier: String) async {
+  /// Waits until URLSession reports the background events as finished. The
+  /// timeout only guards against a missing callback; the system also ends the
+  /// background task, which cancels the wait.
+  func waitForBackgroundEvents(identifier: String, timeout: Duration = .seconds(20)) async {
     guard identifier == Self.sessionIdentifier else { return }
     _ = session
     if finishedEvents { finishedEvents = false; return }
     let id = UUID()
+    let timer = Task {
+      try? await Task.sleep(for: timeout)
+      guard !Task.isCancelled, let waiter = waiters.removeValue(forKey: id) else { return }
+      WatchLog.shared.warning("Download", "Background session events did not finish in time")
+      waiter.resume()
+    }
+    defer { timer.cancel() }
     await withTaskCancellationHandler {
       await withCheckedContinuation { continuation in
         if Task.isCancelled { continuation.resume() } else { waiters[id] = continuation }
@@ -504,7 +590,7 @@ final class WatchDownloadTransport: NSObject, URLSessionDownloadDelegate {
     guard let key = downloadTask.taskDescription else { return }
     do {
       if let response = downloadTask.response as? HTTPURLResponse, !(200..<300).contains(response.statusCode) {
-        throw URLError(.badServerResponse)
+        throw WatchDownloadError.httpStatus(response.statusCode)
       }
       let staged = stagedFile(key)
       try FileManager.default.moveItem(at: location, to: staged)

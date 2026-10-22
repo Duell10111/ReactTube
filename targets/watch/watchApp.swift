@@ -15,6 +15,7 @@ struct watchApp: App {
   @State private var musicPlayerManager = MusicPlayerManager.shared
   @State private var downloadManager = DownloadManager.shared
   @State private var watchStatus = WatchStatus.shared
+  @Environment(\.scenePhase) private var scenePhase
 
   let session = SessionSyncStruct.shared
 
@@ -30,6 +31,10 @@ struct watchApp: App {
             LibrarySync.shared.start()
             await downloadManager.restore()
             LibrarySync.shared.publishStatus()
+          }
+          .onChange(of: scenePhase) { _, phase in
+            // Tasks can disappear while the app is suspended for a long time.
+            if phase == .active { Task { await downloadManager.refresh() } }
           }
       } else {
         DatabaseRecoveryView(controller: dataController)

@@ -511,3 +511,13 @@ Ein Review der Umsetzung ergab weitere Korrekturen:
   Regressionstests (`test/watch-queue-deletion.test.mjs`) bilden die
   Indexlogik von SwiftAudioEx nach und prüfen diese Fälle. Eine Gegenprobe ohne
   den Halt am Warteschlangenende lässt sie fehlschlagen.
+- **Verlorene Downloadtasks und Fehlertexte:** Fehlt einem gespeicherten
+  Auftrag der Systemtask, startet er einmal neu, statt sofort als Fehler zu
+  enden. HTTP- und Netzwerkfehler erhalten eigene englische und deutsche Texte;
+  ein abgelehnter, abgelaufener Link wird verworfen, damit eine Wiederholung
+  einen neuen anfordert. Wird die App wieder aktiv, gleicht sie Journal und
+  Systemtasks erneut ab. Der Hintergrundhandler wartet höchstens 20 Sekunden
+  auf `urlSessionDidFinishEvents`. Native Regressionen prüfen den einmaligen
+  Neustart, die Fehlertexte, das Laden alter Warteschlangendateien und das
+  Zeitlimit. `npm test` (518 Tests), Typecheck und watchOS-Typecheck
+  bestanden.

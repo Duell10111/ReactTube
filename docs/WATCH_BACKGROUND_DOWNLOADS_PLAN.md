@@ -30,7 +30,7 @@ ursprünglich geplant. Teil 2 ist offen.
 | ------------------------------------- | -------------------------------------------------------------- |
 | 1: Persistierter Auftragszustand      | Umgesetzt mit W05 (`1285b52`), ohne Batches                    |
 | 2: Eigene Hintergrundsession          | Umgesetzt mit W04/W05 (`1448a6f`, `1285b52`)                   |
-| 3: Appstart und Hintergrundereignisse | Weitgehend umgesetzt (`1285b52`, `8dc5ba3`, `69bf46d`)         |
+| 3: Appstart und Hintergrundereignisse | Umgesetzt (`1285b52`, `8dc5ba3`, `69bf46d`, Nachtrag)          |
 | 4: Zusammengefasste Mitteilungen      | Offen; benötigt zuerst Batches                                 |
 | 5: Prüfung                            | Isolierte Prüfungen vorhanden; Entwicklerhilfe und Gerät offen |
 
@@ -90,9 +90,11 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
   Phase 4 verschoben.
 - **Ablageort** ist `Documents/download-transfers/`, nicht Application Support
   und nicht `downloads/.incoming/`.
-- **Ein Auftrag ohne Systemtask** (`running` ohne Task) wird beim Start als
-  fehlgeschlagen gemeldet (`networkConnectionLost`). Er wird nicht automatisch
-  neu eingereiht. Der Benutzer kann ihn im Downloads-Bildschirm wiederholen.
+- **Ein Auftrag ohne Systemtask** (`running` ohne Task) wird einmal
+  automatisch neu eingereiht (`WatchDownloadError.taskMissing`). Ist der Link
+  abgelaufen, fordert `enqueue` neue Metadaten an. Fehlt der Task erneut, gilt
+  der Auftrag als fehlgeschlagen. Die bereits neu gestarteten Video-IDs stehen
+  in `queue.json` (`restartedIDs`, optional für ältere Dateien).
 - **Titel mit fehlender lokaler Datei** werden beim Start nur auf „nicht
   heruntergeladen“ zurückgesetzt und nicht automatisch erneut geladen
   (`69bf46d`).
@@ -128,17 +130,18 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
 - [x] Abbrechen erfasst Audio, Cover und Metadatenanfragen (W04).
 - [x] Fortschritt aus `didWriteData` geht an `progressDownloads` und wird nicht
       persistiert.
-- [ ] **Verständlicher Fehlergrund bei HTTP-Fehlern.** Statuscodes außerhalb von
-      2xx werden derzeit als `URLError(.badServerResponse)` gemeldet. Im UI
-      erscheint dann `localizedDescription` des Systems. Gewünscht ist ein
-      eigener, lokalisierter Text in `WatchStabilityCopy`, etwa für einen
-      abgelaufenen Link (403) und für sonstige Serverfehler. Dasselbe gilt für
-      Systemfehler aus `didCompleteWithError`.
+- [x] **Verständlicher Fehlergrund bei HTTP-Fehlern.** Statuscodes außerhalb von
+      2xx werden als `WatchDownloadError.httpStatus` gemeldet.
+      `DownloadMessages.reason(for:)` liefert lokalisierte Texte aus
+      `WatchStabilityCopy`: abgelaufener Link (403/410), sonstiger Serverfehler
+      mit Statuscode, Netzwerkfehler, vom System abgebrochener Task und
+      allgemeiner Fehler. Bei einem abgelaufenen Link wird `downloadURL`
+      gelöscht, damit „Erneut versuchen“ einen neuen Link anfordert.
 
 ## Phase 3: Appstart und Hintergrundereignisse
 
 - [x] **Abgleich beim Start** (`restore()` → `reconcile()`): Zwischendateien
-      werden übernommen. Aufträge ohne Task gelten als fehlgeschlagen. Verwaiste
+      werden übernommen. Aufträge ohne Task starten einmal neu. Verwaiste
       Tasks werden abgebrochen, verwaiste Zwischendateien gelöscht. Angeforderte,
       aber nicht laufende Titel werden erneut eingereiht.
 - [x] **Hintergrundereignisse:** `handleBackgroundEvents` stellt zuerst wieder
@@ -150,14 +153,15 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
       von vier parallelen Downloads bleibt bestehen.
 - [x] Ist die Datenbank nicht verfügbar (W09), bleiben Zwischendateien und
       Journaleinträge erhalten, bis die Bibliothek wieder geöffnet ist.
-- [ ] **Abgleich bei `scenePhase == .active`.** `restore()` läuft pro Prozess
-      nur einmal. Nach langer Zeit im Hintergrund sollte erneut abgeglichen
-      werden, falls ein Task ohne Rückmeldung verschwunden ist. Dafür muss
-      `reconcile()` unabhängig vom Flag `restored` aufrufbar sein.
-- [ ] **Zeitlimit als Sicherheitsnetz** in `waitForBackgroundEvents`. Derzeit
-      begrenzt nur der Abbruch der Hintergrundaufgabe durch das System das
-      Warten. Zu prüfen ist, ob das auf dem Gerät reicht oder ob ein eigenes
-      Zeitlimit nötig ist.
+- [x] **Abgleich bei `scenePhase == .active`.** `DownloadManager.refresh()`
+      gleicht nach der ersten Wiederherstellung erneut ab, wenn die App wieder
+      aktiv wird. Vor dem Vergleich leert `reconcile()` die Delegate-Queue. Ein
+      Task, der die Session gerade verlassen hat und dessen Rückmeldung noch
+      aussteht, gilt damit nicht als verloren.
+- [x] **Zeitlimit als Sicherheitsnetz** in `waitForBackgroundEvents`: Nach
+      20 Sekunden ohne `urlSessionDidFinishEvents` kehrt der Handler mit einer
+      Warnung im Log zurück. Ob der Wert zur Hintergrundlaufzeit auf dem Gerät
+      passt, ist Teil der Geräteprüfung.
 
 ## Phase 4: Zusammengefasste Mitteilungen
 
@@ -215,8 +219,10 @@ Prüffälle laufen über den Node-Test-Runner mit `swiftc` auf macOS
 (`test/helpers/watchNative.mjs`):
 
 - [x] `test/watch-download-recovery.test.mjs`: Neustart mit Zwischendatei,
-      fehlender Task, fehlgeschlagene Verbuchung und Verdrahtung von Start und
-      Hintergrundereignissen.
+      fehlender Task, fehlgeschlagene Verbuchung, Zeitlimit des
+      Hintergrundhandlers, einmaliger Neustart verlorener Tasks, Fehlertexte,
+      altes `queue.json` ohne `restartedIDs` und Verdrahtung von Start,
+      Vordergrund und Hintergrundereignissen.
 - [x] `test/watch-download-stability.test.mjs`: Verspätete Audio- und
       Coverabschlüsse nach Abbruch, Löschung und Neustart desselben Titels.
 - [ ] Batch-Abschluss, Mitteilungstext (inklusive Pluralformen beider Sprachen)
@@ -254,21 +260,14 @@ offen bleibt.
 1. Geräteprüfung der bereits umgesetzten Szenarien (ohne Mitteilungen) mit der
    neuen Entwicklerhilfe „Prozess beenden“. Erst damit ist W05 auf watchOS
    bestätigt.
-2. Offene Punkte aus Phase 2 und 3: verständliche HTTP-Fehlertexte, Abgleich
-   bei `scenePhase == .active`, gegebenenfalls ein Zeitlimit im
-   Hintergrundhandler.
-3. Phase 4: zuerst Batches samt Persistenz und Abschlusserkennung, dann
+2. Phase 4: zuerst Batches samt Persistenz und Abschlusserkennung, dann
    Mitteilungen, Einstellung und Texte.
-4. Abschließend die Geräteszenarien mit Mitteilungen.
+3. Abschließend die Geräteszenarien mit Mitteilungen.
 
 ## Offene Punkte
 
 - Beim Update von der Version mit SDDownloadManager gehen laufende Downloads
   einmalig verloren, weil die Sessionkennung wechselt. Eine Übernahme lohnt
   sich nicht, weil die alte Bibliothek sie ohnehin nicht zuordnen konnte.
-- Soll ein Auftrag, dessen Systemtask beim Start fehlt, automatisch neu
-  eingereiht werden statt als Fehler zu enden? Derzeit entscheidet der
-  Benutzer per Wiederholung. Für Batch-Mitteilungen bedeutet das, dass ein vom
-  System verworfener Task als Fehler zählt.
 - Ob aus den isolierten `swiftc`-Prüfungen ein dauerhaftes Watch-Testtarget
   werden soll, wird weiterhin separat entschieden.
