@@ -10,9 +10,9 @@ fehlgeschlagen sind.
 Der Plan umfasst zwei Teile:
 
 1. Hintergrundabschlüsse zuverlässig verarbeiten. Das behebt
-   [W05](WATCH_APP_STABILITY_REVIEW.md#w05-hintergrunddownloads-gehen-nach-prozessneustart-verloren)
+   [W05](../WATCH_APP_STABILITY_REVIEW.md#w05-hintergrunddownloads-gehen-nach-prozessneustart-verloren)
    und den Download-Teil von
-   [W04](WATCH_APP_STABILITY_REVIEW.md#w04-löschaktionen-lassen-downloadaufträge-weiterlaufen).
+   [W04](../WATCH_APP_STABILITY_REVIEW.md#w04-löschaktionen-lassen-downloadaufträge-weiterlaufen).
 2. Eine zusammengefasste lokale Mitteilung, sobald ein Download-Auftrag
    abgeschlossen ist.
 
@@ -53,7 +53,7 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
 
 ## Umgesetzter Aufbau
 
-- [`DownloadManager.swift`](../targets/watch/DownloadManager.swift) enthält zwei
+- [`DownloadManager.swift`](../../targets/watch/DownloadManager.swift) enthält zwei
   Teile:
   - `DownloadManager` (`MainActor`, `@Observable`) verwaltet die Warteschlangen
     und die Zuordnung von Video-ID zu Generation sowie zu den Schlüsseln für
@@ -64,14 +64,14 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
   - `WatchDownloadTransport` ist ein eigener `URLSessionDownloadDelegate` mit
     der Sessionkennung `com.duell10111.reacttube.watch.downloads.v2`.
 - SDDownloadManager ist vollständig entfernt, auch aus
-  [`expo-target.config.js`](../targets/watch/expo-target.config.js).
+  [`expo-target.config.js`](../../targets/watch/expo-target.config.js).
 - Persistenz unter `Documents/download-transfers/`, jeweils atomar als JSON
   geschrieben:
   - `jobs.json`: laufende Transfers als `WatchDownloadJob` (Schlüssel, Video-ID,
     Art `audio`/`cover`, Generation, Dauer).
   - `queue.json`: angeforderte Video-IDs und Fehlergründe.
   - `<Schlüssel>.complete`: Zwischendateien abgeschlossener Transfers.
-- [`watchApp.swift`](../targets/watch/watchApp.swift): Die UI startet
+- [`watchApp.swift`](../../targets/watch/watchApp.swift): Die UI startet
   `restore()`. `.backgroundTask(.urlSession)` ruft `handleBackgroundEvents` auf;
   `.backgroundTask(.watchConnectivity)` stellt ebenfalls wieder her, damit vom
   iPhone angestoßene Downloads auch ohne UI starten.
@@ -166,7 +166,7 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
 
 **Voraussetzung: Batches.**
 
-- [x] [`DownloadBatches.swift`](../targets/watch/DownloadBatches.swift):
+- [x] [`DownloadBatches.swift`](../../targets/watch/DownloadBatches.swift):
       `DownloadBatch` mit Kennung, Art (`playlist`, `video`, `phone`),
       Anzeigename, Video-IDs und einem Ergebnis pro Titel (`completed`,
       `failed`, `cancelled`). `DownloadBatches` verwaltet die offenen Batches
@@ -198,7 +198,7 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
       abgeschlossener Batch, dessen Mitteilung noch geplant wird, wird von
       „Erneut versuchen“ nicht wieder geöffnet; dafür entsteht ein neuer Batch.
 
-**Mitteilungen** ([`DownloadNotifications.swift`](../targets/watch/DownloadNotifications.swift)):
+**Mitteilungen** ([`DownloadNotifications.swift`](../../targets/watch/DownloadNotifications.swift)):
 
 - [x] Die Berechtigung wird im Kontext angefragt, wenn ein Download mit
       geöffneter App startet (`requestAuthorizationIfNeeded` in `download`),
@@ -206,7 +206,7 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
       Downloads vom iPhone im Hintergrund wird nicht gefragt. Eine Ablehnung
       beeinträchtigt die Downloads nicht.
 - [x] Mitteilungen gibt es nur pro abgeschlossenem Batch
-      ([`DownloadNotificationContent.swift`](../targets/watch/DownloadNotificationContent.swift)).
+      ([`DownloadNotificationContent.swift`](../../targets/watch/DownloadNotificationContent.swift)).
       Titel ist der Playlist- bzw. Titelname, sonst ein Ersatztitel je Art.
       Beispiele:
 
@@ -225,14 +225,14 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
       Appstart gesetzt.
 - [x] Einstellung „Download-Mitteilungen“ (Standard: an, Schlüssel
       `downloadNotifications`) im Bereich „Library“ von
-      [`SettingsScreen.swift`](../targets/watch/SettingsScreen.swift). Ist sie
+      [`SettingsScreen.swift`](../../targets/watch/SettingsScreen.swift). Ist sie
       aus, wird der Batch ohne Mitteilung entfernt.
 - [x] Ein vollständig abgebrochener Batch erzeugt keine Mitteilung.
 - [x] **Hintergrund:** `handleBackgroundEvents` und der
       `watchConnectivity`-Handler warten mit `waitForReports`, bis alle
       Mitteilungen geplant sind, bevor die App wieder angehalten wird.
 - [x] **Texte:** `WatchStabilityCopy` liegt jetzt in
-      [`WatchStabilityCopy.swift`](../targets/watch/WatchStabilityCopy.swift)
+      [`WatchStabilityCopy.swift`](../../targets/watch/WatchStabilityCopy.swift)
       und hat `format` (Zahlen im Format der UI-Sprache) und `plural`
       (Einzahl/Mehrzahl über eigene Schlüssel). Damit folgen die Texte
       `uiLanguage` statt der Systemsprache. Playlist- und Titelnamen werden
@@ -262,7 +262,7 @@ Prüffälle laufen über den Node-Test-Runner mit `swiftc` auf macOS
 
 **Entwicklerhilfe.**
 
-- [x] [`DevTests.swift`](../targets/watch/DevTests.swift) enthält den Eintrag
+- [x] [`DevTests.swift`](../../targets/watch/DevTests.swift) enthält den Eintrag
       „Terminate process“ (Developer Tools → Dev Tests), der nach einer
       Bestätigung `exit(0)` aufruft. Anders als das Wischen im App-Umschalter
       beendet das die App so, wie es das System tut; Hintergrundtransfers

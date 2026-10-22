@@ -189,7 +189,7 @@ function addAppIntentFilesToProject(project, projectName) {
 
 /**
  * Wires the phone app up for SiriKit media intents (see
- * SIRI_SEARCH_AND_PLAY_PLAN.md):
+ * docs/plans/SIRI_SEARCH_AND_PLAY_PLAN.md):
  *  - Siri entitlement, the app group shared with the intents extension, usage
  *    description and the alternative app name;
  *  - `application(_:handlerFor:)` in the AppDelegate, because `ExpoAppDelegate`

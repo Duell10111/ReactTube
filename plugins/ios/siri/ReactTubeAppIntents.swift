@@ -2,7 +2,7 @@
 // is only extracted from the app target, not from the SiriMedia pod.
 //
 // Siri never recognized "ReactTube" in SiriKit media requests and only picked
-// the app by prediction (see SIRI_SEARCH_AND_PLAY_PLAN.md, phase 1). App
+// the app by prediction (see docs/plans/SIRI_SEARCH_AND_PLAY_PLAN.md, phase 1). App
 // Shortcut phrases register the app name explicitly.
 
 import AppIntents
