@@ -7,7 +7,34 @@ Untersuchung behandelt zwei Symptome der nativen Watch-App:
    (nicht abgelaufenem) Stream abgespielt werden soll.
 2. Heruntergeladene Titel lassen sich nicht mehr abspielen.
 
-Es wurde nichts am Code geändert.
+## Umsetzungsstand
+
+| ID  | Stand                      | Commit                                                  |
+| --- | -------------------------- | ------------------------------------------------------- |
+| H01 | Behoben in SwiftAudioEx    | `455d03b` (Queue-Delegates), `b0b027b` (State-Delegate) |
+| H02 | Behoben in SwiftAudioEx    | `39ea2cc`                                               |
+| H03 | Offen, außerhalb des Repos | –                                                       |
+| P01 | Behoben                    | `6e62fa8`                                               |
+| P02 | Behoben                    | `734c574`                                               |
+| P03 | Behoben                    | `5fbd8f8`                                               |
+
+Die SwiftAudioEx-Commits liegen auf `watchos-support-add-crop` im Fork
+`Duell10111/SwiftAudioEx`. Die App bindet diesen Branch ein, braucht also keine
+eigene Änderung. Für jeden Commit gibt es einen Regressionstest, der vor der
+Korrektur fehlschlug. Alle 189 Tests des Pakets laufen durch, und das Paket baut
+für den watchOS-Simulator.
+
+Die App-Korrekturen sind durch `test/watch-playback-hang.test.mjs` und einen
+`swiftc`-Typecheck aller Watch-Quellen gegen das watchOS-Simulator-SDK
+abgesichert. Ein Test auf einer echten Apple Watch steht noch aus.
+
+H03 lässt sich hier nicht beheben: Der Arbeitsordner des CI-Builders
+(`~/builds/…/reacttube-builder/repository/ios`) behält eine
+`Package.resolved`, die SwiftAudioEx auf `ce0c6d7` festhält. Diese Datei (oder
+`ios/` vor dem Prebuild) muss im Builder gelöscht werden. Das Gleiche gilt für
+lokale Builds: Ein vorhandenes `ios/` hält SwiftAudioEx auf `c6407e1`, bis die
+Paketabhängigkeiten neu aufgelöst werden (Xcode: „Update to Latest Package
+Versions“).
 
 ## Ergebnis und Aussagekraft
 
