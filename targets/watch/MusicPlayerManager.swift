@@ -352,13 +352,6 @@ class MusicPlayerManager {
 
       player = QueuedAudioPlayer()
       player?.repeatMode = preferences.repeatMode.audioPlayerMode
-      do {
-        try player?.add(items: playerItems, at: 0)
-      } catch {
-        WatchLog.shared.error("Player", "Could not add titles to the queue: \(error.localizedDescription)")
-        deinitPlayer()
-        return false
-      }
 
       player?.remoteCommands = [
         .play,
@@ -446,6 +439,16 @@ class MusicPlayerManager {
       self?.onMain(generation: generation) {
         self?.volume = outputVolume
       }
+    }
+
+    // Added last: the queue emits the change to the first title while adding,
+    // and an event emitted before its listener exists is lost.
+    do {
+      try player?.add(items: playerItems, at: 0)
+    } catch {
+      WatchLog.shared.error("Player", "Could not add titles to the queue: \(error.localizedDescription)")
+      deinitPlayer()
+      return false
     }
     return true
   }
