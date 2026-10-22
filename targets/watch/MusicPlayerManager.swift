@@ -386,6 +386,9 @@ class MusicPlayerManager {
         } else if state == .paused || state == .ended {
           self.isPlaying = false
         }
+        // A finished queue no longer counts as local playback, so the iPhone
+        // state is mirrored again and late metadata does not restart it.
+        if state == .ended { self.wantsPlayback = false }
 
         if state == .ready || state == .playing {
           self.applyPendingSeek()
@@ -635,30 +638,42 @@ class MusicPlayerManager {
     )
   }
 
+  /// Handles the playback state the iPhone publishes in its application
+  /// context. While the watch plays, or is still starting local playback, the
+  /// context is ignored: `isPlaying` only turns true once the audio session is
+  /// active, and taking over before that silently cancelled the local start.
+  func phoneContextReceived(title: String?, isPlaying: Bool?) {
+    guard type == .phone || (!wantsPlayback && !self.isPlaying) else {
+      WatchLog.shared.info("Phone", "Ignored the iPhone playback state during local playback")
+      return
+    }
+    applyPhonePlaybackState(title: title, isPlaying: isPlaying)
+  }
+
   /// Mirrors the playback state the iPhone reports. The watch does not play the
   /// audio in that case, so it also must not claim the now playing slot.
-  func applyPhonePlaybackState(title: String?, isPlaying: Bool?) {
-    onMain {
-      self.playbackRevision += 1
-      let wasLocal = self.type == .local
-      self.type = .phone
-      if wasLocal {
-        NowPlayingCenter.clear(player: self.player)
-        self.currentTime = 0
-        self.duration = 0
-      }
-      if let title {
-        self.currentTitle = title
-        // Reset artist as not set by api
-        self.currentArtist = nil
-      } else {
-        WatchLog.shared.warning("Phone", "Playback state without a title received")
-      }
-      if let isPlaying {
-        self.isPlaying = isPlaying
-      } else {
-        WatchLog.shared.warning("Phone", "Playback state without a play flag received")
-      }
+  /// Runs synchronously so a local start cannot begin between the check in
+  /// `phoneContextReceived` and the switch to phone mode.
+  private func applyPhonePlaybackState(title: String?, isPlaying: Bool?) {
+    playbackRevision += 1
+    let wasLocal = type == .local
+    type = .phone
+    if wasLocal {
+      NowPlayingCenter.clear(player: player)
+      currentTime = 0
+      duration = 0
+    }
+    if let title {
+      currentTitle = title
+      // Reset artist as not set by api
+      currentArtist = nil
+    } else {
+      WatchLog.shared.warning("Phone", "Playback state without a title received")
+    }
+    if let isPlaying {
+      self.isPlaying = isPlaying
+    } else {
+      WatchLog.shared.warning("Phone", "Playback state without a play flag received")
     }
   }
 
@@ -705,7 +720,10 @@ class MusicPlayerManager {
         AVAudioSession.sharedInstance().activate { [self] success, error in
           if success {
             onMain(generation: generation) { [self] in
-              guard revision == playbackRevision, type == .local else { return }
+              guard revision == playbackRevision, type == .local else {
+                WatchLog.shared.info("Player", "Skipped a superseded playback start")
+                return
+              }
               player?.play()
               isPlaying = true
               isStalled = false
