@@ -28,27 +28,27 @@ ursprünglich geplant. Teil 2 ist offen.
 
 | Phase                                 | Stand                                                          |
 | ------------------------------------- | -------------------------------------------------------------- |
-| 1: Persistierter Auftragszustand      | Umgesetzt mit W05 (`1285b52`), ohne Batches                    |
-| 2: Eigene Hintergrundsession          | Umgesetzt mit W04/W05 (`1448a6f`, `1285b52`)                   |
-| 3: Appstart und Hintergrundereignisse | Umgesetzt (`1285b52`, `8dc5ba3`, `69bf46d`, Nachtrag)          |
-| 4: Zusammengefasste Mitteilungen      | Offen; benötigt zuerst Batches                                 |
+| 1: Persistierter Auftragszustand      | Umgesetzt mit W05 (`9dec7d8`); Batches mit Phase 4             |
+| 2: Eigene Hintergrundsession          | Umgesetzt mit W04/W05 (`ecc7c51`, `9dec7d8`)                   |
+| 3: Appstart und Hintergrundereignisse | Umgesetzt (`9dec7d8`, `50ac44a`, `df6e54c`, Nachtrag)          |
+| 4: Zusammengefasste Mitteilungen      | Batches umgesetzt; Mitteilungen offen                          |
 | 5: Prüfung                            | Isolierte Prüfungen und Entwicklerhilfe vorhanden; Gerät offen |
 
 Weitere Änderungen auf dem Branch, die den Plan betreffen:
 
-- **W03** (`6bf7340`, `8dc5ba3`, `69bf46d`): Metadatenanfragen haben eine
+- **W03** (`4b80207`, `50ac44a`, `df6e54c`): Metadatenanfragen haben eine
   Kennung, ein Zeitlimit von 20 Sekunden und höchstens drei Versuche.
   Wiederverbindungen senden erneut, ohne einen Versuch zu verbrauchen.
   `metadata_not_ready` führt nach drei Sekunden zu einem neuen Versuch.
   `awaitingMetadata` endet damit immer in einem Download oder einem Fehler.
   Der frühere offene Punkt „Batch bleibt dauerhaft offen“ ist erledigt.
-- **W09** (`aa06f0a`): Eine nicht lesbare Datenbank beendet die App nicht mehr.
+- **W09** (`9fdc236`): Eine nicht lesbare Datenbank beendet die App nicht mehr.
   Stattdessen erscheint ein Wiederherstellungsbildschirm. Solange keine
   Datenbank bereitsteht, behalten Hintergrundabschlüsse ihre Zwischendateien.
 - **Lokalisierung:** Die Watch hat mit `WatchStabilityCopy` erstmals typisierte
   englische und deutsche Texte und eine eigene Einstellung `uiLanguage`,
   getrennt von der YouTube-Inhaltssprache.
-- **Löschen während der Wiedergabe** (`6ec38f7`): Beim Freigeben eines Downloads
+- **Löschen während der Wiedergabe** (`faa26fa`): Beim Freigeben eines Downloads
   verlässt der lokale Eintrag die Warteschlange, bevor die Datei gelöscht wird.
 
 ## Umgesetzter Aufbau
@@ -97,7 +97,7 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
   in `queue.json` (`restartedIDs`, optional für ältere Dateien).
 - **Titel mit fehlender lokaler Datei** werden beim Start nur auf „nicht
   heruntergeladen“ zurückgesetzt und nicht automatisch erneut geladen
-  (`69bf46d`).
+  (`df6e54c`).
 - **Abschlüsse kopieren die Zwischendatei** an den Zielort. Erst nachdem
   SwiftData gespeichert und das Journal aktualisiert ist, wird sie gelöscht.
   Scheitert ein Schritt, bleibt sie für den nächsten Abgleich erhalten.
@@ -109,8 +109,7 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
 - [x] Ist das Journal nicht lesbar, wird der Fehler protokolliert und mit einem
       leeren Journal begonnen. Laufende Systemtasks ohne Eintrag werden beim
       Abgleich abgebrochen.
-- [ ] `DownloadBatch` (Kennung, Anzeigename, Video-IDs, Art: Playlist,
-      Einzeltitel oder Synchronisierung vom iPhone). Verschoben in Phase 4.
+- [x] `DownloadBatch` — in Phase 4 umgesetzt.
 - [ ] ~~Reine Übergangsfunktionen in einem `DownloadJobStore`~~ — durch die
       Generation pro Video-ID ersetzt. Nur nötig, falls die Batch-Logik in
       Phase 4 einen eigenen Zustandsautomaten braucht.
@@ -167,21 +166,35 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
 
 **Voraussetzung: Batches.**
 
-- [ ] `DownloadBatch` mit Kennung, Anzeigename, Art und Video-IDs einführen und
-      zusammen mit `queue.json` persistieren. Den bestehenden Zustand dabei
-      abwärtskompatibel laden; ohne Batchfeld gilt eine leere Liste.
-- [ ] Batches entstehen in `downloadPlaylist` (Playlist), in `enqueue` bzw.
-      `retry` aus dem UI (Einzeltitel) und in den Downloadbefehlen von
-      `RemoteLibraryCommands`/`SessionSync` (Synchronisierung vom iPhone).
-      Eine Video-ID kann zu mehreren Batches gehören.
-- [ ] Ein Batch ist abgeschlossen, sobald für jede seiner Video-IDs gilt:
-      heruntergeladen, in `failedDownloads` oder abgebrochen. `awaitingMetadata`
-      endet dank W03 immer in einem dieser Zustände.
-- [ ] Die Auswertung erfolgt zentral in `complete`, `videoMetadataUpdated`,
-      `videoMetadataFailed`, `cancel` und nach `reconcile()`. Sie läuft also
-      auch dann, wenn die App nur im Hintergrund geweckt wurde.
-- [ ] Abgeschlossene Batches werden erst entfernt, nachdem die Mitteilung
-      geplant ist, damit ein Prozessende dazwischen keine Mitteilung verliert.
+- [x] [`DownloadBatches.swift`](../targets/watch/DownloadBatches.swift):
+      `DownloadBatch` mit Kennung, Art (`playlist`, `video`, `phone`),
+      Anzeigename, Video-IDs und einem Ergebnis pro Titel (`completed`,
+      `failed`, `cancelled`). `DownloadBatches` verwaltet die offenen Batches
+      ohne SwiftData- und UIKit-Abhängigkeiten. Persistiert wird in
+      `queue.json`; ältere Dateien ohne Batches werden weiter gelesen.
+- [x] Alle Downloads laufen über `DownloadManager.download(_:as:name:)`, das
+      den Batch vor dem Einreihen anlegt. `enqueue` ist privat, sodass kein
+      Download ohne Batch entsteht. Aufrufer: `downloadPlaylist` (Playlist),
+      die Wischaktion in `MusicListItemView` (Einzeltitel) und in
+      `RemoteLibraryCommands` das Herunterladen vom iPhone (`phone`) sowie das
+      Aktivieren des automatischen Downloads einer Playlist (`playlist`).
+      Bereits geladene Titel gehören nicht zum Batch. Eine Video-ID kann zu
+      mehreren Batches gehören und schließt dann alle ab.
+- [x] Ergebnisse werden zentral erfasst: Erfolg in `complete`, Fehler über
+      `fail` (Metadaten, Start, Transfer, Speichern), Abbruch in `cancel` und
+      bei gelöschten Titeln. Ein bereits erfasstes Ergebnis bleibt bestehen;
+      das Verwerfen eines Fehlers im Downloads-Bildschirm macht ihn also nicht
+      zum Abbruch. Nach einem Neustart erhalten Titel, an denen nichts mehr
+      arbeitet, beim Abgleich ihr Ergebnis, damit kein Batch dauerhaft offen
+      bleibt.
+- [x] „Erneut versuchen“ öffnet den Titel in allen noch offenen Batches wieder.
+      Ist keiner mehr offen, entsteht ein neuer Einzeltitel-Batch.
+- [x] Ein Neustart nach verlorenem Task (`taskMissing`) ist kein Ergebnis; der
+      Titel bleibt im Batch offen.
+- [ ] Abgeschlossene Batches werden derzeit sofort entfernt und nur
+      protokolliert (`finishBatches`). Mit den Mitteilungen werden sie erst
+      entfernt, nachdem die Mitteilung geplant ist, damit ein Prozessende
+      dazwischen keine Mitteilung verliert.
 
 **Mitteilungen:**
 
@@ -225,8 +238,11 @@ Prüffälle laufen über den Node-Test-Runner mit `swiftc` auf macOS
       Vordergrund und Hintergrundereignissen.
 - [x] `test/watch-download-stability.test.mjs`: Verspätete Audio- und
       Coverabschlüsse nach Abbruch, Löschung und Neustart desselben Titels.
-- [ ] Batch-Abschluss, Mitteilungstext (inklusive Pluralformen beider Sprachen)
-      und das Laden eines alten `queue.json` ohne Batches.
+- [x] `test/watch-download-batches.test.mjs`: gemeinsame Titel, verworfene
+      Fehler, Wiederöffnen, vollständig abgebrochene Batches, Kodierung, die
+      Erfassung im `DownloadManager` (Erfolg, Transfer- und Startfehler,
+      Abbruch) und das Laden eines alten `queue.json` ohne Batches.
+- [ ] Mitteilungstext inklusive Pluralformen beider Sprachen.
 
 **Entwicklerhilfe.**
 
