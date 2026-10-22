@@ -12,7 +12,10 @@ import {
 import useVideoElementData from "../../hooks/video/useVideoElementData";
 
 import {RelatedVideos} from "@/components/video/tv/RelatedVideos";
+import {VideoPlaylistList} from "@/components/video/tv/VideoPlaylistList";
+import {resolveVideoPlaylist} from "@/components/video/tv/playlistModel";
 import {YTVideoInfo} from "@/extraction/Types";
+import {useTranslation} from "@/localization";
 import {NativeStackProp} from "@/navigation/types";
 import {AppText} from "@/ui/components";
 import {
@@ -22,6 +25,7 @@ import {
 } from "@/ui/patterns";
 import {useAppTheme} from "@/ui/theme";
 import {TVFocusRegion, useTVOverscanInsets} from "@/ui/tv";
+import {YTNodes} from "@/utils/Youtube";
 
 interface Props {
   video: YTVideoInfo;
@@ -37,9 +41,9 @@ const surface = {canOpenWebsites: !Platform.isTV};
 
 /**
  * End screen of the TV player. After a video it leads with what plays next,
- * then the creator's own end cards, then the related videos — one surface
- * with one scrim. Opened on demand during playback it shows the current
- * video instead of the up-next hero.
+ * then the creator's own end cards, the playlist, and the related videos —
+ * one surface with one scrim. Opened on demand during playback it shows the
+ * current video instead of the up-next hero.
  */
 export default function EndCard({
   visible,
@@ -50,6 +54,7 @@ export default function EndCard({
 }: Props) {
   const navigation = useNavigation<NativeStackProp>();
   const {theme} = useAppTheme();
+  const {t} = useTranslation();
   const overscan = useTVOverscanInsets();
   const {metrics, contentPadding} = useFeedGeometry();
 
@@ -59,14 +64,26 @@ export default function EndCard({
   );
 
   const next = useMemo(() => resolveNextVideo(video), [video]);
+  const nextEndpoint = useMemo(
+    () =>
+      next.watchEndpoint
+        ? new YTNodes.NavigationEndpoint({watchEndpoint: next.watchEndpoint})
+        : next.navEndpoint,
+    [next],
+  );
   // Only an ended video needs its successor; the on-demand view does not.
   const {videoElement: nextVideo} = useVideoElementData(
-    endCard ? (next.navEndpoint ?? next.videoId) : undefined,
+    endCard ? (nextEndpoint ?? next.videoId) : undefined,
   );
 
   const recommendations = useMemo(
     () => getEndscreenRecommendations(video.endscreen?.elements, surface),
     [video.endscreen?.elements],
+  );
+
+  const playlist = useMemo(
+    () => resolveVideoPlaylist(video, t("video.playlist")),
+    [video, t],
   );
 
   const metadataLine = useMemo(
@@ -77,7 +94,7 @@ export default function EndCard({
     [currentResolution, video],
   );
 
-  if (!video.originalData.watch_next_feed) {
+  if (!video.originalData.watch_next_feed && !playlist) {
     // TODO: Add warning or debug message
     return null;
   }
@@ -126,7 +143,7 @@ export default function EndCard({
                   // @ts-ignore TODO: fix
                   navigation.replace("VideoScreen", {
                     videoId: target.id,
-                    navEndpoint: next.navEndpoint,
+                    navEndpoint: nextEndpoint,
                   });
                 }}
               />
@@ -156,7 +173,16 @@ export default function EndCard({
               padding={padding}
             />
           ) : null}
-          <RelatedVideos YTVideoInfo={video} playlistShown={false} />
+          {playlist ? (
+            <VideoPlaylistList
+              currentIndex={playlist.currentIndex}
+              playlist={playlist}
+            />
+          ) : null}
+          <RelatedVideos
+            YTVideoInfo={video}
+            playlistShown={playlist !== undefined}
+          />
         </ScrollView>
       </View>
     </Modal>

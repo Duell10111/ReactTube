@@ -1,3 +1,5 @@
+import {findCurrentPlaylistIndex} from "../tv/playlistModel.ts";
+
 import type {
   ElementData,
   YTEndscreenElement,
@@ -140,9 +142,12 @@ export function getCountdownState(
 export interface NextVideoTarget {
   videoId?: string;
   navEndpoint?: YTNodes.NavigationEndpoint;
+  /** Rebuilt as a NavigationEndpoint by the player to retain playlist context. */
+  watchEndpoint?: Record<string, unknown>;
 }
 
-type NextVideoSource = Pick<YTVideoInfo, "playlist"> & {
+type NextVideoSource = Pick<YTVideoInfo, "playlist" | "watchNextSections"> & {
+  id?: string;
   originalData: {
     autoplay_video_endpoint?: YTNodes.NavigationEndpoint | null;
   };
@@ -161,15 +166,33 @@ function getEndpointVideoId(endpoint?: YTNodes.NavigationEndpoint | null) {
  */
 export function resolveNextVideo(video: NextVideoSource): NextVideoTarget {
   const playlist = video.playlist;
-  const playlistNext: ElementData | undefined = playlist
-    ? playlist.content?.[playlist.current_index + 1]
-    : undefined;
+  const entries =
+    video.watchNextSections?.[0]?.parsedData ?? playlist?.content ?? [];
+  const currentIndex = playlist
+    ? findCurrentPlaylistIndex(entries, video.id, playlist.current_index)
+    : -1;
+  const playlistNext: ElementData | undefined =
+    playlist && currentIndex >= 0 ? entries[currentIndex + 1] : undefined;
 
   if (playlistNext) {
+    const navEndpoint =
+      "navEndpoint" in playlistNext ? playlistNext.navEndpoint : undefined;
     return {
       videoId: playlistNext.id,
-      navEndpoint:
-        "navEndpoint" in playlistNext ? playlistNext.navEndpoint : undefined,
+      navEndpoint,
+      ...(playlist?.id
+        ? {
+            watchEndpoint: {
+              ...navEndpoint?.payload,
+              videoId: playlistNext.id,
+              playlistId: playlist.id,
+              playlistIndex:
+                navEndpoint?.payload?.playlistIndex ??
+                navEndpoint?.payload?.index ??
+                playlist.current_index + 1,
+            },
+          }
+        : {}),
     };
   }
 
