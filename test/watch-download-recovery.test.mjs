@@ -102,7 +102,7 @@ final class Video: Hashable {
 }
 struct ActiveDownload { var id: String }
 ${swiftMethod(source, "enum DownloadMessages")}
-${swiftMethod(source, "enum WatchStabilityCopy")}
+${swiftMethod(watchSource("WatchStabilityCopy.swift"), "enum WatchStabilityCopy")}
 ${swiftMethod(source, "enum WatchDownloadError")}
 ${swiftMethod(source, "private struct QueueState")}
 struct WatchDownloadJob {

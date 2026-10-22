@@ -30,6 +30,9 @@ class DownloadManager {
   private var restartedIDs: Set<String> = []
   /// Requests whose combined outcome is reported once every title has one.
   private var batches = DownloadBatches()
+  /// Reports of finished batches that are still being handed to the system.
+  private var reports: [String: Task<Void, Never>] = [:]
+  private let notifications = DownloadNotifications.shared
 
   private let transport = WatchDownloadTransport()
   private var requestedIDs: Set<String> = []
@@ -126,12 +129,22 @@ class DownloadManager {
   func handleBackgroundEvents(identifier: String) async {
     await restore()
     await transport.waitForBackgroundEvents(identifier: identifier)
+    await waitForReports()
+  }
+
+  /// Background handlers wait for this, so a notification is scheduled before
+  /// the system suspends the app again.
+  func waitForReports() async {
+    while let report = reports.values.first {
+      await report.value
+    }
   }
 
   /// Queues the videos as one batch so their outcome can be reported together.
   /// Videos that are already downloaded are not part of the batch.
   func download(_ videos: [Video], as kind: DownloadBatch.Kind, name: String?) {
     let missing = videos.filter { !$0.downloaded }
+    if !missing.isEmpty { notifications.requestAuthorizationIfNeeded() }
     // The batch exists before queueing, so an immediate failure is recorded.
     batches.add(kind: kind, name: name, videoIDs: missing.map(\.id))
     missing.forEach { enqueue($0) }
@@ -245,12 +258,18 @@ class DownloadManager {
   }
 
   private func finishBatches() {
-    // Finished batches are only logged until download notifications exist.
-    for batch in batches.takeFinished() where !batch.isCancelled {
-      WatchLog.shared.info(
-        "Download",
-        "Finished \(batch.kind.rawValue) batch: \(batch.completedCount) of \(batch.videoIDs.count) downloaded, \(batch.failedIDs.count) failed"
-      )
+    for batch in batches.finished where reports[batch.id] == nil {
+      guard let content = DownloadNotificationContent(batch: batch) else {
+        batches.remove(id: batch.id)
+        continue
+      }
+      // The batch is removed only after the system has the notification.
+      reports[batch.id] = Task {
+        await notifications.post(content, id: batch.id)
+        batches.remove(id: batch.id)
+        reports.removeValue(forKey: batch.id)
+        persistQueue()
+      }
     }
   }
 
@@ -264,6 +283,7 @@ class DownloadManager {
     VideoMetadataRequests.shared.cancel(ids: awaitingMetadata)
     generations.removeAll()
     restartedIDs.removeAll()
+    // Reports already being scheduled finish on their own.
     batches.removeAll()
     coverKeys.removeAll()
     transport.cancelAll()
@@ -450,49 +470,6 @@ enum DownloadMessages {
     .notConnectedToInternet, .networkConnectionLost, .timedOut, .cannotConnectToHost,
     .cannotFindHost, .dnsLookupFailed, .dataNotAllowed, .internationalRoamingOff,
   ]
-}
-
-/// Typed native copy for stability and recovery UI. This preference is separate
-/// from the language sent to YouTube and can be selected before the store opens.
-enum WatchStabilityCopy {
-  enum Key: CaseIterable {
-    case downloadSaveFailed, downloadStartFailed, downloadUnavailable
-    case downloadMetadataFailed, downloadConnectionFailed
-    case downloadLinkExpired, downloadServerError, downloadNetworkFailed
-    case downloadInterrupted, downloadFailed
-    case recoveryLoading, recoveryTitle, recoveryExplanation, recoveryRetry
-    case recoveryRebuild, recoveryCancel, recoveryConfirmation, recoveryBackup
-    case appLanguage, switchLanguage
-  }
-
-  static func text(_ key: Key, language: String? = nil) -> String {
-    let value: (en: String, de: String)
-    switch key {
-    case .downloadSaveFailed: value = ("The downloaded file could not be saved.", "Die heruntergeladene Datei konnte nicht gespeichert werden.")
-    case .downloadStartFailed: value = ("The download could not be started.", "Der Download konnte nicht gestartet werden.")
-    case .downloadUnavailable: value = ("No download URL available.", "Kein Download-Link verfügbar.")
-    case .downloadMetadataFailed: value = ("The iPhone could not load download information. Please try again.", "Das iPhone konnte die Downloadinformationen nicht laden. Bitte erneut versuchen.")
-    case .downloadConnectionFailed: value = ("Download information timed out. Reconnect the iPhone and try again.", "Zeitüberschreitung beim Laden der Downloadinformationen. Das iPhone erneut verbinden und noch einmal versuchen.")
-    case .downloadLinkExpired: value = ("The download link has expired. Try again to request a new one.", "Der Download-Link ist abgelaufen. Erneut versuchen, um einen neuen anzufordern.")
-    case .downloadServerError: value = ("The server rejected the download (HTTP %d).", "Der Server hat den Download abgelehnt (HTTP %d).")
-    case .downloadNetworkFailed: value = ("The connection was lost during the download.", "Die Verbindung ist während des Downloads abgebrochen.")
-    case .downloadInterrupted: value = ("The system stopped the download.", "Das System hat den Download abgebrochen.")
-    case .downloadFailed: value = ("The download failed.", "Der Download ist fehlgeschlagen.")
-    case .recoveryLoading: value = ("Opening library…", "Bibliothek wird geöffnet …")
-    case .recoveryTitle: value = ("Library unavailable", "Bibliothek nicht verfügbar")
-    case .recoveryExplanation: value = ("The library could not be opened. Retry, or back it up and create an empty library.", "Die Bibliothek konnte nicht geöffnet werden. Erneut versuchen oder nach einer Sicherung eine leere Bibliothek anlegen.")
-    case .recoveryRetry: value = ("Try again", "Erneut versuchen")
-    case .recoveryRebuild: value = ("Back up and reset library", "Bibliothek sichern und zurücksetzen")
-    case .recoveryCancel: value = ("Cancel", "Abbrechen")
-    case .recoveryConfirmation: value = ("Your playlists and library entries will be reset. The existing database will be backed up first. Downloaded files will be kept.", "Playlists und Bibliothekseinträge werden zurückgesetzt. Die bisherige Datenbank wird vorher gesichert. Heruntergeladene Dateien bleiben erhalten.")
-    case .recoveryBackup: value = ("Database backup:", "Datenbanksicherung:")
-    case .appLanguage: value = ("App language", "App-Sprache")
-    case .switchLanguage: value = ("Deutsch", "English")
-    }
-    let selected = language ?? UserDefaults.standard.string(forKey: "uiLanguage")
-      ?? Locale.current.language.languageCode?.identifier ?? "en"
-    return selected == "de" ? value.de : value.en
-  }
 }
 
 enum WatchDownloadError: Error, Equatable {

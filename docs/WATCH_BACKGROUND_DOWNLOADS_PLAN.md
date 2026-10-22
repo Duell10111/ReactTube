@@ -31,7 +31,7 @@ ursprünglich geplant. Teil 2 ist offen.
 | 1: Persistierter Auftragszustand      | Umgesetzt mit W05 (`9dec7d8`); Batches mit Phase 4             |
 | 2: Eigene Hintergrundsession          | Umgesetzt mit W04/W05 (`ecc7c51`, `9dec7d8`)                   |
 | 3: Appstart und Hintergrundereignisse | Umgesetzt (`9dec7d8`, `50ac44a`, `df6e54c`, Nachtrag)          |
-| 4: Zusammengefasste Mitteilungen      | Batches umgesetzt; Mitteilungen offen                          |
+| 4: Zusammengefasste Mitteilungen      | Umgesetzt; Gerätetest offen                                    |
 | 5: Prüfung                            | Isolierte Prüfungen und Entwicklerhilfe vorhanden; Gerät offen |
 
 Weitere Änderungen auf dem Branch, die den Plan betreffen:
@@ -191,39 +191,52 @@ Weitere Änderungen auf dem Branch, die den Plan betreffen:
       Ist keiner mehr offen, entsteht ein neuer Einzeltitel-Batch.
 - [x] Ein Neustart nach verlorenem Task (`taskMissing`) ist kein Ergebnis; der
       Titel bleibt im Batch offen.
-- [ ] Abgeschlossene Batches werden derzeit sofort entfernt und nur
-      protokolliert (`finishBatches`). Mit den Mitteilungen werden sie erst
-      entfernt, nachdem die Mitteilung geplant ist, damit ein Prozessende
-      dazwischen keine Mitteilung verliert.
+- [x] Abgeschlossene Batches bleiben gespeichert, bis ihre Mitteilung an das
+      System übergeben ist (`finishBatches` → `post` → `remove(id:)`). Endet der
+      Prozess dazwischen, wird die Mitteilung beim nächsten Start erneut
+      geplant; dieselbe Kennung ersetzt dabei eine schon zugestellte. Ein
+      abgeschlossener Batch, dessen Mitteilung noch geplant wird, wird von
+      „Erneut versuchen“ nicht wieder geöffnet; dafür entsteht ein neuer Batch.
 
-**Mitteilungen:**
+**Mitteilungen** ([`DownloadNotifications.swift`](../targets/watch/DownloadNotifications.swift)):
 
-- [ ] Die Berechtigung wird im Kontext angefragt, wenn der Benutzer zum ersten
-      Mal einen Download startet, nicht beim Appstart. Eine Ablehnung
+- [x] Die Berechtigung wird im Kontext angefragt, wenn ein Download mit
+      geöffneter App startet (`requestAuthorizationIfNeeded` in `download`),
+      oder wenn die Einstellung eingeschaltet wird. Beim Appstart und bei
+      Downloads vom iPhone im Hintergrund wird nicht gefragt. Eine Ablehnung
       beeinträchtigt die Downloads nicht.
-- [ ] Mitteilungen gibt es nur pro abgeschlossenem Batch. Einzelne Titel lösen
-      keine eigene Mitteilung aus. Beispiele:
-  - „Playlist ‚Laufen‘ heruntergeladen: 15 Titel“
-  - „Playlist ‚Laufen‘: 12 von 15 Titeln geladen, 3 fehlgeschlagen“
-  - „‚Titelname‘ konnte nicht geladen werden“
-- [ ] Die Mitteilungskennung entspricht der Batch-Kennung, damit eine spätere
-      Aktualisierung desselben Batches die vorherige Mitteilung ersetzt.
-- [ ] Ist die App im Vordergrund, unterdrückt der
-      `UNUserNotificationCenterDelegate` die Mitteilung, weil der Status dann
-      bereits sichtbar ist.
-- [ ] Ein Tippen auf die Mitteilung öffnet den Downloads-Bildschirm.
-- [ ] Eine Einstellung „Download-Mitteilungen“ (Standard: an) in
-      [`SettingsScreen.swift`](../targets/watch/SettingsScreen.swift).
-- [ ] Ein Batch, dessen Aufträge vollständig abgebrochen wurden, erzeugt keine
-      Mitteilung.
-- [ ] **Texte:** Die Watch hat inzwischen `WatchStabilityCopy` mit typisierten
-      Schlüsseln, Englisch als Fallback und der Einstellung `uiLanguage`. Die
-      Mitteilungstexte sollen diesen Weg nutzen statt eines String Catalogs.
-      Ein Catalog würde der Systemsprache folgen und `uiLanguage` ignorieren.
-      Dafür braucht die Struktur Interpolation und Pluralformen, etwa über
-      Funktionen mit Parametern statt fester Textpaare. Den Typ dabei aus
-      `DownloadManager.swift` in eine eigene Datei verschieben. Playlist- und
-      Titelnamen werden nicht übersetzt.
+- [x] Mitteilungen gibt es nur pro abgeschlossenem Batch
+      ([`DownloadNotificationContent.swift`](../targets/watch/DownloadNotificationContent.swift)).
+      Titel ist der Playlist- bzw. Titelname, sonst ein Ersatztitel je Art.
+      Beispiele:
+
+  - „Laufen“ – „15 Titel heruntergeladen“
+  - „Laufen“ – „12 von 15 Titeln geladen, 3 fehlgeschlagen“
+  - „Titelname“ – „Konnte nicht geladen werden“
+  - „Downloads vom iPhone“ – „2 Titel konnten nicht geladen werden“
+
+  Abgebrochene Titel zählen nicht mit.
+
+- [x] Die Mitteilungskennung ist die Batch-Kennung.
+- [x] Im Vordergrund liefert `willPresent` keine Darstellungsoptionen; die
+      Mitteilung erscheint dann nicht.
+- [x] Ein Tippen öffnet den Downloads-Bildschirm (`DownloadsNavigation` und
+      `navigationDestination` in `ContentView`). Der Delegate wird beim
+      Appstart gesetzt.
+- [x] Einstellung „Download-Mitteilungen“ (Standard: an, Schlüssel
+      `downloadNotifications`) im Bereich „Library“ von
+      [`SettingsScreen.swift`](../targets/watch/SettingsScreen.swift). Ist sie
+      aus, wird der Batch ohne Mitteilung entfernt.
+- [x] Ein vollständig abgebrochener Batch erzeugt keine Mitteilung.
+- [x] **Hintergrund:** `handleBackgroundEvents` und der
+      `watchConnectivity`-Handler warten mit `waitForReports`, bis alle
+      Mitteilungen geplant sind, bevor die App wieder angehalten wird.
+- [x] **Texte:** `WatchStabilityCopy` liegt jetzt in
+      [`WatchStabilityCopy.swift`](../targets/watch/WatchStabilityCopy.swift)
+      und hat `format` (Zahlen im Format der UI-Sprache) und `plural`
+      (Einzahl/Mehrzahl über eigene Schlüssel). Damit folgen die Texte
+      `uiLanguage` statt der Systemsprache. Playlist- und Titelnamen werden
+      nicht übersetzt.
 
 ## Phase 5: Prüfung
 
@@ -242,7 +255,10 @@ Prüffälle laufen über den Node-Test-Runner mit `swiftc` auf macOS
       Fehler, Wiederöffnen, vollständig abgebrochene Batches, Kodierung, die
       Erfassung im `DownloadManager` (Erfolg, Transfer- und Startfehler,
       Abbruch) und das Laden eines alten `queue.json` ohne Batches.
-- [ ] Mitteilungstext inklusive Pluralformen beider Sprachen.
+- [x] Mitteilungstexte beider Sprachen inklusive Pluralformen und
+      Zahlenformat, das Zurückhalten eines Batches bis zur geplanten
+      Mitteilung, keine doppelte Mitteilung und die Verdrahtung mit Appstart,
+      Hintergrundhandlern und Einstellung (`test/watch-download-batches.test.mjs`).
 
 **Entwicklerhilfe.**
 
@@ -274,12 +290,11 @@ offen bleibt.
 
 ## Reihenfolge und nächste Schritte
 
-1. Geräteprüfung der bereits umgesetzten Szenarien (ohne Mitteilungen) mit der
-   Entwicklerhilfe „Terminate process“. Erst damit ist W05 auf watchOS
-   bestätigt.
-2. Phase 4: zuerst Batches samt Persistenz und Abschlusserkennung, dann
-   Mitteilungen, Einstellung und Texte.
-3. Abschließend die Geräteszenarien mit Mitteilungen.
+1. `expo prebuild` ausführen, damit die neuen Swift-Dateien im Xcode-Projekt
+   landen.
+2. Geräteszenarien aus Phase 5 auf einer echten Apple Watch, mit der
+   Entwicklerhilfe „Terminate process“. Erst damit sind W05 und die
+   Mitteilungen auf watchOS bestätigt.
 
 ## Offene Punkte
 
