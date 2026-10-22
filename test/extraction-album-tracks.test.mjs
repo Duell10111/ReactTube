@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   getAlbumPlaylistId,
+  getSharedAlbum,
   withAlbumCover,
 } from "../src/extraction/albumTracks.ts";
 
@@ -55,4 +56,32 @@ test("falls back to the canonical URL for the album playlist id", () => {
     getAlbumPlaylistId(undefined, "https://music.youtube.com/browse/MPREb_x"),
     undefined,
   );
+});
+
+test("names a headerless album playlist after the album of its tracks", () => {
+  const album = {id: "MPREb_a", name: "Discovery"};
+  const shared = getSharedAlbum([
+    {type: "video", id: "a", album, thumbnailImage: cover},
+    {type: "video", id: "b", album},
+  ]);
+
+  assert.deepEqual(shared, {name: "Discovery", cover});
+});
+
+test("finds no shared album for mixed or empty lists", () => {
+  assert.equal(
+    getSharedAlbum([
+      {type: "video", id: "a", album: {id: "MPREb_a", name: "A"}},
+      {type: "video", id: "b", album: {id: "MPREb_b", name: "B"}},
+    ]),
+    undefined,
+  );
+  assert.equal(
+    getSharedAlbum([
+      {type: "video", id: "a", album: {id: "MPREb_a", name: "A"}},
+      {type: "video", id: "b"},
+    ]),
+    undefined,
+  );
+  assert.equal(getSharedAlbum([]), undefined);
 });

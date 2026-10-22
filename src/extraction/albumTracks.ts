@@ -1,4 +1,4 @@
-import type {ElementData, Thumbnail} from "./Types";
+import type {ElementData, Thumbnail, VideoData} from "./Types";
 
 /**
  * YouTube Music lists album tracks without artwork of their own, because every
@@ -35,4 +35,21 @@ export function getAlbumPlaylistId(
   }
   const match = canonicalUrl?.match(/[?&]list=([^&#]+)/);
   return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+/**
+ * The album all tracks of a list belong to, with the first track's artwork as
+ * its cover. Undefined if the list is empty or mixes albums.
+ */
+export function getSharedAlbum(
+  items: ElementData[],
+): {name: string; cover?: Thumbnail} | undefined {
+  const tracks = items.filter(
+    (item): item is VideoData => item.type === "video",
+  );
+  const album = tracks[0]?.album;
+  if (!album?.name || tracks.some(track => track.album?.id !== album.id)) {
+    return undefined;
+  }
+  return {name: album.name, cover: tracks[0].thumbnailImage};
 }
