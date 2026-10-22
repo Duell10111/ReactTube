@@ -28,6 +28,8 @@ class DownloadManager {
   private var generations: [String: UUID] = [:]
   /// Videos already restarted once after the OS lost their task.
   private var restartedIDs: Set<String> = []
+  /// Requests whose combined outcome is reported once every title has one.
+  private var batches = DownloadBatches()
 
   private let transport = WatchDownloadTransport()
   private var requestedIDs: Set<String> = []
@@ -40,6 +42,7 @@ class DownloadManager {
     var failures: [String: String]
     /// Optional so queue files written before this field still decode.
     var restartedIDs: Set<String>?
+    var batches: DownloadBatches?
   }
 
   private init() {
@@ -48,6 +51,7 @@ class DownloadManager {
       requestedIDs.formUnion(state.requestedIDs)
       failedDownloads.merge(state.failures, uniquingKeysWith: { current, _ in current })
       restartedIDs.formUnion(state.restartedIDs ?? [])
+      batches = state.batches ?? DownloadBatches()
     }
 
     transport.onProgress = { [weak self] job, progress in
@@ -62,7 +66,7 @@ class DownloadManager {
 
   private func persistQueue() {
     do {
-      let state = QueueState(requestedIDs: requestedIDs, failures: failedDownloads, restartedIDs: restartedIDs)
+      let state = QueueState(requestedIDs: requestedIDs, failures: failedDownloads, restartedIDs: restartedIDs, batches: batches)
       try JSONEncoder().encode(state).write(to: transport.stagingDirectory.appendingPathComponent("queue.json"), options: .atomic)
     } catch {
       WatchLog.shared.error("Download", "Could not persist download queue: \(error.localizedDescription)")
@@ -94,6 +98,14 @@ class DownloadManager {
       if let video = existingVideo(id: id), !video.downloaded { enqueue(video) }
       else { requestedIDs.remove(id) }
     }
+    // Batch titles nothing works on anymore get the outcome they ended with,
+    // so a batch cannot stay open forever after an interrupted process.
+    let untracked = batches.pendingIDs.subtracting(requestedIDs)
+    let completed = untracked.filter { existingVideo(id: $0)?.downloaded == true }
+    batches.record(.completed, for: completed)
+    batches.record(.failed, for: untracked.filter { failedDownloads[$0] != nil })
+    batches.record(.cancelled, for: untracked)
+    finishBatches()
     restoring = false
     restored = true
     persistQueue()
@@ -116,9 +128,20 @@ class DownloadManager {
     await transport.waitForBackgroundEvents(identifier: identifier)
   }
 
+  /// Queues the videos as one batch so their outcome can be reported together.
+  /// Videos that are already downloaded are not part of the batch.
+  func download(_ videos: [Video], as kind: DownloadBatch.Kind, name: String?) {
+    let missing = videos.filter { !$0.downloaded }
+    // The batch exists before queueing, so an immediate failure is recorded.
+    batches.add(kind: kind, name: name, videoIDs: missing.map(\.id))
+    missing.forEach { enqueue($0) }
+    persistQueue()
+    checkDownloads()
+  }
+
   /// Queues a download. Videos without a valid download URL request fresh
   /// metadata first; `videoMetadataUpdated` continues once it arrives.
-  func enqueue(_ video: Video) {
+  private func enqueue(_ video: Video) {
     guard !video.downloaded, !awaitingMetadata.contains(video.id), !pendingDownloads.contains(video), !activeDownloads.contains(where: { $0.id == video.id }) else { return }
     requestedIDs.insert(video.id)
     failedDownloads.removeValue(forKey: video.id)
@@ -133,28 +156,38 @@ class DownloadManager {
 
   func videoMetadataUpdated(id: String) {
     guard awaitingMetadata.remove(id) != nil else { return }
-    let descriptor = FetchDescriptor<Video>(predicate: #Predicate { $0.id == id })
-    if let video = try? DataController.shared.container?.mainContext.fetch(descriptor).first, !video.downloaded {
-      guard video.downloadURL != nil, let expiry = video.validUntil, expiry > Date() else {
-        failedDownloads[id] = DownloadMessages.unavailable
-        persistQueue()
-        notifyProgress()
-        return
-      }
-      pendingDownloads.insert(video)
-      checkDownloads()
+    guard let video = existingVideo(id: id), !video.downloaded else {
+      // Deleted or downloaded in the meantime; its batches must not wait for it.
+      requestedIDs.remove(id)
+      record(existingVideo(id: id) == nil ? .cancelled : .completed, for: [id])
+      persistQueue()
+      return
     }
+    guard video.downloadURL != nil, let expiry = video.validUntil, expiry > Date() else {
+      fail(id, DownloadMessages.unavailable)
+      persistQueue()
+      notifyProgress()
+      return
+    }
+    pendingDownloads.insert(video)
+    checkDownloads()
   }
 
   func videoMetadataFailed(id: String) {
     guard awaitingMetadata.remove(id) != nil else { return }
-    failedDownloads[id] = WatchStatus.shared.isReachable ? DownloadMessages.metadataFailed : DownloadMessages.connectionFailed
+    fail(id, WatchStatus.shared.isReachable ? DownloadMessages.metadataFailed : DownloadMessages.connectionFailed)
     persistQueue()
     notifyProgress()
   }
 
   /// Removes the videos from all queues and cancels running downloads.
   func cancel(ids: Set<String>) {
+    record(.cancelled, for: ids)
+    discard(ids: ids)
+  }
+
+  /// Stops all work for the videos without recording a batch outcome.
+  private func discard(ids: Set<String>) {
     pendingDownloads = pendingDownloads.filter { !ids.contains($0.id) }
     awaitingMetadata.subtract(ids)
     requestedIDs.subtract(ids)
@@ -183,11 +216,42 @@ class DownloadManager {
     let descriptor = FetchDescriptor<Video>(predicate: #Predicate { $0.id == id })
     guard let video = try? DataController.shared.container?.mainContext.fetch(descriptor).first else {
       failedDownloads.removeValue(forKey: id)
+      record(.cancelled, for: [id])
+      persistQueue()
       return
     }
-    cancel(ids: [id])
-    enqueue(video)
+    discard(ids: [id])
+    // A retry belongs to the request it failed in while that is still open.
+    if !batches.reopen(id) {
+      batches.add(kind: .video, name: video.title, videoIDs: [id])
+    }
+    if video.downloaded {
+      record(.completed, for: [id])
+      persistQueue()
+    } else {
+      enqueue(video)
+    }
     checkDownloads()
+  }
+
+  private func fail(_ id: String, _ reason: String) {
+    failedDownloads[id] = reason
+    record(.failed, for: [id])
+  }
+
+  private func record(_ outcome: DownloadBatch.Outcome, for ids: Set<String>) {
+    batches.record(outcome, for: ids)
+    finishBatches()
+  }
+
+  private func finishBatches() {
+    // Finished batches are only logged until download notifications exist.
+    for batch in batches.takeFinished() where !batch.isCancelled {
+      WatchLog.shared.info(
+        "Download",
+        "Finished \(batch.kind.rawValue) batch: \(batch.completedCount) of \(batch.videoIDs.count) downloaded, \(batch.failedIDs.count) failed"
+      )
+    }
   }
 
   private func notifyProgress() {
@@ -200,6 +264,7 @@ class DownloadManager {
     VideoMetadataRequests.shared.cancel(ids: awaitingMetadata)
     generations.removeAll()
     restartedIDs.removeAll()
+    batches.removeAll()
     coverKeys.removeAll()
     transport.cancelAll()
     requestedIDs.removeAll()
@@ -216,12 +281,7 @@ class DownloadManager {
   func downloadPlaylist(_ playlist: Playlist) {
     print("Downloading playlist \(playlist.id)")
     playlist.download = true
-    playlist.videos.filter { video in
-      video.downloaded == false
-    }.forEach { video in
-      enqueue(video)
-    }
-    checkDownloads()
+    download(playlist.orderedVideos, as: .playlist, name: playlist.title)
   }
 
   /// Starts the transfer right away. Callers go through `enqueue` so the
@@ -231,7 +291,7 @@ class DownloadManager {
     let id = video.id
     let duration = video.durationMillis
     guard let streamURL = video.downloadURL, let expiry = video.validUntil, expiry > Date(), let uri = URL(string: streamURL) else {
-      failedDownloads[id] = DownloadMessages.unavailable
+      fail(id, DownloadMessages.unavailable)
       return false
     }
     let generation = UUID()
@@ -239,7 +299,7 @@ class DownloadManager {
     let key = transport.start(videoID: id, kind: "audio", generation: generation, duration: duration, url: uri)
     guard let key else {
       generations.removeValue(forKey: id)
-      failedDownloads[id] = DownloadMessages.startFailed
+      fail(id, DownloadMessages.startFailed)
       return false
     }
     downloadKeys[id] = key
@@ -260,6 +320,7 @@ class DownloadManager {
     guard let video = existingVideo(id: id) else {
       activeDownloads.removeAll { $0.id == id }
       requestedIDs.remove(id)
+      record(.cancelled, for: [id])
       persistQueue()
       return true
     }
@@ -272,7 +333,7 @@ class DownloadManager {
         restartedIDs.insert(id)
         restart = true
       } else {
-        failedDownloads[id] = DownloadMessages.reason(for: error)
+        fail(id, DownloadMessages.reason(for: error))
         if DownloadMessages.isExpiredLink(error) {
           // A retry must request a fresh link instead of reusing the rejected one.
           video.downloadURL = nil
@@ -291,9 +352,14 @@ class DownloadManager {
         if isAudio { video.downloaded = true; video.fileURL = relativePath }
         else { video.coverURL = relativePath }
         try context.save()
-        if isAudio { requestedIDs.remove(id); restartedIDs.remove(id); failedDownloads.removeValue(forKey: id) }
+        if isAudio {
+          requestedIDs.remove(id)
+          restartedIDs.remove(id)
+          failedDownloads.removeValue(forKey: id)
+          record(.completed, for: [id])
+        }
       } catch {
-        failedDownloads[id] = DownloadMessages.saveFailed
+        fail(id, DownloadMessages.saveFailed)
         activeDownloads.removeAll { $0.id == id }
         progressDownloads.removeValue(forKey: id)
         // Recovery can retry this staged file even if the process exits now.

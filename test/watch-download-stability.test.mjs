@@ -6,7 +6,8 @@ import {runSwift, swiftMethod, watchSource} from "./helpers/watchNative.mjs";
 const source = watchSource("DownloadManager.swift");
 
 test("W04 cancels audio, cover and metadata before deleting library entries", () => {
-  const cancel = swiftMethod(source, "func cancel(ids:");
+  const cancel = swiftMethod(source, "private func discard(");
+  assert.match(swiftMethod(source, "func cancel(ids:"), /discard\(ids: ids\)/);
   assert.match(cancel, /generations.removeValue/);
   assert.match(cancel, /coverKeys.removeValue/);
   assert.match(cancel, /VideoMetadataRequests.shared.cancel/);
@@ -48,6 +49,7 @@ final class Video: Hashable {
   func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 struct ActiveDownload { var id: String }
+enum DownloadBatch { enum Outcome { case completed, failed, cancelled } }
 final class WatchLog {
   static let shared = WatchLog()
   func error(_ category: String, _ message: String) {}
@@ -102,10 +104,13 @@ final class Probe {
   func notifyProgress() {}
   func checkDownloads() {}
   func existingVideo(id: String) -> Video? { video }
+  func fail(_ id: String, _ reason: String) { failedDownloads[id] = reason }
+  func record(_ outcome: DownloadBatch.Outcome, for ids: Set<String>) {}
   func enqueue(_ video: Video) { preconditionFailure("No restart expected") }
 
   ${swiftMethod(source, "private func downloadVideo(")}
   ${swiftMethod(source, "func cancel(ids:")}
+  ${swiftMethod(source, "private func discard(")}
   ${swiftMethod(source, "private func complete(")}
   func run() throws {
     defer { try? FileManager.default.removeItem(at: directory) }

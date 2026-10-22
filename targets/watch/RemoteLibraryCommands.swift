@@ -185,8 +185,7 @@ final class RemoteLibraryCommands {
 
     let saved = save()
     guard saved.status == "ok" else { return saved }
-    videos.forEach { DownloadManager.shared.enqueue($0) }
-    DownloadManager.shared.checkDownloads()
+    DownloadManager.shared.download(videos, as: .phone, name: videos.count == 1 ? videos.first?.title : nil)
     return .ok
   }
 
@@ -307,8 +306,7 @@ final class RemoteLibraryCommands {
   }
 
   private func enqueueMissingDownloads(_ playlist: Playlist) {
-    playlist.orderedVideos.filter { !$0.downloaded }.forEach { DownloadManager.shared.enqueue($0) }
-    DownloadManager.shared.checkDownloads()
+    DownloadManager.shared.download(playlist.orderedVideos, as: .playlist, name: playlist.title)
   }
 
   /// Deletes downloads and entries of videos no playlist references anymore.

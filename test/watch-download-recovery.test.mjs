@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {URL, fileURLToPath} from "node:url";
 
 import {runSwift, swiftMethod, watchSource} from "./helpers/watchNative.mjs";
 
 const source = watchSource("DownloadManager.swift");
+const batchesFile = fileURLToPath(
+  new URL("../targets/watch/DownloadBatches.swift", import.meta.url),
+);
 
 test(
   "W05 restores staged files and missing task failures from the durable journal",
@@ -82,7 +86,8 @@ test(
   "W05 restarts a lost task once and maps transfer errors to localized reasons",
   {skip: process.platform !== "darwin"},
   () => {
-    runSwift(`
+    runSwift(
+      `
 import Foundation
 final class Video: Hashable {
   let id = "a"
@@ -128,6 +133,8 @@ final class Probe {
   func persistQueue() {}
   func notifyProgress() {}
   func checkDownloads() {}
+  func fail(_ id: String, _ reason: String) { failedDownloads[id] = reason }
+  func record(_ outcome: DownloadBatch.Outcome, for ids: Set<String>) {}
   func existingVideo(id: String) -> Video? { video }
   func enqueue(_ video: Video) {
     precondition(!activeDownloads.contains { $0.id == video.id })
@@ -160,7 +167,9 @@ final class Probe {
   }
 }
 @main struct Main { static func main() throws { try Probe().run() } }
-`);
+`,
+      [batchesFile],
+    );
   },
 );
 
