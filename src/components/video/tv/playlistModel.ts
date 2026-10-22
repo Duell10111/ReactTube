@@ -1,3 +1,27 @@
+import type {YTVideoInfo} from "@/extraction/Types";
+
+/** The same playlist row is shown below the player and in its end card. */
+export function resolveVideoPlaylist(
+  video: Pick<YTVideoInfo, "id" | "playlist" | "watchNextSections">,
+  fallbackTitle: string,
+) {
+  if (!video.playlist) {
+    return undefined;
+  }
+
+  const shelf = video.watchNextSections?.[0];
+  const elements = shelf?.parsedData ?? video.playlist.content;
+  return {
+    title: (shelf ? shelf.title : video.playlist.title) ?? fallbackTitle,
+    elements,
+    currentIndex: findCurrentPlaylistIndex(
+      elements,
+      video.id,
+      video.playlist.current_index,
+    ),
+  };
+}
+
 /**
  * Index of the playing video inside the playlist row, or -1 when it cannot be
  * told apart.
