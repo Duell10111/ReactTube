@@ -498,3 +498,16 @@ Ein Review der Umsetzung ergab weitere Korrekturen:
 - **W07-Regressionstest:** Der reine Quelltexttest ist durch den oben
   beschriebenen nativen Prüffall ersetzt. Eine Gegenprobe ohne `player = nil`
   im Abbau lässt den Test fehlschlagen.
+- **Löschen während der Wiedergabe:** Wird ein Titel aus der Bibliothek gelöscht,
+  verlässt nur dieser Titel Warteschlange und Playlist. Die Wiedergabe läuft
+  weiter, beim aktuellen Titel mit dem nächsten Titel von Anfang an. War es der
+  letzte Titel der Warteschlange, hält die Wiedergabe am Anfang an, statt sie zu
+  wiederholen. Ein vollständiger Stopp erfolgt nur noch, wenn die aktuelle
+  Playlist gelöscht wird oder kein Titel übrig bleibt. Beim Freigeben eines
+  Downloads bleibt der Titel erhalten: Sein Eintrag mit der lokalen Datei
+  verlässt die Warteschlange vor dem Löschen der Datei. Danach kehrt er als
+  Stream zurück, oder ein neuer Stream-Link wird angefordert. Ist der aktuelle
+  Titel betroffen, geht die Wiedergabe mit dem nächsten Titel weiter. Native
+  Regressionstests (`test/watch-queue-deletion.test.mjs`) bilden die
+  Indexlogik von SwiftAudioEx nach und prüfen diese Fälle. Eine Gegenprobe ohne
+  den Halt am Warteschlangenende lässt sie fehlschlagen.
