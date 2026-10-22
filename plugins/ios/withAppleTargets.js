@@ -1,10 +1,20 @@
 /* eslint-env node */
-const withAppleTargets = require("@duell10111/apple-targets");
+const withAppleTargets = require("@bacons/apple-targets/app.plugin");
 
-const {isSiriBuildEnabled} = require("./siriBuildConfig");
+const {isSiriBuildEnabled, isTVBuild} = require("./siriBuildConfig");
+const {
+  withAppleTargetSwiftPackages,
+} = require("./withAppleTargetSwiftPackages");
 
-module.exports = (config, options = {}) =>
-  withAppleTargets(config, {
+module.exports = (config, options = {}) => {
+  if (options.isTV === true || isTVBuild(config)) return config;
+
+  const targetOptions = {
     ...options,
     match: isSiriBuildEnabled(config) ? "*" : "!(siri-intents)",
-  });
+  };
+  // Register first: target mods execute before this action, and the upstream
+  // base provider must be the last registration for its custom Xcode mod.
+  config = withAppleTargetSwiftPackages(config, targetOptions);
+  return withAppleTargets(config, targetOptions);
+};

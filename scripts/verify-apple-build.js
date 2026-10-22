@@ -56,6 +56,55 @@ function configurations(project, owner) {
   );
 }
 
+function verifyWatchPackages(project, watch, dependencies) {
+  const objects = project.hash.project.objects;
+  const reference = value => value?.value ?? value;
+  const root = project.getFirstProject().firstProject;
+  const packages = (root.packageReferences ?? []).map(
+    value => objects.XCRemoteSwiftPackageReference?.[reference(value)],
+  );
+  const products = (watch.packageProductDependencies ?? []).map(value => ({
+    uuid: reference(value),
+    ...objects.XCSwiftPackageProductDependency?.[reference(value)],
+  }));
+  const frameworks = watch.buildPhases
+    .map(value => objects.PBXFrameworksBuildPhase?.[reference(value)])
+    .filter(Boolean)
+    .flatMap(phase =>
+      phase.files.map(value => objects.PBXBuildFile[reference(value)]),
+    );
+  for (const dependency of dependencies) {
+    const refs = packages.filter(
+      pkg => unquote(pkg?.repositoryURL) === dependency.repository,
+    );
+    assert.equal(
+      refs.length,
+      1,
+      `One package reference for ${dependency.name}`,
+    );
+    assert.equal(unquote(refs[0].requirement.kind), "branch");
+    assert.equal(unquote(refs[0].requirement.branch), dependency.branch);
+    const linked = products.filter(
+      product => unquote(product.productName) === dependency.name,
+    );
+    assert.equal(
+      linked.length,
+      1,
+      `One Watch package product for ${dependency.name}`,
+    );
+    assert.equal(
+      objects.XCRemoteSwiftPackageReference[reference(linked[0].package)],
+      refs[0],
+    );
+    assert.equal(
+      frameworks.filter(file => reference(file.productRef) === linked[0].uuid)
+        .length,
+      1,
+      `Watch links ${dependency.name} in Frameworks`,
+    );
+  }
+}
+
 function verifyProject(root, {siriEnabled, isTV}) {
   const config = JSON.parse(
     fs.readFileSync(path.join(root, "app.json"), "utf8"),
@@ -87,14 +136,22 @@ function verifyProject(root, {siriEnabled, isTV}) {
   );
   assert.equal(siriTargets.length, enabled ? 1 : 0, "Siri extension target");
   assert.equal(
-    targets.some(target => unquote(target.name) === "RT-Watch"),
-    !isTV,
+    targets.filter(target => unquote(target.name) === "RT-Watch").length,
+    isTV ? 0 : 1,
     "Watch target is preserved on iOS only",
   );
   for (const watch of targets.filter(
     target => unquote(target.name) === "RT-Watch",
   )) {
+    const watchConfig = require(
+      path.join(root, "targets/watch/expo-target.config.js"),
+    );
+    verifyWatchPackages(project, watch, watchConfig.swiftDependencies);
     for (const settings of configurations(project, watch)) {
+      assert.equal(
+        unquote(settings.WATCHOS_DEPLOYMENT_TARGET),
+        watchConfig.deploymentTarget,
+      );
       assert.equal(
         unquote(settings.PRODUCT_BUNDLE_IDENTIFIER),
         `${config.ios.bundleIdentifier}.watch`,
@@ -150,6 +207,7 @@ function verifyProject(root, {siriEnabled, isTV}) {
       );
     }
     for (const settings of configurations(project, siriTargets[0])) {
+      assert.equal(unquote(settings.IPHONEOS_DEPLOYMENT_TARGET), "16.4");
       assert.equal(
         unquote(settings.PRODUCT_BUNDLE_IDENTIFIER),
         `${config.ios.bundleIdentifier}.siriIntents`,
@@ -352,4 +410,4 @@ if (require.main === module) {
   );
 }
 
-module.exports = {verifyProject, verifyBundle, verifyIpa};
+module.exports = {verifyProject, verifyBundle, verifyIpa, verifyWatchPackages};

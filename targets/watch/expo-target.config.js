@@ -1,8 +1,8 @@
-/** @type {import('@duell10111/apple-targets').Config} */
+/** @type {import('../../plugins/ios/withAppleTargetSwiftPackages').TargetConfig} */
 module.exports = {
   type: "watch",
   name: "RT-Watch",
-  bundleId: "com.duell10111.reacttube.watch",
+  bundleIdentifier: ".watch",
   icon: "../../assets/icon-512-maskable.png",
   deploymentTarget: "10.0",
   swiftDependencies: [
