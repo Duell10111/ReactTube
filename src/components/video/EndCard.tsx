@@ -22,6 +22,7 @@ import {
 } from "@/ui/patterns";
 import {useAppTheme} from "@/ui/theme";
 import {TVFocusRegion, useTVOverscanInsets} from "@/ui/tv";
+import {YTNodes} from "@/utils/Youtube";
 
 interface Props {
   video: YTVideoInfo;
@@ -59,9 +60,16 @@ export default function EndCard({
   );
 
   const next = useMemo(() => resolveNextVideo(video), [video]);
+  const nextEndpoint = useMemo(
+    () =>
+      next.watchEndpoint
+        ? new YTNodes.NavigationEndpoint({watchEndpoint: next.watchEndpoint})
+        : next.navEndpoint,
+    [next],
+  );
   // Only an ended video needs its successor; the on-demand view does not.
   const {videoElement: nextVideo} = useVideoElementData(
-    endCard ? (next.navEndpoint ?? next.videoId) : undefined,
+    endCard ? (nextEndpoint ?? next.videoId) : undefined,
   );
 
   const recommendations = useMemo(
@@ -126,7 +134,7 @@ export default function EndCard({
                   // @ts-ignore TODO: fix
                   navigation.replace("VideoScreen", {
                     videoId: target.id,
-                    navEndpoint: next.navEndpoint,
+                    navEndpoint: nextEndpoint,
                   });
                 }}
               />

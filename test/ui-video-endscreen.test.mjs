@@ -151,3 +151,81 @@ test("without a playlist successor the autoplay suggestion plays", () => {
     {},
   );
 });
+
+test("playlist autoplay retains its context across consecutive TV videos", () => {
+  const entries = ["p1", "p2", "p3"].map(id => ({
+    id,
+    navEndpoint: {payload: {videoId: id, params: `params-${id}`}},
+  }));
+
+  for (let index = 0; index < 2; index++) {
+    const next = resolveNextVideo({
+      id: entries[index].id,
+      playlist: {id: "PL", current_index: index, content: []},
+      watchNextSections: [{parsedData: entries}],
+      originalData: {
+        autoplay_video_endpoint: {payload: {videoId: "unrelated"}},
+      },
+    });
+
+    assert.equal(next.videoId, entries[index + 1].id);
+    assert.deepEqual(next.watchEndpoint, {
+      videoId: entries[index + 1].id,
+      params: `params-${entries[index + 1].id}`,
+      playlistId: "PL",
+      playlistIndex: index + 1,
+    });
+    assert.equal(entries[index + 1].navEndpoint.payload.playlistId, undefined);
+  }
+});
+
+test("playlist autoplay works when an entry has no navigation endpoint", () => {
+  const next = resolveNextVideo({
+    id: "p1",
+    playlist: {
+      id: "PL",
+      current_index: 0,
+      content: [{id: "p1"}, {id: "p2"}],
+    },
+    originalData: {},
+  });
+
+  assert.deepEqual(next, {
+    videoId: "p2",
+    navEndpoint: undefined,
+    watchEndpoint: {videoId: "p2", playlistId: "PL", playlistIndex: 1},
+  });
+});
+
+test("the TV shelf locates the current video independently of the playlist index", () => {
+  const payload = {videoId: "p3", playlistId: "PL", index: 12, params: "keep"};
+  const next = resolveNextVideo({
+    id: "p2",
+    playlist: {id: "PL", current_index: 10, content: []},
+    watchNextSections: [
+      {
+        parsedData: [
+          {id: "p1"},
+          {id: "p2"},
+          {id: "p3", navEndpoint: {payload}},
+        ],
+      },
+    ],
+    originalData: {},
+  });
+
+  assert.equal(next.videoId, "p3");
+  assert.deepEqual(next.watchEndpoint, {...payload, playlistIndex: 12});
+});
+
+test("autoplay leaving the playlist does not inherit its context", () => {
+  const autoplay = {payload: {videoId: "auto"}};
+  const next = resolveNextVideo({
+    id: "p2",
+    playlist: {id: "PL", current_index: 1, content: []},
+    watchNextSections: [{parsedData: [{id: "p1"}, {id: "p2"}]}],
+    originalData: {autoplay_video_endpoint: autoplay},
+  });
+
+  assert.deepEqual(next, {videoId: "auto", navEndpoint: autoplay});
+});
