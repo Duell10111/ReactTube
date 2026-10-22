@@ -15,7 +15,9 @@ func getDocumentsDirectory() -> URL { FileManager.default.temporaryDirectory }
 final class WatchLog {
   static let shared = WatchLog()
   func error(_ category: String, _ message: String) {}
+  func warning(_ category: String, _ message: String) {}
 }
+${swiftMethod(source, "enum WatchDownloadError")}
 ${swiftMethod(source, "struct WatchDownloadJob:")}
 @MainActor
 ${swiftMethod(source, "final class WatchDownloadTransport:")}
@@ -33,7 +35,7 @@ ${swiftMethod(source, "final class WatchDownloadTransport:")}
     let first = WatchDownloadTransport(directory: directory, background: false)
     var missing = 0
     first.onCompletion = { job, file, error in
-      if job.id == "lost" { precondition(error != nil); missing += 1; return true }
+      if job.id == "lost" { precondition(error as? WatchDownloadError == .taskMissing); missing += 1; return true }
       precondition(file == staged && error == nil)
       return false
     }
@@ -67,9 +69,97 @@ ${swiftMethod(source, "final class WatchDownloadTransport:")}
     try? await Task.sleep(for: .milliseconds(10))
     relaunched.urlSessionDidFinishEvents(forBackgroundURLSession: session)
     await waiter.value
+    // Without a finish callback the timeout still ends the background handler.
+    await relaunched.waitForBackgroundEvents(identifier: WatchDownloadTransport.sessionIdentifier, timeout: .milliseconds(20))
     session.invalidateAndCancel()
   }
 }
+`);
+  },
+);
+
+test(
+  "W05 restarts a lost task once and maps transfer errors to localized reasons",
+  {skip: process.platform !== "darwin"},
+  () => {
+    runSwift(`
+import Foundation
+final class Video: Hashable {
+  let id = "a"
+  var downloaded = false
+  var fileURL: String?
+  var durationMillis = 1000
+  var downloadURL: String? = "https://example.test/audio"
+  var validUntil: Date? = Date().addingTimeInterval(100)
+  var coverURL: String?
+  static func == (lhs: Video, rhs: Video) -> Bool { lhs === rhs }
+  func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}
+struct ActiveDownload { var id: String }
+${swiftMethod(source, "enum DownloadMessages")}
+${swiftMethod(source, "enum WatchStabilityCopy")}
+${swiftMethod(source, "enum WatchDownloadError")}
+${swiftMethod(source, "private struct QueueState")}
+struct WatchDownloadJob {
+  let id: String
+  let videoID: String
+  let kind: String
+  let generation: UUID
+  let duration: Int
+}
+final class Context { func save() throws {} }
+final class DataController {
+  static let shared = DataController()
+  let container: Container? = Container()
+}
+final class Container { let mainContext = Context() }
+func getDownloadVideoDirectory(id: String) -> URL { FileManager.default.temporaryDirectory }
+final class Probe {
+  var requestedIDs: Set<String> = ["a"]
+  var failedDownloads: [String: String] = [:]
+  var activeDownloads: [ActiveDownload] = []
+  var progressDownloads: [String: Double] = [:]
+  var downloadKeys: [String: String] = [:]
+  var coverKeys: [String: String] = [:]
+  var generations: [String: UUID] = [:]
+  var restartedIDs: Set<String> = []
+  let video = Video()
+  var enqueued = 0
+  func persistQueue() {}
+  func notifyProgress() {}
+  func checkDownloads() {}
+  func existingVideo(id: String) -> Video? { video }
+  func enqueue(_ video: Video) {
+    precondition(!activeDownloads.contains { $0.id == video.id })
+    enqueued += 1
+  }
+  func start() -> WatchDownloadJob {
+    let job = WatchDownloadJob(id: UUID().uuidString, videoID: "a", kind: "audio", generation: UUID(), duration: 1000)
+    generations["a"] = job.generation
+    downloadKeys["a"] = job.id
+    activeDownloads = [ActiveDownload(id: "a")]
+    return job
+  }
+
+  ${swiftMethod(source, "private func complete(")}
+  func run() throws {
+    UserDefaults.standard.set("en", forKey: "uiLanguage")
+    precondition(complete(job: start(), file: nil, error: WatchDownloadError.taskMissing))
+    precondition(enqueued == 1 && failedDownloads.isEmpty && activeDownloads.isEmpty && restartedIDs == ["a"])
+    precondition(complete(job: start(), file: nil, error: WatchDownloadError.taskMissing))
+    precondition(enqueued == 1 && failedDownloads["a"] == "The system stopped the download.")
+    precondition(complete(job: start(), file: nil, error: WatchDownloadError.httpStatus(403)))
+    precondition(failedDownloads["a"]!.contains("expired") && video.downloadURL == nil)
+    precondition(DownloadMessages.reason(for: WatchDownloadError.httpStatus(500)) == "The server rejected the download (HTTP 500).")
+    precondition(DownloadMessages.reason(for: URLError(.timedOut)) == "The connection was lost during the download.")
+    precondition(DownloadMessages.reason(for: CocoaError(.fileNoSuchFile)) == "The download failed.")
+    precondition(WatchStabilityCopy.text(.downloadServerError, language: "de").contains("%d"))
+    // Queue files written before restartedIDs existed still decode.
+    let old = try JSONDecoder().decode(QueueState.self, from: Data(#"{"requestedIDs":["a"],"failures":{}}"#.utf8))
+    precondition(old.requestedIDs == ["a"] && old.restartedIDs == nil)
+  }
+}
+@main struct Main { static func main() throws { try Probe().run() } }
 `);
   },
 );
@@ -96,5 +186,10 @@ test("W05 wires startup and background events to recovery and persists queue int
     /video.fileURL = nil\s*requestedIDs.insert/,
   );
   assert.match(source, /task.taskDescription = id/);
+  // Returning to the foreground reconciles transfers the OS may have dropped.
+  assert.match(
+    watchSource("watchApp.swift"),
+    /onChange\(of: scenePhase\)[\s\S]*?await downloadManager.refresh\(\)/,
+  );
   assert.doesNotMatch(source, /SDDownloadManager/);
 });

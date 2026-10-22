@@ -52,7 +52,9 @@ final class WatchLog {
   static let shared = WatchLog()
   func error(_ category: String, _ message: String) {}
 }
-enum DownloadMessages { static let unavailable = "unavailable"; static let saveFailed = "save"; static let startFailed = "start" }
+${swiftMethod(source, "enum DownloadMessages")}
+${swiftMethod(source, "enum WatchStabilityCopy")}
+${swiftMethod(source, "enum WatchDownloadError")}
 final class VideoMetadataRequests {
   static let shared = VideoMetadataRequests()
   func cancel(ids: Set<String>) {}
@@ -94,11 +96,13 @@ final class Probe {
   var downloadKeys: [String: String] = [:]
   var coverKeys: [String: String] = [:]
   var generations: [String: UUID] = [:]
+  var restartedIDs: Set<String> = []
   var video: Video? = Video()
   var updates = 0
   func notifyProgress() {}
   func checkDownloads() {}
   func existingVideo(id: String) -> Video? { video }
+  func enqueue(_ video: Video) { preconditionFailure("No restart expected") }
 
   ${swiftMethod(source, "private func downloadVideo(")}
   ${swiftMethod(source, "func cancel(ids:")}
