@@ -1,5 +1,5 @@
 import BottomSheet from "@gorhom/bottom-sheet";
-import React, {useMemo} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {StyleProp, StyleSheet, View, ViewStyle} from "react-native";
 
 import {useTranslation} from "@/localization";
@@ -31,8 +31,11 @@ const fullHeightSnapPoints = ["100%"];
  * and queue. It owns the theme, the title row, and the close action, so those
  * three panels cannot look like three different products.
  *
- * The sheet stays mounted and closed. Playback keeps running behind it, which
- * is the point of a sheet over a screen for these panels.
+ * Playback keeps running behind the sheet, which is the point of a sheet over
+ * a screen for these panels. The sheet is only mounted while it is open or
+ * closing: a closed sheet keeps the closed position of the container it was
+ * closed in, and when that container grows, as on entering full screen, its
+ * top edge shows at the bottom of the screen.
  */
 export function SheetPanel({
   title,
@@ -46,15 +49,40 @@ export function SheetPanel({
 }: SheetPanelProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
+  const [mounted, setMounted] = useState(open);
+  if (open && !mounted) {
+    setMounted(true);
+  }
+
+  const sheetRef = useRef<BottomSheet>(null);
+
+  // The `index` prop only places a sheet on mount: the library ignores a
+  // change of it to -1, so closing has to go through the ref.
+  useEffect(() => {
+    if (open) {
+      sheetRef.current?.snapToIndex(0);
+    } else {
+      sheetRef.current?.close();
+    }
+  }, [open]);
+
+  const handleClose = useCallback(() => {
+    setMounted(false);
+    onClose();
+  }, [onClose]);
 
   const backgroundStyle = useMemo(
     () => ({backgroundColor: theme.colors.surface}),
     [theme.colors.surface],
   );
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
-    // A closed sheet still covers the screen, so three of them stacked over a
-    // feed would swallow its touches. The wrapper hands them back.
+    // A closing sheet still covers the screen and would swallow touches meant
+    // for the feed. The wrapper hands them back.
     <View
       pointerEvents={open ? "box-none" : "none"}
       style={[StyleSheet.absoluteFill, containerStyle]}>
@@ -70,9 +98,9 @@ export function SheetPanel({
         enableDynamicSizing={false}
         enablePanDownToClose
         handleIndicatorStyle={{backgroundColor: theme.colors.textSecondary}}
-        // The sheet follows this prop, so `open` alone opens and closes it.
         index={open ? 0 : -1}
-        onClose={onClose}
+        onClose={handleClose}
+        ref={sheetRef}
         snapPoints={fullHeight ? fullHeightSnapPoints : defaultSnapPoints}>
         <View
           style={[
