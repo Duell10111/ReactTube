@@ -9,38 +9,39 @@ import Foundation
 import AVFoundation
 import SwiftAudioEx
 
+@MainActor
 class PlaylistManager {
 
   private var playlist: Playlist?
   var videos: [Video]?
-  private var playlistItems: [AudioItem?] = []
+  private(set) var orderedVideoIDs: [String] = []
+  var hasTitles: Bool { !orderedVideoIDs.isEmpty }
+  func contains(id: String) -> Bool { orderedVideoIDs.contains(id) }
 
   init() {
 
   }
 
   func setPlaylist(_ playlist: Playlist?, videos: [Video]? = nil, shuffle: Bool = false) {
-    if let p = playlist {
-      self.playlist = p
-      let orderedVideos = p.orderedVideos
-      self.videos = orderedVideos
-      self.playlistItems = Array(repeating: nil, count: orderedVideos.count)
-    } else if let v = videos {
-      self.playlist = nil
-      self.videos = v
-      self.playlistItems = Array(repeating: nil, count: v.count)
-    } else {
-      print("Setting playlist invalid")
-    }
-    
-    if shuffle {
-      self.videos?.shuffle()
-    }
+    self.playlist = playlist
+    let models = playlist?.orderedVideos ?? videos ?? []
+    let ids = (playlist?.videoIDs ?? []) + models.map(\.id)
+    var seen: Set<String> = []
+    orderedVideoIDs = ids.filter { seen.insert($0).inserted }
+    if shuffle { orderedVideoIDs.shuffle() }
+    self.videos = models
+    refreshModels()
+  }
+
+  private func refreshModels() {
+    let models = playlist?.orderedVideos ?? videos ?? []
+    let byID = Dictionary(models.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+    videos = orderedVideoIDs.compactMap { byID[$0] }
   }
 
   func getAll() -> [(Video, AudioItem)] {
     if let videos = videos {
-      return getVideos(indexSet: IndexSet(0...videos.count-1)).compactMap { v, a in
+      return getVideos(indexSet: IndexSet(videos.indices)).compactMap { v, a in
         if let audio = a {
           return (v, audio)
         }
@@ -51,9 +52,10 @@ class PlaylistManager {
   }
 
   func getFirstBatchOfAvailable() -> [(Video, AudioItem)] {
+    for id in orderedVideoIDs where videos?.contains(where: { $0.id == id }) != true { requestVideo(id: id) }
     if let videos = videos {
       var arr = Array<(Video, AudioItem)>()
-      let videos = getVideos(indexSet: IndexSet(0...videos.count-1))
+      let videos = getVideos(indexSet: IndexSet(videos.indices))
 
       for v in videos {
         if let audio = v.1 {
@@ -71,15 +73,9 @@ class PlaylistManager {
 
   func getVideos(indexSet: IndexSet) -> [(Video, AudioItem?)] {
     let items : [(Int, AudioItem?)] = indexSet.map { index in
-      let playerItem = playlistItems[index]
-      if let pItem = playerItem {
-        return (index, pItem)
-      } else {
-        if let videos = videos {
-          let pItem = getPlayerItem(videos[index])
-          self.playlistItems[index] = pItem
-          return (index, pItem)
-        }
+      if let videos, videos.indices.contains(index) {
+        // Stream URLs can expire while an earlier title is still playing.
+        return (index, getPlayerItem(videos[index]))
       }
       return (index, nil)
     }
@@ -93,8 +89,19 @@ class PlaylistManager {
 
   }
 
-  func checkForNewVideos() {
-    // TODO: Check if playlist contains new videos
+  /// Forgets deleted titles; the playlist relationship can still list them until it is saved.
+  func remove(ids: Set<String>) {
+    orderedVideoIDs.removeAll { ids.contains($0) }
+    videos?.removeAll { ids.contains($0.id) }
+  }
+
+  func checkForNewVideos() -> [(Video, AudioItem)] {
+    refreshModels()
+    return getAll()
+  }
+
+  func isPlayable(_ video: Video) -> Bool {
+    getPlayerItem(video) != nil
   }
 
   private func getPlayerItem(_ video: Video) -> AudioItem? {
@@ -106,7 +113,12 @@ class PlaylistManager {
       let coverURL = resolvedCoverURL(for: video)?.url.absoluteString
       print("Coverurl: \(coverURL ?? "none")")
       
-      if let item = TrackEndtime(url: uri, artworkUrl: coverURL, endTiming: CMTime(value: Int64(video.durationMillis/1000), timescale: 1)) {
+      // Without a known duration the item must not be cropped: an end time of 0
+      // ends it right away and the title cannot be played at all.
+      let item: Track? = video.durationMillis > 0
+        ? TrackEndtime(url: uri, artworkUrl: coverURL, endTiming: CMTime(value: Int64(video.durationMillis), timescale: 1000))
+        : Track(url: uri, artworkUrl: coverURL)
+      if let item {
         item.title = video.title
         item.artist = video.artist
 

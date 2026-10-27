@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {withAlbumCover} from "../src/extraction/albumTracks.ts";
+import {
+  getAlbumPlaylistId,
+  getSharedAlbum,
+  withAlbumCover,
+} from "../src/extraction/albumTracks.ts";
 
 const cover = {url: "https://example.test/album.jpg", width: 544, height: 544};
 
@@ -27,4 +31,57 @@ test("leaves non-track entries and a missing cover alone", () => {
 
   assert.equal(withAlbumCover([playlist], cover)[0], playlist);
   assert.equal(withAlbumCover(items, undefined), items);
+});
+
+test("takes the album playlist id from the play button", () => {
+  assert.equal(
+    getAlbumPlaylistId(
+      "OLAK5uy_play",
+      "https://music.youtube.com/playlist?list=OLAK5uy_url",
+    ),
+    "OLAK5uy_play",
+  );
+});
+
+test("falls back to the canonical URL for the album playlist id", () => {
+  assert.equal(
+    getAlbumPlaylistId(
+      undefined,
+      "https://music.youtube.com/playlist?list=OLAK5uy_url&feature=share",
+    ),
+    "OLAK5uy_url",
+  );
+  assert.equal(getAlbumPlaylistId(undefined, undefined), undefined);
+  assert.equal(
+    getAlbumPlaylistId(undefined, "https://music.youtube.com/browse/MPREb_x"),
+    undefined,
+  );
+});
+
+test("names a headerless album playlist after the album of its tracks", () => {
+  const album = {id: "MPREb_a", name: "Discovery"};
+  const shared = getSharedAlbum([
+    {type: "video", id: "a", album, thumbnailImage: cover},
+    {type: "video", id: "b", album},
+  ]);
+
+  assert.deepEqual(shared, {name: "Discovery", cover});
+});
+
+test("finds no shared album for mixed or empty lists", () => {
+  assert.equal(
+    getSharedAlbum([
+      {type: "video", id: "a", album: {id: "MPREb_a", name: "A"}},
+      {type: "video", id: "b", album: {id: "MPREb_b", name: "B"}},
+    ]),
+    undefined,
+  );
+  assert.equal(
+    getSharedAlbum([
+      {type: "video", id: "a", album: {id: "MPREb_a", name: "A"}},
+      {type: "video", id: "b"},
+    ]),
+    undefined,
+  );
+  assert.equal(getSharedAlbum([]), undefined);
 });

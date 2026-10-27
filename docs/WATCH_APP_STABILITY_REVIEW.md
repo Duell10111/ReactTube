@@ -341,3 +341,183 @@ Anschließend W06–W09 mit gezielten Regressionstests absichern.
 Die Hintergrund-, Verbindungs- und Audio-Routing-Szenarien sollten auf einer
 echten Apple Watch geprüft werden; die isolierten macOS-Prüffälle ersetzen diese
 Tests nicht.
+
+## Umsetzung und Nachprüfung
+
+Die folgenden Nachprüfungen beziehen sich auf die jeweilige Umsetzung. Native
+Prüffälle laufen auf macOS mit Originalmethoden und Testdoubles. Der watchOS-
+Typecheck prüft alle Swift-Dateien mit dem watchOS-SDK und den vorhandenen
+Swift-Package-Modulen; er ersetzt keinen Geräte- oder vollständigen Xcode-Build.
+
+- **W01 behoben:** Player und PlaylistManager sind MainActor-isoliert;
+  SwiftData-Prüfungen verwenden keine Hintergrundqueue mehr. Ereignisse sind an
+  die Playersitzung gebunden, Audioaktivierungen zusätzlich an die letzte
+  Wiedergabeaktion. Regressionstest bestätigt: Pause und Sitzungswechsel
+  entwerten einen verspäteten Start; der aktuelle Start funktioniert weiterhin.
+  watchOS-Typecheck und `npm test` (498 Tests) bestanden. Projektweites ESLint
+  meldet bereits im Ausgangsstand 630 Fehler und 832 Warnungen; die neuen
+  Testdateien werden separat geprüft.
+
+- **W02 behoben:** Metadatenantworten ergänzen ausschließlich die aktuelle
+  Warteschlange in ihrer gewählten Reihenfolge. Ein leerer Start wird nachgeholt;
+  Pause und Playlistwechsel bleiben wirksam. Stream-Gültigkeit wird beim
+  Titelwechsel und vor dem Start erneut geprüft; abgelaufene Playeritems werden
+  nach der Antwort ersetzt. Native Regressionen prüfen Reihenfolge, aktive
+  Position, leeren Start und verspätete Antworten nach Pause/Wechsel.
+
+- **W03 behoben:** Videoanfragen werden zusammengefasst, mit Kennung versehen
+  und nach jeweils 20 Sekunden höchstens dreimal versucht. Wiederverbindung
+  prüft offene Anfragen erneut; alte Antworten werden verworfen. Das iPhone
+  antwortet auch bei fehlenden Daten oder Exceptions. Unvollständige Antworten
+  lösen den Download-Wartezustand in einen Fehler auf; fehlende Download-URLs
+  löschen den alten Link. Regressionen prüfen Erfolg, Fehler, Zusammenfassung,
+  Timeout, Wiederverbindung und veraltete Antworten. `npm test` (503 Tests),
+  Typecheck und Plattformprüfung bestanden; watchOS-Typecheck ebenfalls.
+
+- **W04 behoben:** Lokale und entfernte Löschpfade brechen Audio-, Cover- und
+  Metadatenaufträge vor dem Entfernen exklusiver Titel ab. Geteilte Titel
+  bleiben erhalten. Playerreferenzen werden vor Modell-/Dateilöschung
+  freigegeben. Abschlüsse verwenden unveränderliche IDs und eine
+  Auftragsgeneration und aktualisieren nur vorhandene Modelle. Der native
+  Regressionstest liefert alte Audio-/Coverabschlüsse nach Abbruch, Löschung
+  und Neustart desselben Titels: keine Datei und kein Modell werden angelegt;
+  aktuelle Abschlüsse funktionieren. `npm test` (505 Tests), Typecheck,
+  Plattformprüfung und watchOS-Typecheck bestanden.
+
+- **W05 behoben (Code und isolierte Nachprüfung):** Die Watch verwendet einen
+  eigenen URLSessionDownloadDelegate statt SDDownloadManager. Aufträge mit
+  Video-ID, Generation und Taskkennung sowie Warteschlange/Fehler werden atomar
+  gespeichert. Delegate-Dateien werden vor Rückkehr aus dem Callback dauerhaft
+  zwischengespeichert und erst nach Datei-/Datenbankspeicherung freigegeben.
+  Appstart gleicht Journal, Systemtasks, Zwischendateien und lokale Audiodateien
+  ab. Der SwiftUI-Hintergrundhandler wartet auf verarbeitete Sessionereignisse.
+  Native Regressionen prüfen Neustart, fehlenden Task, fehlgeschlagene
+  Verbuchung, erneute Verarbeitung und verspäteten Abschluss nach Abbruch.
+  `npm test` (507 Tests), Typecheck, Plattformprüfung und watchOS-Typecheck
+  bestanden. Systembedingte Prozessbeendigung und Hintergrundlaufzeit müssen
+  zusätzlich auf einer echten Watch geprüft werden; dies wurde hier nicht
+  als Geräteerfolg verifiziert.
+
+- **W06 behoben:** Fortsetzungspositionen enthalten die Video-ID, gelten nur
+  für denselben aktuellen Titel und werden gegen dessen Dauer begrenzt. Ein
+  normaler Start verwirft alte Seek-Wünsche. Der alte Wiedergabestand wird
+  vor Änderung der Playlist-Metadaten gespeichert. Native Regressionen prüfen
+  Playlist-Zuordnung, Ersatztitel, passende Position, Überlänge und ungültige
+  Zahlenwerte. `npm test` (508 Tests), Typecheck, Plattformprüfung und
+  watchOS-Typecheck bestanden.
+
+- **W07 behoben:** Der Abbau entfernt Listener und Fernsteuerungsbefehle,
+  pausiert/leert den Player, gibt seine Instanz frei und setzt Queue, Cover,
+  Position und Seek-Wunsch zurück. `setupPlayer` meldet Erfolg; nur eine
+  erfolgreich eingerichtete Queue startet. Eine Playlist mit ausstehenden
+  Streamdaten behält lediglich den Startwunsch für W02. Der native
+  Regressionstest (`test/watch-resume-stability.test.mjs`, im Nachreview
+  ergänzt) führt die Originalmethoden `updatePlaylist(newPlaylist:)` und
+  `deinitPlayer` mit Testdoubles aus. Er wechselt von einem laufenden Titel zu
+  einer leeren Playlist und prüft: Die alte Playerinstanz ist freigegeben, alle
+  sechs Listener sind entfernt, Queue und Titelanzeige sind leer, und es gibt
+  keinen weiteren Startaufruf. Anschließend baut eine nicht leere Playlist eine
+  neue Queue auf und startet genau einmal. `setupPlayer` ist dabei durch ein
+  Testdouble mit derselben Abbruchbedingung ersetzt, weil die echte Einrichtung
+  `AVAudioSession` und SwiftAudioEx benötigt. Ursprünglich prüfte der Test nur
+  den Quelltext. `npm test` (509 Tests), Typecheck, Plattformprüfung und
+  watchOS-Typecheck bestanden.
+
+- **W08 behoben:** Home-Elemente verwenden typisierte Schlüssel (`video:` /
+  `playlist:`) und gesetzte ID-Felder. Es gibt keinen optionalen ODER-Vergleich
+  mehr. Inkonsistente alte Home-Caches werden beim Datenbankstart verworfen;
+  Videos und Playlists bleiben erhalten. Ein echter SwiftData-In-Memory-Test
+  prüft zwei Videos, zwei Playlists, gleiche IDs über Typgrenzen, wiederholtes
+  Aktualisieren und die Bereinigung eines alten Cacheeintrags. `npm test`
+  (510 Tests), Typecheck, Plattformprüfung und watchOS-Typecheck bestanden.
+
+- **W09 behoben:** Ein fehlgeschlagener Datenbankstart zeigt einen modellfreien
+  Fehler-/Wiederherstellungsbildschirm mit Diagnose und erneutem Öffnen. Ein
+  bestätigtes Zurücksetzen sichert Store, WAL und SHM vollständig vor dem
+  Entfernen der Originale; Audiodateien bleiben erhalten. Hintergrundabschlüsse
+  behalten ihre Zwischendateien, solange keine Datenbank bereitsteht.
+  Modellzugriffe und Sync-Einstiegspunkte prüfen den verfügbaren Container.
+  Native SwiftData-Regressionen prüfen wiederholtes Öffnungsversagen ohne
+  Dateilöschung, gesichertes Zurücksetzen, In-Memory-Konfiguration und das
+  erneute Öffnen einer bestehenden Bibliothek samt Playlistbeziehung.
+  `npm test` (514 Tests), Typecheck, Plattformprüfung und watchOS-Typecheck
+  bestanden.
+
+Projektweites `npm run lint` meldet abschließend dieselben **630 Fehler und
+832 Warnungen** wie vor der Umsetzung, insbesondere in lokal vorhandenen
+Ruby-Vendor-JavaScript-Dateien (z. B.
+`vendor/bundle/ruby/4.0.0/gems/rdoc-8.0.0/lib/rdoc/generator/template/aliki/js/aliki.js`:
+`Strings must use doublequote`, `'document' is not defined`) und vorhandenen
+App-Dateien. Alle in dieser Umsetzung geänderten JavaScript-/TypeScript- und
+Testdateien werden separat ohne ESLint-Befunde geprüft. Die Swift-Prüfung
+meldet nur bereits vorhandene Warnungen; ein Simulator-/Geräte-Audiotest und
+ein vollständiger Xcode-Build sind weiterhin offen.
+
+Die gemeinsame abschließende Nachprüfung ergänzt W02 um Playlists, deren
+Titelmodelle erst nach der Auswahl eintreffen: angeforderte IDs und einmal
+gewählte Reihenfolge (einschließlich Shuffle) bleiben erhalten. Eine Playlist
+mit ausstehenden Modellen gilt dabei nicht als leer. Auch eine anfangs
+vollständig modellfreie Playlist ist durch einen nativen Regressionstest
+abgedeckt. Abschließender Stand: **514 Tests erfolgreich**, TypeScript- und
+Plattformprüfung sowie watchOS-SDK-Typecheck erfolgreich.
+
+Die neue native Wiederherstellungsoberfläche und Download-Fehlertexte haben
+übereinstimmende, typisierte englische und deutsche Texte. Die Sprachauswahl
+auf dem Wiederherstellungsbildschirm speichert `uiLanguage`, unabhängig von
+der YouTube-Inhaltssprache, und wirkt ohne Neustart. Ein weiterer nativer
+Regressionstest prüft alle Texte beider Sprachen und den englischen Fallback.
+
+### Nachreview
+
+Ein Review der Umsetzung ergab weitere Korrekturen:
+
+- **Downloads nach Hintergrundstart:** `checkDownloads` holt eine noch
+  ausstehende Wiederherstellung nach, statt still abzubrechen. Auch der
+  `.watchConnectivity`-Hintergrundhandler stellt die Downloads wieder her.
+  Vom iPhone angestoßene Downloads starten dadurch auch dann, wenn die
+  Oberfläche nicht erscheint.
+- **Home-Cache-Reparatur:** Ein Fehler beim Bereinigen des Home-Caches wird nur
+  protokolliert. Die bereits geöffnete Datenbank gilt weiterhin als bereit, statt
+  den Wiederherstellungsbildschirm mit Zurücksetzen anzubieten.
+- **Wiederverbindung und Metadatenanfragen:** Eine Wiederverbindung sendet offene
+  Anfragen mit neuer Kennung erneut, verbraucht aber keinen Versuch. Nur
+  Zeitüberschreitungen zählen. Eine instabile Bluetooth-Verbindung führt damit
+  nicht mehr innerhalb von Sekunden zu einem endgültigen Fehler. Der native
+  Regressionstest prüft fünf Wiederverbindungen ohne Fehler und das
+  anschließende Zeitlimit.
+- **iPhone noch nicht bereit:** Ist der YouTube-Client auf dem iPhone noch nicht
+  initialisiert, antwortet es mit `metadata_not_ready` statt mit einem
+  endgültigen Fehler. Die Watch fragt dann nach drei Sekunden erneut, statt das
+  Zeitlimit abzuwarten. Jeder solche Versuch zählt zum Limit von drei Versuchen.
+  Fehlt das HLS-Manifest, bleibt die Antwort `metadata_unavailable` und damit
+  endgültig. Der native Regressionstest prüft veraltete Kennungen, die
+  vorgezogenen Wiederholungen und den Fehler nach dem dritten Versuch.
+- **Fehlende lokale Dateien:** Beim Start setzt die Wiederherstellung Titel mit
+  fehlender Audiodatei nur auf „nicht heruntergeladen“ zurück. Sie werden nicht
+  mehr automatisch erneut heruntergeladen.
+- **W07-Regressionstest:** Der reine Quelltexttest ist durch den oben
+  beschriebenen nativen Prüffall ersetzt. Eine Gegenprobe ohne `player = nil`
+  im Abbau lässt den Test fehlschlagen.
+- **Löschen während der Wiedergabe:** Wird ein Titel aus der Bibliothek gelöscht,
+  verlässt nur dieser Titel Warteschlange und Playlist. Die Wiedergabe läuft
+  weiter, beim aktuellen Titel mit dem nächsten Titel von Anfang an. War es der
+  letzte Titel der Warteschlange, hält die Wiedergabe am Anfang an, statt sie zu
+  wiederholen. Ein vollständiger Stopp erfolgt nur noch, wenn die aktuelle
+  Playlist gelöscht wird oder kein Titel übrig bleibt. Beim Freigeben eines
+  Downloads bleibt der Titel erhalten: Sein Eintrag mit der lokalen Datei
+  verlässt die Warteschlange vor dem Löschen der Datei. Danach kehrt er als
+  Stream zurück, oder ein neuer Stream-Link wird angefordert. Ist der aktuelle
+  Titel betroffen, geht die Wiedergabe mit dem nächsten Titel weiter. Native
+  Regressionstests (`test/watch-queue-deletion.test.mjs`) bilden die
+  Indexlogik von SwiftAudioEx nach und prüfen diese Fälle. Eine Gegenprobe ohne
+  den Halt am Warteschlangenende lässt sie fehlschlagen.
+- **Verlorene Downloadtasks und Fehlertexte:** Fehlt einem gespeicherten
+  Auftrag der Systemtask, startet er einmal neu, statt sofort als Fehler zu
+  enden. HTTP- und Netzwerkfehler erhalten eigene englische und deutsche Texte;
+  ein abgelehnter, abgelaufener Link wird verworfen, damit eine Wiederholung
+  einen neuen anfordert. Wird die App wieder aktiv, gleicht sie Journal und
+  Systemtasks erneut ab. Der Hintergrundhandler wartet höchstens 20 Sekunden
+  auf `urlSessionDidFinishEvents`. Native Regressionen prüfen den einmaligen
+  Neustart, die Fehlertexte, das Laden alter Warteschlangendateien und das
+  Zeitlimit. `npm test` (518 Tests), Typecheck und watchOS-Typecheck
+  bestanden.

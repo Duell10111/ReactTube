@@ -13,6 +13,7 @@ import MediaPlayer
 import Combine
 import SwiftAudioEx
 
+@MainActor
 @Observable
 class MusicPlayerManager {
     static let shared = MusicPlayerManager()
@@ -47,11 +48,19 @@ class MusicPlayerManager {
     private var currentPlaylistTitle: String? = nil
 
     /// Position that still has to be restored once the player is ready.
-    private var pendingSeek: TimeInterval? = nil
+    private struct PendingSeek {
+      let videoID: String
+      let position: TimeInterval
+    }
+    private var pendingSeek: PendingSeek? = nil
     private var lastPersistedPosition: TimeInterval = 0
 
     // Utils
-    private let queue = DispatchQueue(label: "music.player.queue")
+    private var sessionGeneration = 0
+    private var playbackRevision = 0
+    private var wantsPlayback = false
+    private var requestedStartVideoID: String?
+    private var waitingForVideoID: String?
     private let playlistManager = PlaylistManager()
 
     private init() {
@@ -71,64 +80,209 @@ class MusicPlayerManager {
     type == .local && player != nil && duration > 0
   }
 
-  func updatePlaylist(newPlaylist: [Video]) {
+  func updatePlaylist(newPlaylist: [Video], resume: ResumeState? = nil) {
+    deinitPlayer()
+    pendingSeek = resume.map { PendingSeek(videoID: $0.videoID, position: $0.position) }
     self.type = .local
+    requestedStartVideoID = nil
+    waitingForVideoID = nil
     // TODO: Check if playlist already present?
     self.playlistManager.setPlaylist(nil, videos: newPlaylist)
     self.currentPlaylistID = nil
     self.currentPlaylistTitle = nil
 
     // TODO: Put into setupPlayer?
-    self.setupPlayer()
-
-    // Play music after setup
-    self.playMusic()
+    let didSetup = self.setupPlayer()
+    wantsPlayback = playlistManager.hasTitles
+    if didSetup { self.playMusic() }
   }
 
   /// - Parameter startVideoID: Title to start with. Starting at a specific
   ///   title always plays in order from there, because jumping into a shuffled
   ///   queue would land somewhere else than the title that was tapped.
   /// - Parameter shuffle: `nil` uses the persisted preference.
-  func updatePlaylist(playlist: Playlist, startVideoID: String? = nil, shuffle: Bool? = nil) {
+  func updatePlaylist(playlist: Playlist, startVideoID: String? = nil, shuffle: Bool? = nil, resume: ResumeState? = nil) {
+    deinitPlayer()
+    pendingSeek = resume.map { PendingSeek(videoID: $0.videoID, position: $0.position) }
     self.type = .local
+    requestedStartVideoID = startVideoID
+    waitingForVideoID = nil
     let shouldShuffle = shuffle ?? (startVideoID == nil && preferences.shuffleEnabled)
     let playlistID = playlist.id
     let playlistTitle = playlist.title
-    let orderedVideoIDs = playlist.orderedVideos.map(\.id)
-    queue.async {
-      self.playlistManager.setPlaylist(playlist, shuffle: shouldShuffle)
-      self.currentPlaylistID = playlistID
-      self.currentPlaylistTitle = playlistTitle
+    self.playlistManager.setPlaylist(playlist, shuffle: shouldShuffle)
+    let orderedVideoIDs = self.playlistManager.orderedVideoIDs
+    self.currentPlaylistID = playlistID
+    self.currentPlaylistTitle = playlistTitle
 
-      self.setupPlayer()
+    let didSetup = self.setupPlayer()
 
-      // Disable jump on shuffle play
-      if let startVideoID, shouldShuffle == false,
-         let index = self.queueIndex(startingAt: startVideoID, orderedVideoIDs: orderedVideoIDs) {
-        self.trackIndex = index
-        self.currentTrackIndex = index
-        do {
-          try self.player?.jumpToItem(atIndex: index)
-        } catch {
-          WatchLog.shared.warning("Player", "Could not jump to start index \(index): \(error.localizedDescription)")
-        }
+    // Disable jump on shuffle play
+    if let startVideoID, shouldShuffle == false,
+       let index = self.queueIndex(startingAt: startVideoID, orderedVideoIDs: orderedVideoIDs) {
+      self.trackIndex = index
+      self.currentTrackIndex = index
+      do {
+        try self.player?.jumpToItem(atIndex: index)
+      } catch {
+        WatchLog.shared.warning("Player", "Could not jump to start index \(index): \(error.localizedDescription)")
       }
-
-      // Start playing after setup
-      self.playMusic()
     }
+
+    wantsPlayback = playlistManager.hasTitles
+    if didSetup { self.playMusic() }
+  }
+
+  /// Extends only the current queue, in the order selected for this session.
+  func videoMetadataUpdated(id: String) {
+    guard type == .local, playlistManager.contains(id: id) else { return }
+    let available = playlistManager.checkForNewVideos()
+    let orderedIDs = playlistManager.orderedVideoIDs
+    if player == nil { setupPlayer() }
+    guard let player else { return }
+    for (video, item) in available where !playerPlaylistItems.contains(where: { $0.id == video.id }) {
+      let position = orderedIDs.firstIndex(of: video.id) ?? orderedIDs.count
+      let index = playerPlaylistItems.firstIndex { existing in
+        (orderedIDs.firstIndex(of: existing.id) ?? orderedIDs.count) > position
+      } ?? playerPlaylistItems.count
+      do {
+        try player.add(items: [item], at: index)
+        playerPlaylistItems.insert(video, at: index)
+      } catch {
+        WatchLog.shared.error("Player", "Could not extend queue: \(error.localizedDescription)")
+      }
+    }
+    currentTrackIndex = max(0, player.currentIndex)
+    trackIndex = currentTrackIndex
+    if waitingForVideoID == id, let replacement = available.first(where: { $0.0.id == id }) {
+      waitingForVideoID = nil
+      player.load(item: replacement.1, playWhenReady: false)
+    }
+    if let requestedStartVideoID, let index = playerPlaylistItems.firstIndex(where: { $0.id == requestedStartVideoID }), !isPlaying {
+      self.requestedStartVideoID = nil
+      jumpToIndex(index)
+    }
+    updateNowPlayingMetadata()
+    if wantsPlayback && !isPlaying { playMusic() }
+  }
+
+  /// Drops model references before library objects are deleted. Deleting the
+  /// current playlist, or every remaining title, stops playback; otherwise only
+  /// the affected titles leave the queue and playback continues.
+  func prepareForLibraryDeletion(ids: Set<String>, playlistID: String? = nil) {
+    if let playlistID, currentPlaylistID == playlistID {
+      stopForLibraryDeletion(ids: ids)
+      return
+    }
+    let queuedIDs = Set(playlistManager.orderedVideoIDs).union(playerPlaylistItems.map(\.id))
+    guard !queuedIDs.isDisjoint(with: ids) || playlistManager.videos?.contains(where: { ids.contains($0.id) }) == true else { return }
+    guard !queuedIDs.isSubset(of: ids) else {
+      stopForLibraryDeletion(ids: ids)
+      return
+    }
+    playlistManager.remove(ids: ids)
+    if let requestedStartVideoID, ids.contains(requestedStartVideoID) { self.requestedStartVideoID = nil }
+    if let pendingSeek, ids.contains(pendingSeek.videoID) { self.pendingSeek = nil }
+    guard removeFromQueue(ids: ids) else {
+      stopForLibraryDeletion(ids: ids)
+      return
+    }
+    if let resume = preferences.resumeState, ids.contains(resume.videoID) { preferences.clearResumeState() }
+  }
+
+  /// A freed download keeps its model, but its queued item still points to the
+  /// local file. Removes the item before the file is deleted.
+  func prepareForDownloadRemoval(ids: Set<String>) {
+    guard player != nil, playerPlaylistItems.contains(where: { ids.contains($0.id) }) else { return }
+    if !removeFromQueue(ids: ids) { stopForLibraryDeletion(ids: []) }
+  }
+
+  /// Re-adds freed titles once their download state is reset, streaming them
+  /// when the stored link is still valid and requesting a new one otherwise.
+  func downloadRemoved(ids: Set<String>) {
+    for id in ids where playlistManager.contains(id: id) {
+      if let video = playlistManager.videos?.first(where: { $0.id == id }), playlistManager.isPlayable(video) {
+        videoMetadataUpdated(id: id)
+      } else {
+        requestVideo(id: id)
+      }
+    }
+  }
+
+  /// Removes titles from the running queue while playback continues with the
+  /// next remaining title. Returns false when no queued title would remain.
+  private func removeFromQueue(ids: Set<String>) -> Bool {
+    guard let player else { return true }
+    guard playerPlaylistItems.contains(where: { !ids.contains($0.id) }) else { return false }
+    let current = player.currentIndex
+    let removesCurrent = currentVideo.map { ids.contains($0.id) } ?? false
+    let hasLaterTitle = playerPlaylistItems.indices.contains { $0 > current && !ids.contains(playerPlaylistItems[$0].id) }
+    if let waitingForVideoID, ids.contains(waitingForVideoID) {
+      self.waitingForVideoID = nil
+      isStalled = false
+    }
+    for index in playerPlaylistItems.indices.reversed() where ids.contains(playerPlaylistItems[index].id) {
+      do {
+        try player.removeItem(at: index)
+        playerPlaylistItems.remove(at: index)
+      } catch {
+        WatchLog.shared.error("Player", "Could not remove a title from the queue: \(error.localizedDescription)")
+        return false
+      }
+    }
+    currentTrackIndex = max(0, player.currentIndex)
+    trackIndex = currentTrackIndex
+    // The next title starts from the beginning; the removed title's position must not carry over.
+    if removesCurrent { currentTime = 0 }
+    // Removing the last title wraps the queue around to its start; stop there
+    // as if the queue had finished instead of playing it again.
+    if removesCurrent && !hasLaterTitle { pauseMusic() }
+    updateNowPlayingMetadata()
+    return true
+  }
+
+  private func stopForLibraryDeletion(ids: Set<String>) {
+    wantsPlayback = false
+    deinitPlayer()
+    player?.clear()
+    player = nil
+    playerPlaylistItems.removeAll()
+    playlistManager.setPlaylist(nil, videos: [])
+    pendingSeek = nil
+    requestedStartVideoID = nil
+    waitingForVideoID = nil
+    currentPlaylistID = nil
+    currentPlaylistTitle = nil
+    if let resume = preferences.resumeState, ids.contains(resume.videoID) { preferences.clearResumeState() }
+  }
+
+  func videoMetadataFailed(id: String) {
+    guard waitingForVideoID == id || (playerPlaylistItems.isEmpty && playlistManager.contains(id: id)) else { return }
+    isPlaying = false
+    isStalled = true
+    WatchLog.shared.warning("Player", "Stream metadata unavailable for \(id); retry playback after reconnecting")
+  }
+
+  private func validateCurrentStream() -> Bool {
+    guard let video = currentVideo, !playlistManager.isPlayable(video) else { return true }
+    waitingForVideoID = video.id
+    playbackRevision += 1
+    player?.pause()
+    isPlaying = false
+    isStalled = true
+    requestVideo(id: video.id)
+    return false
   }
 
   /// Continues the last title where it stopped.
   @MainActor
   func resumePlayback(_ state: ResumeState) {
-    let context = DataController.shared.container.mainContext
+    guard let context = DataController.shared.container?.mainContext else { return }
 
     if let playlistID = state.playlistID {
       let descriptor = FetchDescriptor<Playlist>(predicate: #Predicate { $0.id == playlistID })
       if let playlist = try? context.fetch(descriptor).first {
-        pendingSeek = state.position
-        updatePlaylist(playlist: playlist, startVideoID: state.videoID, shuffle: false)
+        updatePlaylist(playlist: playlist, startVideoID: state.videoID, shuffle: false, resume: state)
         return
       }
     }
@@ -141,8 +295,7 @@ class MusicPlayerManager {
       return
     }
 
-    pendingSeek = state.position
-    updatePlaylist(newPlaylist: [video])
+    updatePlaylist(newPlaylist: [video], resume: state)
   }
 
   /// Queue position of a title. The queue only holds playable titles, so its
@@ -169,10 +322,11 @@ class MusicPlayerManager {
     return nil
   }
 
-  private func setupPlayer() {
-      if player != nil {
-        deinitPlayer()
-      }
+  @discardableResult
+  private func setupPlayer() -> Bool {
+      sessionGeneration += 1
+      playbackRevision += 1
+      let generation = sessionGeneration
       // Set up AVAudioSession for background audio playback
       do {
           // .longFormAudio needed to play audio when screnn is off?
@@ -183,25 +337,21 @@ class MusicPlayerManager {
 
 
 
-      if (playlistManager.videos?.isEmpty ?? true) {
+      if !playlistManager.hasTitles {
         WatchLog.shared.warning("Player", "Queue setup skipped: playlist is empty")
-        return
+        return false
       }
 
       let pItems = playlistManager.getFirstBatchOfAvailable()
       print("Setup Videos: \(pItems)")
 
+      guard !pItems.isEmpty else { return false }
       let (videoItems, playerItems) = unzip(pItems)
 //      self.playerItems = playerItems
       self.playerPlaylistItems = videoItems
 
       player = QueuedAudioPlayer()
       player?.repeatMode = preferences.repeatMode.audioPlayerMode
-      do {
-        try player?.add(items: playerItems, at: 0)
-      } catch {
-        WatchLog.shared.error("Player", "Could not add titles to the queue: \(error.localizedDescription)")
-      }
 
       player?.remoteCommands = [
         .play,
@@ -210,7 +360,11 @@ class MusicPlayerManager {
         .next
       ]
 
-      player?.event.currentItem.addListener(self, handleAudioPlayerCurrentItemChange)
+      player?.event.currentItem.addListener(self) { [weak self] data in
+        self?.onMain(generation: generation) {
+          self?.handleAudioPlayerCurrentItemChange(item: data.item, index: data.index, lastItem: data.lastItem, lastIndex: data.lastIndex, lastPosition: data.lastPosition)
+        }
+      }
 
     player?.event.fail.addListener(self, { data in
       WatchLog.shared.error("Player", "Playback failed: \(data?.localizedDescription ?? "unknown error")")
@@ -218,12 +372,16 @@ class MusicPlayerManager {
 
     player?.event.stateChange.addListener(self, { state in
       print("State changed \(state)")
-      self.onMain {
+      self.onMain(generation: generation) {
         if state == .playing {
+          guard self.wantsPlayback, self.waitingForVideoID == nil else { self.player?.pause(); return }
           self.isPlaying = true
         } else if state == .paused || state == .ended {
           self.isPlaying = false
         }
+        // A finished queue no longer counts as local playback, so the iPhone
+        // state is mirrored again and late metadata does not restart it.
+        if state == .ended { self.wantsPlayback = false }
 
         if state == .ready || state == .playing {
           self.applyPendingSeek()
@@ -236,7 +394,7 @@ class MusicPlayerManager {
     // Position and duration are the basis for the progress display and for the
     // resume state, so they have to be written along instead of staying at 0.
     player?.event.secondElapse.addListener(self, { seconds in
-      self.onMain {
+      self.onMain(generation: generation) {
         self.currentTime = seconds
         if self.duration <= 0 { self.refreshDuration() }
         self.persistResumePositionIfNeeded(seconds)
@@ -244,7 +402,7 @@ class MusicPlayerManager {
     })
 
     player?.event.updateDuration.addListener(self, { duration in
-      self.onMain {
+      self.onMain(generation: generation) {
         // The database duration wins: a cropped stream reports the length of the
         // full asset here.
         if let millis = self.currentVideo?.durationMillis, millis > 0 {
@@ -256,38 +414,67 @@ class MusicPlayerManager {
     })
 
     player?.event.seek.addListener(self, { data in
-      self.onMain {
+      self.onMain(generation: generation) {
         self.currentTime = data.seconds
       }
     })
 
 
     player?.remoteCommandController.handlePlayCommand = { [weak self] _ in
-      self?.player?.play()
+      self?.onMain(generation: generation) { self?.playMusic() }
       return MPRemoteCommandHandlerStatus.success
     }
 
     player?.remoteCommandController.handlePauseCommand = { [weak self] _ in
-      self?.player?.pause()
+      self?.onMain(generation: generation) { self?.pauseMusic() }
       return MPRemoteCommandHandlerStatus.success
     }
 
-    // setupPlayer can run on the background queue, but `volume` drives the UI.
+    // All player state and model access stay on the main actor.
     let initialVolume = Double(AVAudioSession.sharedInstance().outputVolume)
-    onMain { self.volume = initialVolume }
+    self.volume = initialVolume
 
     volumeObserver = AVAudioSession.sharedInstance().observe(\.outputVolume) { [weak self] session, _ in
       let outputVolume = Double(session.outputVolume)
-      self?.onMain {
+      self?.onMain(generation: generation) {
         self?.volume = outputVolume
       }
     }
 
+    // Added last: the queue emits the change to the first title while adding,
+    // and an event emitted before its listener exists is lost.
+    do {
+      try player?.add(items: playerItems, at: 0)
+    } catch {
+      WatchLog.shared.error("Player", "Could not add titles to the queue: \(error.localizedDescription)")
+      deinitPlayer()
+      return false
+    }
+    return true
   }
 
   private func deinitPlayer() {
-    player?.pause()
+    sessionGeneration += 1
+    playbackRevision += 1
     storeResumeState()
+    player?.event.currentItem.removeListener(self)
+    player?.event.fail.removeListener(self)
+    player?.event.stateChange.removeListener(self)
+    player?.event.secondElapse.removeListener(self)
+    player?.event.updateDuration.removeListener(self)
+    player?.event.seek.removeListener(self)
+    player?.remoteCommands = []
+    player?.pause()
+    player?.clear()
+    NowPlayingCenter.clear(player: player)
+    player = nil
+    playerPlaylistItems.removeAll()
+    pendingSeek = nil
+    wantsPlayback = false
+    trackIndex = 0
+    currentTitle = "Unknown Title"
+    currentArtist = nil
+    currentCover = nil
     isPlaying = false
     isStalled = false
     currentTrackIndex = 0
@@ -295,6 +482,7 @@ class MusicPlayerManager {
     duration = 0
     lastPersistedPosition = 0
     volumeObserver?.invalidate()
+    volumeObserver = nil
   }
 
   // MARK: - Position
@@ -304,10 +492,8 @@ class MusicPlayerManager {
     let upperBound = duration > 0 ? duration : time
     let clamped = min(max(time, 0), upperBound)
     player.seek(to: clamped)
-    onMain {
-      self.currentTime = clamped
-      self.persistResumePosition(clamped)
-    }
+    self.currentTime = clamped
+    self.persistResumePosition(clamped)
   }
 
   func skip(by offset: TimeInterval) {
@@ -316,12 +502,20 @@ class MusicPlayerManager {
 
   /// Applies the position of a resumed title once the item is loaded — seeking
   /// before that is dropped by the player.
+  private func pendingSeekPosition() -> TimeInterval? {
+    guard let pendingSeek, pendingSeek.videoID == currentVideo?.id, pendingSeek.position.isFinite else { return nil }
+    let position = max(0, pendingSeek.position)
+    let knownDuration = duration > 0 ? duration : TimeInterval(currentVideo?.durationMillis ?? 0) / 1000
+    return knownDuration > 0 ? min(position, knownDuration) : position
+  }
+
   private func applyPendingSeek() {
-    guard let pendingSeek, let player else { return }
-    self.pendingSeek = nil
-    guard pendingSeek > 1 else { return }
-    player.seek(to: pendingSeek)
-    currentTime = pendingSeek
+    guard pendingSeek != nil, let player else { return }
+    let position = pendingSeekPosition()
+    pendingSeek = nil
+    guard let position, position > 1 else { return }
+    player.seek(to: position)
+    currentTime = position
   }
 
   private func refreshDuration() {
@@ -389,11 +583,10 @@ class MusicPlayerManager {
     persistResumePosition(seconds)
   }
 
-  private func onMain(_ block: @escaping () -> Void) {
-    if Thread.isMainThread {
+  nonisolated private func onMain(generation: Int? = nil, _ block: @escaping @MainActor () -> Void) {
+    Task { @MainActor [weak self] in
+      guard let self, generation == nil || generation == self.sessionGeneration else { return }
       block()
-    } else {
-      DispatchQueue.main.async(execute: block)
     }
   }
 
@@ -407,25 +600,29 @@ class MusicPlayerManager {
           lastPosition: Double?
   ) {
     print("Current item change: \(item?.getTitle() ?? "nil")")
-    onMain {
+    let generation = sessionGeneration
+    onMain(generation: generation) {
+      guard (self.player?.currentItem as AnyObject?) === (item as AnyObject?) else { return }
       self.currentTitle = item?.getTitle() ?? "Unknown Title"
       self.currentArtist = item?.getArtist()
       if let i = index {
         self.currentTrackIndex = i
         self.trackIndex = i
       }
+      guard self.validateCurrentStream() else { return }
+      if self.wantsPlayback { self.requestedStartVideoID = nil }
       // A resumed title starts at its stored position, so the position must not
       // be reported as 0 before the seek has been applied.
-      self.currentTime = self.pendingSeek ?? 0
       self.duration = 0
+      self.refreshDuration()
+      self.currentTime = self.pendingSeekPosition() ?? 0
       self.lastPersistedPosition = self.currentTime
       self.applyLoudnessNormalization()
-      self.refreshDuration()
       self.updateNowPlayingMetadata()
       self.storeResumeState()
     }
     item?.getArtwork({ audioImage in
-      self.onMain {
+      self.onMain(generation: generation) {
         // A slow load of a previous title must not replace the cover of the
         // title that is playing now.
         guard (self.player?.currentItem as AnyObject?) === (item as AnyObject?) else { return }
@@ -444,29 +641,42 @@ class MusicPlayerManager {
     )
   }
 
+  /// Handles the playback state the iPhone publishes in its application
+  /// context. While the watch plays, or is still starting local playback, the
+  /// context is ignored: `isPlaying` only turns true once the audio session is
+  /// active, and taking over before that silently cancelled the local start.
+  func phoneContextReceived(title: String?, isPlaying: Bool?) {
+    guard type == .phone || (!wantsPlayback && !self.isPlaying) else {
+      WatchLog.shared.info("Phone", "Ignored the iPhone playback state during local playback")
+      return
+    }
+    applyPhonePlaybackState(title: title, isPlaying: isPlaying)
+  }
+
   /// Mirrors the playback state the iPhone reports. The watch does not play the
   /// audio in that case, so it also must not claim the now playing slot.
-  func applyPhonePlaybackState(title: String?, isPlaying: Bool?) {
-    onMain {
-      let wasLocal = self.type == .local
-      self.type = .phone
-      if wasLocal {
-        NowPlayingCenter.clear(player: self.player)
-        self.currentTime = 0
-        self.duration = 0
-      }
-      if let title {
-        self.currentTitle = title
-        // Reset artist as not set by api
-        self.currentArtist = nil
-      } else {
-        WatchLog.shared.warning("Phone", "Playback state without a title received")
-      }
-      if let isPlaying {
-        self.isPlaying = isPlaying
-      } else {
-        WatchLog.shared.warning("Phone", "Playback state without a play flag received")
-      }
+  /// Runs synchronously so a local start cannot begin between the check in
+  /// `phoneContextReceived` and the switch to phone mode.
+  private func applyPhonePlaybackState(title: String?, isPlaying: Bool?) {
+    playbackRevision += 1
+    let wasLocal = type == .local
+    type = .phone
+    if wasLocal {
+      NowPlayingCenter.clear(player: player)
+      currentTime = 0
+      duration = 0
+    }
+    if let title {
+      currentTitle = title
+      // Reset artist as not set by api
+      currentArtist = nil
+    } else {
+      WatchLog.shared.warning("Phone", "Playback state without a title received")
+    }
+    if let isPlaying {
+      self.isPlaying = isPlaying
+    } else {
+      WatchLog.shared.warning("Phone", "Playback state without a play flag received")
     }
   }
 
@@ -476,13 +686,17 @@ class MusicPlayerManager {
         return
       }
 
+      wantsPlayback = true
       if player?.items.isEmpty ?? true {
         WatchLog.shared.warning("Player", "Play skipped: the queue is empty")
         return
       }
-      // Set up AVAudioSession for background audio playback
+      guard validateCurrentStream() else { return }
+      playbackRevision += 1
+      let revision = playbackRevision
+      let generation = sessionGeneration
+      // Long-form audio keeps playback active when the screen is off.
       do {
-          // .longFormAudio needed to play audio when screnn is off
           try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, policy: .longFormAudio, options: [])
       } catch {
           print("Failed to set up AVAudioSession: \(error)")
@@ -499,7 +713,7 @@ class MusicPlayerManager {
                 currentTitle = title
                 currentArtist = curItem.getArtist()
                 curItem.getArtwork({ audioImage in
-                  self.currentCover = audioImage
+                  self.onMain(generation: generation) { self.currentCover = audioImage }
                 })
               }
           } catch {
@@ -508,7 +722,11 @@ class MusicPlayerManager {
       #else
         AVAudioSession.sharedInstance().activate { [self] success, error in
           if success {
-            DispatchQueue.main.async { [self] in
+            onMain(generation: generation) { [self] in
+              guard revision == playbackRevision, type == .local else {
+                WatchLog.shared.info("Player", "Skipped a superseded playback start")
+                return
+              }
               player?.play()
               isPlaying = true
               isStalled = false
@@ -532,6 +750,8 @@ class MusicPlayerManager {
         return
       }
 
+      wantsPlayback = false
+      playbackRevision += 1
       do {
           try AVAudioSession.sharedInstance().setActive(false)
       } catch {

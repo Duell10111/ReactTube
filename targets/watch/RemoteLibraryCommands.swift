@@ -12,7 +12,10 @@ import SwiftData
 
 @MainActor
 final class RemoteLibraryCommands {
-  static let shared = RemoteLibraryCommands()
+  static var shared: RemoteLibraryCommands? {
+    guard let context = DataController.shared.container?.mainContext else { return nil }
+    return RemoteLibraryCommands(context: context)
+  }
 
   private enum Key {
     static let processedCommands = "watchLibrary.processedCommands"
@@ -30,9 +33,9 @@ final class RemoteLibraryCommands {
   }
 
   private let defaults = UserDefaults.standard
-  private var modelContext: ModelContext { DataController.shared.container.mainContext }
+  private let modelContext: ModelContext
 
-  private init() {}
+  private init(context: ModelContext) { modelContext = context }
 
   func handle(_ message: [String: Any]) async {
     guard let commandId = message["commandId"] as? String, !commandId.isEmpty else {
@@ -107,7 +110,7 @@ final class RemoteLibraryCommands {
         duration: durationMillis,
         fileURL: savedPath
       )
-      if let video = fetchVideo(id), video.coverURL == nil {
+      if let video = fetchVideo(id), !isCoverUsable(video.coverURL) {
         video.coverURL = metadata["coverUrl"] as? String
       }
       outcome = save()
@@ -182,8 +185,7 @@ final class RemoteLibraryCommands {
 
     let saved = save()
     guard saved.status == "ok" else { return saved }
-    videos.forEach { DownloadManager.shared.enqueue($0) }
-    DownloadManager.shared.checkDownloads()
+    DownloadManager.shared.download(videos, as: .phone, name: videos.count == 1 ? videos.first?.title : nil)
     return .ok
   }
 
@@ -234,7 +236,9 @@ final class RemoteLibraryCommands {
         // Fill in what the watch did not know yet, never overwrite.
         if video.title == nil { video.title = entry?["title"] as? String }
         if video.artist == nil { video.artist = entry?["artist"] as? String }
-        if video.coverURL == nil { video.coverURL = entry?["coverUrl"] as? String }
+        if !isCoverUsable(video.coverURL), let coverURL = entry?["coverUrl"] as? String {
+          video.coverURL = coverURL
+        }
         video.temp = false
       } else {
         let video = Video(id: videoId, durationMillis: entry?["durationMillis"] as? Int ?? 0, title: entry?["title"] as? String)
@@ -284,6 +288,7 @@ final class RemoteLibraryCommands {
       // Deletes the playlist and all videos that are in no other playlist.
       deleteDownloadedPlaylist(modelContext, playlist: playlist)
     } else {
+      MusicPlayerManager.shared.prepareForLibraryDeletion(ids: [], playlistID: id)
       modelContext.delete(playlist)
     }
     return save()
@@ -303,8 +308,7 @@ final class RemoteLibraryCommands {
   }
 
   private func enqueueMissingDownloads(_ playlist: Playlist) {
-    playlist.orderedVideos.filter { !$0.downloaded }.forEach { DownloadManager.shared.enqueue($0) }
-    DownloadManager.shared.checkDownloads()
+    DownloadManager.shared.download(playlist.orderedVideos, as: .playlist, name: playlist.title)
   }
 
   /// Deletes downloads and entries of videos no playlist references anymore.

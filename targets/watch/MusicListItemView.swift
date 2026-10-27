@@ -64,8 +64,7 @@ struct MusicListItemView: View {
           }
         } else {
           Button {
-            DownloadManager.shared.enqueue(video)
-            DownloadManager.shared.checkDownloads()
+            DownloadManager.shared.download([video], as: .video, name: video.title)
           } label: {
             Label("Download", systemImage: "arrow.down")
           }

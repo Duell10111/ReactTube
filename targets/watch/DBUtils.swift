@@ -7,7 +7,6 @@
 
 import Foundation
 import SwiftData
-import SDDownloadManager
 
 func getDocumentsDirectory() -> URL {
     let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
@@ -66,7 +65,7 @@ func removeURLPrefix(url: String, prefix: String) -> String {
 }
 
 // TODO: Rename to VideoData?
-func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, artist: String? = nil, downloaded: Bool? = nil, duration: Int, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil, loudnessDb: Double? = nil) {
+func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = nil, artist: String? = nil, downloaded: Bool? = nil, duration: Int, fileURL: String? = nil, streamURL: String? = nil, validUntil: Date? = nil, coverURL: String? = nil, temp: Bool? = nil, downloadURL: String? = nil, loudnessDb: Double? = nil, refreshStreamData: Bool = false) {
 
   do {
     let descriptor = FetchDescriptor<Video>(
@@ -94,19 +93,26 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
     
     if let fURL = fileURL {
       video.fileURL = fURL
-      video.durationMillis = duration
     }
-    
+
+    // A missing duration arrives as 0 and must not replace a known one: a
+    // download is cropped to its duration and would end immediately.
     if duration > 0 {
       video.durationMillis = duration
     }
     
+    if refreshStreamData {
+      // A new validity period must never revive a URL omitted by the phone.
+      video.streamURL = streamURL
+      video.downloadURL = downloadURL
+      video.validUntil = validUntil
+    }
     if let vUntil = validUntil, let sURL = streamURL {
       video.validUntil = vUntil
       video.streamURL = sURL
     }
 
-    if let cURL = coverURL {
+    if let cURL = coverURL, shouldReplaceCover(video.coverURL, with: cURL) {
       video.coverURL = cURL
     }
 
@@ -132,7 +138,7 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
 //      predicate: #Predicate { $0.videoIDs.contains(id) }
     )
 
-    // Slow workarround as swiftdata is a bitch
+    // Filter in memory because this relationship predicate is not supported by SwiftData.
     let allPlaylists = try modelContext.fetch(playlistDescriptor)
 
     let playlists = allPlaylists.filter { p in
@@ -227,76 +233,67 @@ func addHomeScreenSection(_ modelContext: ModelContext, title: String, date: Dat
 }
 
 func addHomeScreenElement(_ modelContext: ModelContext, videoID: String?, playlistID: String?) -> HomeScreenElement? {
-  if let id = videoID ?? playlistID {
-    do {
-      let descriptor = FetchDescriptor<HomeScreenElement>(
-          predicate: #Predicate { $0.videoID == videoID || $0.playlistID == playlistID }
-          )
-      let contents = try modelContext.fetch(descriptor)
-
-      let existingEntry = !contents.isEmpty
-
-      let type = videoID != nil ? HomeScreenElementType.video : .playlist
-
-      let homeScreenElement = contents.first ?? HomeScreenElement(id: id, type: type)
-
-      if let videoID = videoID {
-        let descriptor = FetchDescriptor<Video>(
-          predicate: #Predicate { $0.id == videoID }
-        )
-        let video = try modelContext.fetch(descriptor)
-
-        homeScreenElement.video = video.first
-      }
-
-      if let playlistID = playlistID {
-        let descriptor = FetchDescriptor<Playlist>(
-          predicate: #Predicate { $0.id == playlistID }
-        )
-        let playlist = try modelContext.fetch(descriptor)
-
-        homeScreenElement.playlist = playlist.first
-      }
-
-      if !existingEntry {
-        modelContext.insert(homeScreenElement)
-      }
-      
-      return homeScreenElement
-    } catch {
-      print("Error inserting HomeScreenElement: \(error)")
+  guard (videoID == nil) != (playlistID == nil), let sourceID = videoID ?? playlistID, !sourceID.isEmpty else { return nil }
+  let type: HomeScreenElementType = videoID != nil ? .video : .playlist
+  let key = (videoID != nil ? "video:" : "playlist:") + sourceID
+  do {
+    let descriptor = FetchDescriptor<HomeScreenElement>(predicate: #Predicate { $0.id == key })
+    let existing = try modelContext.fetch(descriptor).first
+    let element = existing ?? HomeScreenElement(id: key, type: type)
+    element.videoID = videoID
+    element.playlistID = playlistID
+    if let videoID {
+      element.video = try modelContext.fetch(FetchDescriptor<Video>(predicate: #Predicate { $0.id == videoID })).first
+      element.playlist = nil
+    } else if let playlistID {
+      element.playlist = try modelContext.fetch(FetchDescriptor<Playlist>(predicate: #Predicate { $0.id == playlistID })).first
+      element.video = nil
     }
-  } else {
-    print("HomeScreenElement can not contain videoID and playlistID?!")
+    if existing == nil { modelContext.insert(element) }
+    return element
+  } catch {
+    print("Error inserting HomeScreenElement: \(error)")
+    return nil
   }
-  return nil
 }
 
-let queue = DispatchQueue(label: "db.utils.queue")
+/// The home feed is disposable. Legacy entries lost their identity fields and
+/// may already reference the wrong model, so refetch rather than guessing.
+func repairHomeScreenCache(_ modelContext: ModelContext) throws {
+  let elements = try modelContext.fetch(FetchDescriptor<HomeScreenElement>())
+  let invalid = elements.contains { element in
+    switch element.type {
+    case .video:
+      guard let id = element.videoID, !id.isEmpty else { return true }
+      return element.id != "video:" + id || element.playlistID != nil || element.video?.id != id
+    case .playlist:
+      guard let id = element.playlistID, !id.isEmpty else { return true }
+      return element.id != "playlist:" + id || element.videoID != nil || element.playlist?.id != id
+    }
+  }
+  guard invalid else { return }
+  try modelContext.delete(model: HomeScreenSection.self)
+  try modelContext.delete(model: HomeScreenElement.self)
+  try modelContext.save()
+}
 
+@MainActor
 func checkVideosForExpiration(_ videos: [Video]) {
-  queue.async {
-    for video in videos {
-      if let validUntil = video.validUntil, validUntil < Date() {
-        print("Refetch expired videoID")
-        requestVideo(id: video.id)
-      }
+  for video in videos {
+    if let validUntil = video.validUntil, validUntil < Date() {
+      requestVideo(id: video.id)
     }
   }
 }
 
+@MainActor
 func checkPlaylist(_ playlist: Playlist) {
-  queue.async {
-    let ids = playlist.videoIDs.filter { id in
-      !playlist.videos.contains { video in
-        video.id == id && (video.downloaded || (video.validUntil != nil && video.validUntil! > Date())) && video.durationMillis > 0
-      }
-    }
-    print("Fetching Playlist Ids: \(ids)")
-    ids.forEach { id in
-      requestVideo(id: id)
+  let ids = playlist.videoIDs.filter { id in
+    !playlist.videos.contains { video in
+      video.id == id && (video.downloaded || (video.validUntil != nil && video.validUntil! > Date())) && video.durationMillis > 0
     }
   }
+  ids.forEach { requestVideo(id: $0) }
 }
 
 func addVideoToPlaylist(_ playlist: Playlist, video: Video) {
@@ -312,6 +309,7 @@ private func notifyLocalPlaylistEdit(_ playlist: Playlist) {
   }
 }
 
+@MainActor
 func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
   playlist.videoIDs.removeAll { id in
     id == video.id
@@ -322,6 +320,7 @@ func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
   // Check if video is contained in any other playlist otherwise delete
   do {
     if let modelContext = playlist.modelContext, try !checkIfVideoExistsInOtherPlaylist(modelContext, oldPlaylist: playlist, video: video) {
+      prepareForVideoDeletion(ids: [video.id])
       // Free the download as well, otherwise the file stays without an entry.
       if video.downloaded { deleteDownloadedVideoFile(id: video.id) }
       modelContext.delete(video)
@@ -337,7 +336,11 @@ func removeVideoFromPlaylist(_ playlist: Playlist, video: Video) {
 
 /// Deletes the downloaded file of a video and resets its download state, so the
 /// entry no longer claims to be playable offline. The caller is responsible for saving.
+@MainActor
 func deleteDownloadedVideo(_ modelContext: ModelContext, id: String) {
+  DownloadManager.shared.cancel(ids: [id])
+  // The title stays in the library, so the player keeps it and only drops the local item.
+  MusicPlayerManager.shared.prepareForDownloadRemoval(ids: [id])
   deleteDownloadedVideoFile(id: id)
   do {
     let descriptor = FetchDescriptor<Video>(
@@ -346,14 +349,16 @@ func deleteDownloadedVideo(_ modelContext: ModelContext, id: String) {
     for video in try modelContext.fetch(descriptor) {
       video.downloaded = false
       video.fileURL = nil
-      // A downloaded cover lived in the deleted directory as well.
-      if video.coverURL?.hasPrefix("/") == true {
+      // A downloaded cover lived in the deleted directory as well. Covers are
+      // stored with and without a leading slash.
+      if isLocalCoverPath(video.coverURL) {
         video.coverURL = nil
       }
     }
   } catch {
     print("Error resetting download state of video \(id): \(error)")
   }
+  MusicPlayerManager.shared.downloadRemoved(ids: [id])
 }
 
 private func deleteDownloadedVideoFile(id: String) {
@@ -367,8 +372,10 @@ private func deleteDownloadedVideoFile(id: String) {
   }
 }
 
+@MainActor
 func deleteDownloadedPlaylist(_ modelContext: ModelContext, playlist: Playlist) {
   let playlistId = playlist.id
+  MusicPlayerManager.shared.prepareForLibraryDeletion(ids: [], playlistID: playlistId)
   // Find all videos only saved in the playlist
   for video in playlist.videos {
     // Check if other playlist exists with this video
@@ -381,8 +388,8 @@ func deleteDownloadedPlaylist(_ modelContext: ModelContext, playlist: Playlist) 
     do {
       let otherPlaylists = try modelContext.fetch(descriptor)
       if !otherPlaylists.isEmpty { continue }
-      if video.downloaded { deleteDownloadedVideoFile(id: video.id) }
-      
+      prepareForVideoDeletion(ids: [video.id])
+      deleteDownloadedVideoFile(id: video.id)
       modelContext.delete(video)
     } catch {
       print("Error deleting video \(video.id) from playlist \(playlist.id): \(error)")
@@ -405,6 +412,7 @@ private func checkIfVideoExistsInOtherPlaylist(_ modelContext: ModelContext, old
   return !otherPlaylists.isEmpty
 }
 
+@MainActor
 func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
   if backupFile.videos.isEmpty {
     print("No Videos available")
@@ -427,6 +435,8 @@ func overrideDatabase(modelContext: ModelContext, backupFile: JSONBackupFile) {
 @MainActor
 func clearDownloads(modelContext: ModelContext) {
   do {
+    let ids = Set(((try? modelContext.fetch(FetchDescriptor<Video>())) ?? []).map(\.id))
+    MusicPlayerManager.shared.prepareForLibraryDeletion(ids: ids)
     DownloadManager.shared.cancelAll()
     if FileManager.default.fileExists(atPath: getDownloadDirectory().path()) {
       try FileManager.default.removeItem(at: getDownloadDirectory())
@@ -451,7 +461,11 @@ func clearDownloads(modelContext: ModelContext) {
   }
 }
 
+@MainActor
 func clearDatabase(modelContext: ModelContext) {
+  let ids = Set(((try? modelContext.fetch(FetchDescriptor<Video>())) ?? []).map(\.id))
+  MusicPlayerManager.shared.prepareForLibraryDeletion(ids: ids)
+  DownloadManager.shared.cancelAll()
   do {
       try modelContext.delete(model: Video.self)
       try modelContext.delete(model: Playlist.self)
@@ -464,4 +478,10 @@ func clearDatabase(modelContext: ModelContext) {
   } catch {
       print("Failed to clear all Video and Playlist data. \(error)")
   }
+}
+
+@MainActor
+private func prepareForVideoDeletion(ids: Set<String>) {
+  DownloadManager.shared.cancel(ids: ids)
+  MusicPlayerManager.shared.prepareForLibraryDeletion(ids: ids)
 }

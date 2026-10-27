@@ -1,20 +1,17 @@
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
-import React, {useCallback, useEffect, useMemo, useState} from "react";
-import {Alert, View} from "react-native";
-import {IconButton, Menu} from "react-native-paper";
+import React, {useCallback, useEffect, useMemo} from "react";
+import {View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import usePlaylistDetails from "../../hooks/music/useMusicPlaylistDetails";
 
 import {MusicBottomPlayerBar} from "@/components/music/MusicBottomPlayerBar";
 import {MusicPlaylistHeader} from "@/components/music/MusicPlaylistHeader";
+import {WatchPlaylistMenu} from "@/components/music/WatchPlaylistMenu";
 import {MusicTrackList} from "@/components/music/sections/MusicTrackList";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
-import {useWatchLibrary} from "@/context/WatchLibraryContext";
 import {VideoData} from "@/extraction/Types";
-import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
-import {useAppTheme} from "@/ui/theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MusicPlaylistScreen">;
 
@@ -61,7 +58,7 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
   // Top Menu
   useEffect(() => {
     navigation.setOptions({
-      headerRight: () => <PlaylistMenu id={playlistId} />,
+      headerRight: () => <WatchPlaylistMenu playlistId={playlistId} />,
     });
   }, [navigation, playlistId]);
 
@@ -100,97 +97,5 @@ export function MusicPlaylistScreen({navigation, route}: Props) {
       />
       <MusicBottomPlayerBar />
     </View>
-  );
-}
-
-interface PlaylistMenuProps {
-  id: string;
-}
-
-function PlaylistMenu({id}: PlaylistMenuProps) {
-  const {
-    available,
-    linkedPlaylists,
-    linkPlaylist,
-    unlinkPlaylist,
-    setLinkedPlaylistAutoDownload,
-  } = useWatchLibrary();
-  const [showMenu, setShowMenu] = useState(false);
-  const {t} = useTranslation();
-  const {theme} = useAppTheme();
-
-  // The menu only holds Apple Watch actions so far.
-  if (!available) {
-    return null;
-  }
-
-  const link = linkedPlaylists[id];
-
-  const confirmUnlink = () => {
-    Alert.alert(
-      t("watchLibrary.unlink.title"),
-      t("watchLibrary.unlink.message"),
-      [
-        {
-          text: t("watchLibrary.unlink.keepDownloads"),
-          onPress: () => unlinkPlaylist(id, false),
-        },
-        {
-          text: t("watchLibrary.unlink.deleteDownloads"),
-          style: "destructive",
-          onPress: () => unlinkPlaylist(id, true),
-        },
-        {text: t("common.cancel"), style: "cancel"},
-      ],
-    );
-  };
-
-  return (
-    <Menu
-      visible={showMenu}
-      onDismiss={() => setShowMenu(false)}
-      anchor={
-        <IconButton
-          accessibilityLabel={t("media.moreOptions")}
-          icon={"dots-vertical"}
-          iconColor={theme.colors.textPrimary}
-          size={24}
-          onPress={() => setShowMenu(true)}
-        />
-      }>
-      {link ? (
-        <>
-          <Menu.Item
-            onPress={() => {
-              setShowMenu(false);
-              setLinkedPlaylistAutoDownload(id, !link.autoDownload);
-            }}
-            title={t("watchLibrary.link.autoDownload")}
-            leadingIcon={
-              link.autoDownload
-                ? "checkbox-marked-outline"
-                : "checkbox-blank-outline"
-            }
-          />
-          <Menu.Item
-            onPress={() => {
-              setShowMenu(false);
-              confirmUnlink();
-            }}
-            title={t("watchLibrary.link.remove")}
-            leadingIcon={"close-circle-outline"}
-          />
-        </>
-      ) : (
-        <Menu.Item
-          onPress={() => {
-            setShowMenu(false);
-            linkPlaylist(id, false);
-          }}
-          title={t("watchLibrary.link.add")}
-          leadingIcon={"watch"}
-        />
-      )}
-    </Menu>
   );
 }
