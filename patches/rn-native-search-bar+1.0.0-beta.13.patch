@@ -716,7 +716,7 @@ new file mode 100644
 index 0000000..8b13c20
 Binary files /dev/null and b/node_modules/rn-native-search-bar/android/build/tmp/kotlin-classes/debug/expo/modules/rnnativesearchbar/RnNativeSearchBarView.class differ
 diff --git a/node_modules/rn-native-search-bar/ios/RnNativeSearchBarView.swift b/node_modules/rn-native-search-bar/ios/RnNativeSearchBarView.swift
-index 09fb705..5ddad43 100644
+index 09fb705..4833cd8 100644
 --- a/node_modules/rn-native-search-bar/ios/RnNativeSearchBarView.swift
 +++ b/node_modules/rn-native-search-bar/ios/RnNativeSearchBarView.swift
 @@ -53,9 +53,9 @@ class RnNativeSearchBarView: ExpoView, UISearchBarDelegate {
@@ -731,7 +731,7 @@ index 09fb705..5ddad43 100644
          vc.addChild(searchViewController)
      }
      
-@@ -76,17 +76,29 @@ class RnNativeSearchBarView: ExpoView, UISearchBarDelegate {
+@@ -76,17 +76,66 @@ class RnNativeSearchBarView: ExpoView, UISearchBarDelegate {
          searchViewController.searchController.searchBar.text = ""
      }
      
@@ -750,6 +750,43 @@ index 09fb705..5ddad43 100644
          })
      }
      
++    override func didMoveToWindow() {
++        super.didMoveToWindow()
++        #if os(tvOS)
++        if window != nil {
++            letSelectPressesReachKeyboard()
++        } else {
++            restoreSelectPressCancellation()
++        }
++        #endif
++    }
++
++    #if os(tvOS)
++    private var relaxedSelectRecognizers: [UIGestureRecognizer] = []
++
++    /// React Native tvOS attaches select recognizers to its root view that begin
++    /// immediately and cancel the press in descendant views. The search keyboard
++    /// is such a descendant, so its keys could be focused but never typed.
++    private func letSelectPressesReachKeyboard() {
++        guard relaxedSelectRecognizers.isEmpty,
++              let selectRecognizerClass = NSClassFromString("RCTTVRemoteSelectGestureRecognizer") else { return }
++        var ancestor = superview
++        while let view = ancestor {
++            for recognizer in view.gestureRecognizers ?? []
++            where recognizer.isKind(of: selectRecognizerClass) && recognizer.cancelsTouchesInView {
++                recognizer.cancelsTouchesInView = false
++                relaxedSelectRecognizers.append(recognizer)
++            }
++            ancestor = view.superview
++        }
++    }
++
++    private func restoreSelectPressCancellation() {
++        relaxedSelectRecognizers.forEach { $0.cancelsTouchesInView = true }
++        relaxedSelectRecognizers.removeAll()
++    }
++    #endif
++
 +    /// Walks the responder chain to find the owning view controller.
 +    private func findParentViewController() -> UIViewController? {
 +        var responder: UIResponder? = self.next
