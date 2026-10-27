@@ -81,7 +81,9 @@ export function getVideoDetailLayout({
     mode: "split",
     playerColumnRatio: splitPlayerRatio[layout],
     playerAspectRatio: videoPlayerAspectRatio,
-    panelPresentation: "sheet",
+    // A sheet from the bottom would cover the video and its controls; the
+    // up next column beside it is the space a panel can take instead.
+    panelPresentation: "side",
     metadataBesidePlayer: true,
     // A phone in landscape is roughly 390 points high. Everything that is not
     // the video has to earn its space there; a tablet does not have that problem.
