@@ -419,6 +419,8 @@ export const en = {
   "video.player.subtitles.loadError": "Subtitles could not be loaded",
   "video.player.subtitles.rateLimited":
     "YouTube is limiting subtitle requests right now. Try again later.",
+  "video.player.subtitles.translationRateLimited":
+    "YouTube is blocking auto-translated subtitles right now. Please choose the original track.",
   "video.player.channel": "Open channel",
   "video.player.play": "Play",
   "video.player.pause": "Pause",
