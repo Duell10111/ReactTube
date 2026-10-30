@@ -56,6 +56,8 @@ test("splits player and up next in landscape on phone and tablet", () => {
   assert.equal(tablet.mode, "split");
   assert.ok(phone.playerColumnRatio < 1);
   assert.equal(phone.metadataBesidePlayer, true);
+  assert.equal(phone.panelPresentation, "side");
+  assert.equal(tablet.panelPresentation, "side");
   // A phone in landscape has the height problem a tablet does not have.
   assert.equal(phone.reducedChrome, true);
   assert.equal(tablet.reducedChrome, false);

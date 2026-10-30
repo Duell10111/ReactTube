@@ -106,9 +106,12 @@ test("picks the track from the user's preference", () => {
     pickSubtitleTrack(list, {enabled: true, languageCode: "de"}).id,
     ".de-DE",
   );
-  // Missing languages fall back to a translation.
-  const french = pickSubtitleTrack(list, {enabled: true, languageCode: "fr"});
-  assert.equal(french.id, ".en>fr");
+  // Missing languages fall back to the first manual track, never to a
+  // translation, which YouTube rejects with HTTP 429.
+  assert.equal(
+    pickSubtitleTrack(list, {enabled: true, languageCode: "fr"}).id,
+    ".en",
+  );
 });
 
 test("uses the auto-generated track when it is the only one", () => {
@@ -119,10 +122,10 @@ test("uses the auto-generated track when it is the only one", () => {
     pickSubtitleTrack(list, {enabled: true, languageCode: "en"}).id,
     "a.en",
   );
-  // Without a list of languages, translation is still offered.
+  // A missing language does not trigger a translation.
   assert.equal(
     pickSubtitleTrack(list, {enabled: true, languageCode: "de"}).id,
-    "a.en>de",
+    "a.en",
   );
 });
 

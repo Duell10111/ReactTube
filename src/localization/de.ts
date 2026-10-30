@@ -432,6 +432,8 @@ export const de = {
   "video.player.subtitles.loadError": "Untertitel konnten nicht geladen werden",
   "video.player.subtitles.rateLimited":
     "YouTube begrenzt Untertitel-Anfragen gerade. Bitte später erneut versuchen.",
+  "video.player.subtitles.translationRateLimited":
+    "YouTube blockiert automatisch übersetzte Untertitel gerade. Bitte die Originalspur wählen.",
   "video.player.channel": "Kanal öffnen",
   "video.player.play": "Abspielen",
   "video.player.pause": "Pausieren",

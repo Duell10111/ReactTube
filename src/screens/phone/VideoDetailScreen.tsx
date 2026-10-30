@@ -332,6 +332,13 @@ export default function VideoDetailScreen({route, navigation}: Props) {
   );
 
   const split = detailLayout.mode === "split" && !fullscreen;
+  const sidePanels = split && detailLayout.panelPresentation === "side";
+  const sheetPlacement = {
+    containerStyle: sidePanels
+      ? {left: `${detailLayout.playerColumnRatio * 100}%` as const}
+      : undefined,
+    fullHeight: sidePanels,
+  };
 
   return (
     <View
@@ -368,6 +375,7 @@ export default function VideoDetailScreen({route, navigation}: Props) {
         </View>
       </View>
       <SheetPanel
+        {...sheetPlacement}
         onClose={() => setPanel(undefined)}
         open={panel === "description"}
         subtitle={model?.metadataLine}
@@ -375,6 +383,7 @@ export default function VideoDetailScreen({route, navigation}: Props) {
         <VideoDescriptionPanel description={model?.description} inSheet />
       </SheetPanel>
       <SheetPanel
+        {...sheetPlacement}
         onClose={() => setPanel(undefined)}
         open={panel === "comments"}
         subtitle={
@@ -395,12 +404,14 @@ export default function VideoDetailScreen({route, navigation}: Props) {
       </SheetPanel>
       {overlayEnabled ? (
         <PhoneVideoSettingsSheet
+          {...sheetPlacement}
           onClose={() => setPanel(undefined)}
           open={panel === "playerSettings"}
         />
       ) : null}
       {model?.queue ? (
         <SheetPanel
+          {...sheetPlacement}
           onClose={() => setPanel(undefined)}
           open={panel === "queue"}
           subtitle={model.queue.positionLabel}
@@ -420,8 +431,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  // The zIndex keeps the body from being flattened into the container. Without
+  // it the player column's zIndex competes with the sheets and the player and
+  // the metadata beside it draw over an open sheet.
   body: {
     flex: 1,
+    zIndex: 0,
   },
   bodySplit: {
     flexDirection: "row",
