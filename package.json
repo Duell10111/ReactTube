@@ -63,7 +63,7 @@
     "react-native-video": "6.19.2",
     "react-native-webview": "13.16.1",
     "react-native-worklets": "0.10.1",
-    "rn-native-search-bar": "1.0.0-beta.13",
+    "rn-native-search-bar": "1.0.0-beta.14",
     "stream-browserify": "3.0.0",
     "web-streams-polyfill": "4.2.0",
     "youtubei.js": "npm:@duell10111/youtubei.js@18.0.0-beta.3"
