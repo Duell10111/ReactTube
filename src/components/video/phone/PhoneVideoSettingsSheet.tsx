@@ -1,6 +1,6 @@
 import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import React, {useEffect, useState} from "react";
-import {StyleSheet} from "react-native";
+import {StyleProp, StyleSheet, ViewStyle} from "react-native";
 
 import {isAutoplayEnabled} from "./phoneAutoplayModel";
 
@@ -22,6 +22,8 @@ type Page = "menu" | "resolution" | "speed" | "language" | "subtitles";
 interface PhoneVideoSettingsSheetProps {
   open: boolean;
   onClose: () => void;
+  containerStyle?: StyleProp<ViewStyle>;
+  fullHeight?: boolean;
 }
 
 /**
@@ -33,6 +35,8 @@ interface PhoneVideoSettingsSheetProps {
 export function PhoneVideoSettingsSheet({
   open,
   onClose,
+  containerStyle,
+  fullHeight,
 }: PhoneVideoSettingsSheetProps) {
   const {t} = useTranslation();
   const {theme} = useAppTheme();
@@ -90,7 +94,12 @@ export function PhoneVideoSettingsSheet({
     ) : null;
 
   return (
-    <SheetPanel onClose={onClose} open={open} title={titles[page]}>
+    <SheetPanel
+      containerStyle={containerStyle}
+      fullHeight={fullHeight}
+      onClose={onClose}
+      open={open}
+      title={titles[page]}>
       <BottomSheetScrollView
         contentContainerStyle={[
           styles.content,

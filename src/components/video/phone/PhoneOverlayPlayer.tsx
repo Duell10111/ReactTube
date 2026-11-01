@@ -55,7 +55,11 @@ import type {YTChapter, YTEndscreen} from "@/extraction/Types";
 import type {YTStoryboard} from "@/extraction/storyboard";
 import {useTranslation} from "@/localization";
 import {useSponsorBlock} from "@/utils/SponsorBlockProvider";
-import {pickSubtitleTrack, SubtitleTrackList} from "@/utils/Subtitles";
+import {
+  isSameLanguage,
+  pickSubtitleTrack,
+  SubtitleTrackList,
+} from "@/utils/Subtitles";
 
 // The player is drawn over video frames, so its colors are YouTube's and do
 // not follow the app theme.
@@ -409,12 +413,16 @@ const PhoneOverlayPlayer = forwardRef<
         selectSubtitle(undefined);
         return;
       }
-      selectSubtitle(
-        pickSubtitleTrack(subtitles, {
-          enabled: true,
-          languageCode: appSettings.subtitleLanguage,
-        }),
-      );
+      const track = pickSubtitleTrack(subtitles, {
+        enabled: true,
+        languageCode: appSettings.subtitleLanguage,
+      });
+      // A fallback in another language must not replace the saved preference.
+      selectSubtitle(track, {
+        keepLanguage:
+          !!appSettings.subtitleLanguage &&
+          !isSameLanguage(track?.languageCode, appSettings.subtitleLanguage),
+      });
     };
 
     const toggleAutoplay = () => {

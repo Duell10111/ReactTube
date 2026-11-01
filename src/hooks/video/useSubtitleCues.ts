@@ -26,20 +26,48 @@ const cache = new Map<string, SubtitleCue[]>();
 const RATE_LIMIT_PAUSE_MS = 10 * 60_000;
 let rateLimitedUntil = 0;
 
-class SubtitleRateLimitError extends Error {}
+/**
+ * Auto-translations (`tlang`) are answered with HTTP 429 on every request
+ * while plain tracks still load (measured 2026-10-27), and retrying them is
+ * what escalates to the IP-wide block. A 429 on a translation therefore only
+ * pauses translations, and for longer.
+ */
+const TRANSLATION_RATE_LIMIT_PAUSE_MS = 60 * 60_000;
+let translationRateLimitedUntil = 0;
 
-async function loadCues(url: string) {
+class SubtitleRateLimitError extends Error {
+  constructor(
+    message: string,
+    readonly translation: boolean,
+  ) {
+    super(message);
+  }
+}
+
+async function loadCues(url: string, translation: boolean) {
   const cached = cache.get(url);
   if (cached) {
     return cached;
   }
-  if (Date.now() < rateLimitedUntil) {
-    throw new SubtitleRateLimitError("paused after HTTP 429");
+  const now = Date.now();
+  if (now < rateLimitedUntil) {
+    throw new SubtitleRateLimitError("paused after HTTP 429", false);
+  }
+  if (translation && now < translationRateLimitedUntil) {
+    throw new SubtitleRateLimitError(
+      "translations paused after HTTP 429",
+      true,
+    );
   }
   const response = await fetch(url);
   if (response.status === 429) {
-    rateLimitedUntil = Date.now() + RATE_LIMIT_PAUSE_MS;
-    throw new SubtitleRateLimitError("HTTP 429");
+    if (translation) {
+      translationRateLimitedUntil =
+        Date.now() + TRANSLATION_RATE_LIMIT_PAUSE_MS;
+    } else {
+      rateLimitedUntil = Date.now() + RATE_LIMIT_PAUSE_MS;
+    }
+    throw new SubtitleRateLimitError("HTTP 429", translation);
   }
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -58,6 +86,15 @@ async function loadCues(url: string) {
   return cues;
 }
 
+function errorMessageKey(error: unknown) {
+  if (!(error instanceof SubtitleRateLimitError)) {
+    return "video.player.subtitles.loadError" as const;
+  }
+  return error.translation
+    ? ("video.player.subtitles.translationRateLimited" as const)
+    : ("video.player.subtitles.rateLimited" as const);
+}
+
 /** Fetches and parses the cues of the selected track. */
 export function useSubtitleCues(track?: SubtitleTrack) {
   const {t} = useTranslation();
@@ -72,7 +109,7 @@ export function useSubtitleCues(track?: SubtitleTrack) {
       LOGGER.warn(`Track ${track.id} needs a PoToken; it may load empty`);
     }
     let cancelled = false;
-    loadCues(getSubtitleUrl(track))
+    loadCues(getSubtitleUrl(track), !!track.translation)
       .then(result => {
         if (!cancelled) {
           setCues(result);
@@ -83,14 +120,9 @@ export function useSubtitleCues(track?: SubtitleTrack) {
           return;
         }
         LOGGER.warn(`Loading subtitles ${track.id} failed: ${error}`);
-        const rateLimited = error instanceof SubtitleRateLimitError;
         showMessage({
           type: "warning",
-          message: t(
-            rateLimited
-              ? "video.player.subtitles.rateLimited"
-              : "video.player.subtitles.loadError",
-          ),
+          message: t(errorMessageKey(error)),
           // Long enough to read; the default is meant for short confirmations.
           duration: 4000,
         });

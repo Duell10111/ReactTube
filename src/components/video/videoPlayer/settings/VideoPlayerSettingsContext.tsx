@@ -32,8 +32,14 @@ interface VideoPlayerSettings {
   /** Publishes a video's tracks and picks one from the saved preference. */
   setSubtitles: (subtitles: SubtitleTrackList | undefined) => void;
   selectedSubtitle?: SubtitleTrack;
-  /** `undefined` turns subtitles off. The choice is kept for later videos. */
-  selectSubtitle: (track: SubtitleTrack | undefined) => void;
+  /**
+   * `undefined` turns subtitles off. The choice is kept for later videos;
+   * `keepLanguage` keeps the saved language, for an automatic fallback track.
+   */
+  selectSubtitle: (
+    track: SubtitleTrack | undefined,
+    options?: {keepLanguage?: boolean},
+  ) => void;
 }
 
 const VideoPlayerSettingsCtx = createContext<VideoPlayerSettings>({
@@ -74,12 +80,14 @@ export function VideoPlayerSettingsContext({
   }, []);
 
   const selectSubtitle = useCallback(
-    (track: SubtitleTrack | undefined) => {
+    (track: SubtitleTrack | undefined, options?: {keepLanguage?: boolean}) => {
       setSelectedSubtitle(track);
       updateSettings(
-        track
-          ? {subtitlesEnabled: true, subtitleLanguage: track.languageCode}
-          : {subtitlesEnabled: false},
+        !track
+          ? {subtitlesEnabled: false}
+          : options?.keepLanguage
+            ? {subtitlesEnabled: true}
+            : {subtitlesEnabled: true, subtitleLanguage: track.languageCode},
       );
     },
     [updateSettings],
