@@ -97,7 +97,7 @@ function persistCache(cache: WatchLibraryCache) {
     if (!cacheFile.exists) {
       cacheFile.create({intermediates: true});
     }
-    cacheFile.write(JSON.stringify(cache));
+    cacheFile.writeSync(JSON.stringify(cache));
   } catch (error) {
     LOGGER.warn("Writing watch library cache failed", error);
   }

@@ -1,6 +1,11 @@
 import {MaterialIcons} from "@expo/vector-icons";
 import React, {forwardRef} from "react";
-import {Pressable, StyleSheet, View} from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  View,
+  type PressableInstance,
+} from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -29,7 +34,7 @@ interface TVRailItemProps {
  * Selected and focused are rendered as separate states: selection stays visible
  * while the rail is collapsed, focus adds the outline.
  */
-export const TVRailItem = forwardRef<View, TVRailItemProps>(
+export const TVRailItem = forwardRef<PressableInstance, TVRailItemProps>(
   (
     {destination, selected, focused, railWidth, onFocus, onBlur, onPress},
     ref,

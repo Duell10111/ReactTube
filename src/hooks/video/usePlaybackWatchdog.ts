@@ -1,11 +1,11 @@
 import {useEffect, useMemo, useState} from "react";
-import {AppState, AppStateStatus} from "react-native";
+import {AppState} from "react-native";
 import type {ReactVideoEvents} from "react-native-video";
 
 import {PlaybackWatchdog} from "@/utils/PlaybackWatchdog";
 
 /** "inactive" (Control Center, incoming call) still shows the player. */
-function isForeground(state: AppStateStatus) {
+function isForeground(state: string | null | undefined) {
   return state !== "background";
 }
 

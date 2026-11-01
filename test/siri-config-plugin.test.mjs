@@ -35,14 +35,18 @@ import ReactAppDependencyProvider
 class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {
   var window: UIWindow?
 
-  // Universal Links
+  var reactNativeDelegate: ExpoReactNativeFactoryDelegate?
+  var reactNativeFactory: RCTReactNativeFactory?
+
   public override func application(
     _ application: UIApplication,
-    continue userActivity: NSUserActivity,
-    restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
-    return true
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
+}
+
+class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
 }
 `;
 
@@ -54,13 +58,15 @@ test("injects the Siri imports and in-app intent handler into the AppDelegate", 
     /import ReactAppDependencyProvider\n.*\nimport Intents\n.*\ninternal import SiriMedia/,
   );
   assert.match(result, /handlerFor intent: INIntent/);
-  // The handler has to stay inside the AppDelegate class, before the
-  // universal links override.
+  // The handler has to stay inside the AppDelegate class, not in the
+  // React Native delegate that follows it.
   assert.ok(
-    result.indexOf("handlerFor intent") < result.indexOf("// Universal Links"),
+    result.indexOf("handlerFor intent") >
+      result.indexOf("var reactNativeFactory"),
   );
   assert.ok(
-    result.indexOf("handlerFor intent") > result.indexOf("class AppDelegate"),
+    result.indexOf("handlerFor intent") <
+      result.indexOf("class ReactNativeDelegate"),
   );
 });
 

@@ -97,9 +97,9 @@ export function MusicTrackList({
             color={theme.colors.textSecondary}
             style={{padding: theme.spacing.lg}}
           />
-        ) : null
+        ) : undefined
       }
-      ListHeaderComponent={ListHeaderComponent}
+      ListHeaderComponent={ListHeaderComponent ?? undefined}
       contentContainerStyle={{
         paddingBottom: theme.spacing.lg,
         paddingHorizontal: musicSurfacePadding,

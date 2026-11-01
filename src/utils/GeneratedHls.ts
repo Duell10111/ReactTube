@@ -196,7 +196,7 @@ export async function buildGeneratedHls(
     for (const playlist of manifest.playlists) {
       const file = new File(directory, playlist.name);
       file.create({overwrite: true});
-      file.write(playlist.content);
+      file.writeSync(playlist.content);
       uriByName.set(playlist.name, file.uri);
     }
 
@@ -206,7 +206,7 @@ export async function buildGeneratedHls(
       options?.subtitles?.tracks.forEach((track, index) => {
         const file = new File(outputDirectory, `subtitles-${index}.m3u8`);
         file.create({overwrite: true});
-        file.write(buildSubtitleMediaPlaylist(track, duration));
+        file.writeSync(buildSubtitleMediaPlaylist(track, duration));
         renditions.push({
           name: options.subtitles?.label(track) ?? track.name,
           languageCode: track.languageCode,

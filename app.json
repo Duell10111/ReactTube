@@ -48,14 +48,6 @@
         }
       ],
       [
-        "expo-build-properties",
-        {
-          "ios": {
-            "enableSceneSupport": true
-          }
-        }
-      ],
-      [
         "./plugins/ios/withAppleTargets.js",
         {
           "appleTeamId": "XXXXXXXXXX",
@@ -97,7 +89,9 @@
         {
           "enabled": true
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image"
     ],
     "locales": {
       "en": "./assets/locales/en.json",

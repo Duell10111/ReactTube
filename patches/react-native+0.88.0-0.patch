@@ -1,0 +1,74 @@
+diff --git a/node_modules/react-native/types_generated/Libraries/Components/Pressable/Pressable.d.ts b/node_modules/react-native/types_generated/Libraries/Components/Pressable/Pressable.d.ts
+index f5c9d9c..67d4b42 100644
+--- a/node_modules/react-native/types_generated/Libraries/Components/Pressable/Pressable.d.ts
++++ b/node_modules/react-native/types_generated/Libraries/Components/Pressable/Pressable.d.ts
+@@ -10,7 +10,7 @@
+  * Original file: packages/react-native/Libraries/Components/Pressable/Pressable.js
+  */
+ 
+-import type { HostInstance } from "../../../src/private/types/HostInstance";
++import type { ViewInstance } from "../View/View";
+ import type { ViewStyleProp } from "../../StyleSheet/StyleSheet";
+ import type { BlurEvent, FocusEvent, GestureResponderEvent, LayoutChangeEvent, MouseEvent } from "../../Types/CoreEventTypes";
+ import type { TVParallaxPropertiesType } from "../TV/TVViewPropTypes";
+@@ -18,7 +18,7 @@ import type { ViewProps } from "../View/ViewPropTypes";
+ import { type RectOrSize } from "../../StyleSheet/Rect";
+ import { type PressableAndroidRippleConfig } from "./useAndroidRippleForView";
+ import * as React from "react";
+-export type PressableInstance = HostInstance;
++export type PressableInstance = ViewInstance;
+ export type { PressableAndroidRippleConfig };
+ type PressableStateCallbackTypeCore = Readonly<{
+   pressed: boolean;
+diff --git a/node_modules/react-native/types_generated/Libraries/Components/TV/TVFocusGuideView.d.ts b/node_modules/react-native/types_generated/Libraries/Components/TV/TVFocusGuideView.d.ts
+index 484e8f9..584773b 100644
+--- a/node_modules/react-native/types_generated/Libraries/Components/TV/TVFocusGuideView.d.ts
++++ b/node_modules/react-native/types_generated/Libraries/Components/TV/TVFocusGuideView.d.ts
+@@ -10,6 +10,7 @@
+  * Original file: packages/react-native/Libraries/Components/TV/TVFocusGuideView.js
+  */
+ 
++import type { HostInstance } from "../../../src/private/types/HostInstance";
+ import type { BlurEvent, FocusEvent } from "../../Types/CoreEventTypes";
+ import type { ViewProps } from "../View/ViewPropTypes";
+ import type { ComponentOrHandleType } from "./tagForComponentOrHandle";
+@@ -50,10 +51,12 @@ type TVFocusGuideViewProps = Readonly<Omit<ViewProps, "enabled" | "destinations"
+    * not fire when focus moves between descendants. Pairs with `onFocusEnter`.
+    */
+   onFocusLeave?: ((event: BlurEvent) => void) | undefined;
++  ref?: React.Ref<TVFocusGuideViewInstance> | undefined;
+ }>;
+ export type TVFocusGuideViewImperativeMethods = Readonly<{
+   setDestinations: (destinations: (ComponentOrHandleType | number)[]) => void;
+ }>;
++export type TVFocusGuideViewInstance = HostInstance & TVFocusGuideViewImperativeMethods;
+ declare function TVFocusGuideView($$PARAM_0$$: TVFocusGuideViewProps): React.ReactNode;
+ declare const $$TVFocusGuideView: typeof TVFocusGuideView;
+ declare type $$TVFocusGuideView = typeof $$TVFocusGuideView;
+diff --git a/node_modules/react-native/types_generated/Libraries/Components/View/View.d.ts b/node_modules/react-native/types_generated/Libraries/Components/View/View.d.ts
+index c867493..297a79c 100644
+--- a/node_modules/react-native/types_generated/Libraries/Components/View/View.d.ts
++++ b/node_modules/react-native/types_generated/Libraries/Components/View/View.d.ts
+@@ -13,7 +13,9 @@
+ import type { HostInstance } from "../../../src/private/types/HostInstance";
+ import type { ViewProps } from "./ViewPropTypes";
+ import * as React from "react";
+-export type ViewInstance = HostInstance;
++export type ViewInstance = HostInstance & {
++  requestTVFocus: () => void;
++};
+ declare function View(props: Omit<ViewProps, "ref"> & {
+   ref?: React.Ref<ViewInstance> | undefined;
+ }): React.ReactNode;
+diff --git a/node_modules/react-native/types_generated/index.d.ts b/node_modules/react-native/types_generated/index.d.ts
+index 579986e..0c6f838 100644
+--- a/node_modules/react-native/types_generated/index.d.ts
++++ b/node_modules/react-native/types_generated/index.d.ts
+@@ -185,6 +185,7 @@ export { DEFAULT_INITIAL_NUM_TO_RENDER as unstable_DEFAULT_INITIAL_NUM_TO_RENDER
+ export { default as TVEventHandler } from "./Libraries/Components/TV/TVEventHandler";
+ export { default as TVEventControl } from "./Libraries/Components/TV/TVEventControl";
+ export { default as TVFocusGuideView } from "./Libraries/Components/TV/TVFocusGuideView";
++export type { TVFocusGuideViewImperativeMethods, TVFocusGuideViewInstance } from "./Libraries/Components/TV/TVFocusGuideView";
+ export type { TVRemoteEvent } from "./Libraries/Types/CoreEventTypes";
+ export { default as TVTextScrollView } from "./Libraries/Components/TV/TVTextScrollView";
+ export { default as useTVEventHandler } from "./Libraries/Components/TV/useTVEventHandler";

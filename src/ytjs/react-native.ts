@@ -131,7 +131,7 @@ class Cache implements ICache {
       file.create({intermediates: true, overwrite: true});
     }
 
-    file.write(new Uint8Array(value));
+    await file.write(new Uint8Array(value));
   }
 
   async remove(key: string) {

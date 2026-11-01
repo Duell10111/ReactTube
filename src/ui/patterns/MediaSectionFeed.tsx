@@ -112,7 +112,7 @@ export function MediaSectionFeed({
       <TVFocusRegion style={[styles.region, {marginStart: leadingInset}]}>
         <SectionList
           ListEmptyComponent={empty}
-          ListFooterComponent={loadingMore ? <FeedFooterLoader /> : null}
+          ListFooterComponent={loadingMore ? <FeedFooterLoader /> : undefined}
           contentContainerStyle={{
             paddingTop: contentPadding.paddingTop,
             paddingBottom: contentPadding.paddingBottom,
