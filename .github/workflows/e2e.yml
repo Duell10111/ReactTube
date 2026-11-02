@@ -40,7 +40,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-          cache: gradle
 
       - name: Prebuild
         uses: ./.github/actions/prebuild
