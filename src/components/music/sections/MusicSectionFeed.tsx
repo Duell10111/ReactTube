@@ -107,9 +107,9 @@ export function MusicSectionFeed({
             color={theme.colors.textSecondary}
             style={{padding: theme.spacing.lg}}
           />
-        ) : null
+        ) : undefined
       }
-      ListHeaderComponent={ListHeaderComponent}
+      ListHeaderComponent={ListHeaderComponent ?? undefined}
       contentContainerStyle={{
         paddingVertical: theme.spacing.md,
         gap: theme.spacing.xl,

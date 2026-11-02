@@ -5,6 +5,7 @@ import {
   StyleSheet,
   View,
   type DimensionValue,
+  type PressableInstance,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -37,7 +38,7 @@ export interface MediaCardProps {
   /** Reports focus on TV, where a row keeps its playing entry in view. */
   onFocusChange?: (focused: boolean) => void;
   /** The pressable itself, e.g. as a TV focus guide destination. */
-  focusRef?: React.Ref<View>;
+  focusRef?: React.Ref<PressableInstance>;
 }
 
 /**

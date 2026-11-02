@@ -148,7 +148,7 @@ export function CommentList({
             color={theme.colors.textSecondary}
             style={{padding: theme.spacing.lg}}
           />
-        ) : null
+        ) : undefined
       }
       contentContainerStyle={{
         padding: theme.spacing.lg,

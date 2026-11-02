@@ -1,5 +1,11 @@
 import {Dispatch, Ref, SetStateAction, useState} from "react";
-import {PanResponderInstance, Pressable, StyleSheet, View} from "react-native";
+import {
+  PanResponderInstance,
+  Pressable,
+  StyleSheet,
+  View,
+  type PressableInstance,
+} from "react-native";
 
 import {useAppTheme} from "@/ui/theme";
 
@@ -14,7 +20,7 @@ interface SeekbarProps {
   /** Select on the focused handle; the TV overlay toggles playback with it. */
   onPress?: () => void;
   /** The focusable handle, so the overlay can move focus back onto it. */
-  handleRef?: Ref<View>;
+  handleRef?: Ref<PressableInstance>;
 }
 
 const handleSize = 32;

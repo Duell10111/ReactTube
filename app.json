@@ -50,8 +50,8 @@
       [
         "expo-build-properties",
         {
-          "ios": {
-            "enableSceneSupport": true
+          "android": {
+            "minSdkVersion": 26
           }
         }
       ],
@@ -97,7 +97,9 @@
         {
           "enabled": true
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image"
     ],
     "locales": {
       "en": "./assets/locales/en.json",

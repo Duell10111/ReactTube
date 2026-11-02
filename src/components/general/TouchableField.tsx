@@ -10,8 +10,7 @@ import {
 
 // TODO: Create component with large invisible touch field where element is still small compared to that ?!
 
-interface Props<K extends TouchableWithoutFeedbackProps>
-  extends TouchableWithoutFeedbackProps {
+interface Props<K> extends TouchableWithoutFeedbackProps {
   touchableComponent?: K;
   containerStyle: StyleProp<ViewStyle>;
   style: StyleProp<ViewStyle>;

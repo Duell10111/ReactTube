@@ -1,0 +1,26 @@
+diff --git a/node_modules/react-native-pager-view/ios/PagerView.swift b/node_modules/react-native-pager-view/ios/PagerView.swift
+index a4a850a..01d52af 100644
+--- a/node_modules/react-native-pager-view/ios/PagerView.swift
++++ b/node_modules/react-native-pager-view/ios/PagerView.swift
+@@ -47,7 +47,7 @@ struct PagerView: View {
+ 
+         // The vertical pager rotates this horizontal scroll view by 90 degrees.
+         // Native edge effects would rotate with it and cover the page sideways.
+-        if isVertical, #available(iOS 26.0, *) {
++        if isVertical, #available(iOS 26.0, tvOS 26.0, *) {
+           collectionView.topEdgeEffect.isHidden = true
+           collectionView.bottomEdgeEffect.isHidden = true
+           collectionView.leftEdgeEffect.isHidden = true
+diff --git a/node_modules/react-native-pager-view/react-native-pager-view.podspec b/node_modules/react-native-pager-view/react-native-pager-view.podspec
+index 0ea42a1..1677eb1 100644
+--- a/node_modules/react-native-pager-view/react-native-pager-view.podspec
++++ b/node_modules/react-native-pager-view/react-native-pager-view.podspec
+@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
+   s.license      = package["license"]
+   s.authors      = package["author"]
+ 
+-  s.platforms    = { :ios => "10.0", :visionos => "1.0" }
++  s.platforms    = { :ios => "10.0", :tvos => "16.4", :visionos => "1.0" }
+   s.source       = { :git => "https://github.com/callstack/react-native-pager-view.git", :tag => "#{s.version}" }
+ 
+   s.source_files = "ios/**/*.{h,m,mm,swift}"

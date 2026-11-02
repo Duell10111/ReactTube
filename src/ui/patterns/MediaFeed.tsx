@@ -145,7 +145,7 @@ export function MediaFeed({
       <TVFocusRegion style={[styles.region, {marginStart: leadingInset}]}>
         <FlatList
           ListEmptyComponent={empty}
-          ListFooterComponent={loadingMore ? <FeedFooterLoader /> : null}
+          ListFooterComponent={loadingMore ? <FeedFooterLoader /> : undefined}
           ListHeaderComponent={
             <View style={rowPadding}>
               {ListHeaderComponent}

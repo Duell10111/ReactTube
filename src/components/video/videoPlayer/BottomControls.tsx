@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TVFocusGuideView,
   View,
+  type PressableInstance,
 } from "react-native";
 import Animated from "react-native-reanimated";
 import {SafeAreaView} from "react-native-safe-area-context";
@@ -81,7 +82,7 @@ export default function BottomControls({
 }: BottomControlsProps) {
   const {bottomContainerStyle, topContainerStyle, showBottomContainer} =
     useAnimatedBottomControls();
-  const seekbarHandleRef = useRef<View>(null);
+  const seekbarHandleRef = useRef<PressableInstance>(null);
   // A transparent modal on top owns the focus; pulling it back here would
   // strand the remote behind the modal.
   const screenFocused = useIsFocused();
@@ -101,7 +102,7 @@ export default function BottomControls({
       // without the user seeing what was focused. Parking it on the seek bar
       // makes a hidden overlay respond to Select and left/right predictably.
       if (canRestoreFocus) {
-        seekbarHandleRef.current?.requestTVFocus?.();
+        seekbarHandleRef.current?.requestTVFocus();
       }
     }, 200);
 

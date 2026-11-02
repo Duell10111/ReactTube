@@ -193,7 +193,7 @@ export function MusicSearchScreen() {
                 onClose={() => clearDetailsData()}
               />
             </View>
-          ) : null
+          ) : undefined
         }
         onEndReached={parsedMusicShelfData ? fetchMoreShelfData : undefined}
         renderItem={renderItem}

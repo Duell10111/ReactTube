@@ -5,8 +5,9 @@ import {
   StyleSheet,
   TVFocusGuideView,
   View,
-  type FocusGuideMethods,
   type ListRenderItem,
+  type PressableInstance,
+  type TVFocusGuideViewInstance,
 } from "react-native";
 
 import {ElementData} from "@/extraction/Types";
@@ -49,7 +50,7 @@ export function VideoPlaylistList({
   const performance = getShelfListPerformance(layout);
   const listRef = useRef<FlatList<ElementData>>(null);
   const focusedInside = useRef(false);
-  const focusGuideRef = useRef<View & FocusGuideMethods>(null);
+  const focusGuideRef = useRef<TVFocusGuideViewInstance>(null);
 
   const padding = useMemo(
     () => getFeedRowPadding(contentPadding, theme.spacing.sm),
@@ -121,8 +122,8 @@ export function VideoPlaylistList({
   // the guide's focus memory. While that card is not mounted they are cleared,
   // and `autoFocus` keeps the guide installed as the fallback — without it an
   // empty list would turn the guide into a focus trap.
-  const currentCard = useRef<View | null>(null);
-  const setCurrentCard = useCallback((card: View | null) => {
+  const currentCard = useRef<PressableInstance | null>(null);
+  const setCurrentCard = useCallback((card: PressableInstance | null) => {
     currentCard.current = card;
     focusGuideRef.current?.setDestinations(card ? [card] : []);
   }, []);

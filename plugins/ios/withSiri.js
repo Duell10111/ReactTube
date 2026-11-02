@@ -125,8 +125,10 @@ function addSiriAppDelegateCode(appDelegate) {
     tag: HANDLER_TAG,
     src: withImports.contents,
     newSrc: HANDLER_SNIPPET,
-    anchor: /^ {2}\/\/ Universal Links$/m,
-    offset: 0,
+    // SDK 58 moved the universal links override to the SceneDelegate, so the
+    // handler goes right after the factory properties, still inside the class.
+    anchor: /^ {2}var reactNativeFactory: RCTReactNativeFactory\?$/m,
+    offset: 1,
     comment: "//",
   });
   return withHandler.contents;

@@ -9,8 +9,9 @@ import {
   StyleSheet,
   TVFocusGuideView,
   View,
-  type FocusGuideMethods,
   type ListRenderItem,
+  type PressableInstance,
+  type TVFocusGuideViewInstance,
 } from "react-native";
 
 import {
@@ -48,7 +49,7 @@ export function VideoChapterList({chapters, onPress}: VideoChapterListProps) {
   const currentTime = usePlaybackTime();
   const listRef = useRef<FlatList<YTChapter>>(null);
   const focusedInside = useRef(false);
-  const focusGuideRef = useRef<View & FocusGuideMethods>(null);
+  const focusGuideRef = useRef<TVFocusGuideViewInstance>(null);
 
   const padding = useMemo(
     () => getFeedRowPadding(contentPadding, theme.spacing.sm),
@@ -118,8 +119,8 @@ export function VideoChapterList({chapters, onPress}: VideoChapterListProps) {
   // over the guide's focus memory. While the active card is not mounted they
   // are cleared, and `autoFocus` keeps the guide installed as the fallback —
   // without it an empty list would turn the guide into a focus trap.
-  const activeCard = useRef<View | null>(null);
-  const setActiveCard = useCallback((card: View | null) => {
+  const activeCard = useRef<PressableInstance | null>(null);
+  const setActiveCard = useCallback((card: PressableInstance | null) => {
     activeCard.current = card;
     focusGuideRef.current?.setDestinations(card ? [card] : []);
   }, []);
@@ -214,7 +215,7 @@ interface ChapterCardProps {
   onPress?: (chapter: YTChapter) => void;
   onFocusChange: (focused: boolean) => void;
   /** Set on the active card only; it becomes the row's focus destination. */
-  cardRef?: (card: View | null) => void;
+  cardRef?: (card: PressableInstance | null) => void;
 }
 
 /**

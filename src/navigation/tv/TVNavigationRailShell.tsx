@@ -5,6 +5,7 @@ import {
   TVFocusGuideView,
   useWindowDimensions,
   View,
+  type PressableInstance,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -72,11 +73,13 @@ export function TVNavigationRailShell({children}: TVNavigationRailShellProps) {
   const [focusedKey, setFocusedKey] = useState<TVRailDestinationKey>();
   const [lastFocusedKey, setLastFocusedKey] =
     useState<TVRailDestinationKey>("home");
-  const [railDestinationRefs, setRailDestinationRefs] = useState<View[]>([]);
+  const [railDestinationRefs, setRailDestinationRefs] = useState<
+    PressableInstance[]
+  >([]);
 
-  const itemRefs = useRef<Partial<Record<TVRailDestinationKey, View | null>>>(
-    {},
-  );
+  const itemRefs = useRef<
+    Partial<Record<TVRailDestinationKey, PressableInstance | null>>
+  >({});
   const collapseTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const destinations = useMemo(

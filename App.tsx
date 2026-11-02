@@ -77,10 +77,7 @@ function ThemedApp() {
                 <MusicPlayerContext>
                   <DownloaderContext>
                     <WatchLibraryProvider>
-                      <StatusBar
-                        barStyle={appStatusBarStyle}
-                        backgroundColor={theme.colors.background}
-                      />
+                      <StatusBar barStyle={appStatusBarStyle} />
                       <VideoPlayerSettingsContext>
                         <VideoSidePanelProvider>
                           <VideoProvider>
