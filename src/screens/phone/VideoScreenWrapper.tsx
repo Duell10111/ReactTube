@@ -9,7 +9,6 @@ import VideoDetailScreen from "@/screens/phone/VideoDetailScreen";
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
 export default function VideoScreenWrapper(props: Props) {
-  // TODO:  Not ready yet
   if (props.route.params.reel) {
     return <ReelVideoScreen {...props} />;
   }

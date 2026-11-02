@@ -463,6 +463,8 @@ export const de = {
   "shorts.player.hint":
     "Spielt das Short ab oder pausiert es. Nach oben oder unten drücken für das vorherige oder nächste Short.",
   "shorts.player.paused": "Pausiert",
+  "shorts.player.touchHint":
+    "Tippen zum Abspielen oder Pausieren. Nach oben oder unten wischen für den nächsten oder vorherigen Short.",
   "shorts.previous": "Vorheriges Short",
   "shorts.next": "Nächstes Short",
 } as const satisfies Record<TranslationKey, string>;
