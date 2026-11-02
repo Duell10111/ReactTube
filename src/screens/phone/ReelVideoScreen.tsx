@@ -1,277 +1,199 @@
-// TODO: Add Reel Video Screen
-
-import {useNavigation} from "@react-navigation/native";
-import {
-  NativeStackNavigationProp,
-  NativeStackScreenProps,
-} from "@react-navigation/native-stack";
+import {useIsFocused} from "@react-navigation/native";
+import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import React, {
-  createContext,
-  useContext,
+  useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
-  ActivityIndicator,
+  AppState,
+  FlatList,
+  FlatListProps,
+  LayoutChangeEvent,
+  ListRenderItemInfo,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   StyleSheet,
-  Text,
-  useWindowDimensions,
   View,
 } from "react-native";
-import {Gesture, GestureDetector} from "react-native-gesture-handler";
-import Animated, {runOnJS} from "react-native-reanimated";
-import {Carousel} from "react-native-reanimated-carousel";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {ResizeMode} from "react-native-video";
 
-import VideoComponent from "../../components/VideoComponent";
-import ChannelIcon from "../../components/video/ChannelIcon";
-import PlayPauseAnimation from "../../components/video/phone/PlayPauseAnimation";
-import useVideoDetails from "../../hooks/useVideoDetails";
-import {useReelPlaylist} from "../../hooks/video/useReelPlaylist";
-import {RootStackParamList} from "../../navigation/RootStackNavigator";
-import {YTNodes} from "../../utils/Youtube";
-
-import {useTranslation} from "@/localization";
-import {ErrorState} from "@/ui/components";
+import {PhoneShortPage} from "@/components/shorts/phone/PhoneShortPage";
+import {
+  getShortPageState,
+  shortIndexFromOffset,
+} from "@/components/shorts/phone/shortsPagingModel";
+import {shouldPrefetchShorts} from "@/components/shorts/tv/shortsQueueModel";
+import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import {useShortsQueue} from "@/hooks/video/useShortsQueue";
+import {RootStackParamList} from "@/navigation/RootStackNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
-type NProp = NativeStackNavigationProp<RootStackParamList, "VideoScreen">;
 
-export default function ReelVideoScreen({route}: Props) {
+const keyExtractor = (videoId: string) => videoId;
+const viewabilityConfig = {
+  itemVisiblePercentThreshold: 80,
+  minimumViewTime: 150,
+};
+
+export default function ReelVideoScreen(props: Props) {
+  // A new entry point owns a fresh paging position and preparation window.
+  return <ReelFeed key={props.route.params.videoId} {...props} />;
+}
+
+function ReelFeed({route, navigation}: Props) {
   const {videoId, navEndpoint} = route.params;
-  const {YTVideoInfo, loading, error, refresh, playbackFailureKey} =
-    useVideoDetails(navEndpoint ?? videoId);
-  const {t} = useTranslation();
-  const navigation = useNavigation<NProp>();
-
-  const {width, height} = useWindowDimensions();
-
-  const {elements, fetchMore} = useReelPlaylist(YTVideoInfo?.id);
-
-  console.log("WatchNextIds: ", elements);
+  const {videoIds, fetchMore} = useShortsQueue(videoId);
+  const focused = useIsFocused();
+  const {playing: musicPlaying, pause} = useMusikPlayerContext();
+  const [foreground, setForeground] = useState(
+    AppState.currentState === "active",
+  );
+  const [viewport, setViewport] = useState({width: 0, height: 0});
+  const [selected, setSelected] = useState(0);
+  const [preparedId, setPreparedId] = useState<string>();
+  const [preloadForId, setPreloadForId] = useState<string>();
+  const listRef = useRef<FlatList<string>>(null);
+  const selectedRef = useRef(0);
+  const activeId = videoIds[selected];
+  const playing = focused && foreground;
+  const preloadNext = playing && preloadForId === activeId;
 
   useEffect(() => {
-    navigation.setOptions({
-      headerTransparent: true,
-      headerTitle: "",
-    });
+    navigation.setOptions({headerTransparent: true, headerTitle: ""});
+  }, [navigation]);
+
+  useEffect(() => {
+    if (focused && musicPlaying) pause();
+  }, [focused, musicPlaying, pause]);
+
+  useEffect(() => {
+    const listener = AppState.addEventListener("change", state =>
+      setForeground(state === "active"),
+    );
+    return () => listener.remove();
   }, []);
 
-  const playlistData = useMemo(() => {
-    if (elements && YTVideoInfo) {
-      return [YTVideoInfo.id, ...elements];
-    }
-    return undefined;
-  }, [YTVideoInfo, elements]);
-
-  const [context, setContext] = useState<number>(0);
+  useEffect(() => {
+    if (focused && shouldPrefetchShorts(selected, videoIds.length)) fetchMore();
+  }, [fetchMore, focused, selected, videoIds.length]);
 
   useEffect(() => {
-    if (playlistData && context >= playlistData.length - 1) {
-      console.log("Fetch next Videos");
-      fetchMore();
-    }
-  }, [context, playlistData, fetchMore]);
+    setPreloadForId(undefined);
+    if (!playing || preparedId !== activeId) return;
+    // Give the visible player priority and avoid resolving skipped shorts
+    // during a fast fling. Only the next short starts new preparation.
+    const timer = setTimeout(() => setPreloadForId(activeId), 200);
+    return () => clearTimeout(timer);
+  }, [activeId, playing, preparedId]);
 
-  if (!playlistData) {
-    if (error && !loading) {
-      return (
-        <ErrorState
-          title={t("video.unavailable.title")}
-          message={t(playbackFailureKey ?? "video.unavailable.message")}
-          onRetry={() => refresh()}
-        />
-      );
+  useLayoutEffect(() => {
+    if (viewport.height > 0) {
+      listRef.current?.scrollToOffset({
+        offset: selectedRef.current * viewport.height,
+        animated: false,
+      });
     }
-    return (
-      <View
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            alignItems: "center",
-            justifyContent: "center",
-          },
-        ]}>
-        <ActivityIndicator size={"large"} />
-      </View>
+  }, [viewport]);
+
+  const onLayout = useCallback(({nativeEvent}: LayoutChangeEvent) => {
+    const {width, height} = nativeEvent.layout;
+    setViewport(previous =>
+      previous.width === width && previous.height === height
+        ? previous
+        : {width, height},
     );
-  }
+  }, []);
 
-  return (
-    <reelContext.Provider value={{selected: context}}>
-      <Carousel
-        loop={false}
-        orientation={"vertical"}
-        style={{width, height}}
-        data={playlistData}
-        animation={{type: "timing", duration: 1000}}
-        renderWindowSize={5}
-        onSnapToItem={index => {
-          setContext(index);
-          console.log("current index:", index);
-        }}
-        renderItem={({index, item}) => (
-          <VideoItem videoId={item} index={index} />
-        )}
-      />
-    </reelContext.Provider>
+  const selectPage = useCallback((index: number) => {
+    selectedRef.current = index;
+    setSelected(index);
+  }, []);
+
+  const onViewableItemsChanged = useCallback<
+    NonNullable<FlatListProps<string>["onViewableItemsChanged"]>
+  >(
+    ({viewableItems}) => {
+      const index = viewableItems.find(item => item.isViewable)?.index;
+      if (index !== undefined && index !== null) selectPage(index);
+    },
+    [selectPage],
   );
-}
 
-interface ItemProps {
-  videoId: string | YTNodes.NavigationEndpoint;
-  index: number;
-}
+  const onMomentumScrollEnd = useCallback(
+    ({nativeEvent}: NativeSyntheticEvent<NativeScrollEvent>) => {
+      selectPage(
+        shortIndexFromOffset(
+          nativeEvent.contentOffset.y,
+          viewport.height,
+          videoIds.length,
+        ),
+      );
+    },
+    [selectPage, videoIds.length, viewport.height],
+  );
 
-function VideoItem({videoId, index}: ItemProps) {
-  const {
-    YTVideoInfo,
-    videoUrl,
-    loading,
-    error,
-    startTime,
-    refresh,
-    reportPlaybackFailure,
-    onPlaybackActive,
-    onPlaybackAdvanced,
-    playbackAttemptKey,
-    playbackFailureKey,
-    reportProgress,
-  } = useVideoDetails(videoId);
-
-  const {t} = useTranslation();
-  const {bottom} = useSafeAreaInsets();
-
-  const [paused, setPaused] = useState(false);
-
-  const {selected} = useContext(reelContext);
-
-  // Metadata without a playable source is final too, not only an error.
-  if (!videoUrl && !loading && (error || YTVideoInfo)) {
-    return (
-      <ErrorState
-        title={t("video.unavailable.title")}
-        message={
-          playbackFailureKey
-            ? t(playbackFailureKey)
-            : (YTVideoInfo?.originalData.playability_status?.reason ??
-              t("video.unavailable.message"))
-        }
-        onRetry={() => refresh()}
+  const renderItem = useCallback(
+    ({item, index}: ListRenderItemInfo<string>) => (
+      <PhoneShortPage
+        {...getShortPageState(index, selected, preloadNext)}
+        height={viewport.height}
+        initialEndpoint={index === 0 ? navEndpoint : undefined}
+        onPrepared={setPreparedId}
+        playing={playing}
+        videoId={item}
+        width={viewport.width}
       />
-    );
-  }
-  if (!YTVideoInfo || !videoUrl) {
-    return (
-      <View
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            alignItems: "center",
-            justifyContent: "center",
-          },
-        ]}>
-        <ActivityIndicator size={"large"} />
-      </View>
-    );
-  }
+    ),
+    [navEndpoint, playing, preloadNext, selected, viewport],
+  );
 
-  const gesture = Gesture.Tap().onStart(() => {
-    runOnJS(setPaused)(!paused);
-  });
+  const getItemLayout = useCallback(
+    (_: ArrayLike<string> | null | undefined, index: number) => ({
+      index,
+      length: viewport.height,
+      offset: viewport.height * index,
+    }),
+    [viewport.height],
+  );
+  const extraData = useMemo(
+    () => ({playing, preloadNext, selected, viewport}),
+    [playing, preloadNext, selected, viewport],
+  );
 
-  // TODO: Add animation for pause
   return (
-    <GestureDetector gesture={gesture}>
-      <Animated.View style={styles.videoContainer}>
-        <VideoComponent
-          url={videoUrl}
-          startPositionSeconds={startTime}
-          onPlaybackFailure={reportPlaybackFailure}
-          onPlaybackActive={onPlaybackActive}
-          onPlaybackAdvanced={onPlaybackAdvanced}
-          playbackAttemptKey={playbackAttemptKey}
-          onProgress={data => reportProgress(data.currentTime)}
-          style={[styles.videoComponentFullscreen]}
-          videoInfo={YTVideoInfo}
-          fullscreen={false}
-          paused={paused || selected !== index}
-          controls={false}
-          repeat
-          resizeMode={ResizeMode.COVER}
+    <View onLayout={onLayout} style={styles.root}>
+      {viewport.height > 0 && viewport.width > 0 ? (
+        <FlatList
+          ref={listRef}
+          data={videoIds}
+          extraData={extraData}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          pagingEnabled
+          decelerationRate={"fast"}
+          showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior={"never"}
+          automaticallyAdjustContentInsets={false}
+          initialNumToRender={1}
+          maxToRenderPerBatch={2}
+          windowSize={3}
+          removeClippedSubviews={false}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          onMomentumScrollEnd={onMomentumScrollEnd}
         />
-        <PlayPauseAnimation
-          playing={!paused}
-          style={styles.pauseContainerStyle}
-        />
-        <View style={[styles.videoInfoContainer, {marginBottom: bottom + 3}]}>
-          <View style={styles.videoChannelContainer}>
-            <ChannelIcon
-              channelId={YTVideoInfo.channel_id ?? ""}
-              imageStyle={styles.videoChannelIcon}
-            />
-            <Text style={styles.videoChannelTitle}>
-              {YTVideoInfo.channel?.name}
-            </Text>
-          </View>
-          <Text style={styles.videoTitle}>{YTVideoInfo.title}</Text>
-        </View>
-      </Animated.View>
-    </GestureDetector>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  videoContainer: {
+  root: {
     flex: 1,
-    borderWidth: 1,
-    // backgroundColor: "red",
-  },
-  videoComponentFullscreen: {
-    height: "100%",
-    width: "100%",
-    // marginTop: 30, // TODO: Check for Android?
-  },
-  videoInfoContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    minHeight: "10%",
-    // backgroundColor: "#11111199",
-    paddingHorizontal: 10,
-  },
-  videoChannelContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 5,
-  },
-  videoChannelTitle: {
-    color: "white",
-    fontSize: 17,
-    marginStart: 5,
-  },
-  videoTitle: {
-    color: "white",
-    fontSize: 15,
-  },
-  videoChannelIcon: {
-    width: 35,
-    height: 35,
-  },
-  pauseContainerStyle: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
+    backgroundColor: "black",
   },
 });
-
-interface ReelContext {
-  selected?: number;
-}
-
-const reelContext = createContext<ReelContext>({});

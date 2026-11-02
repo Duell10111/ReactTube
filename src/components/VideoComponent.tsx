@@ -61,6 +61,9 @@ interface Props {
   controls?: boolean;
   repeat?: boolean;
   resizeMode?: ResizeMode;
+  /** Shorts stay in the foreground and do not own system playback controls. */
+  backgroundPlayback?: boolean;
+  poster?: string;
   onProgress?: (data: OnProgressData) => void;
   /**
    * Subtitle track to start with; the user can still change it in the native
@@ -83,6 +86,8 @@ export default function VideoComponent({
   controls,
   repeat,
   resizeMode,
+  backgroundPlayback = true,
+  poster,
   selectedTextTrack,
   ...callbacks
 }: Props) {
@@ -140,6 +145,9 @@ export default function VideoComponent({
             imageUri: videoInfo?.thumbnailImage?.url,
           },
         }}
+        poster={
+          poster ? {source: {uri: poster}, resizeMode: "contain"} : undefined
+        }
         style={(style as any) ?? [styles.fullScreen, StyleSheet.absoluteFill]}
         controls={controls !== undefined ? controls : true}
         paused={paused !== undefined ? paused : !isFocused}
@@ -149,11 +157,11 @@ export default function VideoComponent({
         resizeMode={resizeMode ?? ResizeMode.CONTAIN}
         chapters={parsedChapters}
         selectedTextTrack={selectedTextTrack}
-        playInBackground={Platform.isTV ? undefined : true}
-        pictureInPicture
+        playInBackground={Platform.isTV ? undefined : backgroundPlayback}
+        pictureInPicture={backgroundPlayback}
         // @ts-ignore type error?
         ignoreSilentSwitch={"ignore"}
-        showNotificationControls
+        showNotificationControls={backgroundPlayback}
         // Android only emits bandwidth events when asked to; iOS emits them
         // whenever a handler is set.
         reportBandwidth
