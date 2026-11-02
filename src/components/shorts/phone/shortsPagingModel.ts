@@ -1,3 +1,13 @@
+/** Generic YouTube thumbnails can letterbox a short inside a landscape image. */
+export function shortPreviewUri(thumbnail?: {
+  url?: string;
+  width?: number;
+  height?: number;
+}): string | undefined {
+  const {url, width, height} = thumbnail ?? {};
+  return width && height && width > 0 && height > width ? url : undefined;
+}
+
 /** Resolve native paging offsets, including bounce and stale rotation offsets. */
 export function shortIndexFromOffset(
   offset: number,
