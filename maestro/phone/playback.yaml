@@ -5,13 +5,7 @@ name: Opens a search result and resolves a playable stream
 tags:
   - playback
 ---
-- launchApp:
-    clearState: true
-# The splash screen also reads "ReactTube", so wait for the tab bar. The CI
-# emulator renders in software and can take well over a minute to get there.
-- extendedWaitUntil:
-    visible: "Home(, tab.*)?"
-    timeout: 120000
+- runFlow: subflows/launch.yaml
 - runFlow:
     file: subflows/search.yaml
     env:
