@@ -1,0 +1,14 @@
+appId: com.duell10111.reacttube
+name: Launches to the home tab
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "ReactTube"
+    timeout: 60000
+# iOS exposes tab buttons as "Home, tab, 1 of 5"; Android uses the plain title.
+- assertVisible: "Home(, tab.*)?"
+- assertVisible: "Search"
+- assertVisible: "You(, tab.*)?"

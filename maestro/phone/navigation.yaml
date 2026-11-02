@@ -1,0 +1,21 @@
+appId: com.duell10111.reacttube
+name: Opens every tab and the settings
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "ReactTube"
+    timeout: 60000
+- tapOn: "Subscriptions(, tab.*)?"
+- tapOn: "Music(, tab.*)?"
+- tapOn: "Downloads(, tab.*)?"
+- tapOn: "You(, tab.*)?"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 15000
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Playback diagnostics"
+    timeout: 15000

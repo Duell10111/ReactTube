@@ -30,6 +30,7 @@ export function SearchBarSuggestions({
       contentContainerStyle={{gap: theme.spacing.xs, padding: theme.spacing.sm}}
       data={suggestions}
       renderItem={renderItem}
+      testID={"search-suggestions"}
     />
   );
 }

@@ -1,0 +1,15 @@
+appId: com.duell10111.reacttube
+name: Searches for a video
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "ReactTube"
+    timeout: 60000
+- runFlow:
+    file: subflows/search.yaml
+    env:
+      QUERY: "big buck bunny"
+- assertVisible: "(?i).*big buck bunny.*, .*ago.*"
