@@ -14,6 +14,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {ResizeMode} from "react-native-video";
 
 import VideoComponent from "@/components/VideoComponent";
+import {shortPreviewUri} from "@/components/shorts/phone/shortsPagingModel";
 import useVideoDetails from "@/hooks/useVideoDetails";
 import {useTranslation} from "@/localization";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
@@ -35,7 +36,7 @@ interface Props {
 
 /** List cells stay cheap; only visited neighbours and the next short load data. */
 export const PhoneShortPage = memo(function PhoneShortPage(props: Props) {
-  const {videoId, active, nearby, preload, width, height} = props;
+  const {active, nearby, preload, width, height} = props;
   const [prepared, setPrepared] = useState(false);
   const enabled = active || preload;
   useEffect(() => {
@@ -47,15 +48,7 @@ export const PhoneShortPage = memo(function PhoneShortPage(props: Props) {
       accessibilityElementsHidden={!active}
       importantForAccessibility={active ? "auto" : "no-hide-descendants"}
       style={[styles.page, {width, height}]}>
-      {nearby && (enabled || prepared) ? (
-        <PreparedShort {...props} />
-      ) : (
-        <Image
-          contentFit={"contain"}
-          source={{uri: thumbnailForId(videoId)}}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
+      {nearby && (enabled || prepared) ? <PreparedShort {...props} /> : null}
     </View>
   );
 });
@@ -96,22 +89,24 @@ function PreparedShort({
     if (active && (videoUrl || !loading)) onPrepared(videoId);
   }, [active, loading, onPrepared, videoId, videoUrl]);
 
-  const thumbnail = YTVideoInfo?.thumbnailImage?.url ?? thumbnailForId(videoId);
   // Android SurfaceViews can cover adjacent cells, even with clipping enabled.
   const mountPlayer = active || (preload && Platform.OS === "ios");
   const unavailable = !videoUrl && !loading && (error || YTVideoInfo);
+  const preview = shortPreviewUri(YTVideoInfo?.thumbnailImage);
 
   return (
     <>
-      <Image
-        contentFit={"contain"}
-        source={{uri: thumbnail}}
-        style={StyleSheet.absoluteFill}
-      />
+      {preview ? (
+        <Image
+          contentFit={"contain"}
+          source={{uri: preview}}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       {YTVideoInfo && videoUrl && mountPlayer ? (
-        <VideoComponent
+        <ShortPlayer
+          key={playbackAttemptKey ?? videoUrl}
           url={videoUrl}
-          poster={thumbnail}
           startPositionSeconds={startTime}
           onPlaybackFailure={reportPlaybackFailure}
           onPlaybackActive={onPlaybackActive}
@@ -209,8 +204,17 @@ function PreparedShort({
   );
 }
 
-function thumbnailForId(videoId: string) {
-  return `https://i.ytimg.com/vi/${videoId}/hq2.jpg`;
+/** Keep the preview visible until the native player has a frame to display. */
+function ShortPlayer(props: React.ComponentProps<typeof VideoComponent>) {
+  const [ready, setReady] = useState(false);
+
+  return (
+    <VideoComponent
+      {...props}
+      onReadyForDisplay={() => setReady(true)}
+      style={[StyleSheet.absoluteFill, {opacity: ready ? 1 : 0}]}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

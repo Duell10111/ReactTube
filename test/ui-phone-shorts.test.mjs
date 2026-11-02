@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   getShortPageState,
   shortIndexFromOffset,
+  shortPreviewUri,
 } from "../src/components/shorts/phone/shortsPagingModel.ts";
 import {ShortsQueueLoader} from "../src/hooks/video/shortsQueueLoader.ts";
 
@@ -36,6 +37,38 @@ function queueHarness(load, initialId = "a") {
   );
   return {queue, states, errors};
 }
+
+test("short previews keep portrait thumbnails and omit landscape letterboxing", () => {
+  assert.equal(
+    shortPreviewUri({url: "portrait.jpg", width: 720, height: 1280}),
+    "portrait.jpg",
+  );
+  assert.equal(
+    shortPreviewUri({url: "landscape.jpg", width: 1280, height: 720}),
+    undefined,
+  );
+  assert.equal(
+    shortPreviewUri({url: "hq2.jpg", width: 480, height: 360}),
+    undefined,
+  );
+  assert.equal(
+    shortPreviewUri({url: "square.jpg", width: 480, height: 480}),
+    undefined,
+  );
+});
+
+test("short previews with unknown or invalid dimensions wait for the video", () => {
+  assert.equal(shortPreviewUri(undefined), undefined);
+  assert.equal(shortPreviewUri({url: "unknown.jpg"}), undefined);
+  assert.equal(
+    shortPreviewUri({url: "invalid.jpg", width: 0, height: 1280}),
+    undefined,
+  );
+  assert.equal(
+    shortPreviewUri({url: "invalid.jpg", width: -720, height: 1280}),
+    undefined,
+  );
+});
 
 test("native paging uses the measured viewport on phones and tablets", () => {
   assert.equal(shortIndexFromOffset(844, 844, 10), 1);
