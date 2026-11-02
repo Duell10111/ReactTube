@@ -5,9 +5,11 @@ tags:
 ---
 - launchApp:
     clearState: true
+# The splash screen also reads "ReactTube", so wait for the tab bar. The CI
+# emulator renders in software and can take well over a minute to get there.
 - extendedWaitUntil:
-    visible: "ReactTube"
-    timeout: 60000
+    visible: "Home(, tab.*)?"
+    timeout: 120000
 - runFlow:
     file: subflows/search.yaml
     env:
