@@ -71,9 +71,11 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          # The runner executes every script line on its own, so the logcat
+          # fallback has to stay on the same line as the Maestro call.
           script: |
             adb install -r "$(ls android/app/build/outputs/apk/release/*.apk | head -n 1)"
-            maestro test maestro/phone --exclude-tags "$MAESTRO_EXCLUDE_TAGS" --format junit --output build/maestro/report.xml --debug-output build/maestro/debug
+            maestro test maestro/phone --exclude-tags "$MAESTRO_EXCLUDE_TAGS" --format junit --output build/maestro/report.xml --debug-output build/maestro/debug --flatten-debug-output || { adb logcat -d > build/maestro/logcat.txt; exit 1; }
 
       - name: Upload Maestro results
         if: always()
@@ -81,6 +83,7 @@ jobs:
         with:
           name: e2e-android
           path: build/maestro
+          include-hidden-files: true
           if-no-files-found: ignore
 
   ios:
@@ -143,7 +146,14 @@ jobs:
         run: |
           maestro --device "${{ steps.simulator.outputs.udid }}" test maestro/phone \
             --exclude-tags "$MAESTRO_EXCLUDE_TAGS" --format junit \
-            --output build/maestro/report.xml --debug-output build/maestro/debug
+            --output build/maestro/report.xml --debug-output build/maestro/debug \
+            --flatten-debug-output
+
+      - name: Collect crash reports
+        if: failure()
+        run: |
+          mkdir -p build/maestro/crashes
+          find ~/Library/Logs/DiagnosticReports -name "reacttube*" -exec cp {} build/maestro/crashes/ \; || true
 
       - name: Upload Maestro results
         if: always()
@@ -153,4 +163,5 @@ jobs:
           path: |
             build/maestro
             build/ios-build.log
+          include-hidden-files: true
           if-no-files-found: ignore
