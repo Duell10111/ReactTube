@@ -69,11 +69,16 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
+          cores: 4
+          ram-size: 4096M
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           # The runner executes every script line on its own, so the logcat
           # fallback has to stay on the same line as the Maestro call.
+          # A slow software-rendered emulator often shows "Pixel Launcher isn't
+          # responding" over the app, which hides every element from Maestro.
           script: |
+            adb shell settings put global hide_error_dialogs 1
             adb install -r "$(ls android/app/build/outputs/apk/release/*.apk | head -n 1)"
             maestro test maestro/phone --exclude-tags "$MAESTRO_EXCLUDE_TAGS" --format junit --output build/maestro/report.xml --debug-output build/maestro/debug --flatten-debug-output || { adb logcat -d > build/maestro/logcat.txt; exit 1; }
 
