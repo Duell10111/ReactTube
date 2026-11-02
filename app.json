@@ -48,6 +48,14 @@
         }
       ],
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      [
         "./plugins/ios/withAppleTargets.js",
         {
           "appleTeamId": "XXXXXXXXXX",

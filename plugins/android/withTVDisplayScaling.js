@@ -90,7 +90,8 @@ object TVDisplayScaling {
         try {
           DisplayMetricsHolder.getScreenDisplayMetrics()
         } catch (_: IllegalStateException) {
-          DisplayMetricsHolder.setWindowDisplayMetrics(scaled)
+          // Not initialized yet; React Native 0.88 only keeps screen metrics,
+          // which are set from the scaled resources below.
           null
         }
     if (current != null && current.densityDpi == scaled.densityDpi) {
