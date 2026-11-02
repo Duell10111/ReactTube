@@ -1,0 +1,16 @@
+name: Install Maestro
+description: Install the Maestro CLI pinned to MAESTRO_VERSION
+
+runs:
+  using: composite
+  steps:
+    - name: Setup JDK for Maestro
+      uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: "17"
+    - name: Install Maestro CLI
+      shell: bash
+      run: |
+        curl -fsSL "https://get.maestro.mobile.dev" | bash
+        echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
