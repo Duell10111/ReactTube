@@ -4,11 +4,9 @@ import React from "react";
 import {Platform, TVEventControl} from "react-native";
 
 import Channel from "../components/channel/Channel";
-import ChannelHeader from "../components/channel/ChannelHeader";
 import {Channel as ChannelPhone} from "../components/channel/phone/Channel";
 import useChannelDetails from "../hooks/useChannelDetails";
 
-import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
 import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {ErrorState, Skeleton} from "@/ui/components";
@@ -55,13 +53,5 @@ export default function ChannelScreen({route}: Props) {
     return <ChannelPhone channel={parsedChannel} />;
   }
 
-  return (
-    <ShelfVideoSelectorProvider>
-      <ChannelHeader
-        channelName={channel?.metadata.title ?? ""}
-        imgURL={channel?.metadata?.thumbnail?.[0].url ?? ""}
-      />
-      <Channel channel={channel} />
-    </ShelfVideoSelectorProvider>
-  );
+  return <Channel key={channelId} channel={channel} channelId={channelId} />;
 }

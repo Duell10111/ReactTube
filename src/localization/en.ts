@@ -196,6 +196,18 @@ export const en = {
   "history.empty.message":
     "Videos you watch appear here once history is enabled.",
   "history.title": "History",
+  "channel.title": "Channel",
+  "channel.tab.live": "Live",
+  "channel.moreAbout": "About this channel",
+  "channel.aboutTitle": "About {channel}",
+  "channel.noDescription": "This channel has no description.",
+  "channel.empty.title": "No content yet",
+  "channel.empty.message":
+    "This channel has no content in this section yet. Try another tab.",
+  "channel.loadMoreError": "More content could not be loaded.",
+  "channel.signInToSubscribe": "Sign in to subscribe",
+  "channel.subscriptionError":
+    "The subscription could not be updated. Please try again.",
   "channel.tab.home": "Home",
   "channel.tab.videos": "Videos",
   "channel.tab.shorts": "Shorts",

@@ -9,6 +9,7 @@ import {
   getFeedRowPadding,
   splitFeedRowPadding,
   type FeedContentPadding,
+  type FeedEdgeInsets,
   type FeedMetrics,
   type FeedRowPadding,
 } from "./feedLayout";
@@ -42,7 +43,7 @@ export interface FeedGeometry {
  * That measured width also decides the column count, so a feed in a narrow
  * column lays itself out as the narrow feed it is.
  */
-export function useFeedGeometry(): FeedGeometry {
+export function useFeedGeometry(insetsOverride?: FeedEdgeInsets): FeedGeometry {
   const {layout, railWidth, insets, contentInsets} = useAppChrome();
   const {width: windowWidth} = useWindowDimensions();
   const [measuredWidth, setMeasuredWidth] = useState(() =>
@@ -53,7 +54,7 @@ export function useFeedGeometry(): FeedGeometry {
   const contentPadding = getFeedContentPadding(
     feedLayout,
     metrics,
-    contentInsets,
+    insetsOverride ?? contentInsets,
   );
   const {leadingInset, rowPadding} = splitFeedRowPadding(
     feedLayout,
