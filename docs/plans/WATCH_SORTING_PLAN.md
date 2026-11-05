@@ -11,11 +11,11 @@
 
 | Ansicht                        | Datei                                  | Sortierung heute                       |
 | ------------------------------ | -------------------------------------- | -------------------------------------- |
-| Playlists (eigene + temporäre) | `targets/watch/LibraryView.swift`      | Titel A–Z (`@Query`)                   |
-| Videos                         | `targets/watch/LibraryView.swift`      | Titel A–Z (`@Query`)                   |
-| Verfügbar                      | `targets/watch/LibraryView.swift`      | Titel A–Z (`@Query`)                   |
-| Heruntergeladen                | `targets/watch/LibraryView.swift`      | Titel Z–A (`@Query`)                   |
-| Playlist-Detail                | `targets/watch/PlaylistListView.swift` | Playlist-Reihenfolge (`orderedVideos`) |
+| Playlists (eigene + temporäre) | `../../targets/watch/LibraryView.swift`      | Titel A–Z (`@Query`)                   |
+| Videos                         | `../../targets/watch/LibraryView.swift`      | Titel A–Z (`@Query`)                   |
+| Verfügbar                      | `../../targets/watch/LibraryView.swift`      | Titel A–Z (`@Query`)                   |
+| Heruntergeladen                | `../../targets/watch/LibraryView.swift`      | Titel Z–A (`@Query`)                   |
+| Playlist-Detail                | `../../targets/watch/PlaylistListView.swift` | Playlist-Reihenfolge (`orderedVideos`) |
 
 1. **Sortierung ist eine lokale Ansichtseinstellung.** Sie verändert weder
    `Playlist.videoIDs` noch die Reihenfolge auf dem iPhone. Abschnitte für eigene
@@ -320,7 +320,7 @@ mit dem Migrationsdatum.
 - Die Watch erhält eine eigene persistierte UI-Einstellung `uiLanguage` mit
   `en`/`de`, englischem Standard und englischem Fallback. Sie wird in den nativen
   Watch-Einstellungen angeboten und ohne Neustart angewendet. Eine Synchronisierung
-  mit `src/localization/` auf dem Telefon ist hier nicht vorgesehen; die
+  mit `../../src/localization` auf dem Telefon ist hier nicht vorgesehen; die
   Einstellung ist als Sprache dieser Watch-App erkennbar.
 - YouTube-Content-Sprache und `AppSettings.languageSelected` bleiben getrennt.
   Sortiervergleiche und Datums-/Zahlenformatierung folgen der Watch-UI-Locale.
@@ -386,5 +386,5 @@ manuelles Durchsehen der Sortierfunktion genügt nicht.
 
 Für Swift-Änderungen den verfügbaren Watch-Build und gezielte Tests ausführen.
 Bei gemeinsamem JavaScript/TypeScript oder Konfiguration zusätzlich die Gates aus
-`AGENTS.md` ausführen. Simulator- und Geräteprüfung getrennt dokumentieren;
+`../../AGENTS.md` ausführen. Simulator- und Geräteprüfung getrennt dokumentieren;
 erfolgreiche reine Logiktests ersetzen keine visuelle Watch-Abnahme.
