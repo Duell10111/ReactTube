@@ -8,80 +8,87 @@
 import SwiftUI
 
 let videoDownloadProgressFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .percent
-        formatter.minimumIntegerDigits = 1
-        formatter.maximumIntegerDigits = 3
-        formatter.maximumFractionDigits = 2
-        formatter.minimumFractionDigits = 2
-        return formatter
+  let formatter = NumberFormatter()
+  formatter.numberStyle = .percent
+  formatter.minimumIntegerDigits = 1
+  formatter.maximumIntegerDigits = 3
+  formatter.maximumFractionDigits = 2
+  formatter.minimumFractionDigits = 2
+  return formatter
 }()
 
 struct MusicListItemView: View {
-    @Environment(DownloadManager.self) private var downloadManager: DownloadManager
-    var video: Video
-    var clicked: () -> Void
-    /// Replaces the download swipe action of a downloaded title with a delete action.
-    var onDelete: (() -> Void)? = nil
-  
-    var body: some View {
-      Button {
-        clicked()
-      } label: {
-        VStack {
-          HStack {
-            VideoCoverView(video: video)
-            VStack(alignment: .leading) {
-              Text(video.title ?? "Unknown title")
-                .foregroundStyle(video.downloaded == true ? .blue : .primary)
-              if let artist = video.artist {
-                Text(artist)
-                  .foregroundStyle(.secondary)
-              }
-            }
-            Spacer(minLength: 0)
-            if video.downloaded {
-              Image(systemName: "arrow.down.circle")
-                .foregroundColor(.blue)
-            } else if let validUntil = video.validUntil, validUntil < Date() && video.downloaded != true {
-              Image(systemName: "clock.badge.exclamationmark")
-                .foregroundColor(.red)
+  @Environment(DownloadManager.self) private var downloadManager: DownloadManager
+  var video: Video
+  var clicked: () -> Void
+  /// Replaces the download swipe action of a downloaded title with a delete action.
+  var onDelete: (() -> Void)? = nil
+
+  var body: some View {
+    Button {
+      clicked()
+    } label: {
+      VStack {
+        HStack {
+          VideoCoverView(video: video)
+          VStack(alignment: .leading) {
+            Text(video.title ?? LibraryCopy.text("library.unknownTitle"))
+              .foregroundStyle(video.downloaded == true ? .blue : .primary)
+            if let artist = video.artist {
+              Text(artist)
+                .foregroundStyle(.secondary)
             }
           }
-          if let videoDownload = downloadManager.progressDownloads[video.id] {
-            ProgressView(value: videoDownload)  {
-              Text("\(videoDownloadProgressFormatter.string(from: NSNumber(value: videoDownload)) ?? String(videoDownload)) progress")
-                .font(.system(size: 12))
-            }
+          Spacer(minLength: 0)
+          if video.downloaded {
+            Image(systemName: "arrow.down.circle")
+              .foregroundColor(.blue)
+          } else if let validUntil = video.validUntil,
+            validUntil < Date() && video.downloaded != true
+          {
+            Image(systemName: "clock.badge.exclamationmark")
+              .foregroundColor(.red)
           }
         }
-      }.swipeActions {
-        if let onDelete, video.downloaded {
-          Button(role: .destructive) {
-            onDelete()
-          } label: {
-            Label("Delete", systemImage: "trash.fill")
+        if let videoDownload = downloadManager.progressDownloads[video.id] {
+          ProgressView(value: videoDownload) {
+            Text(
+              LibraryCopy.format(
+                "download.progress",
+                videoDownloadProgressFormatter.string(from: NSNumber(value: videoDownload))
+                  ?? String(videoDownload))
+            )
+            .font(.system(size: 12))
           }
-        } else {
-          Button {
-            DownloadManager.shared.download([video], as: .video, name: video.title)
-          } label: {
-            Label("Download", systemImage: "arrow.down")
-          }
-          .tint(.blue)
-        }
-        NavigationLink(destination: AddToPlaylistView(video: video)) {
-            Label("Add to Playlist", systemImage: "text.badge.plus")
         }
       }
-      .swipeActions(edge: .leading) {
-        Button {
-          MetadataRefresher.shared.refresh(video)
+    }.swipeActions {
+      if let onDelete, video.downloaded {
+        Button(role: .destructive) {
+          onDelete()
         } label: {
-          Label("Refresh Info", systemImage: "arrow.clockwise")
+          Label(LibraryCopy.text("library.delete"), systemImage: "trash.fill")
         }
+      } else {
+        Button {
+          DownloadManager.shared.download([video], as: .video, name: video.title)
+        } label: {
+          Label(LibraryCopy.text("library.download"), systemImage: "arrow.down")
+        }
+        .tint(.blue)
+      }
+      NavigationLink(destination: AddToPlaylistView(video: video)) {
+        Label(LibraryCopy.text("library.addToPlaylist"), systemImage: "text.badge.plus")
       }
     }
+    .swipeActions(edge: .leading) {
+      Button {
+        MetadataRefresher.shared.refresh(video)
+      } label: {
+        Label(LibraryCopy.text("library.refreshInfo"), systemImage: "arrow.clockwise")
+      }
+    }
+  }
 }
 
 #Preview {

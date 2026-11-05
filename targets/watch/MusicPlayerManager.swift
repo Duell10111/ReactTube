@@ -80,6 +80,16 @@ class MusicPlayerManager {
     type == .local && player != nil && duration > 0
   }
 
+  @discardableResult
+  func startLibraryQueue(_ videos: [Video], selectedID: String) -> Bool {
+    guard let selected = videos.first(where: { $0.id == selectedID }),
+          playlistManager.isPlayable(selected) else { return false }
+    let playable = videos.filter { playlistManager.isPlayable($0) }
+    guard let index = playable.firstIndex(where: { $0.id == selectedID }) else { return false }
+    updatePlaylist(newPlaylist: Array(playable[index...]))
+    return true
+  }
+
   func updatePlaylist(newPlaylist: [Video], resume: ResumeState? = nil) {
     deinitPlayer()
     pendingSeek = resume.map { PendingSeek(videoID: $0.videoID, position: $0.position) }

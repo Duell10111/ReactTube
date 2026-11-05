@@ -84,6 +84,6 @@ enum WatchStabilityCopy {
 
   private static func resolvedLanguage(_ language: String?) -> String {
     language ?? UserDefaults.standard.string(forKey: "uiLanguage")
-      ?? Locale.current.language.languageCode?.identifier ?? "en"
+      ?? "en"
   }
 }

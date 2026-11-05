@@ -6,8 +6,8 @@
 //  finished downloads and the storage they occupy.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct DownloadsScreen: View {
   @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
@@ -16,10 +16,14 @@ struct DownloadsScreen: View {
 
   /// Resolves the ids of the download queues, which only know the video id.
   @Query private var videos: [Video]
-  @Query(filter: #Predicate<Video> { video in
-    video.downloaded == true
-  }, sort: \Video.title, order: .forward) private var downloadedVideos: [Video]
+  @Query(
+    filter: #Predicate<Video> { video in
+      video.downloaded == true
+    }, sort: \Video.title, order: .forward) private var downloadedVideos: [Video]
 
+  @Environment(\.locale) private var locale
+  @State private var unavailable = false
+  private let sortPreferences = LibrarySortPreferences.shared
   @State private var usedBytes: Int64?
   @State private var availableBytes: Int64?
   @State private var confirmCancelAll = false
@@ -45,13 +49,23 @@ struct DownloadsScreen: View {
 
   var body: some View {
     let videosById = videosById
-    List {
+    let selection = sortPreferences.selection(.downloaded)
+    let ordered = LibrarySorter.videos(downloadedVideos, selection: selection, locale: locale)
+    LibrarySnapshotList(values: ordered, revision: "\(selection)-\(locale.identifier)") {
+      snapshot in
+      SortHeaderButton(scope: .downloaded).id("sort")
+      Button(LibraryCopy.text("library.shuffle"), systemImage: "shuffle") {
+        if let first = snapshot.shuffled().first {
+          let shuffled = [first] + snapshot.filter { $0.id != first.id }.shuffled()
+          unavailable = !musicPlayerManager.startLibraryQueue(shuffled, selectedID: first.id)
+        }
+      }.disabled(snapshot.isEmpty)
       Section {
         storageRow
       }
 
       if !downloadManager.activeDownloads.isEmpty {
-        Section("Downloading") {
+        Section(LibraryCopy.text("library.downloading")) {
           ForEach(downloadManager.activeDownloads, id: \.id) { download in
             DownloadQueueRow(
               id: download.id,
@@ -64,7 +78,7 @@ struct DownloadsScreen: View {
       }
 
       if !downloadManager.awaitingMetadata.isEmpty || !queuedVideos.isEmpty {
-        Section("Queued") {
+        Section(LibraryCopy.text("library.queued")) {
           ForEach(downloadManager.awaitingMetadata.sorted(), id: \.self) { id in
             DownloadQueueRow(id: id, video: videosById[id], status: .waitingForPhone)
               .swipeActions { cancelButton(id: id) }
@@ -92,72 +106,77 @@ struct DownloadsScreen: View {
               Button {
                 downloadManager.cancel(ids: [id])
               } label: {
-                Label("Dismiss", systemImage: "xmark")
+                Label(LibraryCopy.text("library.dismiss"), systemImage: "xmark")
               }
             }
           }
         } header: {
-          Text("Failed")
+          Text(LibraryCopy.text("library.failed"))
         } footer: {
-          Text("Tap to try again.")
+          Text(LibraryCopy.text("library.retryHint"))
         }
       }
 
-      Section("Downloaded") {
+      Section(LibraryCopy.text("library.downloaded")) {
         if downloadedVideos.isEmpty {
-          Text("No downloads yet. Swipe a title or playlist to download it.")
+          Text(LibraryCopy.text("library.noDownloads"))
             .font(.footnote)
             .foregroundStyle(.secondary)
         } else {
-          Button("Shuffle", systemImage: "shuffle") {
-            musicPlayerManager.updatePlaylist(newPlaylist: downloadedVideos.shuffled())
-          }
-          ForEach(Array(downloadedVideos.enumerated()), id: \.element.id) { index, video in
-            MusicListItemView(video: video) {
-              musicPlayerManager.updatePlaylist(newPlaylist: Array(downloadedVideos[index...]))
-            } onDelete: {
-              videoToDelete = video
-            }
+          ForEach(snapshot, id: \.id) { video in
+            VStack(alignment: .leading) {
+              MusicListItemView(video: video) {
+                unavailable = !musicPlayerManager.startLibraryQueue(snapshot, selectedID: video.id)
+              } onDelete: {
+                videoToDelete = video
+              }
+              SortValueLabel(video: video, selection: selection, now: Date())
+            }.librarySnapshotRow(video.id)
           }
         }
       }
     }
-    .navigationTitle("Downloads")
+    .alert(LibraryCopy.text("unavailable"), isPresented: $unavailable) {
+      Button(LibraryCopy.text("cancel"), role: .cancel) {}
+    }
+    .navigationTitle(LibraryCopy.text("library.downloads"))
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         if hasRunningWork {
           Button {
             confirmCancelAll = true
           } label: {
-            Label("Cancel All", systemImage: "xmark.circle")
+            Label(LibraryCopy.text("library.cancelAll"), systemImage: "xmark.circle")
           }
         } else {
           NavigationLink(destination: MusikPlayer()) {
-            Label("Music", systemImage: "playpause.circle")
+            Label(LibraryCopy.text("library.music"), systemImage: "playpause.circle")
           }
         }
       }
     }
-    .confirmationDialog("Cancel all running and queued downloads?", isPresented: $confirmCancelAll) {
-      Button("Cancel All", role: .destructive) {
+    .confirmationDialog(LibraryCopy.text("library.cancelAllPrompt"), isPresented: $confirmCancelAll)
+    {
+      Button(LibraryCopy.text("library.cancelAll"), role: .destructive) {
         downloadManager.cancelAll()
       }
-      Button("Keep", role: .cancel) {}
+      Button(LibraryCopy.text("library.keep"), role: .cancel) {}
     }
     .confirmationDialog(
-      "Delete \(videoToDelete?.title ?? "download")?",
+      LibraryCopy.format(
+        "playlist.delete", videoToDelete?.title ?? LibraryCopy.text("library.download")),
       isPresented: Binding(
         get: { videoToDelete != nil },
         set: { if !$0 { videoToDelete = nil } }
       )
     ) {
-      Button("Delete", role: .destructive) {
+      Button(LibraryCopy.text("library.delete"), role: .destructive) {
         if let video = videoToDelete {
           deleteDownload(id: video.id)
         }
         videoToDelete = nil
       }
-      Button("Cancel", role: .cancel) {
+      Button(LibraryCopy.text("library.cancel"), role: .cancel) {
         videoToDelete = nil
       }
     }
@@ -173,9 +192,9 @@ struct DownloadsScreen: View {
       Image(systemName: "internaldrive")
         .foregroundStyle(.secondary)
       VStack(alignment: .leading, spacing: 1) {
-        Text("\(usedBytes.map(formatBytes) ?? "…") used")
+        Text(LibraryCopy.format("download.used", usedBytes.map(formatBytes) ?? "…"))
         if let availableBytes {
-          Text("\(formatBytes(availableBytes)) free")
+          Text(LibraryCopy.format("download.free", formatBytes(availableBytes)))
             .font(.footnote)
             .foregroundStyle(.secondary)
         }
@@ -187,7 +206,7 @@ struct DownloadsScreen: View {
     Button {
       downloadManager.cancel(ids: [id])
     } label: {
-      Label("Cancel", systemImage: "xmark")
+      Label(LibraryCopy.text("library.cancel"), systemImage: "xmark")
     }
     .tint(.red)
   }
@@ -242,13 +261,16 @@ struct DownloadQueueRow: View {
         Text(videoDownloadProgressFormatter.string(from: NSNumber(value: value)) ?? "")
       }
     case .waitingForPhone:
-      Label("Waiting for iPhone", systemImage: "iphone")
+      Label(LibraryCopy.text("library.waitingPhone"), systemImage: "iphone")
     case .queued:
-      Label("Queued", systemImage: "clock")
+      Label(LibraryCopy.text("library.queued"), systemImage: "clock")
     case .failed(let reason):
-      Label(reason.isEmpty ? "Failed" : reason, systemImage: "exclamationmark.triangle")
-        .foregroundStyle(.red)
-        .lineLimit(3)
+      Label(
+        reason.isEmpty ? LibraryCopy.text("library.failed") : reason,
+        systemImage: "exclamationmark.triangle"
+      )
+      .foregroundStyle(.red)
+      .lineLimit(3)
     }
   }
 }

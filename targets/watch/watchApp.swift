@@ -2,11 +2,13 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+  @AppStorage("uiLanguage") private var uiLanguage = "en"
   @State private var downloadsNavigation = DownloadsNavigation.shared
 
   var body: some View {
     NavigationStack {
       HomeList()
+        .environment(\.locale, Locale(identifier: uiLanguage == "de" ? "de" : "en"))
         // Tapping a download notification opens the downloads screen.
         .navigationDestination(isPresented: $downloadsNavigation.isPresented) {
           DownloadsScreen()
@@ -64,7 +66,7 @@ struct watchApp: App {
 private struct DatabaseRecoveryView: View {
   let controller: DataController
   @State private var confirmRebuild = false
-  @AppStorage("uiLanguage") private var uiLanguage = Locale.current.language.languageCode?.identifier == "de" ? "de" : "en"
+  @AppStorage("uiLanguage") private var uiLanguage = "en"
 
   var body: some View {
     NavigationStack {
