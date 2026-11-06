@@ -17,6 +17,18 @@
 * create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
 * update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
 
+## [0.5.1](https://github.com/Duell10111/ReactTube/compare/v0.5.0...v0.5.1) (2026-11-06)
+
+
+### 🐛 Bugfixes
+
+* **phone:** make rotation to full screen more reliable ([#99](https://github.com/Duell10111/ReactTube/issues/99)) ([4a8c2bf](https://github.com/Duell10111/ReactTube/commit/4a8c2bfe3ba52a0325deec439a02e74a514df14b))
+
+
+### ⬆️ Upgrade
+
+* upgrade to expo sdk 58 ([#95](https://github.com/Duell10111/ReactTube/issues/95)) ([b4d5321](https://github.com/Duell10111/ReactTube/commit/b4d5321792751a51c540d2bcd2c8f8a5df0830bd))
+
 ## [0.5.0](https://github.com/Duell10111/ReactTube/compare/v0.4.1...v0.5.0) (2026-11-01)
 
 
