@@ -82,7 +82,7 @@ class DownloadManager {
     for video in (try? context.fetch(FetchDescriptor<Video>())) ?? [] where video.downloaded {
       if video.fileURL.map({ FileManager.default.fileExists(atPath: getDownloadDirectory().appendingPathComponent($0).path) }) != true {
         // Only reset the state; downloading again is left to the user.
-        video.downloaded = false
+        video.setDownloaded(false)
         video.fileURL = nil
       }
     }
@@ -369,7 +369,7 @@ class DownloadManager {
         if FileManager.default.fileExists(atPath: destination.path) { try FileManager.default.removeItem(at: destination) }
         try FileManager.default.copyItem(at: file, to: destination)
         let relativePath = id + (isAudio ? "/audio.mp4" : "/cover.png")
-        if isAudio { video.downloaded = true; video.fileURL = relativePath }
+        if isAudio { video.setDownloaded(true); video.fileURL = relativePath }
         else { video.coverURL = relativePath }
         try context.save()
         if isAudio {

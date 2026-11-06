@@ -215,6 +215,7 @@ final class Playlist {
 }
 var requests: [String] = []
 func requestVideo(id: String) { requests.append(id) }
+${watchSource("LibrarySort.swift")}
 ${implementation}
 @main struct Main {
   static func main() {

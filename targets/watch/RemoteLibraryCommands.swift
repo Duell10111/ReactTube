@@ -289,6 +289,7 @@ final class RemoteLibraryCommands {
       deleteDownloadedPlaylist(modelContext, playlist: playlist)
     } else {
       MusicPlayerManager.shared.prepareForLibraryDeletion(ids: [], playlistID: id)
+      LibrarySortPreferences.shared.removePlaylist(id: id)
       modelContext.delete(playlist)
     }
     return save()

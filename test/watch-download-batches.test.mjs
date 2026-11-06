@@ -89,6 +89,7 @@ final class Video: Hashable {
   var validUntil: Date? = Date().addingTimeInterval(100)
   var coverURL: String?
   init(id: String) { self.id = id; title = id.uppercased() }
+  func setDownloaded(_ value: Bool) { downloaded = value }
   static func == (lhs: Video, rhs: Video) -> Bool { lhs === rhs }
   func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }

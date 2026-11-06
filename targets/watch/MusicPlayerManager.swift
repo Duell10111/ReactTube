@@ -61,6 +61,7 @@ class MusicPlayerManager {
     private var wantsPlayback = false
     private var requestedStartVideoID: String?
     private var waitingForVideoID: String?
+    private var playlistPlayedMarkedAt: Date?
     private let playlistManager = PlaylistManager()
 
     private init() {
@@ -90,28 +91,42 @@ class MusicPlayerManager {
     return true
   }
 
-  func updatePlaylist(newPlaylist: [Video], resume: ResumeState? = nil) {
+  /// - Parameter startVideoID: Title to start with, resolved by ID after the
+  ///   unplayable titles were filtered out of the queue.
+  func updatePlaylist(newPlaylist: [Video], startVideoID: String? = nil, resume: ResumeState? = nil) {
     deinitPlayer()
     pendingSeek = resume.map { PendingSeek(videoID: $0.videoID, position: $0.position) }
     self.type = .local
-    requestedStartVideoID = nil
+    requestedStartVideoID = startVideoID
     waitingForVideoID = nil
-    // TODO: Check if playlist already present?
     self.playlistManager.setPlaylist(nil, videos: newPlaylist)
     self.currentPlaylistID = nil
     self.currentPlaylistTitle = nil
 
-    // TODO: Put into setupPlayer?
     let didSetup = self.setupPlayer()
+    if let startVideoID { jumpToStart(videoID: startVideoID) }
     wantsPlayback = playlistManager.hasTitles
     if didSetup { self.playMusic() }
   }
 
+  /// - Parameter orderedVideos: Visible order of a sorted playlist view; `nil`
+  ///   keeps the playlist order. The playlist reference is kept either way.
+  /// - Parameter orderedIDs: Explicit queue order, used to resume a queue.
   /// - Parameter startVideoID: Title to start with. Starting at a specific
   ///   title always plays in order from there, because jumping into a shuffled
-  ///   queue would land somewhere else than the title that was tapped.
+  ///   queue would land somewhere else than the title that was tapped. An
+  ///   unplayable start title starts nothing and keeps the current playback.
   /// - Parameter shuffle: `nil` uses the persisted preference.
-  func updatePlaylist(playlist: Playlist, startVideoID: String? = nil, shuffle: Bool? = nil, resume: ResumeState? = nil) {
+  /// - Returns: `false` when the start title is not playable.
+  @discardableResult
+  func updatePlaylist(playlist: Playlist, orderedVideos: [Video]? = nil, orderedIDs: [String]? = nil, startVideoID: String? = nil, shuffle: Bool? = nil, resume: ResumeState? = nil) -> Bool {
+    if let startVideoID {
+      guard let selected = playlist.videos.first(where: { $0.id == startVideoID }),
+            playlistManager.isPlayable(selected) else {
+        WatchLog.shared.warning("Player", "Start title \(startVideoID) is not playable; playback unchanged")
+        return false
+      }
+    }
     deinitPlayer()
     pendingSeek = resume.map { PendingSeek(videoID: $0.videoID, position: $0.position) }
     self.type = .local
@@ -120,27 +135,33 @@ class MusicPlayerManager {
     let shouldShuffle = shuffle ?? (startVideoID == nil && preferences.shuffleEnabled)
     let playlistID = playlist.id
     let playlistTitle = playlist.title
-    self.playlistManager.setPlaylist(playlist, shuffle: shouldShuffle)
-    let orderedVideoIDs = self.playlistManager.orderedVideoIDs
+    self.playlistManager.setPlaylist(playlist, videos: orderedVideos, orderedIDs: orderedIDs, shuffle: shouldShuffle)
     self.currentPlaylistID = playlistID
     self.currentPlaylistTitle = playlistTitle
+    self.playlistPlayedMarkedAt = nil
 
     let didSetup = self.setupPlayer()
 
     // Disable jump on shuffle play
-    if let startVideoID, shouldShuffle == false,
-       let index = self.queueIndex(startingAt: startVideoID, orderedVideoIDs: orderedVideoIDs) {
-      self.trackIndex = index
-      self.currentTrackIndex = index
-      do {
-        try self.player?.jumpToItem(atIndex: index)
-      } catch {
-        WatchLog.shared.warning("Player", "Could not jump to start index \(index): \(error.localizedDescription)")
-      }
-    }
+    if let startVideoID, shouldShuffle == false { jumpToStart(videoID: startVideoID) }
 
     wantsPlayback = playlistManager.hasTitles
     if didSetup { self.playMusic() }
+    return true
+  }
+
+  private func jumpToStart(videoID: String) {
+    guard let index = QueueOrder.startIndex(playable: playerPlaylistItems.map(\.id), selectedID: videoID) else {
+      WatchLog.shared.warning("Player", "Start title \(videoID) is not in the playable queue")
+      return
+    }
+    trackIndex = index
+    currentTrackIndex = index
+    do {
+      try player?.jumpToItem(atIndex: index)
+    } catch {
+      WatchLog.shared.warning("Player", "Could not jump to start index \(index): \(error.localizedDescription)")
+    }
   }
 
   /// Extends only the current queue, in the order selected for this session.
@@ -284,52 +305,57 @@ class MusicPlayerManager {
     return false
   }
 
-  /// Continues the last title where it stopped.
+  enum ResumeResult: Equatable {
+    case started
+    /// The title still exists but cannot play right now, e.g. its stream expired.
+    case unavailable(Video)
+    /// The title is gone; the caller clears the state once the user saw why.
+    case missing
+    /// The library is not open yet; the state is kept.
+    case libraryUnavailable
+  }
+
+  /// Continues the last title where it stopped, in the stored queue order. The
+  /// title is identified by its ID; the stored index is never used as fallback.
   @MainActor
-  func resumePlayback(_ state: ResumeState) {
-    guard let context = DataController.shared.container?.mainContext else { return }
+  @discardableResult
+  func resumePlayback(_ state: ResumeState) -> ResumeResult {
+    guard let context = DataController.shared.container?.mainContext else { return .libraryUnavailable }
+    let videoID = state.videoID
 
     if let playlistID = state.playlistID {
       let descriptor = FetchDescriptor<Playlist>(predicate: #Predicate { $0.id == playlistID })
       if let playlist = try? context.fetch(descriptor).first {
-        updatePlaylist(playlist: playlist, startVideoID: state.videoID, shuffle: false, resume: state)
-        return
+        let ids = QueueOrder.resumed(stored: state.queueVideoIDs, current: playlist.videoIDs + playlist.orderedVideos.map(\.id))
+        guard ids.contains(videoID), let video = playlist.videos.first(where: { $0.id == videoID }) else {
+          WatchLog.shared.warning("Player", "Cannot continue \(state.title): title left the playlist")
+          return .missing
+        }
+        guard updatePlaylist(playlist: playlist, orderedIDs: ids, startVideoID: videoID, shuffle: false, resume: state) else {
+          return .unavailable(video)
+        }
+        return .started
       }
     }
 
-    let videoID = state.videoID
     let descriptor = FetchDescriptor<Video>(predicate: #Predicate { $0.id == videoID })
     guard let video = try? context.fetch(descriptor).first else {
       WatchLog.shared.warning("Player", "Cannot continue \(state.title): title is no longer in the database")
-      preferences.clearResumeState()
-      return
+      return .missing
     }
+    guard playlistManager.isPlayable(video) else { return .unavailable(video) }
 
-    updatePlaylist(newPlaylist: [video], resume: state)
-  }
-
-  /// Queue position of a title. The queue only holds playable titles, so its
-  /// indices differ from the playlist order whenever a title is not downloaded
-  /// and its stream expired. Such a title is refetched in the background; until
-  /// then playback starts at the next playable title in playlist order.
-  private func queueIndex(startingAt videoID: String, orderedVideoIDs: [String]) -> Int? {
-    let queuedIDs = playerPlaylistItems.map(\.id)
-    if let index = queuedIDs.firstIndex(of: videoID) {
-      return index
+    // A library queue is restored in its stored order; a vanished playlist
+    // keeps the single title fallback.
+    var queue = [video]
+    if state.playlistID == nil, let stored = state.queueVideoIDs {
+      let ids = QueueOrder.unique(stored)
+      let models = (try? context.fetch(FetchDescriptor<Video>(predicate: #Predicate { ids.contains($0.id) }))) ?? []
+      let byID = Dictionary(models.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+      queue = ids.compactMap { byID[$0] }
     }
-    guard let position = orderedVideoIDs.firstIndex(of: videoID) else {
-      WatchLog.shared.warning("Player", "Start title \(videoID) is not part of the playlist")
-      return nil
-    }
-    let followingIDs = orderedVideoIDs[(position + 1)...] + orderedVideoIDs[..<position]
-    for id in followingIDs {
-      if let index = queuedIDs.firstIndex(of: id) {
-        WatchLog.shared.warning("Player", "Start title \(videoID) is not playable yet, starting at the next available title")
-        return index
-      }
-    }
-    WatchLog.shared.warning("Player", "Start title \(videoID) is not playable and no other title is available")
-    return nil
+    updatePlaylist(newPlaylist: queue, startVideoID: videoID, resume: state)
+    return .started
   }
 
   @discardableResult
@@ -386,6 +412,7 @@ class MusicPlayerManager {
         if state == .playing {
           guard self.wantsPlayback, self.waitingForVideoID == nil else { self.player?.pause(); return }
           self.isPlaying = true
+          self.markPlaylistPlayed()
         } else if state == .paused || state == .ended {
           self.isPlaying = false
         }
@@ -495,6 +522,23 @@ class MusicPlayerManager {
     volumeObserver = nil
   }
 
+  /// Runs once the player actually plays, not when a queue is built or a view
+  /// opens. Coarse, so pausing and resuming does not write on every change.
+  private func markPlaylistPlayed(now: Date = Date()) {
+    guard let playlistID = currentPlaylistID,
+          playlistPlayedMarkedAt.map({ now.timeIntervalSince($0) >= 60 }) ?? true,
+          let context = DataController.shared.container?.mainContext,
+          let playlist = try? context.fetch(FetchDescriptor<Playlist>(predicate: #Predicate { $0.id == playlistID })).first
+    else { return }
+    playlistPlayedMarkedAt = now
+    playlist.lastPlayedAt = now
+    do {
+      try context.save()
+    } catch {
+      WatchLog.shared.warning("Player", "Could not store the playlist play time: \(error.localizedDescription)")
+    }
+  }
+
   // MARK: - Position
 
   func seek(to time: TimeInterval) {
@@ -571,7 +615,8 @@ class MusicPlayerManager {
         playlistTitle: currentPlaylistTitle,
         index: currentTrackIndex,
         position: currentTime,
-        updatedAt: Date()
+        updatedAt: Date(),
+        queueVideoIDs: playlistManager.orderedVideoIDs
       )
     )
     lastPersistedPosition = currentTime

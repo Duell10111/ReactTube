@@ -15,7 +15,13 @@ struct LibrarySnapshotList<Item: Identifiable, Content: View>: View where Item.I
   let revision: String
   @ViewBuilder let content: ([Item]) -> Content
   @State private var ids: [String] = []
-  @State private var pending: Task<Void, Never>?
+  /// Not `@State`: replacing the task on every position update would re-render
+  /// the list each time.
+  @State private var pending = PendingSettle()
+  /// A list hidden under a pushed screen still receives row positions; reacting
+  /// to them re-renders it and the navigation stack rebuilds the pushed screen,
+  /// which never settles.
+  @State private var visible = false
   @State private var interacting = false
   @State private var anchor: String?
   @State private var focused: String?
@@ -32,6 +38,7 @@ struct LibrarySnapshotList<Item: Identifiable, Content: View>: View where Item.I
       .coordinateSpace(name: "libraryList")
       .environment(\.libraryFocusTarget, focusTarget)
       .onAppear {
+        visible = true
         latest = values
         commit()
       }
@@ -61,16 +68,23 @@ struct LibrarySnapshotList<Item: Identifiable, Content: View>: View where Item.I
         DragGesture().onChanged { _ in interacting = true }.onEnded { _ in settle() }
       )
       .onPreferenceChange(LibraryRowPositions.self) { positions in
+        guard visible else { return }
         anchor = positions.filter { $0.value >= 0 }.min(by: { $0.value < $1.value })?.key
         interacting = true
         settle()
       }
       .onPreferenceChange(LibraryRowFocus.self) { focused = $0 }
       .onChange(of: focused) { _, _ in
+        guard visible else { return }
         interacting = true
         settle()
       }
-      .onDisappear { pending?.cancel() }
+      .onDisappear {
+        visible = false
+        pending.task?.cancel()
+        // The cancelled settle cannot end the interaction any more.
+        interacting = false
+      }
     }
   }
   private func commit() {
@@ -78,8 +92,8 @@ struct LibrarySnapshotList<Item: Identifiable, Content: View>: View where Item.I
     retained = latest
   }
   private func settle() {
-    pending?.cancel()
-    pending = Task { @MainActor in
+    pending.task?.cancel()
+    pending.task = Task { @MainActor in
       do { try await Task.sleep(for: .milliseconds(700)) } catch { return }
       interacting = false
       do {
@@ -130,4 +144,8 @@ private struct LibrarySnapshotRow: ViewModifier {
 }
 extension View {
   func librarySnapshotRow(_ id: String) -> some View { modifier(LibrarySnapshotRow(id: id)) }
+}
+
+private final class PendingSettle {
+  var task: Task<Void, Never>?
 }

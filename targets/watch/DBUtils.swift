@@ -78,7 +78,7 @@ func addDownloadData(_ modelContext: ModelContext, id: String, title: String? = 
     let video = contents.first ?? Video(id: id, durationMillis: duration, title: title, downloaded: downloaded ?? false)
 
     if let d = downloaded {
-      video.downloaded = d
+      video.setDownloaded(d)
     }
 
     // The initializer only covers new entries; refreshed metadata must also
@@ -347,7 +347,7 @@ func deleteDownloadedVideo(_ modelContext: ModelContext, id: String) {
       predicate: #Predicate { $0.id == id }
     )
     for video in try modelContext.fetch(descriptor) {
-      video.downloaded = false
+      video.setDownloaded(false)
       video.fileURL = nil
       // A downloaded cover lived in the deleted directory as well. Covers are
       // stored with and without a leading slash.
@@ -397,6 +397,7 @@ func deleteDownloadedPlaylist(_ modelContext: ModelContext, playlist: Playlist) 
   }
   
   // Delete playlist from database
+  LibrarySortPreferences.shared.removePlaylist(id: playlistId)
   modelContext.delete(playlist)
 }
 
@@ -446,7 +447,7 @@ func clearDownloads(modelContext: ModelContext) {
     let videos = try modelContext.fetch(descriptor)
 
     for video in videos {
-      video.downloaded = false
+      video.setDownloaded(false)
       video.fileURL = nil
     }
     
@@ -466,6 +467,7 @@ func clearDatabase(modelContext: ModelContext) {
   let ids = Set(((try? modelContext.fetch(FetchDescriptor<Video>())) ?? []).map(\.id))
   MusicPlayerManager.shared.prepareForLibraryDeletion(ids: ids)
   DownloadManager.shared.cancelAll()
+  LibrarySortPreferences.shared.removeAllPlaylists()
   do {
       try modelContext.delete(model: Video.self)
       try modelContext.delete(model: Playlist.self)

@@ -8,7 +8,7 @@ const probe = run => `
 import Foundation
 struct Video { let id: String; var title: String?; var artist: String?; var durationMillis = 200000 }
 struct ResumeState {
-  let videoID: String; let title: String; let artist: String?; let playlistID: String?; let playlistTitle: String?; let index: Int; let position: Double; let updatedAt: Date
+  let videoID: String; let title: String; let artist: String?; let playlistID: String?; let playlistTitle: String?; let index: Int; let position: Double; let updatedAt: Date; var queueVideoIDs: [String]? = nil
 }
 final class Preferences {
   var resumeState: ResumeState?
@@ -32,6 +32,7 @@ final class Player {
 }
 final class PlaylistManager {
   var videos: [Video]? = []
+  var orderedVideoIDs: [String] { videos?.map(\\.id) ?? [] }
   var hasTitles: Bool { !(videos?.isEmpty ?? true) }
   func setPlaylist(_ playlist: Int?, videos: [Video]) { self.videos = videos }
 }
@@ -72,6 +73,8 @@ final class Probe {
     return true
   }
   func playMusic() { plays += 1 }
+  var startVideoIDs: [String] = []
+  func jumpToStart(videoID: String) { startVideoIDs.append(videoID) }
   ${swiftMethod(source, "private func deinitPlayer()")}
   ${swiftMethod(source, "private func storeResumeState()")}
   ${swiftMethod(source, "private func pendingSeekPosition()")}

@@ -86,9 +86,13 @@ struct ResumeState: Codable, Equatable {
   var artist: String?
   var playlistID: String?
   var playlistTitle: String?
+  /// Only a hint; the title is identified by `videoID`.
   var index: Int
   var position: TimeInterval
   var updatedAt: Date
+  /// Actual queue order, so a sorted or shuffled start survives a restart.
+  /// Missing in states stored by older versions.
+  var queueVideoIDs: [String]? = nil
 }
 
 /// Playback preferences that have to survive an app restart.

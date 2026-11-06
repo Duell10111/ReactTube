@@ -22,12 +22,14 @@ class PlaylistManager {
 
   }
 
-  func setPlaylist(_ playlist: Playlist?, videos: [Video]? = nil, shuffle: Bool = false) {
+  /// - Parameter orderedIDs: Queue order to use instead of the playlist order,
+  ///   e.g. the visible sorted order or a resumed queue. The playlist stays the
+  ///   source of the models and keeps its title for now playing and resume.
+  func setPlaylist(_ playlist: Playlist?, videos: [Video]? = nil, orderedIDs: [String]? = nil, shuffle: Bool = false) {
     self.playlist = playlist
     let models = playlist?.orderedVideos ?? videos ?? []
-    let ids = (playlist?.videoIDs ?? []) + models.map(\.id)
-    var seen: Set<String> = []
-    orderedVideoIDs = ids.filter { seen.insert($0).inserted }
+    let ids = orderedIDs ?? videos.map { $0.map(\.id) } ?? ((playlist?.videoIDs ?? []) + models.map(\.id))
+    orderedVideoIDs = QueueOrder.unique(ids)
     if shuffle { orderedVideoIDs.shuffle() }
     self.videos = models
     refreshModels()

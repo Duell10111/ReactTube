@@ -23,12 +23,27 @@ final class Video {
     var temp: Bool?
     /// Offset from the YouTube loudness reference in dB, sent by the iPhone.
     var loudnessDb: Double?
+    /// When the entry was created on this watch. `nil` for entries that existed
+    /// before the field was introduced; a metadata refresh never changes it.
+    var addedAt: Date?
+    /// When the current local download finished; cleared when it is removed.
+    var downloadedAt: Date?
 
   init(id: String, durationMillis: Int, title: String? = nil, downloaded: Bool = false) {
         self.id = id
         self.durationMillis = durationMillis
         self.title = title
         self.downloaded = downloaded
+        self.addedAt = Date()
+        self.downloadedAt = downloaded ? Date() : nil
+    }
+
+    /// Records the download time only on the transition, so setting `true`
+    /// again keeps the original time and a new download gets a new one.
+    func setDownloaded(_ value: Bool, at date: Date = Date()) {
+        if value && !downloaded { downloadedAt = date }
+        if !value { downloadedAt = nil }
+        downloaded = value
     }
 }
 
@@ -46,10 +61,15 @@ final class Playlist {
     var linked: Bool = false
     /// Version of the last state received from the iPhone for a linked playlist.
     var syncVersion: Int = 0
+    /// When the playlist was created on this watch; `nil` for older entries.
+    var addedAt: Date?
+    /// When a title from this playlist last actually started playing.
+    var lastPlayedAt: Date?
 
     init(id: String, title: String? = nil) {
         self.id = id
         self.title = title
+        self.addedAt = Date()
     }
 
     /// SwiftData does not preserve the order of to-many relationships, so the

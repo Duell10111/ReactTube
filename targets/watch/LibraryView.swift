@@ -88,7 +88,8 @@ struct LibraryPlaylists: View {
       if snapshot.isEmpty { Text(LibraryCopy.text("empty")) }
       Section(LibraryCopy.text("library.ownPlaylists")) {
         ForEach(snapshot.filter { $0.temp != true }, id: \.id) { playlist in
-          LibraryPlaylistListItem(playlist: playlist).librarySnapshotRow(playlist.id)
+          LibraryPlaylistListItem(playlist: playlist, sortSelection: selection)
+            .librarySnapshotRow(playlist.id)
         }
         Button(LibraryCopy.text("library.refresh"), systemImage: "arrow.clockwise") {
           requestLibraryPlaylists()
@@ -96,7 +97,8 @@ struct LibraryPlaylists: View {
       }
       Section(LibraryCopy.text("library.temporaryPlaylists")) {
         ForEach(snapshot.filter { $0.temp == true }, id: \.id) { playlist in
-          LibraryPlaylistListItem(playlist: playlist).librarySnapshotRow(playlist.id)
+          LibraryPlaylistListItem(playlist: playlist, sortSelection: selection)
+            .librarySnapshotRow(playlist.id)
         }
       }
     }.navigationTitle(LibraryCopy.text("library.playlists"))
@@ -115,12 +117,13 @@ struct LibraryPlaylistListItem: View {
   @Environment(\.modelContext) var modelContext
   @State var deletePlaylist: Bool = false
   var playlist: Playlist
+  var sortSelection: LibrarySortSelection? = nil
 
   var body: some View {
     NavigationLink {
       PlaylistListView(playlist: playlist)
     } label: {
-      LibraryPlaylistRow(playlist: playlist)
+      LibraryPlaylistRow(playlist: playlist, sortSelection: sortSelection)
     }
     .swipeActions {
       Button {
@@ -166,6 +169,7 @@ struct LibraryPlaylistListItem: View {
 /// Playlist row with cover, title count and sync/download state.
 struct LibraryPlaylistRow: View {
   var playlist: Playlist
+  var sortSelection: LibrarySortSelection? = nil
 
   private var titleCount: Int {
     max(playlist.videoIDs.count, playlist.videos.count)
@@ -203,6 +207,9 @@ struct LibraryPlaylistRow: View {
         .font(.footnote)
         .foregroundStyle(.secondary)
         .lineLimit(1)
+        if let sortSelection {
+          PlaylistSortValueLabel(playlist: playlist, selection: sortSelection)
+        }
       }
       Spacer(minLength: 0)
       VStack(spacing: 4) {

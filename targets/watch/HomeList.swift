@@ -58,10 +58,16 @@ struct HomeList: View {
 struct ContinueListeningRow: View {
   @Environment(MusicPlayerManager.self) private var musicPlayerManager: MusicPlayerManager
   var state: ResumeState
+  @State private var unavailable: Video?
+  @State private var missing = false
 
   var body: some View {
     Button {
-      musicPlayerManager.resumePlayback(state)
+      switch musicPlayerManager.resumePlayback(state) {
+      case .started, .libraryUnavailable: break
+      case .unavailable(let video): unavailable = video
+      case .missing: missing = true
+      }
     } label: {
       HStack {
         Image(systemName: "play.circle")
@@ -75,6 +81,21 @@ struct ContinueListeningRow: View {
             .monospacedDigit()
             .foregroundStyle(.secondary)
         }
+      }
+    }
+    .alert(
+      LibraryCopy.text("unavailable"),
+      isPresented: Binding(get: { unavailable != nil }, set: { if !$0 { unavailable = nil } })
+    ) {
+      Button(LibraryCopy.text("library.refreshInfo")) {
+        if let unavailable { MetadataRefresher.shared.refresh(unavailable) }
+        unavailable = nil
+      }
+      Button(LibraryCopy.text("cancel"), role: .cancel) { unavailable = nil }
+    }
+    .alert(LibraryCopy.text("resume.missing"), isPresented: $missing) {
+      Button(LibraryCopy.text("library.dismiss"), role: .cancel) {
+        musicPlayerManager.preferences.clearResumeState()
       }
     }
   }
