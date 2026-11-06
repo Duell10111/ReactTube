@@ -33,6 +33,13 @@ export interface FeedMetrics {
    */
   shelfCardWidth: number;
   shelfPresentation: ShelfPresentation;
+  /**
+   * Columns of a grid that holds only shorts. A portrait card at the regular
+   * TV column width is taller than the area below a channel's tab bar, and the
+   * focus engine cannot move past a focused item it cannot show in full, so
+   * Up and Down were swallowed on such a grid.
+   */
+  reelColumns: number;
 }
 
 export interface FeedEdgeInsets {
@@ -155,6 +162,19 @@ export function isReelShelf(shelf: HorizontalData): boolean {
   );
 }
 
+/** A feed whose entries are all shorts, laid out as a grid of portrait cards. */
+export function isReelGrid(items: FeedItem[]): boolean {
+  return (
+    items.length > 0 &&
+    items.every(item => !isShelfItem(item) && item.type === "reel")
+  );
+}
+
+/** Metrics of a shorts grid; see `FeedMetrics.reelColumns`. */
+export function getReelGridMetrics(metrics: FeedMetrics): FeedMetrics {
+  return {...metrics, columns: metrics.reelColumns};
+}
+
 /**
  * Layout class of a feed from the width it actually occupies, not from the
  * window. A feed can sit in a column far narrower than the screen — up next
@@ -193,6 +213,7 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
         skeletonCount: columns * 2,
         shelfCardWidth: 420,
         shelfPresentation: "horizontal",
+        reelColumns: 6,
       };
     case "compact":
       return {
@@ -202,6 +223,7 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
         skeletonCount: 4,
         shelfCardWidth: 180,
         shelfPresentation: "flattened",
+        reelColumns: columns,
       };
     case "medium":
     case "expanded":
@@ -212,6 +234,7 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
         skeletonCount: columns * 3,
         shelfCardWidth: 220,
         shelfPresentation: "flattened",
+        reelColumns: columns,
       };
   }
 }
