@@ -17,6 +17,7 @@ import {
 import {Shelf} from "./Shelf";
 import {
   buildFeedRows,
+  isReelGrid,
   type FeedEdgeInsets,
   type FeedItem,
   type FeedRow,
@@ -80,6 +81,7 @@ export function MediaFeed({
   // ending at the margin with a dead band beside it — except for the leading
   // margin on TV, which stays outside the focus region so that a Left press
   // out of the feed reaches the navigation rail.
+  const reelGrid = useMemo(() => isReelGrid(items), [items]);
   const {
     metrics,
     cardWidth,
@@ -88,7 +90,7 @@ export function MediaFeed({
     leadingInset,
     performance,
     onLayout,
-  } = useFeedGeometry(contentInsets);
+  } = useFeedGeometry(contentInsets, reelGrid);
   const {loadingMore, handleEndReached} = useFeedPagination(
     onEndReached,
     items.length > 0,

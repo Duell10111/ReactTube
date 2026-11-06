@@ -12,6 +12,8 @@ import {
   getFeedCardWidth,
   getFeedLayoutClass,
   getFeedMetrics,
+  getReelGridMetrics,
+  isReelGrid,
   isShelfItem,
 } from "../src/ui/patterns/feedLayout.ts";
 import {createMediaCardViewModel} from "../src/ui/patterns/mediaCardModel.ts";
@@ -410,4 +412,33 @@ test("keeps card row keys unique when the same entry repeats", () => {
   const rows = buildFeedRows([video({id: "a"}), video({id: "a"})], 1);
 
   assert.equal(new Set(rows.map(row => row.key)).size, 2);
+});
+
+test("recognizes a feed made only of shorts as a reel grid", () => {
+  const reel = id => video({id, type: "reel"});
+
+  assert.equal(isReelGrid([reel("a"), reel("b")]), true);
+  assert.equal(isReelGrid([]), false);
+  assert.equal(isReelGrid([reel("a"), video({id: "b"})]), false);
+  assert.equal(isReelGrid([reel("a"), shelf("s", [reel("b")])]), false);
+});
+
+test("TV reel grids use more, narrower columns so portrait cards fit", () => {
+  const tv = getFeedMetrics("tv");
+  const reels = getReelGridMetrics(tv);
+
+  assert.ok(reels.columns > tv.columns);
+  // A 1920 px wide TV feed with 60 px margins on both sides.
+  const width = getFeedCardWidth(1800, reels, 0);
+  // Portrait thumbnail plus the two-line text block must stay well below the
+  // roughly 650 px left under an expanded channel hero and its tab bar.
+  assert.ok((width * 16) / 9 + 120 < 650);
+});
+
+test("touch reel grids keep their regular column count", () => {
+  for (const layout of ["compact", "medium", "expanded"]) {
+    const metrics = getFeedMetrics(layout);
+
+    assert.equal(getReelGridMetrics(metrics).columns, metrics.columns);
+  }
 });
