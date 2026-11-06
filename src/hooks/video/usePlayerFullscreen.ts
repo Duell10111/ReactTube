@@ -8,15 +8,20 @@ import {BackHandler, Platform} from "react-native";
 import {
   classifyDeviceOrientation,
   getRotationFullscreenAction,
+  type GravityVector,
   initialRotationState,
+  smoothGravity,
   updateRotation,
 } from "@/components/video/phone/phoneRotationModel";
 import Logger from "@/utils/Logger";
 
 const LOGGER = Logger.extend("PLAYER_FULLSCREEN");
 
-/** Often enough to react within half a second, rare enough to stay cheap. */
-const MOTION_INTERVAL_MS = 150;
+/**
+ * Dense enough for the low-pass filter to react quickly, and only sampled
+ * while the video screen is focused.
+ */
+const MOTION_INTERVAL_MS = 50;
 
 const isPhone = !Platform.isTV && deviceType !== DeviceType.TABLET;
 
@@ -111,6 +116,7 @@ export default function usePlayerFullscreen({
     let active = true;
     let subscription: {remove: () => void} | undefined;
     let rotation = initialRotationState;
+    let gravity: GravityVector | undefined;
 
     DeviceMotion.isAvailableAsync()
       .then(available => {
@@ -119,10 +125,11 @@ export default function usePlayerFullscreen({
         }
         DeviceMotion.setUpdateInterval(MOTION_INTERVAL_MS);
         subscription = DeviceMotion.addListener(measurement => {
-          const gravity = measurement.accelerationIncludingGravity;
-          if (!gravity) {
+          const sample = measurement.accelerationIncludingGravity;
+          if (!sample) {
             return;
           }
+          gravity = smoothGravity(gravity, sample);
           const result = updateRotation(
             rotation,
             classifyDeviceOrientation(gravity.x, gravity.y, gravity.z),

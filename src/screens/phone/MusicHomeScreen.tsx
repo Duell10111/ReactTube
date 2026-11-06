@@ -20,7 +20,6 @@ export function MusicHomeScreen() {
     applyFilter,
   } = useMusicHome();
 
-  // TODO: Could cause locks if screen is still loaded in background
   usePhoneOrientationLocker();
 
   return (

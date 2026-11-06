@@ -6,6 +6,7 @@ import {
   classifyDeviceOrientation,
   getRotationFullscreenAction,
   initialRotationState,
+  smoothGravity,
   updateRotation,
 } from "../src/components/video/phone/phoneRotationModel.ts";
 
@@ -37,6 +38,53 @@ test("the band between portrait and landscape is undecided", () => {
   assert.equal(
     classifyDeviceOrientation(Math.sin(tilted) * G, Math.cos(tilted) * G, 0),
     "portrait",
+  );
+});
+
+/** Gravity of a phone turned by `turn` and tilted back by `tilt` degrees. */
+function held(turn, tilt) {
+  const t = (turn * Math.PI) / 180;
+  const b = (tilt * Math.PI) / 180;
+  const planar = Math.cos(b) * G;
+  return [Math.sin(t) * planar, -Math.cos(t) * planar, -Math.sin(b) * G];
+}
+
+test("a phone tilted back as on the sofa is still recognised", () => {
+  assert.equal(classifyDeviceOrientation(...held(0, 65)), "portrait");
+  assert.equal(classifyDeviceOrientation(...held(90, 65)), "landscape");
+});
+
+test("a phone almost flat on the table says nothing", () => {
+  assert.equal(classifyDeviceOrientation(...held(90, 75)), undefined);
+});
+
+test("smoothing starts with the first sample", () => {
+  const sample = {x: 1, y: -G, z: 0};
+  assert.deepEqual(smoothGravity(undefined, sample), sample);
+});
+
+test("a short jolt of the hand does not flip a portrait reading", () => {
+  let gravity = smoothGravity(undefined, {x: 0, y: -G, z: 0});
+  // One sample of strong sideways acceleration, as when the phone is bumped.
+  gravity = smoothGravity(gravity, {x: 2 * G, y: -G, z: 0});
+  // Unsmoothed this sample alone reads as landscape (63°).
+  assert.equal(classifyDeviceOrientation(2 * G, -G, 0), "landscape");
+  // Smoothed it stays in the undecided band, which keeps portrait.
+  assert.notEqual(
+    classifyDeviceOrientation(gravity.x, gravity.y, gravity.z),
+    "landscape",
+  );
+});
+
+test("a held landscape turn comes through the smoothing quickly", () => {
+  let gravity = smoothGravity(undefined, {x: 0, y: -G, z: 0});
+  // Six samples at 50 ms: 300 ms after the turn.
+  for (let i = 0; i < 6; i++) {
+    gravity = smoothGravity(gravity, {x: G, y: 0, z: 0});
+  }
+  assert.equal(
+    classifyDeviceOrientation(gravity.x, gravity.y, gravity.z),
+    "landscape",
   );
 });
 

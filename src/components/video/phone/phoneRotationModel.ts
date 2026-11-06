@@ -20,12 +20,45 @@ const LANDSCAPE_MIN_DEGREES = 60;
 /**
  * Lying nearly flat, gravity points through the screen and says nothing about
  * how the phone is turned. The share of gravity left in the screen plane has
- * to be at least this large.
+ * to be at least this large: 0.35 allows tilting the phone back by about 70°,
+ * as when watching on the sofa, close to what the system rotation accepts.
  */
-const MIN_PLANAR_SHARE = 0.5;
+const MIN_PLANAR_SHARE = 0.35;
 
-/** How long a new reading has to hold before it counts. */
-export const ROTATION_SETTLE_MS = 400;
+/**
+ * How long a new reading has to hold before it counts. The smoothing below
+ * already removes most jitter, so this only has to reject a swing.
+ */
+export const ROTATION_SETTLE_MS = 250;
+
+/**
+ * Weight of a new sample in the low-pass filter. The accelerometer reports
+ * gravity plus the movement of the hand, which spikes while the phone is
+ * turned or carried. At the 50 ms sample interval of the player this gives a
+ * time constant of about 120 ms.
+ */
+export const GRAVITY_SMOOTHING = 0.3;
+
+export interface GravityVector {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** Low-pass filters gravity samples; the first sample is taken as it is. */
+export function smoothGravity(
+  previous: GravityVector | undefined,
+  sample: GravityVector,
+): GravityVector {
+  if (!previous) {
+    return sample;
+  }
+  return {
+    x: previous.x + GRAVITY_SMOOTHING * (sample.x - previous.x),
+    y: previous.y + GRAVITY_SMOOTHING * (sample.y - previous.y),
+    z: previous.z + GRAVITY_SMOOTHING * (sample.z - previous.z),
+  };
+}
 
 /**
  * Classifies a gravity sample. Only magnitudes are used: the sign conventions
