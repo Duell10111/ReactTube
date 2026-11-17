@@ -450,6 +450,8 @@ export const en = {
   "shorts.player.hint":
     "Plays or pauses the short. Press up or down for the previous or next short.",
   "shorts.player.paused": "Paused",
+  "shorts.player.touchHint":
+    "Tap to play or pause. Swipe up or down for the next or previous short.",
   "shorts.previous": "Previous short",
   "shorts.next": "Next short",
 } as const;
