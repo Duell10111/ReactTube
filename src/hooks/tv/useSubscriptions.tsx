@@ -3,6 +3,10 @@ import {useCallback, useEffect, useRef, useState} from "react";
 import {useYoutubeTVContext} from "@/context/YoutubeContext";
 import {parseObservedArrayHorizontalData} from "@/extraction/ArrayExtraction";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
+import {
+  parseSubscribedChannels,
+  SubscribedChannel,
+} from "@/extraction/subscribedChannels";
 import Logger from "@/utils/Logger";
 import {YTTV} from "@/utils/Youtube";
 
@@ -12,6 +16,7 @@ export default function useSubscriptions() {
   const youtube = useYoutubeTVContext();
   const subFeed = useRef<YTTV.SubscriptionsFeed>(undefined);
   const [data, setData] = useState<HorizontalData[]>([]);
+  const [channels, setChannels] = useState<SubscribedChannel[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<unknown>();
@@ -27,6 +32,8 @@ export default function useSubscriptions() {
       .then(value => {
         subFeed.current = value;
         setData(parseObservedArrayHorizontalData(value.items));
+        // Only the first page lists the channels; continuations carry none.
+        setChannels(parseSubscribedChannels(value.channels));
       })
       .catch(reason => {
         LOGGER.warn("Error fetching subscriptions feed: ", reason);
@@ -63,6 +70,7 @@ export default function useSubscriptions() {
 
   return {
     data,
+    channels,
     fetchMore,
     refresh,
     refreshing,
