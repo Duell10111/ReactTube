@@ -15,6 +15,11 @@ export interface SubscribedChannel {
   thumbnail?: Thumbnail;
   /** Whether YouTube flags uploads the user has not seen yet. */
   hasNewContent: boolean;
+  /**
+   * Browse params of the subscriptions page filtered to this channel, as the
+   * channel's tab in the TV app requests it.
+   */
+  feedParams: string;
 }
 
 type FeedChannel = YTTV.SubscriptionsFeed["channels"][number];
@@ -23,8 +28,8 @@ type FeedChannel = YTTV.SubscriptionsFeed["channels"][number];
  * Converts the channels of a TV subscriptions feed, keeping YouTube's order:
  * channels with recent uploads first, the rest alphabetically.
  *
- * Channels without a readable id are dropped because the app could not open
- * them, and duplicates keep their first position.
+ * Channels without a readable id or feed params are dropped because the app
+ * could neither open nor filter them, and duplicates keep their first position.
  */
 export function parseSubscribedChannels(
   channels: readonly FeedChannel[],
@@ -33,7 +38,8 @@ export function parseSubscribedChannels(
   const result: SubscribedChannel[] = [];
 
   for (const channel of channels) {
-    if (!channel.id || seen.has(channel.id)) {
+    const feedParams = channel.endpoint.payload?.params;
+    if (!channel.id || typeof feedParams !== "string" || seen.has(channel.id)) {
       continue;
     }
     seen.add(channel.id);
@@ -49,6 +55,7 @@ export function parseSubscribedChannels(
         ? {url: largest.url, width: largest.width, height: largest.height}
         : undefined,
       hasNewContent: channel.has_new_content,
+      feedParams,
     });
   }
 

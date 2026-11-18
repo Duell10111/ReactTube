@@ -5,6 +5,8 @@ import type {SubscribedChannel} from "@/extraction/subscribedChannels";
 /** Props of `ChannelAvatar`, shared by its touch and TV variants. */
 export interface ChannelAvatarProps {
   channel: SubscribedChannel;
+  /** Whether the subscriptions feed is filtered to this channel. */
+  selected?: boolean;
   onPress: () => void;
   testID?: string;
 }

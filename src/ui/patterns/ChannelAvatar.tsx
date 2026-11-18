@@ -12,13 +12,22 @@ import {AppText} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
 
 const AVATAR_SIZE = 64;
+const RING_WIDTH = 2;
+// The ring keeps a gap to the avatar, so the selection reads as an outline.
+const RING_SIZE = AVATAR_SIZE + RING_WIDTH * 4;
 const DOT_SIZE = 12;
 
 /**
  * A subscribed channel as a round avatar with its name below. A dot marks
- * channels with uploads the user has not seen yet.
+ * channels with uploads the user has not seen yet, and a ring the channel the
+ * feed is filtered to.
  */
-export function ChannelAvatar({channel, onPress, testID}: ChannelAvatarProps) {
+export function ChannelAvatar({
+  channel,
+  selected = false,
+  onPress,
+  testID,
+}: ChannelAvatarProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
 
@@ -26,13 +35,18 @@ export function ChannelAvatar({channel, onPress, testID}: ChannelAvatarProps) {
     <Pressable
       accessibilityLabel={getSubscribedChannelLabel(channel, t)}
       accessibilityRole={"button"}
+      accessibilityState={{selected}}
       onPress={onPress}
       style={({pressed}) => [
         styles.container,
         {gap: theme.spacing.xs, opacity: pressed ? 0.7 : 1},
       ]}
       testID={testID ?? "channel-avatar"}>
-      <View>
+      <View
+        style={[
+          styles.ring,
+          {borderColor: selected ? theme.colors.brand : "transparent"},
+        ]}>
         <Image
           contentFit={"cover"}
           source={channel.thumbnail ? {uri: channel.thumbnail.url} : undefined}
@@ -50,7 +64,11 @@ export function ChannelAvatar({channel, onPress, testID}: ChannelAvatarProps) {
           />
         ) : null}
       </View>
-      <AppText numberOfLines={1} style={styles.name} variant={"labelSmall"}>
+      <AppText
+        color={selected ? "textPrimary" : "textSecondary"}
+        numberOfLines={1}
+        style={styles.name}
+        variant={"labelSmall"}>
         {channel.title}
       </AppText>
     </Pressable>
@@ -60,7 +78,15 @@ export function ChannelAvatar({channel, onPress, testID}: ChannelAvatarProps) {
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    width: AVATAR_SIZE + 16,
+    width: RING_SIZE + 8,
+  },
+  ring: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: RING_SIZE,
+    height: RING_SIZE,
+    borderRadius: RING_SIZE / 2,
+    borderWidth: RING_WIDTH,
   },
   avatar: {
     width: AVATAR_SIZE,

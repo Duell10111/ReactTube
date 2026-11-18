@@ -4,7 +4,11 @@ import test from "node:test";
 import {parseSubscribedChannels} from "../src/extraction/subscribedChannels.ts";
 
 /** Shape of `YTTV.SubscriptionsFeed#channels` as measured on 2026-11-17. */
-function channel(id, title, {newContent = false, thumbnails} = {}) {
+function channel(
+  id,
+  title,
+  {newContent = false, thumbnails, params = `params-${id}`} = {},
+) {
   return {
     id,
     title,
@@ -12,7 +16,7 @@ function channel(id, title, {newContent = false, thumbnails} = {}) {
       {url: `https://yt3.example.com/${title}=s176`, width: 176, height: 176},
       {url: `https://yt3.example.com/${title}=s48`, width: 48, height: 48},
     ],
-    endpoint: {payload: {browseId: "FEsubscriptions"}},
+    endpoint: {payload: {browseId: "FEsubscriptions", params}},
     has_new_content: newContent,
   };
 }
@@ -33,6 +37,7 @@ test("keeps YouTube's order and the new-content flag", () => {
         height: 176,
       },
       hasNewContent: true,
+      feedParams: "params-UCrecent",
     },
     {
       id: "UCalpha",
@@ -43,6 +48,7 @@ test("keeps YouTube's order and the new-content flag", () => {
         height: 176,
       },
       hasNewContent: false,
+      feedParams: "params-UCalpha",
     },
   ]);
 });
@@ -82,6 +88,18 @@ test("drops channels without an id and duplicates", () => {
       ["UCa", "A"],
       ["UCb", "B"],
     ],
+  );
+});
+
+test("drops channels whose feed cannot be filtered", () => {
+  const result = parseSubscribedChannels([
+    channel("UCa", "A", {params: null}),
+    channel("UCb", "B"),
+  ]);
+
+  assert.deepEqual(
+    result.map(item => item.id),
+    ["UCb"],
   );
 });
 

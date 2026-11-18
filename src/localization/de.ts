@@ -113,6 +113,8 @@ export const de = {
     "Melde dich an, um Kanälen zu folgen und neue Videos hier zu sehen.",
   "subscriptions.channels.title": "Kanäle",
   "subscriptions.channels.all": "Alle Kanäle",
+  "subscriptions.channels.viewChannel": "Kanal ansehen",
+  "subscriptions.channels.showAll": "Alle",
   "subscriptions.channels.newContent": "Neue Videos",
   "subscriptions.channels.others": "Alle Abos",
   "subscriptions.channels.newContentLabel": "{channel}, neue Videos",

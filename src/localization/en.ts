@@ -110,6 +110,8 @@ export const en = {
     "Sign in to follow channels and see their new videos here.",
   "subscriptions.channels.title": "Channels",
   "subscriptions.channels.all": "All channels",
+  "subscriptions.channels.viewChannel": "View channel",
+  "subscriptions.channels.showAll": "All",
   "subscriptions.channels.newContent": "New videos",
   "subscriptions.channels.others": "All subscriptions",
   "subscriptions.channels.newContentLabel": "{channel}, new videos",

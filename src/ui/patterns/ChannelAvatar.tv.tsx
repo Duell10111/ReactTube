@@ -17,9 +17,15 @@ const DOT_SIZE = 20;
 /**
  * TV variant of the channel avatar. Focus is an outline around the avatar plus
  * the shared focus scale; the outline is reserved in every state, so moving
- * focus along the row never shifts the neighbors.
+ * focus along the row never shifts the neighbors. Without focus, the outline
+ * marks the channel the feed is filtered to.
  */
-export function ChannelAvatar({channel, onPress, testID}: ChannelAvatarProps) {
+export function ChannelAvatar({
+  channel,
+  selected = false,
+  onPress,
+  testID,
+}: ChannelAvatarProps) {
   const {theme, reduceMotion} = useAppTheme();
   const {t} = useTranslation();
   const [focused, setFocused] = useState(false);
@@ -44,6 +50,7 @@ export function ChannelAvatar({channel, onPress, testID}: ChannelAvatarProps) {
     <Pressable
       accessibilityLabel={getSubscribedChannelLabel(channel, t)}
       accessibilityRole={"button"}
+      accessibilityState={{selected}}
       onBlur={() => {
         setFocused(false);
         animateTo(1);
@@ -73,7 +80,9 @@ export function ChannelAvatar({channel, onPress, testID}: ChannelAvatarProps) {
             borderWidth: focusBorderWidth,
             borderColor: focused
               ? theme.colors.focus
-              : theme.colors.focusResting,
+              : selected
+                ? theme.colors.brand
+                : theme.colors.focusResting,
             transform: [{scale}],
           },
         ]}>
@@ -95,7 +104,7 @@ export function ChannelAvatar({channel, onPress, testID}: ChannelAvatarProps) {
         ) : null}
       </Animated.View>
       <AppText
-        color={focused ? "textPrimary" : "textSecondary"}
+        color={focused || selected ? "textPrimary" : "textSecondary"}
         numberOfLines={1}
         style={styles.name}
         variant={"labelSmall"}>

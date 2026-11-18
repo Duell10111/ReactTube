@@ -39,8 +39,17 @@ function SubscriptionSignInState() {
 
 function SubscriptionFeed() {
   const navigation = useNavigation<RootNavProp>();
-  const {data, channels, fetchMore, refresh, refreshing, loading, error} =
-    useSubscriptions();
+  const {
+    data,
+    channels,
+    selectedChannel,
+    selectChannel,
+    fetchMore,
+    refresh,
+    refreshing,
+    loading,
+    error,
+  } = useSubscriptions();
 
   const openChannel = useCallback(
     (channel: SubscribedChannel) =>
@@ -60,6 +69,8 @@ function SubscriptionFeed() {
           channels={channels}
           onOpenChannel={openChannel}
           onSeeAll={openAllChannels}
+          onSelectChannel={selectChannel}
+          selectedChannel={selectedChannel}
         />
       }
       error={error}
