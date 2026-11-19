@@ -14,6 +14,12 @@ export default function useElementData(data: ElementData) {
 
   useEffect(() => {
     if (data.type === "video" || data.type === "reel") {
+      // The video info is only fetched for the author, so a known author
+      // saves a full player request per opened menu.
+      if (data.author?.id) {
+        setFetchedData(data);
+        return;
+      }
       youtube?.getInfo(data.navEndpoint ?? data.id).then(video => {
         const fData = getElementDataFromVideoInfo(video);
 

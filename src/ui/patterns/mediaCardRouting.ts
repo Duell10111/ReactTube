@@ -77,3 +77,31 @@ function resolveTarget(element: ElementData, music: boolean): MediaCardTarget {
 
   return {kind: "videoPlayer"};
 }
+
+export type MediaCardAuthorRoute =
+  | {routeName: "ChannelScreen"; params: {channelId: string}}
+  | {routeName: "MusicChannelScreen"; params: {artistId: string}};
+
+/**
+ * Where the author avatar of a card leads, or nothing when the data source
+ * left the author without a browse ID. A channel card already opens itself, so
+ * its avatar has no separate target.
+ */
+export function resolveMediaCardAuthorRoute(
+  element: ElementData,
+  options: Pick<MediaCardRoutingOptions, "music"> = {},
+): MediaCardAuthorRoute | undefined {
+  if (resolveTarget(element, false).kind === "channel") {
+    return undefined;
+  }
+
+  const author =
+    element.author ?? ("artists" in element ? element.artists?.[0] : undefined);
+  if (!author?.id) {
+    return undefined;
+  }
+
+  return element.music === true || options.music === true
+    ? {routeName: "MusicChannelScreen", params: {artistId: author.id}}
+    : {routeName: "ChannelScreen", params: {channelId: author.id}};
+}
