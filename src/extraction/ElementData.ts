@@ -15,6 +15,7 @@ import {
   PlaylistData,
   VideoData,
 } from "./Types";
+import {getContextMenuType} from "./contextMenu";
 import {
   getLockupPlaylistType,
   getLockupResolutionBadge,
@@ -38,6 +39,38 @@ const skippedTypes = [
 ];
 
 const LOGGER = Logger.extend("EXTRACTION");
+
+/**
+ * Items of the menu a tile or lockup opens on long press ("Watch later",
+ * "Save to playlist", ...). Both carry it as a show menu command.
+ */
+function parseContextMenu(
+  endpoint?: YTNodes.NavigationEndpoint,
+): ContextMenu[] | undefined {
+  const items = endpoint?.payload?.menu?.menuRenderer?.items;
+  if (!Array.isArray(items)) {
+    return undefined;
+  }
+
+  return _.chain(items)
+    .map((item: Record<string, any>): ContextMenu | undefined => {
+      const parsedMenu = Parser.parse(item).item();
+      if (
+        parsedMenu.is(YTNodes.MenuNavigationItem) ||
+        parsedMenu.is(YTNodes.MenuServiceItem)
+      ) {
+        return {
+          originalNode: parsedMenu,
+          type: getContextMenuType(parsedMenu.endpoint),
+          text: parsedMenu.text,
+          navEndpoint: parsedMenu.endpoint,
+        } as ContextMenu;
+      }
+      LOGGER.warn(`Unknown context menu item ${parsedMenu.type}`);
+    })
+    .compact()
+    .value();
+}
 
 /**
  * Author of a lockup. Its name comes from the metadata rows and everything
@@ -213,50 +246,6 @@ export function getVideoData(
       return;
     }
 
-    // TODO: Maybe outsource this?
-    // Parser fkt for context menu
-    const parseContextMenu = (menu: Record<string, any>) => {
-      const parsedMenu = Parser.parse(menu).item();
-
-      const typeEval = (
-        navEndpoint: YTNodes.NavigationEndpoint,
-      ): ContextMenu["type"] | undefined => {
-        if (navEndpoint.name === "browseEndpoint") {
-          return navEndpoint.payload.browseId?.startsWith("UC")
-            ? "channel"
-            : "browse";
-        } else if (navEndpoint.name === "watchEndpoint") {
-          return "watch";
-        } else if (navEndpoint.name === "addToPlaylistEndpoint") {
-          return "addToPlaylist";
-        } else if (navEndpoint.name === "playlistEditEndpoint") {
-          return "addToWatchLater";
-        } else if (navEndpoint.name === "feedbackEndpoint") {
-          return "feedback";
-        }
-      };
-
-      if (parsedMenu.is(YTNodes.MenuNavigationItem)) {
-        const type = typeEval(parsedMenu.endpoint);
-        return {
-          originalNode: parsedMenu,
-          type,
-          text: parsedMenu.text,
-          navEndpoint: parsedMenu.endpoint,
-        } as ContextMenu;
-      } else if (parsedMenu.is(YTNodes.MenuServiceItem)) {
-        const type = typeEval(parsedMenu.endpoint);
-        return {
-          originalNode: parsedMenu,
-          type,
-          text: parsedMenu.text,
-          navEndpoint: parsedMenu.endpoint,
-        };
-      } else {
-        console.warn(`Unknown context menu item ${parsedMenu.type}`);
-      }
-    };
-
     if (ytNode.content_type === "TILE_CONTENT_TYPE_CHANNEL") {
       return {
         type: "channel",
@@ -303,15 +292,7 @@ export function getVideoData(
         resolutionBadge: getTileResolutionBadge(
           ytNode.metadata?.lines?.filterType(YTNodes.Line),
         ),
-        contextMenu: ytNode.on_long_press_endpoint.payload?.menu?.menuRenderer
-          ?.items
-          ? _.chain(
-              ytNode.on_long_press_endpoint.payload.menu.menuRenderer.items,
-            )
-              .map(parseContextMenu)
-              .compact()
-              .value()
-          : undefined,
+        contextMenu: parseContextMenu(ytNode.on_long_press_endpoint),
         thumbnailOverlays: ytNode.header?.thumbnail_overlays?.firstOfType(
           YTNodes.ThumbnailOverlayResumePlayback,
         )?.percent_duration_watched
@@ -596,6 +577,9 @@ export function getVideoData(
         resolutionBadge: getLockupResolutionBadge(
           ytNode.metadata?.metadata?.metadata_rows,
           thumbnailView?.overlays,
+        ),
+        contextMenu: parseContextMenu(
+          ytNode.renderer_context.command_context?.on_long_press,
         ),
         thumbnailOverlays:
           badges.progress !== undefined
