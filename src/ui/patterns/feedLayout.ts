@@ -1,8 +1,11 @@
+import {mediaCardAspectRatio} from "./mediaCardModel.ts";
 import {
   getFeedColumnCount,
   getLayoutClass,
   type LayoutClass,
 } from "../theme/breakpoints.ts";
+import {tvControlMetrics} from "../theme/controls.ts";
+import {motion} from "../theme/motion.ts";
 import {spacing} from "../theme/spacing.ts";
 
 import type {HorizontalData} from "@/extraction/ShelfExtraction";
@@ -34,12 +37,22 @@ export interface FeedMetrics {
   shelfCardWidth: number;
   shelfPresentation: ShelfPresentation;
   /**
-   * Columns of a grid that holds only shorts. A portrait card at the regular
-   * TV column width is taller than the area below a channel's tab bar, and the
-   * focus engine cannot move past a focused item it cannot show in full, so
-   * Up and Down were swallowed on such a grid.
+   * Width of a shorts card in a shelf or grid that holds only shorts. On TV it
+   * is capped well below a video card, so the portrait card still fits under a
+   * channel's hero and tab bar; see `tvReelCardWidth`.
    */
-  reelColumns: number;
+  reelCardWidth: number;
+  /**
+   * Width of a shorts card in a shelf that mixes shorts and videos. On TV it is
+   * exactly as tall as the video cards beside it, with its thumbnail cropped
+   * to `mixedReelAspectRatio`.
+   */
+  mixedReelCardWidth: number;
+  /**
+   * Thumbnail crop of a short between video cards. A full portrait thumbnail
+   * at the height of a video card left too little width for a readable title.
+   */
+  mixedReelAspectRatio?: number;
 }
 
 export interface FeedEdgeInsets {
@@ -170,9 +183,95 @@ export function isReelGrid(items: FeedItem[]): boolean {
   );
 }
 
-/** Metrics of a shorts grid; see `FeedMetrics.reelColumns`. */
-export function getReelGridMetrics(metrics: FeedMetrics): FeedMetrics {
-  return {...metrics, columns: metrics.reelColumns};
+/**
+ * Space a TV card keeps beside its thumbnail on each side: the reserved focus
+ * border plus the card padding. Mirrors `MediaCard.tv.tsx`.
+ */
+const tvCardFrame = tvControlMetrics.focusBorderWidth + spacing.sm;
+const tvFocusGrowth = motion.tvFocusScale - 1;
+
+/** Thumbnail width of a TV card assigned `cardWidth`; mirrors `MediaCard.tv.tsx`. */
+export function getTVCardThumbnailWidth(cardWidth: number): number {
+  const focusInset = Math.ceil((cardWidth * tvFocusGrowth) / 2);
+
+  return Math.max(0, cardWidth - 2 * focusInset - 2 * tvCardFrame);
+}
+
+/**
+ * Width of a TV card whose thumbnail, cropped to `aspectRatio`, is exactly as
+ * tall as the one of a video card `videoCardWidth` wide. Both cards reserve the
+ * same text block, so the whole card ends up as tall as the video card.
+ */
+export function getTVCardWidthForVideoHeight(
+  videoCardWidth: number,
+  aspectRatio: number,
+): number {
+  const thumbnailHeight =
+    getTVCardThumbnailWidth(videoCardWidth) / mediaCardAspectRatio.wide;
+  const thumbnailWidth = thumbnailHeight * aspectRatio;
+  // The focus inset is rounded up per side, so it is solved from an estimate
+  // of the card width and then added exactly.
+  const estimate = (thumbnailWidth + 2 * tvCardFrame) / (1 - tvFocusGrowth);
+  const focusInset = Math.ceil((estimate * tvFocusGrowth) / 2);
+
+  return thumbnailWidth + 2 * tvCardFrame + 2 * focusInset;
+}
+
+/**
+ * Width of a TV shorts card in a shelf or grid of only shorts.
+ *
+ * A portrait card at the width of a video card is more than three times as
+ * tall: it broke the layout below a channel's tab bar, and the focus engine
+ * cannot move past a focused item it cannot show in full, so Up and Down were
+ * swallowed on such a grid. Matching the video height exactly instead left so
+ * little width that titles became unreadable. This width sits between the two
+ * and keeps the whole card well below the area under the tab bar.
+ */
+const tvReelCardWidth = 260;
+
+const tvShelfCardWidth = 420;
+
+/** Squares a short off between video cards; see `mixedReelAspectRatio`. */
+const tvMixedReelAspectRatio = 1;
+
+export interface FeedGridLayout {
+  metrics: FeedMetrics;
+  cardWidth: number;
+}
+
+/**
+ * Columns and card width of a feed grid.
+ *
+ * A TV grid of shorts uses the capped shorts card width and fits as many
+ * columns as the width allows. The cards keep that exact width instead of
+ * stretching to fill the row, because a wider portrait card is a taller one.
+ * Touch layouts keep their regular grid.
+ */
+export function getFeedGridLayout(
+  layout: LayoutClass,
+  availableWidth: number,
+  metrics: FeedMetrics,
+  horizontalPadding: number,
+  reelGrid: boolean,
+): FeedGridLayout {
+  const cardWidth = getFeedCardWidth(
+    availableWidth,
+    metrics,
+    horizontalPadding,
+  );
+
+  if (layout !== "tv" || !reelGrid) {
+    return {metrics, cardWidth};
+  }
+
+  const reelWidth = metrics.reelCardWidth;
+  const content = availableWidth - horizontalPadding;
+  const columns = Math.max(
+    1,
+    Math.floor((content + metrics.gap) / (reelWidth + metrics.gap)),
+  );
+
+  return {metrics: {...metrics, columns}, cardWidth: reelWidth};
 }
 
 /**
@@ -211,9 +310,14 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
         gap: spacing.xl,
         padding: spacing.xxl,
         skeletonCount: columns * 2,
-        shelfCardWidth: 420,
+        shelfCardWidth: tvShelfCardWidth,
         shelfPresentation: "horizontal",
-        reelColumns: 6,
+        reelCardWidth: tvReelCardWidth,
+        mixedReelCardWidth: getTVCardWidthForVideoHeight(
+          tvShelfCardWidth,
+          tvMixedReelAspectRatio,
+        ),
+        mixedReelAspectRatio: tvMixedReelAspectRatio,
       };
     case "compact":
       return {
@@ -223,7 +327,8 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
         skeletonCount: 4,
         shelfCardWidth: 180,
         shelfPresentation: "flattened",
-        reelColumns: columns,
+        reelCardWidth: 180,
+        mixedReelCardWidth: 180,
       };
     case "medium":
     case "expanded":
@@ -234,7 +339,8 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
         skeletonCount: columns * 3,
         shelfCardWidth: 220,
         shelfPresentation: "flattened",
-        reelColumns: columns,
+        reelCardWidth: 220,
+        mixedReelCardWidth: 220,
       };
   }
 }

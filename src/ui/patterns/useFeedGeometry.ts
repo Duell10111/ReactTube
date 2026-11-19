@@ -2,12 +2,11 @@ import {useCallback, useState} from "react";
 import {useWindowDimensions, type LayoutChangeEvent} from "react-native";
 
 import {
-  getFeedCardWidth,
   getFeedContentPadding,
+  getFeedGridLayout,
   getFeedLayoutClass,
   getFeedMetrics,
   getFeedRowPadding,
-  getReelGridMetrics,
   splitFeedRowPadding,
   type FeedContentPadding,
   type FeedEdgeInsets,
@@ -55,10 +54,9 @@ export function useFeedGeometry(
   );
   const feedLayout = getFeedLayoutClass(measuredWidth, layout);
   const baseMetrics = getFeedMetrics(feedLayout);
-  const metrics = reelGrid ? getReelGridMetrics(baseMetrics) : baseMetrics;
   const contentPadding = getFeedContentPadding(
     feedLayout,
-    metrics,
+    baseMetrics,
     insetsOverride ?? contentInsets,
   );
   const {leadingInset, rowPadding} = splitFeedRowPadding(
@@ -72,18 +70,22 @@ export function useFeedGeometry(
     setMeasuredWidth(previous => (previous === width ? previous : width));
   }, []);
 
+  const {metrics, cardWidth} = getFeedGridLayout(
+    feedLayout,
+    measuredWidth,
+    baseMetrics,
+    // The list reports its width from inside the leading margin, so on TV
+    // that margin is already gone by the time the cards are measured.
+    Math.max(
+      0,
+      contentPadding.paddingStart + contentPadding.paddingEnd - leadingInset,
+    ),
+    reelGrid,
+  );
+
   return {
     metrics,
-    cardWidth: getFeedCardWidth(
-      measuredWidth,
-      metrics,
-      // The list reports its width from inside the leading margin, so on TV
-      // that margin is already gone by the time the cards are measured.
-      Math.max(
-        0,
-        contentPadding.paddingStart + contentPadding.paddingEnd - leadingInset,
-      ),
-    ),
+    cardWidth,
     contentPadding,
     rowPadding,
     leadingInset,

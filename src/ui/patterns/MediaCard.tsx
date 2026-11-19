@@ -39,6 +39,11 @@ export interface MediaCardProps {
   onFocusChange?: (focused: boolean) => void;
   /** The pressable itself, e.g. as a TV focus guide destination. */
   focusRef?: React.Ref<PressableInstance>;
+  /**
+   * Crops the thumbnail to this aspect ratio instead of the shape's own, e.g.
+   * a short squared off between video cards on TV.
+   */
+  thumbnailAspectRatio?: number;
 }
 
 const avatarSize = 36;
@@ -58,14 +63,18 @@ function MediaCardTouch({
   selected = false,
   selectedLabel,
   focusRef,
+  thumbnailAspectRatio,
 }: MediaCardProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
   const defaultPress = useMediaCardPress(element);
-  const model = useMemo(
-    () => createMediaCardViewModel(element, {translate: t}),
-    [element, t],
-  );
+  const model = useMemo(() => {
+    const base = createMediaCardViewModel(element, {translate: t});
+
+    return thumbnailAspectRatio === undefined
+      ? base
+      : {...base, aspectRatio: thumbnailAspectRatio};
+  }, [element, t, thumbnailAspectRatio]);
   const centered = model.shape === "circle";
 
   return (

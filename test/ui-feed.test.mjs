@@ -11,8 +11,10 @@ import {
   isReelShelf,
   getFeedCardWidth,
   getFeedLayoutClass,
+  getFeedGridLayout,
   getFeedMetrics,
-  getReelGridMetrics,
+  getTVCardThumbnailWidth,
+  getTVCardWidthForVideoHeight,
   isReelGrid,
   isShelfItem,
 } from "../src/ui/patterns/feedLayout.ts";
@@ -423,22 +425,66 @@ test("recognizes a feed made only of shorts as a reel grid", () => {
   assert.equal(isReelGrid([reel("a"), shelf("s", [reel("b")])]), false);
 });
 
-test("TV reel grids use more, narrower columns so portrait cards fit", () => {
-  const tv = getFeedMetrics("tv");
-  const reels = getReelGridMetrics(tv);
+// Thumbnail height of a TV card, from its width and thumbnail aspect ratio.
+const tvThumbnailHeight = (cardWidth, aspectRatio) =>
+  getTVCardThumbnailWidth(cardWidth) / aspectRatio;
 
-  assert.ok(reels.columns > tv.columns);
+test("TV cards can match the height of a video card at any crop", () => {
+  for (const aspectRatio of [9 / 16, 1]) {
+    for (const videoWidth of [300, 420, 433.5, 600]) {
+      const width = getTVCardWidthForVideoHeight(videoWidth, aspectRatio);
+
+      assert.ok(
+        Math.abs(
+          tvThumbnailHeight(width, aspectRatio) -
+            tvThumbnailHeight(videoWidth, 16 / 9),
+        ) < 0.01,
+      );
+    }
+  }
+});
+
+test("TV shorts between videos are squared off at the video height", () => {
+  const tv = getFeedMetrics("tv");
+
+  assert.equal(tv.mixedReelAspectRatio, 1);
+  assert.equal(
+    tvThumbnailHeight(tv.mixedReelCardWidth, tv.mixedReelAspectRatio),
+    tvThumbnailHeight(tv.shelfCardWidth, 16 / 9),
+  );
+});
+
+test("TV shorts-only cards stay readable and fit below a channel's tabs", () => {
+  const tv = getFeedMetrics("tv");
+  const squaredWidth = tv.mixedReelCardWidth;
+
+  // Wider than a short squared off between videos, so the title has room.
+  assert.ok(tv.reelCardWidth >= squaredWidth);
+  // Portrait thumbnail plus the text block must stay well below the roughly
+  // 650 px left under an expanded channel hero and its tab bar.
+  assert.ok(tvThumbnailHeight(tv.reelCardWidth, 9 / 16) + 160 < 650);
+});
+
+test("TV reel grids fit as many shorts-only cards as the width allows", () => {
+  const tv = getFeedMetrics("tv");
   // A 1920 px wide TV feed with 60 px margins on both sides.
-  const width = getFeedCardWidth(1800, reels, 0);
-  // Portrait thumbnail plus the two-line text block must stay well below the
-  // roughly 650 px left under an expanded channel hero and its tab bar.
-  assert.ok((width * 16) / 9 + 120 < 650);
+  const videos = getFeedGridLayout("tv", 1800, tv, 0, false);
+  const reels = getFeedGridLayout("tv", 1800, tv, 0, true);
+
+  assert.equal(reels.cardWidth, tv.reelCardWidth);
+  assert.ok(reels.metrics.columns > videos.metrics.columns);
+  // The row never overflows, and no further card would have fit.
+  const rowWidth = (columns, width) => columns * width + (columns - 1) * tv.gap;
+  assert.ok(rowWidth(reels.metrics.columns, reels.cardWidth) <= 1800);
+  assert.ok(rowWidth(reels.metrics.columns + 1, reels.cardWidth) > 1800);
 });
 
 test("touch reel grids keep their regular column count", () => {
   for (const layout of ["compact", "medium", "expanded"]) {
     const metrics = getFeedMetrics(layout);
+    const grid = getFeedGridLayout(layout, 1000, metrics, 0, true);
 
-    assert.equal(getReelGridMetrics(metrics).columns, metrics.columns);
+    assert.equal(grid.metrics.columns, metrics.columns);
+    assert.equal(grid.cardWidth, getFeedCardWidth(1000, metrics, 0));
   }
 });
