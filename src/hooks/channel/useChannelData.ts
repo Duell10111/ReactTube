@@ -1,89 +1,76 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 
-import Logger from "../../utils/Logger";
-import {YT, Helpers, YTNodes} from "../../utils/Youtube";
+import {
+  createChannelFeedLoader,
+  type ChannelFeedState,
+} from "./channelFeedLoader";
 
+import type {TVChannelTab} from "@/components/channel/tv/channelModel";
 import {parseArrayHorizontalAndElement} from "@/extraction/ArrayExtraction";
+import type {FeedItem} from "@/ui/patterns/feedLayout";
+import {YT, YTNodes} from "@/utils/Youtube";
 
-const LOGGER = Logger.extend("CHANNEL");
-
-export type ChannelContentTypes =
-  | "Home"
-  | "Videos"
-  | "Playlists"
-  | "Reels"
-  | "Search";
-
-function getYTNodes(
-  data: YT.ChannelListContinuation | YT.Channel,
-  type: ChannelContentTypes,
-) {
-  if (type === "Home") {
-    const page = data.page_contents;
-    if (page.is(YTNodes.SectionList)) {
-      return page.contents;
-    }
-  } else if (type === "Videos") {
-    return data.videos;
-  } else if (type === "Reels") {
-    return data.videos;
-  } else if (type === "Playlists") {
-    return data.playlists;
-  }
-  LOGGER.debug("Unknown type to get YTNodes");
-  return [] as Helpers.YTNode[];
-}
-
-// TODO: Optimize
+export type ChannelContentTypes = Exclude<TVChannelTab, "About">;
 
 export default function useChannelData(
   channel: YT.Channel,
   type: ChannelContentTypes,
 ) {
-  const [data, setData] = useState<YT.Channel>();
-  const [nodes, setNodes] = useState<Helpers.YTNode[]>([]);
-  const ref = useRef<YT.ChannelListContinuation>(undefined);
-
-  const parsedData = useMemo(() => {
-    return parseArrayHorizontalAndElement(nodes);
-  }, [nodes]);
-
-  // const getNewestData = () => (data ? data : channel);
-
+  const [state, setState] = useState<ChannelFeedState<FeedItem>>({
+    items: [],
+    loading: true,
+  });
+  const loaderRef = useRef<
+    | ReturnType<
+        typeof createChannelFeedLoader<
+          YT.Channel | YT.ChannelListContinuation,
+          FeedItem
+        >
+      >
+    | undefined
+  >(undefined);
   useEffect(() => {
-    const updateData = (newData: YT.Channel) => {
-      setData(newData);
-      setNodes(getYTNodes(newData, type));
-    };
-
-    if (type === "Home") {
-      channel.getHome().then(updateData).catch(LOGGER.warn);
-    } else if (type === "Videos") {
-      channel.getVideos().then(updateData).catch(LOGGER.warn);
-    } else if (type === "Reels") {
-      channel.getShorts().then(updateData).catch(LOGGER.warn);
-    } else if (type === "Playlists") {
-      channel.getPlaylists().then(updateData).catch(LOGGER.warn);
-    } else {
-      LOGGER.warn("Unsupported Channel Data: ", type);
-    }
-    ref.current = undefined;
+    const loader = createChannelFeedLoader<
+      YT.Channel | YT.ChannelListContinuation,
+      FeedItem
+    >({
+      firstPage: () => {
+        switch (type) {
+          case "Home":
+            return channel.getHome();
+          case "Videos":
+            return channel.getVideos();
+          case "Reels":
+            return channel.getShorts();
+          case "Live":
+            return channel.getLiveStreams();
+          case "Playlists":
+            return channel.getPlaylists();
+        }
+      },
+      nextPage: page =>
+        page.has_continuation
+          ? page.getContinuation()
+          : Promise.resolve(undefined),
+      extract: page => {
+        if (type === "Home") {
+          const content = page.page_contents;
+          if (content?.is(YTNodes.SectionList, YTNodes.RichGrid)) {
+            return parseArrayHorizontalAndElement(content.contents);
+          }
+        }
+        return parseArrayHorizontalAndElement(
+          type === "Playlists" ? page.playlists : page.videos,
+        );
+      },
+      onChange: setState,
+    });
+    loaderRef.current = loader;
+    loader.refresh();
+    return () => loader.dispose();
   }, [channel, type]);
 
-  const fetchMore = useCallback(async () => {
-    const newestData = ref.current ?? data;
-    if (newestData && newestData.has_continuation) {
-      const cData = await newestData.getContinuation();
-      ref.current = cData;
-      const newNodes = getYTNodes(cData, type);
-      setNodes([...nodes, ...newNodes]);
-    } else {
-      LOGGER.warn("No Continuation available");
-    }
-  }, [type, nodes, data]);
-
-  // LOGGER.debug("Data: ", JSON.stringify(data?.videos, null, 4));
-  LOGGER.debug("Continue: ", data?.has_continuation);
-
-  return {data, nodes, grid: type === "Home", parsedData, fetchMore};
+  const fetchMore = useCallback(() => loaderRef.current?.fetchMore(), []);
+  const refresh = useCallback(() => loaderRef.current?.refresh(), []);
+  return {...state, fetchMore, refresh};
 }

@@ -2,13 +2,14 @@ import {useCallback, useState} from "react";
 import {useWindowDimensions, type LayoutChangeEvent} from "react-native";
 
 import {
-  getFeedCardWidth,
   getFeedContentPadding,
+  getFeedGridLayout,
   getFeedLayoutClass,
   getFeedMetrics,
   getFeedRowPadding,
   splitFeedRowPadding,
   type FeedContentPadding,
+  type FeedEdgeInsets,
   type FeedMetrics,
   type FeedRowPadding,
 } from "./feedLayout";
@@ -42,18 +43,21 @@ export interface FeedGeometry {
  * That measured width also decides the column count, so a feed in a narrow
  * column lays itself out as the narrow feed it is.
  */
-export function useFeedGeometry(): FeedGeometry {
+export function useFeedGeometry(
+  insetsOverride?: FeedEdgeInsets,
+  reelGrid = false,
+): FeedGeometry {
   const {layout, railWidth, insets, contentInsets} = useAppChrome();
   const {width: windowWidth} = useWindowDimensions();
   const [measuredWidth, setMeasuredWidth] = useState(() =>
     Math.max(0, windowWidth - railWidth - insets.left - insets.right),
   );
   const feedLayout = getFeedLayoutClass(measuredWidth, layout);
-  const metrics = getFeedMetrics(feedLayout);
+  const baseMetrics = getFeedMetrics(feedLayout);
   const contentPadding = getFeedContentPadding(
     feedLayout,
-    metrics,
-    contentInsets,
+    baseMetrics,
+    insetsOverride ?? contentInsets,
   );
   const {leadingInset, rowPadding} = splitFeedRowPadding(
     feedLayout,
@@ -66,18 +70,22 @@ export function useFeedGeometry(): FeedGeometry {
     setMeasuredWidth(previous => (previous === width ? previous : width));
   }, []);
 
+  const {metrics, cardWidth} = getFeedGridLayout(
+    feedLayout,
+    measuredWidth,
+    baseMetrics,
+    // The list reports its width from inside the leading margin, so on TV
+    // that margin is already gone by the time the cards are measured.
+    Math.max(
+      0,
+      contentPadding.paddingStart + contentPadding.paddingEnd - leadingInset,
+    ),
+    reelGrid,
+  );
+
   return {
     metrics,
-    cardWidth: getFeedCardWidth(
-      measuredWidth,
-      metrics,
-      // The list reports its width from inside the leading margin, so on TV
-      // that margin is already gone by the time the cards are measured.
-      Math.max(
-        0,
-        contentPadding.paddingStart + contentPadding.paddingEnd - leadingInset,
-      ),
-    ),
+    cardWidth,
     contentPadding,
     rowPadding,
     leadingInset,

@@ -15,7 +15,13 @@ import {
   FeedSkeleton,
 } from "./FeedRows";
 import {Shelf} from "./Shelf";
-import {buildFeedRows, type FeedItem, type FeedRow} from "./feedLayout";
+import {
+  buildFeedRows,
+  isReelGrid,
+  type FeedEdgeInsets,
+  type FeedItem,
+  type FeedRow,
+} from "./feedLayout";
 import {useFeedGeometry} from "./useFeedGeometry";
 import {useFeedPagination} from "./useFeedPagination";
 
@@ -42,6 +48,8 @@ export interface MediaFeedProps {
   emptyActionLabel?: string;
   onEmptyAction?: () => void;
   testID?: string;
+  /** Full-screen TV routes supply overscan insets without the navigation rail. */
+  contentInsets?: FeedEdgeInsets;
 }
 
 /**
@@ -64,6 +72,7 @@ export function MediaFeed({
   emptyActionLabel,
   onEmptyAction,
   testID,
+  contentInsets,
 }: MediaFeedProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
@@ -72,6 +81,7 @@ export function MediaFeed({
   // ending at the margin with a dead band beside it — except for the leading
   // margin on TV, which stays outside the focus region so that a Left press
   // out of the feed reaches the navigation rail.
+  const reelGrid = useMemo(() => isReelGrid(items), [items]);
   const {
     metrics,
     cardWidth,
@@ -80,7 +90,7 @@ export function MediaFeed({
     leadingInset,
     performance,
     onLayout,
-  } = useFeedGeometry();
+  } = useFeedGeometry(contentInsets, reelGrid);
   const {loadingMore, handleEndReached} = useFeedPagination(
     onEndReached,
     items.length > 0,

@@ -185,6 +185,7 @@ export const de = {
   "media.badge.downloaded": "Heruntergeladen",
   "media.badge.4k": "4K",
   "media.badge.8k": "8K",
+  "media.badge.shorts": "Shorts",
   "media.progress": "{percent}% angesehen",
   "media.hint.video": "Öffnet das Video",
   "media.hint.playlist": "Öffnet die Playlist",
@@ -202,6 +203,18 @@ export const de = {
   "history.empty.message":
     "Angesehene Videos erscheinen hier, sobald der Verlauf aktiviert ist.",
   "history.title": "Verlauf",
+  "channel.title": "Kanal",
+  "channel.tab.live": "Live",
+  "channel.moreAbout": "Über diesen Kanal",
+  "channel.aboutTitle": "Über {channel}",
+  "channel.noDescription": "Dieser Kanal hat keine Beschreibung.",
+  "channel.empty.title": "Noch keine Inhalte",
+  "channel.empty.message":
+    "Dieser Kanal hat hier noch keine Inhalte. Wähle einen anderen Tab.",
+  "channel.loadMoreError": "Weitere Inhalte konnten nicht geladen werden.",
+  "channel.signInToSubscribe": "Zum Abonnieren anmelden",
+  "channel.subscriptionError":
+    "Das Abo konnte nicht aktualisiert werden. Bitte versuche es erneut.",
   "channel.tab.home": "Start",
   "channel.tab.videos": "Videos",
   "channel.tab.shorts": "Shorts",

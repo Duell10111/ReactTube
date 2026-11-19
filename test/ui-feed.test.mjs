@@ -11,7 +11,11 @@ import {
   isReelShelf,
   getFeedCardWidth,
   getFeedLayoutClass,
+  getFeedGridLayout,
   getFeedMetrics,
+  getTVCardThumbnailWidth,
+  getTVCardWidthForVideoHeight,
+  isReelGrid,
   isShelfItem,
 } from "../src/ui/patterns/feedLayout.ts";
 import {createMediaCardViewModel} from "../src/ui/patterns/mediaCardModel.ts";
@@ -62,6 +66,26 @@ test("builds the metadata line from author, views, and publish date", () => {
   assert.equal(model.metadataLine, "A channel · 1.2M views · 2 days ago");
   assert.equal(model.shape, "wide");
   assert.equal(model.aspectRatio, 16 / 9);
+});
+
+test("marks a short cropped out of its portrait shape with a badge", () => {
+  const short = video({type: "reel"});
+  const cropped = createMediaCardViewModel(short, {
+    translate: t,
+    thumbnailAspectRatio: 16 / 9,
+  });
+  const portrait = createMediaCardViewModel(short, {translate: t});
+  const croppedVideo = createMediaCardViewModel(video(), {
+    translate: t,
+    thumbnailAspectRatio: 1,
+  });
+
+  assert.equal(cropped.aspectRatio, 16 / 9);
+  assert.equal(cropped.badges[0]?.id, "shorts");
+  assert.equal(cropped.badges[0]?.label, "Shorts");
+  assert.ok(cropped.accessibilityLabel.includes("Shorts"));
+  assert.ok(!portrait.badges.some(badge => badge.id === "shorts"));
+  assert.ok(!croppedVideo.badges.some(badge => badge.id === "shorts"));
 });
 
 test("falls back to the precomposed subtitle when no metadata parts exist", () => {
@@ -410,4 +434,75 @@ test("keeps card row keys unique when the same entry repeats", () => {
   const rows = buildFeedRows([video({id: "a"}), video({id: "a"})], 1);
 
   assert.equal(new Set(rows.map(row => row.key)).size, 2);
+});
+
+test("recognizes a feed made only of shorts as a reel grid", () => {
+  const reel = id => video({id, type: "reel"});
+
+  assert.equal(isReelGrid([reel("a"), reel("b")]), true);
+  assert.equal(isReelGrid([]), false);
+  assert.equal(isReelGrid([reel("a"), video({id: "b"})]), false);
+  assert.equal(isReelGrid([reel("a"), shelf("s", [reel("b")])]), false);
+});
+
+// Thumbnail height of a TV card, from its width and thumbnail aspect ratio.
+const tvThumbnailHeight = (cardWidth, aspectRatio) =>
+  getTVCardThumbnailWidth(cardWidth) / aspectRatio;
+
+test("TV cards can match the height of a video card at any crop", () => {
+  for (const aspectRatio of [9 / 16, 1]) {
+    for (const videoWidth of [300, 420, 433.5, 600]) {
+      const width = getTVCardWidthForVideoHeight(videoWidth, aspectRatio);
+
+      assert.ok(
+        Math.abs(
+          tvThumbnailHeight(width, aspectRatio) -
+            tvThumbnailHeight(videoWidth, 16 / 9),
+        ) < 0.01,
+      );
+    }
+  }
+});
+
+test("TV shorts between videos take the shape of a video card", () => {
+  const tv = getFeedMetrics("tv");
+
+  assert.equal(tv.mixedReelAspectRatio, 16 / 9);
+  assert.ok(Math.abs(tv.mixedReelCardWidth - tv.shelfCardWidth) < 1);
+  assert.equal(
+    tvThumbnailHeight(tv.mixedReelCardWidth, tv.mixedReelAspectRatio),
+    tvThumbnailHeight(tv.shelfCardWidth, 16 / 9),
+  );
+});
+
+test("TV shorts-only cards stay readable and fit below a channel's tabs", () => {
+  const tv = getFeedMetrics("tv");
+
+  // Portrait thumbnail plus the text block must stay well below the roughly
+  // 650 px left under an expanded channel hero and its tab bar.
+  assert.ok(tvThumbnailHeight(tv.reelCardWidth, 9 / 16) + 160 < 650);
+});
+
+test("TV reel grids fit as many shorts-only cards as the width allows", () => {
+  const tv = getFeedMetrics("tv");
+  // A 1920 px wide TV feed with 60 px margins on both sides.
+  const videos = getFeedGridLayout("tv", 1800, tv, 0, false);
+  const reels = getFeedGridLayout("tv", 1800, tv, 0, true);
+
+  assert.equal(reels.cardWidth, tv.reelCardWidth);
+  assert.ok(reels.metrics.columns > videos.metrics.columns);
+  // The row never overflows, and no further card would have fit.
+  const rowWidth = (columns, width) => columns * width + (columns - 1) * tv.gap;
+  assert.ok(rowWidth(reels.metrics.columns, reels.cardWidth) <= 1800);
+  assert.ok(rowWidth(reels.metrics.columns + 1, reels.cardWidth) > 1800);
+});
+
+test("touch reel grids keep their regular column count", () => {
+  for (const layout of ["compact", "medium", "expanded"]) {
+    const metrics = getFeedMetrics(layout);
+    const grid = getFeedGridLayout(layout, 1000, metrics, 0, true);
+
+    assert.equal(grid.metrics.columns, metrics.columns);
+    assert.equal(grid.cardWidth, getFeedCardWidth(1000, metrics, 0));
+  }
 });

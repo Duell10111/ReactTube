@@ -18,7 +18,14 @@ export type MediaCardShape = "wide" | "portrait" | "circle";
 export type MediaCardBadgeTone = "neutral" | "live";
 
 export interface MediaCardBadge {
-  id: "duration" | "live" | "mix" | "videoCount" | "downloaded" | "resolution";
+  id:
+    | "duration"
+    | "live"
+    | "mix"
+    | "videoCount"
+    | "downloaded"
+    | "resolution"
+    | "shorts";
   label: string;
   tone: MediaCardBadgeTone;
   /** Material icon name, set where the badge is more readable with one. */
@@ -237,6 +244,12 @@ function getAccessibilityHint(
 
 interface MediaCardViewModelOptions {
   translate: Translate;
+  /**
+   * Crops the thumbnail to this aspect ratio instead of the shape's own. A
+   * short cropped out of its portrait shape gets a badge, because the shape no
+   * longer tells it apart from a video.
+   */
+  thumbnailAspectRatio?: number;
 }
 
 /**
@@ -245,12 +258,21 @@ interface MediaCardViewModelOptions {
  */
 export function createMediaCardViewModel(
   element: ElementData,
-  {translate}: MediaCardViewModelOptions,
+  {translate, thumbnailAspectRatio}: MediaCardViewModelOptions,
 ): MediaCardViewModel {
   const kind = getMediaCardKind(element);
   const shape = getMediaCardShape(kind);
+  const aspectRatio = thumbnailAspectRatio ?? mediaCardAspectRatio[shape];
   const metadata = getMetadata(element, translate);
   const badges = getBadges(element, translate);
+
+  if (kind === "reel" && aspectRatio !== mediaCardAspectRatio.portrait) {
+    badges.unshift({
+      id: "shorts",
+      label: translate("media.badge.shorts"),
+      tone: "neutral",
+    });
+  }
   const progress = getMediaCardProgress(element);
   const author =
     element.author ?? ("artists" in element ? element.artists?.[0] : undefined);
@@ -267,7 +289,7 @@ export function createMediaCardViewModel(
     id: element.id,
     kind,
     shape,
-    aspectRatio: mediaCardAspectRatio[shape],
+    aspectRatio,
     title: element.title,
     metadata,
     metadataLine: metadata.join(metadataSeparator),

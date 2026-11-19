@@ -1,4 +1,4 @@
-import React, {useCallback} from "react";
+import React, {useCallback, useMemo} from "react";
 import {FlatList, Platform, type ListRenderItem} from "react-native";
 
 import {MediaCard} from "./MediaCard";
@@ -39,10 +39,33 @@ export function MediaCardRow({
 }: MediaCardRowProps) {
   const {layout} = useAppChrome();
   const performance = getShelfListPerformance(layout);
+  const onlyReels = useMemo(
+    () => elements.length > 0 && elements.every(item => item.type === "reel"),
+    [elements],
+  );
 
   const renderItem = useCallback<ListRenderItem<ElementData>>(
-    ({item}) => <MediaCard element={item} width={metrics.shelfCardWidth} />,
-    [metrics.shelfCardWidth],
+    ({item}) =>
+      item.type !== "reel" ? (
+        <MediaCard element={item} width={metrics.shelfCardWidth} />
+      ) : onlyReels ? (
+        <MediaCard element={item} width={metrics.reelCardWidth} />
+      ) : (
+        // Between video cards a short takes their shape, cropped so its title
+        // keeps a readable width.
+        <MediaCard
+          element={item}
+          thumbnailAspectRatio={metrics.mixedReelAspectRatio}
+          width={metrics.mixedReelCardWidth}
+        />
+      ),
+    [
+      metrics.mixedReelAspectRatio,
+      metrics.mixedReelCardWidth,
+      metrics.reelCardWidth,
+      metrics.shelfCardWidth,
+      onlyReels,
+    ],
   );
 
   // The same element can appear twice in a row, so the index is part of the key.

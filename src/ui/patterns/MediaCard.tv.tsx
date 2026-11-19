@@ -39,6 +39,11 @@ export interface MediaCardProps {
   onFocusChange?: (focused: boolean) => void;
   /** The pressable itself, e.g. as a TV focus guide destination. */
   focusRef?: React.Ref<PressableInstance>;
+  /**
+   * Crops the thumbnail to this aspect ratio instead of the shape's own, e.g.
+   * a short cropped to the shape of the video cards around it on TV.
+   */
+  thumbnailAspectRatio?: number;
 }
 
 /**
@@ -62,6 +67,7 @@ function MediaCardTV({
   selectedLabel,
   onFocusChange,
   focusRef,
+  thumbnailAspectRatio,
 }: MediaCardProps) {
   const {theme, reduceMotion} = useAppTheme();
   const {t} = useTranslation();
@@ -71,8 +77,9 @@ function MediaCardTV({
   const [cardHeight, setCardHeight] = useState(0);
   const scale = useRef(new Animated.Value(1)).current;
   const model = useMemo(
-    () => createMediaCardViewModel(element, {translate: t}),
-    [element, t],
+    () =>
+      createMediaCardViewModel(element, {translate: t, thumbnailAspectRatio}),
+    [element, t, thumbnailAspectRatio],
   );
 
   // Two title lines plus one metadata line, reserved whether the entry fills
