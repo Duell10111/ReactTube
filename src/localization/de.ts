@@ -185,6 +185,7 @@ export const de = {
   "media.badge.downloaded": "Heruntergeladen",
   "media.badge.4k": "4K",
   "media.badge.8k": "8K",
+  "media.badge.shorts": "Shorts",
   "media.progress": "{percent}% angesehen",
   "media.hint.video": "Öffnet das Video",
   "media.hint.playlist": "Öffnet die Playlist",

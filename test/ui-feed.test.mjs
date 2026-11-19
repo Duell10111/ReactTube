@@ -68,6 +68,26 @@ test("builds the metadata line from author, views, and publish date", () => {
   assert.equal(model.aspectRatio, 16 / 9);
 });
 
+test("marks a short cropped out of its portrait shape with a badge", () => {
+  const short = video({type: "reel"});
+  const cropped = createMediaCardViewModel(short, {
+    translate: t,
+    thumbnailAspectRatio: 16 / 9,
+  });
+  const portrait = createMediaCardViewModel(short, {translate: t});
+  const croppedVideo = createMediaCardViewModel(video(), {
+    translate: t,
+    thumbnailAspectRatio: 1,
+  });
+
+  assert.equal(cropped.aspectRatio, 16 / 9);
+  assert.equal(cropped.badges[0]?.id, "shorts");
+  assert.equal(cropped.badges[0]?.label, "Shorts");
+  assert.ok(cropped.accessibilityLabel.includes("Shorts"));
+  assert.ok(!portrait.badges.some(badge => badge.id === "shorts"));
+  assert.ok(!croppedVideo.badges.some(badge => badge.id === "shorts"));
+});
+
 test("falls back to the precomposed subtitle when no metadata parts exist", () => {
   const model = createMediaCardViewModel(
     video({subtitle: "A channel · 1.2M views"}),
@@ -444,10 +464,11 @@ test("TV cards can match the height of a video card at any crop", () => {
   }
 });
 
-test("TV shorts between videos are squared off at the video height", () => {
+test("TV shorts between videos take the shape of a video card", () => {
   const tv = getFeedMetrics("tv");
 
-  assert.equal(tv.mixedReelAspectRatio, 1);
+  assert.equal(tv.mixedReelAspectRatio, 16 / 9);
+  assert.ok(Math.abs(tv.mixedReelCardWidth - tv.shelfCardWidth) < 1);
   assert.equal(
     tvThumbnailHeight(tv.mixedReelCardWidth, tv.mixedReelAspectRatio),
     tvThumbnailHeight(tv.shelfCardWidth, 16 / 9),
@@ -456,10 +477,7 @@ test("TV shorts between videos are squared off at the video height", () => {
 
 test("TV shorts-only cards stay readable and fit below a channel's tabs", () => {
   const tv = getFeedMetrics("tv");
-  const squaredWidth = tv.mixedReelCardWidth;
 
-  // Wider than a short squared off between videos, so the title has room.
-  assert.ok(tv.reelCardWidth >= squaredWidth);
   // Portrait thumbnail plus the text block must stay well below the roughly
   // 650 px left under an expanded channel hero and its tab bar.
   assert.ok(tvThumbnailHeight(tv.reelCardWidth, 9 / 16) + 160 < 650);

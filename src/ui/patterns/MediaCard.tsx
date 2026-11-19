@@ -41,7 +41,7 @@ export interface MediaCardProps {
   focusRef?: React.Ref<PressableInstance>;
   /**
    * Crops the thumbnail to this aspect ratio instead of the shape's own, e.g.
-   * a short squared off between video cards on TV.
+   * a short cropped to the shape of the video cards around it on TV.
    */
   thumbnailAspectRatio?: number;
 }
@@ -68,13 +68,11 @@ function MediaCardTouch({
   const {theme} = useAppTheme();
   const {t} = useTranslation();
   const defaultPress = useMediaCardPress(element);
-  const model = useMemo(() => {
-    const base = createMediaCardViewModel(element, {translate: t});
-
-    return thumbnailAspectRatio === undefined
-      ? base
-      : {...base, aspectRatio: thumbnailAspectRatio};
-  }, [element, t, thumbnailAspectRatio]);
+  const model = useMemo(
+    () =>
+      createMediaCardViewModel(element, {translate: t, thumbnailAspectRatio}),
+    [element, t, thumbnailAspectRatio],
+  );
   const centered = model.shape === "circle";
 
   return (

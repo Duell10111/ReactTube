@@ -50,7 +50,8 @@ export interface FeedMetrics {
   mixedReelCardWidth: number;
   /**
    * Thumbnail crop of a short between video cards. A full portrait thumbnail
-   * at the height of a video card left too little width for a readable title.
+   * at the height of a video card left too little width for a readable title,
+   * so on TV the short takes the shape of the video cards around it.
    */
   mixedReelAspectRatio?: number;
 }
@@ -231,8 +232,8 @@ const tvReelCardWidth = 260;
 
 const tvShelfCardWidth = 420;
 
-/** Squares a short off between video cards; see `mixedReelAspectRatio`. */
-const tvMixedReelAspectRatio = 1;
+/** Crops a short between video cards to their shape; see `mixedReelAspectRatio`. */
+const tvMixedReelAspectRatio = mediaCardAspectRatio.wide;
 
 export interface FeedGridLayout {
   metrics: FeedMetrics;

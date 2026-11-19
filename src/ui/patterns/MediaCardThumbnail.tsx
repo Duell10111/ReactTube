@@ -10,7 +10,12 @@ import {useTranslation} from "@/localization";
 import {AppText} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
 
-const leadingBadges: MediaCardBadge["id"][] = ["live", "mix", "downloaded"];
+const leadingBadges: MediaCardBadge["id"][] = [
+  "shorts",
+  "live",
+  "mix",
+  "downloaded",
+];
 
 /**
  * More pixels than this per point are not visible in a thumbnail, and every

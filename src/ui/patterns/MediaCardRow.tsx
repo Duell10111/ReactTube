@@ -51,8 +51,8 @@ export function MediaCardRow({
       ) : onlyReels ? (
         <MediaCard element={item} width={metrics.reelCardWidth} />
       ) : (
-        // Between video cards a short matches their height, cropped so its
-        // title keeps a readable width.
+        // Between video cards a short takes their shape, cropped so its title
+        // keeps a readable width.
         <MediaCard
           element={item}
           thumbnailAspectRatio={metrics.mixedReelAspectRatio}

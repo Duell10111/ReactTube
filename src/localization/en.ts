@@ -179,6 +179,7 @@ export const en = {
   "media.badge.downloaded": "Downloaded",
   "media.badge.4k": "4K",
   "media.badge.8k": "8K",
+  "media.badge.shorts": "Shorts",
   "media.progress": "{percent}% watched",
   "media.hint.video": "Opens the video",
   "media.hint.playlist": "Opens the playlist",
