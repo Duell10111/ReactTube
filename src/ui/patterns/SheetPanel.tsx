@@ -2,6 +2,8 @@ import BottomSheet from "@gorhom/bottom-sheet";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {StyleProp, StyleSheet, View, ViewStyle} from "react-native";
 
+import {sheetAccessibilityProps} from "./sheetAccessibility";
+
 import {useTranslation} from "@/localization";
 import {AppIconButton, AppText, Divider} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
@@ -87,6 +89,7 @@ export function SheetPanel({
       pointerEvents={open ? "box-none" : "none"}
       style={[StyleSheet.absoluteFill, containerStyle]}>
       <BottomSheet
+        {...sheetAccessibilityProps}
         // A rotation moves the sheet between the bottom and the side column.
         // Adapting the mounted sheet left it positioned for the old container,
         // off its touch area and impossible to close; a fresh one measures the
