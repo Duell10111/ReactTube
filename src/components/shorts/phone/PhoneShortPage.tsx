@@ -74,6 +74,7 @@ function PreparedShort({
     playbackAttemptKey,
     playbackFailureKey,
     reportProgress,
+    trackWatchProgress,
   } = useVideoDetails(initialEndpoint ?? videoId);
   const navigation = useNavigation<RootNavProp>();
   const {t} = useTranslation();
@@ -115,6 +116,7 @@ function PreparedShort({
           onProgress={data => {
             if (!active || !playing || paused) return;
             reportProgress(data.currentTime);
+            trackWatchProgress(data.currentTime);
           }}
           style={StyleSheet.absoluteFill}
           videoInfo={YTVideoInfo}
