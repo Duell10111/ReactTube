@@ -24,6 +24,7 @@ import {parsePlayerResolution} from "@/utils/PlayerResolution";
 import {Innertube, YT, YTNodes} from "@/utils/Youtube";
 import {poTokenForClient, poTokenMinter} from "@/utils/potoken/PoTokenProvider";
 import {needsSignedInPlayback} from "@/utils/signedInPlayback";
+import {hasPlaybackTracking} from "@/utils/watchHistory";
 
 const LOGGER = Logger.extend("PLAYBACK");
 
@@ -312,6 +313,30 @@ export async function resolveSignedInSource(
     canUseSabr: false,
     authenticated: true,
   };
+}
+
+/**
+ * Fetches a signed-in player response whose stats URLs record the video in the
+ * account's watch history (see `watchHistory.ts`). `TV_DOWNGRADED` is the
+ * client that accepts the TV token for `/player`; it answers `/next` with HTTP
+ * 400, so only `/player` is requested.
+ *
+ * Resolves to `undefined` when nobody is signed in — anonymous pings land in no
+ * history.
+ */
+export async function resolveWatchHistoryInfo(
+  signedInYoutube: Innertube | undefined,
+  target: string | YTNodes.NavigationEndpoint,
+): Promise<YT.VideoInfo | undefined> {
+  if (!signedInYoutube?.session.logged_in) return undefined;
+  const resolved = await signedInYoutube.getPlayableInfo(target, {
+    clients: PLAYBACK_CLIENTS_SIGNED_IN,
+    skip_auth: false,
+    player_only: true,
+    accept: hasPlaybackTracking,
+    accept_fallback: null,
+  });
+  return resolved.info;
 }
 
 /**

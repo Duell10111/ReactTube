@@ -80,6 +80,8 @@ export default function VideoDetailScreen({route, navigation}: Props) {
     playbackAttemptKey,
     playbackFailureKey,
     reportProgress,
+    trackWatchProgress,
+    trackWatchEnded,
   } = useVideoDetails(
     navEndpoint ?? videoId,
     undefined,
@@ -288,7 +290,11 @@ export default function VideoDetailScreen({route, navigation}: Props) {
           onClose={
             navigation.canGoBack() ? () => navigation.goBack() : undefined
           }
-          onProgress={data => reportProgress(data.currentTime)}
+          onProgress={data => {
+            reportProgress(data.currentTime);
+            trackWatchProgress(data.currentTime);
+          }}
+          onEnd={trackWatchEnded}
           upNext={upNext}
           autoplay={autoplay}
           onToggleAutoplay={() => updateSettings({autoplayEnabled: !autoplay})}
@@ -312,7 +318,10 @@ export default function VideoDetailScreen({route, navigation}: Props) {
           onPlaybackActive={onPlaybackActive}
           onPlaybackAdvanced={onPlaybackAdvanced}
           playbackAttemptKey={playbackAttemptKey}
-          onProgress={data => reportProgress(data.currentTime)}
+          onProgress={data => {
+            reportProgress(data.currentTime);
+            trackWatchProgress(data.currentTime);
+          }}
           style={styles.player}
         />
       ) : (

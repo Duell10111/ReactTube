@@ -53,6 +53,7 @@ import {
 import {
   playbackModeFromSettings,
   resolveStreamingSource,
+  resolveWatchHistoryInfo,
   type PlaybackMode,
   type StreamingSource,
 } from "@/utils/PlaybackSource";
@@ -70,6 +71,10 @@ import {
   getContentPoToken,
   poTokenMinter,
 } from "@/utils/potoken/PoTokenProvider";
+import {
+  createWatchHistoryReporter,
+  createWatchProgressTracker,
+} from "@/utils/watchHistory";
 
 const LOGGER = Logger.extend("VIDEO");
 
@@ -946,16 +951,45 @@ export default function useVideoDetails(
     [applyRating, tvYoutube],
   );
 
+  // Neither the anonymous streams nor `tv.getInfo` carry tracking URLs bound to
+  // the account, so the reporter fetches its own signed-in player response.
+  const reportWatchHistory = useMemo(
+    () =>
+      createWatchHistoryReporter(() =>
+        resolveWatchHistoryInfo(tvYoutube, videoId),
+      ),
+    [tvYoutube, videoId],
+  );
+
   const addToWatchHistory = useCallback(
     async (seconds?: number) => {
-      if (seconds && videoInfo?.originalData?.updateWatchTime) {
-        await videoInfo?.originalData.updateWatchTime(seconds);
-      } else {
-        videoInfo?.originalData?.addToWatchHistory();
-      }
+      const sent = await reportWatchHistory(seconds);
+      if (!sent) LOGGER.debug("Watch history skipped: not signed in");
     },
-    [actionData],
+    [reportWatchHistory],
   );
+
+  // A fresh tracker per video, since `addToWatchHistory` changes with it.
+  const watchProgress = useMemo(
+    () => createWatchProgressTracker(addToWatchHistory),
+    [addToWatchHistory],
+  );
+  const trackingEnabled = !!appSettings.trackingEnabled;
+
+  /** Reports player progress to the account's watch history. */
+  const trackWatchProgress = useCallback(
+    (currentTime: number) => {
+      if (!trackingEnabled) return;
+      watchProgress.progress(currentTime)?.catch(LOGGER.warn);
+    },
+    [trackingEnabled, watchProgress],
+  );
+
+  /** Reports the finished video to the account's watch history. */
+  const trackWatchEnded = useCallback(() => {
+    if (!trackingEnabled) return;
+    watchProgress.ended(videoInfo?.durationSeconds)?.catch(LOGGER.warn);
+  }, [trackingEnabled, watchProgress, videoInfo?.durationSeconds]);
 
   return {
     YTVideoInfo: videoInfo,
@@ -995,6 +1029,8 @@ export default function useVideoDetails(
     dislike,
     removeRating,
     addToWatchHistory,
+    trackWatchProgress,
+    trackWatchEnded,
     refresh: (continueAtSeconds?: number) => {
       positionRef.current = continueAtSeconds ?? positionRef.current;
       setStartTime(playbackStartAt(positionRef.current));
