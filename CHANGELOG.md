@@ -17,6 +17,30 @@
 * create LICENSE ([329576f](https://github.com/Duell10111/ReactTube/commit/329576fd7f60aca592a588d4558488bf7fa58f97))
 * update release upload step to run on tag refs ([c1be27d](https://github.com/Duell10111/ReactTube/commit/c1be27d6129a51d9e2c5384e3894ba3dba7a65a3))
 
+## [0.6.0](https://github.com/Duell10111/ReactTube/compare/v0.5.0...v0.6.0) (2026-11-21)
+
+
+### ✨ Features
+
+* **subscriptions:** list subscribed channels above the feed ([#101](https://github.com/Duell10111/ReactTube/issues/101)) ([741686d](https://github.com/Duell10111/ReactTube/commit/741686d07b3fe495e2e8ef4fe3ff862011221407))
+* **tv:** redesign channel browsing with a collapsible hero and focused navigation ([#102](https://github.com/Duell10111/ReactTube/issues/102)) ([7ec214a](https://github.com/Duell10111/ReactTube/commit/7ec214a01edc8d6f6489fa2fbef1af14222663e7))
+
+
+### 🐛 Bugfixes
+
+* **history:** record watched videos in the account history again ([#103](https://github.com/Duell10111/ReactTube/issues/103)) ([9909a88](https://github.com/Duell10111/ReactTube/commit/9909a88c4675a5139b96380cac2f3e9286dfacc5))
+* **phone:** make rotation to full screen more reliable ([#99](https://github.com/Duell10111/ReactTube/issues/99)) ([4a8c2bf](https://github.com/Duell10111/ReactTube/commit/4a8c2bfe3ba52a0325deec439a02e74a514df14b))
+
+
+### ⚡️ Performance
+
+* **shorts:** improve phone and tablet reel paging ([#98](https://github.com/Duell10111/ReactTube/issues/98)) ([e835bc6](https://github.com/Duell10111/ReactTube/commit/e835bc66af0123daf148eb279ee2ce618cc07e70))
+
+
+### ⬆️ Upgrade
+
+* upgrade to expo sdk 58 ([#95](https://github.com/Duell10111/ReactTube/issues/95)) ([b4d5321](https://github.com/Duell10111/ReactTube/commit/b4d5321792751a51c540d2bcd2c8f8a5df0830bd))
+
 ## [0.5.0](https://github.com/Duell10111/ReactTube/compare/v0.4.1...v0.5.0) (2026-11-01)
 
 
