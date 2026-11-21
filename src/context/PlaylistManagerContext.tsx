@@ -19,6 +19,7 @@ import {PlaylistManagerList} from "@/components/playlists/PlaylistManagerList";
 import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
 import {useTranslation} from "@/localization";
 import {AppText} from "@/ui/components";
+import {sheetAccessibilityProps} from "@/ui/patterns/sheetAccessibility";
 import {useAppTheme} from "@/ui/theme";
 import Logger from "@/utils/Logger";
 import {showMessage} from "@/utils/ShowFlashMessageHelper";
@@ -66,6 +67,7 @@ export function PlaylistManagerContext({
     props => (
       <BottomSheetFooter {...props} bottomInset={24}>
         <Pressable
+          accessibilityRole={"button"}
           style={[
             styles.footerContainer,
             {
@@ -89,6 +91,7 @@ export function PlaylistManagerContext({
         <>
           {children}
           <BottomSheetModal
+            {...sheetAccessibilityProps}
             // @ts-ignore
             ref={bottomSheetModalRef}
             index={0}

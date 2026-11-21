@@ -1,23 +1,17 @@
 import {useNavigation} from "@react-navigation/native";
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {Image} from "expo-image";
-import _ from "lodash";
-import React, {useMemo} from "react";
+import React from "react";
 import {StyleSheet, View} from "react-native";
-
-import Logger from "../../utils/Logger";
 
 import {VideoMenuContainer} from "@/components/general/VideoMenuContainer";
 import {ElementData} from "@/extraction/Types";
-import useElementData from "@/hooks/general/useElementData";
-import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
+import useVideoMenuActions from "@/hooks/general/useVideoMenuActions";
 import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
 import {NativeStackProp} from "@/navigation/types";
 import {AppListItem, AppText} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
-
-const LOGGER = Logger.extend("VIDEOMENU");
 
 export function VideoMenuScreen({
   route,
@@ -31,41 +25,9 @@ export function VideoMenuScreen({
 
 function VideoMenuContent({data: orgData}: {data: ElementData}) {
   const navigation = useNavigation<NativeStackProp>();
-  const data = useElementData(orgData);
-  const {executeNavEndpoint} = usePlaylistManager();
+  const {data, entries, channelId, runEntry} = useVideoMenuActions(orgData);
   const {t} = useTranslation();
   const {theme} = useAppTheme();
-
-  const contextMenu = useMemo(() => {
-    return "contextMenu" in data && data.contextMenu
-      ? _.chain(data.contextMenu)
-          .filter(
-            c =>
-              c.type !== "browse" &&
-              c.type !== "watch" &&
-              c.type !== "channel" &&
-              c.type !== "feedback",
-          )
-          .value()
-      : [];
-  }, [data]);
-
-  const channelID = useMemo(() => {
-    const contextMenuChannelId =
-      "contextMenu" in data
-        ? data.contextMenu?.find(c => c.type === "channel")?.navEndpoint
-            ?.payload.browseId
-        : undefined;
-    if (contextMenuChannelId) {
-      return contextMenuChannelId;
-    }
-
-    return data.type === "video" || data.type === "reel"
-      ? data?.author?.id
-      : data.type === "channel"
-        ? data.id
-        : null;
-  }, [data]);
 
   return (
     <>
@@ -80,36 +42,25 @@ function VideoMenuContent({data: orgData}: {data: ElementData}) {
         <AppText variant={"titleMedium"}>{data?.title}</AppText>
         <AppText color={"textSecondary"}>{data?.author?.name}</AppText>
       </View>
-      {channelID ? (
+      {channelId ? (
         <VideoMenuItem
           title={t("menu.channel")}
           onPress={() => {
-            navigation.replace("ChannelScreen", {
-              channelId: channelID,
-            });
+            navigation.replace("ChannelScreen", {channelId});
           }}
         />
       ) : null}
-      {contextMenu.map((menu, index) => (
+      {entries.map((menu, index) => (
         <VideoMenuItem
           key={menu.text + index}
           title={menu.text}
-          onPress={() => {
-            if (menu.navEndpoint && menu.type !== "addToPlaylist") {
-              executeNavEndpoint(menu.navEndpoint)
-                .then(() => {
-                  LOGGER.debug("Executed nav endpoint for menu", menu.type);
-                  navigation.goBack();
-                })
-                .catch(LOGGER.warn);
-            } else if (menu.type === "addToPlaylist") {
-              navigation.replace("PlaylistManagerContextMenu", {
-                videoId: data.id,
-              });
-            } else {
-              LOGGER.warn("No supported type");
-            }
-          }}
+          onPress={() =>
+            runEntry(menu, {
+              onDone: () => navigation.goBack(),
+              onAddToPlaylist: videoId =>
+                navigation.replace("PlaylistManagerContextMenu", {videoId}),
+            })
+          }
         />
       ))}
     </>

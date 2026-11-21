@@ -1,3 +1,4 @@
+import {useNavigation} from "@react-navigation/native";
 import {Image} from "expo-image";
 import React, {useMemo} from "react";
 import {
@@ -12,11 +13,14 @@ import {
 
 import {MediaCardThumbnail} from "./MediaCardThumbnail";
 import {createMediaCardViewModel} from "./mediaCardModel";
+import {resolveMediaCardAuthorRoute} from "./mediaCardRouting";
 import {resolveThumbnailUrl} from "./thumbnailSource";
 import {useMediaCardPress} from "./useMediaCardPress";
 
+import {useVideoMenu} from "@/context/VideoMenuContext";
 import type {ElementData} from "@/extraction/Types";
 import {useTranslation} from "@/localization";
+import type {NativeStackProp} from "@/navigation/types";
 import {AppIconButton, AppText} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
 
@@ -24,8 +28,12 @@ export interface MediaCardProps {
   element: ElementData;
   width?: DimensionValue;
   onPress?: () => void;
+  /** Opens the video menu by default, like the overflow action. */
   onLongPress?: () => void;
-  /** Renders the overflow action. Left out while a surface has no menu yet. */
+  /**
+   * Renders the overflow action. Videos and shorts open the video menu by
+   * default; other elements show the action only when this is passed.
+   */
   onOverflow?: () => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -47,6 +55,8 @@ export interface MediaCardProps {
 }
 
 const avatarSize = 36;
+// Widens the small avatar to a comfortable touch target.
+const avatarHitSlop = 6;
 
 /**
  * Touch media card for phone and tablet. Borderless by design: the thumbnail
@@ -74,6 +84,28 @@ function MediaCardTouch({
     [element, t, thumbnailAspectRatio],
   );
   const centered = model.shape === "circle";
+  const navigation = useNavigation<NativeStackProp>();
+  const {open: openVideoMenu} = useVideoMenu();
+  const authorRoute = useMemo(
+    () => resolveMediaCardAuthorRoute(element),
+    [element],
+  );
+  const defaultMenu =
+    openVideoMenu && (element.type === "video" || element.type === "reel")
+      ? () => openVideoMenu(element)
+      : undefined;
+  const overflow = onOverflow ?? defaultMenu;
+  const avatar =
+    model.author?.thumbnailUrl && !centered ? (
+      <Image
+        accessibilityIgnoresInvertColors
+        contentFit={"cover"}
+        source={{
+          uri: resolveThumbnailUrl(model.author.thumbnailUrl, avatarSize),
+        }}
+        style={[styles.avatar, {backgroundColor: theme.colors.surfaceRaised}]}
+      />
+    ) : null;
 
   return (
     <Pressable
@@ -85,7 +117,7 @@ function MediaCardTouch({
       }
       accessibilityRole={"button"}
       accessibilityState={selected ? {selected} : undefined}
-      onLongPress={onLongPress}
+      onLongPress={onLongPress ?? defaultMenu}
       onPress={onPress ?? defaultPress}
       style={({pressed}) => [
         styles.container,
@@ -110,19 +142,25 @@ function MediaCardTouch({
           },
           centered && styles.metadataCentered,
         ]}>
-        {model.author?.thumbnailUrl && !centered ? (
-          <Image
-            accessibilityIgnoresInvertColors
-            contentFit={"cover"}
-            source={{
-              uri: resolveThumbnailUrl(model.author.thumbnailUrl, avatarSize),
+        {avatar && authorRoute ? (
+          <Pressable
+            accessibilityHint={t("media.hint.channel")}
+            accessibilityLabel={model.author?.name}
+            accessibilityRole={"button"}
+            hitSlop={avatarHitSlop}
+            onPress={() => {
+              if (authorRoute.routeName === "MusicChannelScreen") {
+                navigation.navigate(authorRoute.routeName, authorRoute.params);
+              } else {
+                navigation.navigate(authorRoute.routeName, authorRoute.params);
+              }
             }}
-            style={[
-              styles.avatar,
-              {backgroundColor: theme.colors.surfaceRaised},
-            ]}
-          />
-        ) : null}
+            testID={"media-card-author"}>
+            {avatar}
+          </Pressable>
+        ) : (
+          avatar
+        )}
         <View style={styles.metadataText}>
           <AppText
             align={centered ? "center" : undefined}
@@ -138,11 +176,12 @@ function MediaCardTouch({
             </AppText>
           ) : null}
         </View>
-        {onOverflow ? (
+        {overflow ? (
           <AppIconButton
             accessibilityLabel={t("media.moreOptions")}
             icon={"more-vert"}
-            onPress={onOverflow}
+            onPress={overflow}
+            testID={"media-card-overflow"}
           />
         ) : null}
       </View>

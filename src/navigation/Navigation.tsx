@@ -5,6 +5,7 @@ import RootStackNavigator from "./RootStackNavigator";
 import {navigationRef} from "./navigationRef";
 
 import {PlaylistManagerContext} from "@/context/PlaylistManagerContext";
+import {VideoMenuProvider} from "@/context/VideoMenuContext";
 import {navigationTheme} from "@/ui/theme";
 
 export default function Navigation() {
@@ -14,10 +15,13 @@ export default function Navigation() {
        * Inside the container on purpose: the manager renders its bottom sheet
        * next to the navigator, and the playlist rows in it are media rows that
        * navigate. Above the container they had no navigation object and saving
-       * a video crashed.
+       * a video crashed. The video menu sits inside it for the same reason and
+       * because it opens the manager's playlist picker.
        */}
       <PlaylistManagerContext>
-        <RootStackNavigator />
+        <VideoMenuProvider>
+          <RootStackNavigator />
+        </VideoMenuProvider>
       </PlaylistManagerContext>
     </NavigationContainer>
   );
