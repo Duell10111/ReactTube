@@ -112,6 +112,27 @@ for UI translations. When adding UI localization:
   localization layer exists. Until that layer is introduced, group new visible
   copy so it can be migrated centrally rather than scattering it through logic.
 
+## Simulator testing with AXe
+
+[AXe](https://github.com/cameroncooke/AXe) (`brew install cameroncooke/axe/axe`)
+drives iOS, tvOS, and watchOS simulators from the command line. Use it to verify
+new features in the running app instead of relying on type checks alone. It only
+works with simulators, not physical devices.
+
+- Find the simulator UDID with `axe list-simulators`; capture results with
+  `xcrun simctl io <udid> screenshot <file>.png`.
+- Inspect the screen with `axe describe-ui --udid <udid>` (accessibility tree
+  with labels and frames). It does not reliably show which element has TV focus,
+  so confirm focus with screenshots.
+- Phone and watch: use `axe tap` (by coordinates or accessibility label),
+  `axe swipe`, `axe type`, and `axe button`.
+- TV: touch gestures do not move focus. Simulate the remote with HID key codes:
+  `axe key 82|81|80|79 --udid <udid>` for up/down/left/right, `axe key 40` for
+  select, and `axe key-sequence` for a fixed navigation path. `axe button home`
+  returns to the home screen.
+- Give interactive elements meaningful accessibility labels so AXe can target
+  them and `describe-ui` output stays readable.
+
 ## Formatting and quality gates
 
 The repository's ESLint and Prettier configurations are authoritative. Do not

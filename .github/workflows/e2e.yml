@@ -1,0 +1,172 @@
+name: E2E
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch:
+    inputs:
+      include-playback:
+        description: Also run flows tagged "playback" (YouTube often bot-checks runner IPs)
+        type: boolean
+        default: false
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MAESTRO_VERSION: "1.41.0"
+  # Playback depends on YouTube accepting the runner IP, so PR runs only cover
+  # the smoke flows unless a manual run opts in.
+  MAESTRO_EXCLUDE_TAGS: ${{ inputs.include-playback && 'none' || 'playback' }}
+
+jobs:
+  android:
+    name: Android phone (emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Prebuild
+        uses: ./.github/actions/prebuild
+        with:
+          is-tv: "false"
+          platform: android
+
+      # The emulator is x86_64; building only that ABI roughly quarters the
+      # native compile time compared to the release workflow.
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --console=plain
+
+      - name: Install Maestro
+        uses: ./.github/actions/maestro
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Maestro flows
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          cores: 4
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          # The runner executes every script line on its own, so the logcat
+          # fallback has to stay on the same line as the Maestro call.
+          # A slow software-rendered emulator often shows "Pixel Launcher isn't
+          # responding" over the app, which hides every element from Maestro.
+          script: |
+            adb shell settings put global hide_error_dialogs 1
+            adb install -r "$(ls android/app/build/outputs/apk/release/*.apk | head -n 1)"
+            maestro test maestro/phone --exclude-tags "$MAESTRO_EXCLUDE_TAGS" --format junit --output build/maestro/report.xml --debug-output build/maestro/debug --flatten-debug-output || { adb logcat -d > build/maestro/logcat.txt; exit 1; }
+
+      - name: Upload Maestro results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-android
+          path: build/maestro
+          include-hidden-files: true
+          if-no-files-found: ignore
+
+  ios:
+    name: iOS phone (simulator)
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Prebuild
+        uses: ./.github/actions/prebuild
+        with:
+          is-tv: "false"
+          platform: ios
+          siri-enabled: "false"
+
+      # Release bundles the JS, so no Metro server is needed. The runners are
+      # Apple silicon, so arm64 is the only simulator slice required.
+      - name: Build simulator app
+        run: |
+          mkdir -p build
+          xcodebuild -workspace ios/reacttube.xcworkspace -scheme reacttube \
+            -configuration Release -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/ios ARCHS=arm64 CODE_SIGNING_ALLOWED=NO \
+            build > build/ios-build.log 2>&1 || {
+              grep -E "error:" build/ios-build.log | sort -u | head -50
+              exit 1
+            }
+
+      - name: Boot simulator
+        id: simulator
+        run: |
+          udid=$(xcrun simctl list devices available --json | python3 -c '
+          import json, sys
+          runtimes = json.load(sys.stdin)["devices"]
+          ios = sorted((r for r in runtimes if "iOS" in r), reverse=True)
+          for runtime in ios:
+              for device in runtimes[runtime]:
+                  if device["name"].startswith("iPhone"):
+                      print(device["udid"])
+                      sys.exit()
+          sys.exit("No iPhone simulator available")')
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      - name: Install app
+        run: xcrun simctl install "${{ steps.simulator.outputs.udid }}" build/ios/Build/Products/Release-iphonesimulator/reacttube.app
+
+      - name: Install Maestro
+        uses: ./.github/actions/maestro
+
+      - name: Run Maestro flows
+        run: |
+          maestro --device "${{ steps.simulator.outputs.udid }}" test maestro/phone \
+            --exclude-tags "$MAESTRO_EXCLUDE_TAGS" --format junit \
+            --output build/maestro/report.xml --debug-output build/maestro/debug \
+            --flatten-debug-output
+
+      - name: Collect crash reports
+        if: failure()
+        run: |
+          mkdir -p build/maestro/crashes
+          find ~/Library/Logs/DiagnosticReports -name "reacttube*" -exec cp {} build/maestro/crashes/ \; || true
+
+      - name: Upload Maestro results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-ios
+          path: |
+            build/maestro
+            build/ios-build.log
+          include-hidden-files: true
+          if-no-files-found: ignore

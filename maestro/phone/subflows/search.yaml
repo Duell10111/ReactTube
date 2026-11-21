@@ -1,0 +1,50 @@
+# Opens the search screen and submits ${QUERY}. Expects the home tab.
+appId: com.duell10111.reacttube
+---
+# The header button comes first; the native search field on the next screen
+# carries the same "Search" label.
+- tapOn:
+    text: "Search"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "search-feed"
+    timeout: 15000
+- waitForAnimationToEnd
+# A tap during the push transition can miss the field, so retry until the
+# query actually landed in it.
+- retry:
+    maxRetries: 3
+    commands:
+      # iOS shows the field directly; Android collapses it behind a header
+      # search button.
+      - runFlow:
+          when:
+            platform: iOS
+          commands:
+            - tapOn:
+                text: "Search"
+                index: 1
+      - runFlow:
+          when:
+            platform: Android
+          commands:
+            - tapOn:
+                id: ".*:id/search_button"
+                optional: true
+            - tapOn:
+                id: ".*:id/search_src_text"
+      - eraseText
+      - inputText: ${QUERY}
+      - assertVisible: ${QUERY}
+# Submitting with the Enter key works on iOS but not in the Android search
+# view, so pick the suggestion that equals the query on both platforms.
+- tapOn:
+    text: ${QUERY}
+    childOf:
+      id: "search-suggestions"
+# Wait for a result card; the query text alone also matches the search field.
+- extendedWaitUntil:
+    visible:
+      id: "media-card"
+    timeout: 30000

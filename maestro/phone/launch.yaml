@@ -1,0 +1,8 @@
+appId: com.duell10111.reacttube
+name: Launches to the home tab
+tags:
+  - smoke
+---
+- runFlow: subflows/launch.yaml
+- assertVisible: "ReactTube"
+- assertVisible: "You(, tab.*)?"

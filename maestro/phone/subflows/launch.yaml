@@ -1,0 +1,16 @@
+# Starts the app from a clean state and waits until the home screen is usable.
+appId: com.duell10111.reacttube
+---
+- launchApp:
+    clearState: true
+# iOS exposes tab buttons as "Home, tab, 1 of 5"; Android uses the plain title.
+# The tab bar already exists behind the splash screen, so also wait for the
+# header search button, which only renders once the home screen is up. The CI
+# emulator renders in software and can take well over a minute to get there.
+- extendedWaitUntil:
+    visible: "Home(, tab.*)?"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Search"
+    timeout: 120000
+- waitForAnimationToEnd
