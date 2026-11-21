@@ -1,13 +1,14 @@
 import {useNavigation} from "@react-navigation/native";
-import React from "react";
+import React, {useCallback} from "react";
 import {StyleSheet, View} from "react-native";
 
 import {useAccountContext} from "@/context/AccountContext";
+import type {SubscribedChannel} from "@/extraction/subscribedChannels";
 import useSubscriptions from "@/hooks/tv/useSubscriptions";
 import {useTranslation} from "@/localization";
 import type {RootNavProp} from "@/navigation/RootStackNavigator";
 import {EmptyState} from "@/ui/components";
-import {MediaFeed} from "@/ui/patterns";
+import {MediaFeed, SubscribedChannelRow} from "@/ui/patterns";
 
 export default function SubscriptionScreen() {
   const {loginData} = useAccountContext();
@@ -37,11 +38,41 @@ function SubscriptionSignInState() {
 }
 
 function SubscriptionFeed() {
-  const {data, fetchMore, refresh, refreshing, loading, error} =
-    useSubscriptions();
+  const navigation = useNavigation<RootNavProp>();
+  const {
+    data,
+    channels,
+    selectedChannel,
+    selectChannel,
+    fetchMore,
+    refresh,
+    refreshing,
+    loading,
+    error,
+  } = useSubscriptions();
+
+  const openChannel = useCallback(
+    (channel: SubscribedChannel) =>
+      navigation.navigate("ChannelScreen", {channelId: channel.id}),
+    [navigation],
+  );
+
+  const openAllChannels = useCallback(
+    () => navigation.navigate("SubscribedChannelsScreen", {channels}),
+    [channels, navigation],
+  );
 
   return (
     <MediaFeed
+      ListHeaderComponent={
+        <SubscribedChannelRow
+          channels={channels}
+          onOpenChannel={openChannel}
+          onSeeAll={openAllChannels}
+          onSelectChannel={selectChannel}
+          selectedChannel={selectedChannel}
+        />
+      }
       error={error}
       items={data}
       loading={loading}

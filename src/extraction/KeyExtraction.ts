@@ -28,13 +28,13 @@ export function extractKeyNode(node: Helpers.YTNode): string {
   } else if (node.is(YTNodes.ShortsLockupView)) {
     return node.entity_id;
   } else if (node.is(YTNodes.LockupView)) {
-    // `content_id` fehlt bei manchen Lockups — der TV-Client schickt in der
-    // Videobeschreibung eines ohne Id, das seine Playlist über die Metadaten
-    // benennt. Der Titel ist dort der einzige stabile Schlüssel; eine UUID wäre
-    // bei jedem Rendern neu und würde den Eintrag ständig neu aufbauen.
+    // Some lockups have no `content_id` — the TV client sends one without an id
+    // in the video description that names its playlist via the metadata. There
+    // the title is the only stable key; a UUID would change on every render and
+    // keep rebuilding the entry.
     return (
       node.content_id ??
-      node.metadata?.title.toString() ??
+      node.metadata?.title?.toString() ??
       `lockup-${node.content_type ?? "untyped"}`
     );
   } else if (

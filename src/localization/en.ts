@@ -108,6 +108,16 @@ export const en = {
   "subscriptions.signedOut.title": "Subscriptions need an account",
   "subscriptions.signedOut.message":
     "Sign in to follow channels and see their new videos here.",
+  "subscriptions.channels.title": "Channels",
+  "subscriptions.channels.all": "All channels",
+  "subscriptions.channels.viewChannel": "View channel",
+  "subscriptions.channels.showAll": "All",
+  "subscriptions.channels.newContent": "New videos",
+  "subscriptions.channels.others": "All subscriptions",
+  "subscriptions.channels.newContentLabel": "{channel}, new videos",
+  "subscriptions.channels.empty.title": "No subscriptions yet",
+  "subscriptions.channels.empty.message":
+    "Channels you subscribe to appear here.",
   "login.code": "Your code is {code}",
   "login.waiting.title": "Ready to sign in",
   "login.waiting.message": "Start sign-in to request a device code.",

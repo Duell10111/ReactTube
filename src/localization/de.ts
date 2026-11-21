@@ -111,6 +111,16 @@ export const de = {
   "subscriptions.signedOut.title": "Abos brauchen ein Konto",
   "subscriptions.signedOut.message":
     "Melde dich an, um Kanälen zu folgen und neue Videos hier zu sehen.",
+  "subscriptions.channels.title": "Kanäle",
+  "subscriptions.channels.all": "Alle Kanäle",
+  "subscriptions.channels.viewChannel": "Kanal ansehen",
+  "subscriptions.channels.showAll": "Alle",
+  "subscriptions.channels.newContent": "Neue Videos",
+  "subscriptions.channels.others": "Alle Abos",
+  "subscriptions.channels.newContentLabel": "{channel}, neue Videos",
+  "subscriptions.channels.empty.title": "Noch keine Abos",
+  "subscriptions.channels.empty.message":
+    "Kanäle, die du abonnierst, erscheinen hier.",
   "login.code": "Dein Code lautet {code}",
   "login.waiting.title": "Bereit zur Anmeldung",
   "login.waiting.message":

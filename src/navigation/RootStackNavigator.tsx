@@ -18,6 +18,7 @@ import {VideoPlayerSettings} from "@/components/video/videoPlayer/settings/Video
 import {VideoPlayerSpeed} from "@/components/video/videoPlayer/settings/VideoPlayerSpeed";
 import {VideoPlayerSubtitles} from "@/components/video/videoPlayer/settings/VideoPlayerSubtitles";
 import {ElementData} from "@/extraction/Types";
+import type {SubscribedChannel} from "@/extraction/subscribedChannels";
 import useAppInit from "@/hooks/general/useAppInit";
 import {useTranslation} from "@/localization";
 import ChannelScreen from "@/screens/ChannelScreen";
@@ -27,6 +28,7 @@ import LoadingScreen from "@/screens/LoadingScreen";
 import LoginScreen from "@/screens/LoginScreen";
 import PlaylistScreen from "@/screens/PlaylistScreen";
 import SearchScreen from "@/screens/SearchScreen";
+import SubscribedChannelsScreen from "@/screens/SubscribedChannelsScreen";
 import {ActiveDownloadScreen} from "@/screens/phone/ActiveDownloadScreen";
 import {MusicAlbumScreen} from "@/screens/phone/MusicAlbumScreen";
 import {MusicChannelScreen} from "@/screens/phone/MusicChannelScreen";
@@ -53,6 +55,7 @@ export type RootStackParamList = {
   PlaylistScreen: {playlistId: string};
   Search: {initialQuery?: string} | undefined;
   SubscriptionScreen: undefined;
+  SubscribedChannelsScreen: {channels: SubscribedChannel[]};
   History: undefined;
   LibraryScreen: undefined;
   SettingsScreen: NavigatorScreenParams<SettingsStackParamList> | undefined;
@@ -116,6 +119,11 @@ export default function RootStackNavigator() {
             name={"ChannelScreen"}
             component={ChannelScreen}
             options={{title: t("navigation.channel")}}
+          />
+          <Stack.Screen
+            name={"SubscribedChannelsScreen"}
+            component={SubscribedChannelsScreen}
+            options={{title: t("subscriptions.channels.all")}}
           />
           <Stack.Screen
             name={"PlaylistScreen"}
