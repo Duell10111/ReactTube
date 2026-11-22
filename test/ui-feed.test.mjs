@@ -132,7 +132,7 @@ test("adds mix and download badges next to the duration", () => {
 test("shows the mix badge for playlist lockups in both languages", () => {
   const mix = video({
     originalNode: {type: "LockupView"},
-    type: getLockupPlaylistType({command: {type: "WatchEndpoint"}}),
+    type: getLockupPlaylistType("RDvideo-1"),
     id: "RDvideo-1",
   });
 
@@ -242,6 +242,18 @@ test("localizes the playlist video count in both languages", () => {
     ["24 videos"],
   );
   assert.equal(english.accessibilityHint, "Opens the playlist");
+
+  const single = {...playlist, videoCount: "1"};
+  assert.deepEqual(createMediaCardViewModel(single, {translate: t}).metadata, [
+    "A channel",
+    "1 video",
+  ]);
+  assert.deepEqual(
+    createMediaCardViewModel(single, {translate: tDe}).badges.map(
+      badge => badge.label,
+    ),
+    ["1 Video"],
+  );
 });
 
 test("announces title, metadata, state, and progress but not the duration", () => {

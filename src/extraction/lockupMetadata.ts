@@ -18,11 +18,24 @@ export function isDurationLabel(text?: string): boolean {
   return Boolean(text && durationPattern.test(text));
 }
 
-/** Mix lockups start playback directly instead of opening a playlist page. */
-export function getLockupPlaylistType(endpoint?: {
-  command?: {type: string};
-  name?: string;
-}): "mix" | "playlist" {
+/**
+ * Whether a playlist lockup is a mix (radio) or a real playlist.
+ *
+ * The ID decides: mixes are generated "RD" lists, which have no playlist page.
+ * "RDCLAK" lists are the exception, curated playlists that do have one. The
+ * tap endpoint does not tell them apart: a channel's Playlists tab also starts
+ * the first video of a real playlist with a watch endpoint. It is only used
+ * when the lockup carries no ID.
+ */
+export function getLockupPlaylistType(
+  contentId: string | undefined,
+  endpoint?: {command?: {type: string}; name?: string},
+): "mix" | "playlist" {
+  if (contentId) {
+    return contentId.startsWith("RD") && !contentId.startsWith("RDCLAK")
+      ? "mix"
+      : "playlist";
+  }
   return endpoint?.command?.type === "WatchEndpoint" ||
     endpoint?.name === "watchEndpoint"
     ? "mix"

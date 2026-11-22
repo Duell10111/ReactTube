@@ -190,6 +190,7 @@ export const de = {
   "database.recovered":
     "Die lokale Datenbank musste beim Start repariert werden.",
   "media.videoCount": "{count} Videos",
+  "media.videoCount.one": "1 Video",
   "media.badge.live": "Live",
   "media.badge.mix": "Mix",
   "media.badge.downloaded": "Heruntergeladen",
