@@ -5,6 +5,7 @@ import {PixelRatio, Pressable, StyleSheet, View} from "react-native";
 import type {getTVChannelHeader} from "@/extraction/tvChannelHeader";
 import {useTranslation} from "@/localization";
 import {AppButton, AppText} from "@/ui/components";
+import {useAppChrome} from "@/ui/layout";
 import {resolveThumbnailUrl} from "@/ui/patterns/thumbnailSource";
 import {useAppTheme} from "@/ui/theme";
 
@@ -31,6 +32,9 @@ export function ChannelHero({
 }: ChannelHeroProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
+  // A phone gets a full-width button and a taller banner strip; on wider
+  // screens both would dominate the hero.
+  const compact = useAppChrome().layout === "compact";
   const avatar = resolveThumbnailUrl(
     header.avatar,
     AVATAR_SIZE,
@@ -50,6 +54,7 @@ export function ChannelHero({
           style={[
             styles.banner,
             {
+              aspectRatio: compact ? 4 : 6,
               backgroundColor: theme.colors.surfaceRaised,
               borderRadius: theme.radii.card,
             },
@@ -118,9 +123,10 @@ export function ChannelHero({
         />
       </Pressable>
       {subscriptionLabel && onSubscribe ? (
-        <View style={{gap: theme.spacing.xs}}>
+        <View
+          style={[{gap: theme.spacing.xs}, !compact && styles.inlineAction]}>
           <AppButton
-            fullWidth
+            fullWidth={compact}
             label={subscriptionLabel}
             loading={subscriptionPending}
             onPress={onSubscribe}
@@ -142,7 +148,8 @@ export function ChannelHero({
 }
 
 const styles = StyleSheet.create({
-  banner: {width: "100%", aspectRatio: 4},
+  banner: {width: "100%"},
+  inlineAction: {alignSelf: "flex-start", minWidth: 200},
   identity: {flexDirection: "row", alignItems: "center"},
   avatar: {width: AVATAR_SIZE, height: AVATAR_SIZE},
   name: {flex: 1},
