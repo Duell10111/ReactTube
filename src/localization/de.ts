@@ -190,6 +190,7 @@ export const de = {
   "database.recovered":
     "Die lokale Datenbank musste beim Start repariert werden.",
   "media.videoCount": "{count} Videos",
+  "media.videoCount.one": "1 Video",
   "media.badge.live": "Live",
   "media.badge.mix": "Mix",
   "media.badge.downloaded": "Heruntergeladen",
@@ -225,6 +226,7 @@ export const de = {
   "channel.signInToSubscribe": "Zum Abonnieren anmelden",
   "channel.subscriptionError":
     "Das Abo konnte nicht aktualisiert werden. Bitte versuche es erneut.",
+  "channel.tabs": "Kanalbereiche",
   "channel.tab.home": "Start",
   "channel.tab.videos": "Videos",
   "channel.tab.shorts": "Shorts",

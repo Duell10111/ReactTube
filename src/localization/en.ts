@@ -184,6 +184,7 @@ export const en = {
     "All local playlist and download information will be deleted. This cannot be undone.",
   "database.recovered": "The local database had to be repaired on startup.",
   "media.videoCount": "{count} videos",
+  "media.videoCount.one": "1 video",
   "media.badge.live": "Live",
   "media.badge.mix": "Mix",
   "media.badge.downloaded": "Downloaded",
@@ -219,6 +220,7 @@ export const en = {
   "channel.signInToSubscribe": "Sign in to subscribe",
   "channel.subscriptionError":
     "The subscription could not be updated. Please try again.",
+  "channel.tabs": "Channel sections",
   "channel.tab.home": "Home",
   "channel.tab.videos": "Videos",
   "channel.tab.shorts": "Shorts",

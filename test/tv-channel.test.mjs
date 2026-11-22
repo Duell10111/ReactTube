@@ -85,6 +85,7 @@ test("prefers TV channel art and the largest supplied avatar without mutating da
   });
   assert.equal(result.avatar, "large");
   assert.equal(result.banner, "tv-banner");
+  assert.equal(result.wideBanner, "web-banner");
   assert.equal(result.metadata, "@creator · 1 Mio. Abonnenten · 100 Videos");
   assert.equal(result.description, "Original description");
   assert.equal(thumbnails[0].url, "small");
@@ -97,7 +98,7 @@ test("reads modern page-header art and metadata while tolerating incomplete rows
       content: {
         banner: {image: [{url: "page-banner"}]},
         metadata: {
-          delimiter: " • ",
+          delimiter: "•",
           metadata_rows: [
             {
               metadata_parts: [
@@ -113,10 +114,12 @@ test("reads modern page-header art and metadata while tolerating incomplete rows
     },
   });
   assert.equal(result.banner, "page-banner");
+  assert.equal(result.wideBanner, "page-banner");
   assert.equal(result.metadata, "@creator • 20 videos");
   const empty = getTVChannelHeader({metadata: {}});
   assert.equal(empty.avatar, undefined);
   assert.equal(empty.banner, undefined);
+  assert.equal(empty.wideBanner, undefined);
   assert.equal(empty.metadata, undefined);
 });
 

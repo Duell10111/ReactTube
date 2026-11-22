@@ -324,8 +324,10 @@ export function getVideoData(
           : undefined,
       } as VideoData;
     } else if (ytNode.content_type === "TILE_CONTENT_TYPE_PLAYLIST") {
-      // Content is a mix an therefore no real playlist
-      if (ytNode.on_select_endpoint.command?.type === "WatchEndpoint") {
+      if (
+        getLockupPlaylistType(ytNode.content_id, ytNode.on_select_endpoint) ===
+        "mix"
+      ) {
         return {
           type: "mix",
           originalNode: ytNode,
@@ -566,9 +568,10 @@ export function getVideoData(
     const authorObject = getLockupAuthor(author, ytNode.metadata?.image);
     const navEndpoint = ytNode.renderer_context.command_context?.on_tap;
 
-    if (ytNode.content_type === "PLAYLIST") {
+    // A show (a series of episodes) opens as a playlist page as well.
+    if (ytNode.content_type === "PLAYLIST" || ytNode.content_type === "SHOW") {
       return {
-        type: getLockupPlaylistType(navEndpoint),
+        type: getLockupPlaylistType(ytNode.content_id, navEndpoint),
         originalNode: ytNode,
         id: ytNode.content_id,
         navEndpoint,

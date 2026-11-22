@@ -35,6 +35,7 @@ export function FeedCardRow({
         <MediaCard
           element={item}
           key={`${item.id}-${index}`}
+          metadataOverlay={metrics.cardPresentation === "overlay"}
           width={cardWidth}
         />
       ))}
@@ -85,6 +86,7 @@ export function FeedSkeleton({metrics, cardWidth, padding}: FeedSkeletonProps) {
           {Array.from({length: metrics.columns}, (_card, cardIndex) => (
             <MediaCardSkeleton
               key={`skeleton-${rowIndex}-${cardIndex}`}
+              portrait={metrics.cardPresentation === "overlay"}
               resolvedWidth={cardWidth}
               width={cardWidth}
             />

@@ -132,7 +132,7 @@ test("adds mix and download badges next to the duration", () => {
 test("shows the mix badge for playlist lockups in both languages", () => {
   const mix = video({
     originalNode: {type: "LockupView"},
-    type: getLockupPlaylistType({command: {type: "WatchEndpoint"}}),
+    type: getLockupPlaylistType("RDvideo-1"),
     id: "RDvideo-1",
   });
 
@@ -242,6 +242,18 @@ test("localizes the playlist video count in both languages", () => {
     ["24 videos"],
   );
   assert.equal(english.accessibilityHint, "Opens the playlist");
+
+  const single = {...playlist, videoCount: "1"};
+  assert.deepEqual(createMediaCardViewModel(single, {translate: t}).metadata, [
+    "A channel",
+    "1 video",
+  ]);
+  assert.deepEqual(
+    createMediaCardViewModel(single, {translate: tDe}).badges.map(
+      badge => badge.label,
+    ),
+    ["1 Video"],
+  );
 });
 
 test("announces title, metadata, state, and progress but not the duration", () => {
@@ -497,12 +509,34 @@ test("TV reel grids fit as many shorts-only cards as the width allows", () => {
   assert.ok(rowWidth(reels.metrics.columns + 1, reels.cardWidth) > 1800);
 });
 
-test("touch reel grids keep their regular column count", () => {
+test("touch reel grids pack at least three shorts per row with overlaid metadata", () => {
+  // iPhone 15 Pro and Pro Max portrait widths, then an 11-inch iPad.
+  for (const [layout, width, expected] of [
+    ["compact", 393, 3],
+    ["compact", 430, 3],
+    ["expanded", 820, 5],
+  ]) {
+    const metrics = getFeedMetrics(layout);
+    const grid = getFeedGridLayout(layout, width, metrics, 16, true);
+    const {columns, gap} = grid.metrics;
+
+    assert.equal(columns, expected);
+    assert.equal(grid.metrics.cardPresentation, "overlay");
+    assert.ok(gap < metrics.gap);
+    assert.ok(
+      Math.abs(columns * grid.cardWidth + (columns - 1) * gap - (width - 16)) <
+        0.01,
+    );
+  }
+});
+
+test("touch grids of videos keep their regular columns and metadata below", () => {
   for (const layout of ["compact", "medium", "expanded"]) {
     const metrics = getFeedMetrics(layout);
-    const grid = getFeedGridLayout(layout, 1000, metrics, 0, true);
+    const grid = getFeedGridLayout(layout, 1000, metrics, 0, false);
 
     assert.equal(grid.metrics.columns, metrics.columns);
+    assert.equal(grid.metrics.cardPresentation, undefined);
     assert.equal(grid.cardWidth, getFeedCardWidth(1000, metrics, 0));
   }
 });

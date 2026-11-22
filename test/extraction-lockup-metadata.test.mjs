@@ -24,17 +24,35 @@ function badgeOnlyRow() {
   return {metadata_parts: []};
 }
 
-test("recognizes playlist lockups that start a mix directly", () => {
+test("tells mixes from playlists by their ID, not by the tap endpoint", () => {
+  const watch = {command: {type: "WatchEndpoint"}};
+  assert.equal(getLockupPlaylistType("RDdQw4w9WgXcQ", watch), "mix");
+  assert.equal(getLockupPlaylistType("RDMMdQw4w9WgXcQ", watch), "mix");
+  // A channel's Playlists tab starts a real playlist with a watch endpoint.
   assert.equal(
-    getLockupPlaylistType({command: {type: "WatchEndpoint"}}),
-    "mix",
-  );
-  assert.equal(getLockupPlaylistType({name: "watchEndpoint"}), "mix");
-  assert.equal(
-    getLockupPlaylistType({command: {type: "BrowseEndpoint"}}),
+    getLockupPlaylistType("PLBsP89CPrMeMV1oP42Zn2DrWpnFoSaufA", watch),
     "playlist",
   );
-  assert.equal(getLockupPlaylistType({}), "playlist");
+  assert.equal(
+    getLockupPlaylistType("RDCLAK5uy_kmPRjHDECIcuVwnKsx2Ng7fyNgFKWNJFs", watch),
+    "playlist",
+  );
+});
+
+test("falls back to the tap endpoint when a lockup has no ID", () => {
+  assert.equal(
+    getLockupPlaylistType(undefined, {command: {type: "WatchEndpoint"}}),
+    "mix",
+  );
+  assert.equal(
+    getLockupPlaylistType(undefined, {name: "watchEndpoint"}),
+    "mix",
+  );
+  assert.equal(
+    getLockupPlaylistType(undefined, {command: {type: "BrowseEndpoint"}}),
+    "playlist",
+  );
+  assert.equal(getLockupPlaylistType(undefined, {}), "playlist");
   assert.equal(getLockupPlaylistType(undefined), "playlist");
 });
 

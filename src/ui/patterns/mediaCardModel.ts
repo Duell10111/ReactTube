@@ -124,6 +124,13 @@ function compact(values: (string | undefined | null)[]): string[] {
     .filter((value): value is string => Boolean(value));
 }
 
+/** The entry count of a playlist; the count arrives as a bare number. */
+function formatVideoCount(count: string, translate: Translate): string {
+  return count === "1"
+    ? translate("media.videoCount.one")
+    : translate("media.videoCount", {count});
+}
+
 function getMetadata(element: ElementData, translate: Translate): string[] {
   switch (element.type) {
     case "channel":
@@ -138,7 +145,7 @@ function getMetadata(element: ElementData, translate: Translate): string[] {
       return compact([
         element.author?.name ?? element.artists?.[0]?.name,
         element.videoCount
-          ? translate("media.videoCount", {count: element.videoCount})
+          ? formatVideoCount(element.videoCount, translate)
           : undefined,
       ]).slice(0, maxMetadataParts);
     default: {
@@ -174,7 +181,7 @@ function getBadges(
       if (element.videoCount) {
         badges.push({
           id: "videoCount",
-          label: translate("media.videoCount", {count: element.videoCount}),
+          label: formatVideoCount(element.videoCount, translate),
           tone: "neutral",
         });
       }
