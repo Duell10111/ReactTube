@@ -10,6 +10,8 @@ interface MediaCardSkeletonProps {
   width?: DimensionValue;
   /** Width the aspect ratio is resolved against, so no card jumps on load. */
   resolvedWidth: number;
+  /** A short with overlaid metadata: only the portrait thumbnail. */
+  portrait?: boolean;
 }
 
 /**
@@ -19,10 +21,22 @@ interface MediaCardSkeletonProps {
 export function MediaCardSkeleton({
   width,
   resolvedWidth,
+  portrait = false,
 }: MediaCardSkeletonProps) {
   const {theme} = useAppTheme();
   const titleHeight = theme.typography.titleSmall.lineHeight;
   const metadataHeight = theme.typography.bodySmall.lineHeight;
+
+  if (portrait) {
+    return (
+      <View style={[styles.container, {width}]}>
+        <Skeleton
+          height={Math.round(resolvedWidth / mediaCardAspectRatio.portrait)}
+          radius={theme.radii.card}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, {width, gap: theme.spacing.sm}]}>

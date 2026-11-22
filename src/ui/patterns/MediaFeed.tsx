@@ -51,6 +51,11 @@ export interface MediaFeedProps {
   emptyActionLabel?: string;
   onEmptyAction?: () => void;
   testID?: string;
+  /**
+   * Lays the feed out as a grid of shorts before the first page arrives, so
+   * the loading skeleton already has the shape of the cards that replace it.
+   */
+  reelGrid?: boolean;
   /** Full-screen TV routes supply overscan insets without the navigation rail. */
   contentInsets?: FeedEdgeInsets;
 }
@@ -77,6 +82,7 @@ export function MediaFeed({
   onEmptyAction,
   testID,
   contentInsets,
+  reelGrid: expectReelGrid = false,
 }: MediaFeedProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
@@ -85,7 +91,10 @@ export function MediaFeed({
   // ending at the margin with a dead band beside it — except for the leading
   // margin on TV, which stays outside the focus region so that a Left press
   // out of the feed reaches the navigation rail.
-  const reelGrid = useMemo(() => isReelGrid(items), [items]);
+  const reelGrid = useMemo(
+    () => (items.length === 0 ? expectReelGrid : isReelGrid(items)),
+    [expectReelGrid, items],
+  );
   const {
     metrics,
     cardWidth,

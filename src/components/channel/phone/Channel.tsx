@@ -211,6 +211,7 @@ function ChannelFeed({channel, type, header, onScroll}: ChannelFeedProps) {
         onRefresh={refresh}
         onRetry={refresh}
         onScroll={onScroll}
+        reelGrid={type === "Reels"}
         testID={`channel-${type.toLowerCase()}-feed`}
       />
       {paginationError ? (

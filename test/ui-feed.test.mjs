@@ -497,12 +497,34 @@ test("TV reel grids fit as many shorts-only cards as the width allows", () => {
   assert.ok(rowWidth(reels.metrics.columns + 1, reels.cardWidth) > 1800);
 });
 
-test("touch reel grids keep their regular column count", () => {
+test("touch reel grids pack at least three shorts per row with overlaid metadata", () => {
+  // iPhone 15 Pro and Pro Max portrait widths, then an 11-inch iPad.
+  for (const [layout, width, expected] of [
+    ["compact", 393, 3],
+    ["compact", 430, 3],
+    ["expanded", 820, 5],
+  ]) {
+    const metrics = getFeedMetrics(layout);
+    const grid = getFeedGridLayout(layout, width, metrics, 16, true);
+    const {columns, gap} = grid.metrics;
+
+    assert.equal(columns, expected);
+    assert.equal(grid.metrics.cardPresentation, "overlay");
+    assert.ok(gap < metrics.gap);
+    assert.ok(
+      Math.abs(columns * grid.cardWidth + (columns - 1) * gap - (width - 16)) <
+        0.01,
+    );
+  }
+});
+
+test("touch grids of videos keep their regular columns and metadata below", () => {
   for (const layout of ["compact", "medium", "expanded"]) {
     const metrics = getFeedMetrics(layout);
-    const grid = getFeedGridLayout(layout, 1000, metrics, 0, true);
+    const grid = getFeedGridLayout(layout, 1000, metrics, 0, false);
 
     assert.equal(grid.metrics.columns, metrics.columns);
+    assert.equal(grid.metrics.cardPresentation, undefined);
     assert.equal(grid.cardWidth, getFeedCardWidth(1000, metrics, 0));
   }
 });

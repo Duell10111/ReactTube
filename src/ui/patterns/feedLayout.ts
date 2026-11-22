@@ -54,6 +54,12 @@ export interface FeedMetrics {
    * so on TV the short takes the shape of the video cards around it.
    */
   mixedReelAspectRatio?: number;
+  /**
+   * How the cards of a grid carry their metadata. A dense touch grid of shorts
+   * puts title and views on the thumbnail, as the YouTube app does, because a
+   * third of a phone's width leaves no room for a readable block below it.
+   */
+  cardPresentation?: "below" | "overlay";
 }
 
 export interface FeedEdgeInsets {
@@ -232,6 +238,13 @@ const tvReelCardWidth = 260;
 
 const tvShelfCardWidth = 420;
 
+/**
+ * Narrowest short in a touch grid. Phones end up with the three columns of the
+ * YouTube app, tablets with as many more as their width allows.
+ */
+const touchReelMinCardWidth = 150;
+const touchReelMinColumns = 3;
+
 /** Crops a short between video cards to their shape; see `mixedReelAspectRatio`. */
 const tvMixedReelAspectRatio = mediaCardAspectRatio.wide;
 
@@ -246,7 +259,8 @@ export interface FeedGridLayout {
  * A TV grid of shorts uses the capped shorts card width and fits as many
  * columns as the width allows. The cards keep that exact width instead of
  * stretching to fill the row, because a wider portrait card is a taller one.
- * Touch layouts keep their regular grid.
+ * A touch grid of shorts packs at least three columns with tight gaps and
+ * overlaid metadata; any other touch grid keeps its regular columns.
  */
 export function getFeedGridLayout(
   layout: LayoutClass,
@@ -261,12 +275,37 @@ export function getFeedGridLayout(
     horizontalPadding,
   );
 
-  if (layout !== "tv" || !reelGrid) {
+  if (!reelGrid) {
     return {metrics, cardWidth};
   }
 
-  const reelWidth = metrics.reelCardWidth;
   const content = availableWidth - horizontalPadding;
+
+  if (layout !== "tv") {
+    // Tight gaps like the YouTube app; the cards stretch to fill the row.
+    const gap = spacing.xs;
+    const columns = Math.max(
+      touchReelMinColumns,
+      Math.floor((content + gap) / (touchReelMinCardWidth + gap)),
+    );
+    const reelMetrics: FeedMetrics = {
+      ...metrics,
+      columns,
+      gap,
+      skeletonCount: columns * 2,
+      cardPresentation: "overlay",
+    };
+    return {
+      metrics: reelMetrics,
+      cardWidth: getFeedCardWidth(
+        availableWidth,
+        reelMetrics,
+        horizontalPadding,
+      ),
+    };
+  }
+
+  const reelWidth = metrics.reelCardWidth;
   const columns = Math.max(
     1,
     Math.floor((content + metrics.gap) / (reelWidth + metrics.gap)),
