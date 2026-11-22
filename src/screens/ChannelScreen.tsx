@@ -16,8 +16,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "ChannelScreen">;
 
 export default function ChannelScreen({route}: Props) {
   const {channelId} = route.params;
-  const {channel, parsedChannel, loading, error, reload} =
-    useChannelDetails(channelId);
+  const {channel, loading, error, reload} = useChannelDetails(channelId);
   const {t} = useTranslation();
   const {theme} = useAppTheme();
 
@@ -39,7 +38,7 @@ export default function ChannelScreen({route}: Props) {
     );
   }
 
-  if (error || !channel || !parsedChannel) {
+  if (error || !channel) {
     return (
       <ErrorState
         message={t("channel.error.message")}
@@ -50,7 +49,9 @@ export default function ChannelScreen({route}: Props) {
   }
 
   if (!Platform.isTV) {
-    return <ChannelPhone channel={parsedChannel} />;
+    return (
+      <ChannelPhone key={channelId} channel={channel} channelId={channelId} />
+    );
   }
 
   return <Channel key={channelId} channel={channel} channelId={channelId} />;

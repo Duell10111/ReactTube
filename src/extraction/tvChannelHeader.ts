@@ -53,16 +53,19 @@ export function getTVChannelHeader(channel: ChannelHeaderSource) {
     : [header?.channel_handle, header?.subscribers, header?.videos_count]
         .map(part => part?.toString())
         .filter(Boolean);
+  const wideBanner =
+    largestImage(header?.banner) ??
+    largestImage(header?.content?.banner?.image);
   return {
     title: metadata.title,
     description: metadata.description,
     avatar: largestImage(metadata.avatar ?? metadata.thumbnail),
-    banner:
-      largestImage(header?.tv_banner) ??
-      largestImage(header?.banner) ??
-      largestImage(header?.content?.banner?.image),
+    banner: largestImage(header?.tv_banner) ?? wideBanner,
+    // Phones show the banner as a wide strip, which the web artwork is cut for.
+    wideBanner: wideBanner ?? largestImage(header?.tv_banner),
     metadata:
-      metadataParts.join(pageMetadata?.delimiter || " · ") ||
+      // YouTube sends the page-header delimiter without surrounding spaces.
+      metadataParts.join(` ${pageMetadata?.delimiter?.trim() || "·"} `) ||
       header?.metadata?.toString(),
   };
 }

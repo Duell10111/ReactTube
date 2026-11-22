@@ -225,6 +225,7 @@ export const de = {
   "channel.signInToSubscribe": "Zum Abonnieren anmelden",
   "channel.subscriptionError":
     "Das Abo konnte nicht aktualisiert werden. Bitte versuche es erneut.",
+  "channel.tabs": "Kanalbereiche",
   "channel.tab.home": "Start",
   "channel.tab.videos": "Videos",
   "channel.tab.shorts": "Shorts",

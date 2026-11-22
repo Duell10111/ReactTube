@@ -219,6 +219,7 @@ export const en = {
   "channel.signInToSubscribe": "Sign in to subscribe",
   "channel.subscriptionError":
     "The subscription could not be updated. Please try again.",
+  "channel.tabs": "Channel sections",
   "channel.tab.home": "Home",
   "channel.tab.videos": "Videos",
   "channel.tab.shorts": "Shorts",

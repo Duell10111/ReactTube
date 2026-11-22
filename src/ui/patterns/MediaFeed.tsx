@@ -6,6 +6,8 @@ import {
   StyleSheet,
   View,
   type ListRenderItem,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 
 import {
@@ -42,6 +44,7 @@ export interface MediaFeedProps {
   refreshing?: boolean;
   onEndReached?: () => void | Promise<unknown>;
   onElementFocused?: () => void;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   ListHeaderComponent?: React.ReactElement | null;
   emptyTitle?: string;
   emptyMessage?: string;
@@ -66,6 +69,7 @@ export function MediaFeed({
   refreshing = false,
   onEndReached,
   onElementFocused,
+  onScroll,
   ListHeaderComponent,
   emptyTitle,
   emptyMessage,
@@ -185,6 +189,8 @@ export function MediaFeed({
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.6}
           onLayout={onLayout}
+          onScroll={onScroll}
+          scrollEventThrottle={onScroll ? 16 : undefined}
           removeClippedSubviews={performance.removeClippedSubviews}
           refreshControl={
             onRefresh && !Platform.isTV ? (
