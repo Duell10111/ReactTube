@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 
 import {useYoutubeTVContext} from "@/context/YoutubeContext";
+import {getTVChannelSubscription} from "@/extraction/tvChannelSubscription";
 import Logger from "@/utils/Logger";
-import {YTNodes} from "@/utils/Youtube";
 
 const LOGGER = Logger.extend("CHANNEL");
 
@@ -26,14 +26,18 @@ export function useTVChannelSubscription(channelId: string) {
     busy.current = false;
     if (youtube && signedIn) {
       youtube.actions
-        .execute("/browse", {browseId: channelId, client: "TV", parse: true})
-        .then(page => {
+        .execute("/browse", {browseId: channelId, client: "TV", parse: false})
+        .then(response => {
           if (!active) return;
-          const button =
-            page.header_memo?.getType(YTNodes.SubscribeButton)[0] ??
-            page.contents_memo?.getType(YTNodes.SubscribeButton)[0];
           // Never infer an account's subscription from the anonymous web header.
-          if (button?.enabled) setSubscribed(button.subscribed);
+          const state = getTVChannelSubscription(response.data, channelId);
+          if (state === undefined) {
+            // Offering "Subscribe" without a known state would only reload.
+            setError(true);
+            LOGGER.warn("Channel subscription state missing in TV response");
+          } else {
+            setSubscribed(state);
+          }
         })
         .catch(reason => {
           if (active) setError(true);
