@@ -497,4 +497,6 @@ export const de = {
     "Tippen zum Abspielen oder Pausieren. Nach oben oder unten wischen für den nächsten oder vorherigen Short.",
   "shorts.previous": "Vorheriges Short",
   "shorts.next": "Nächstes Short",
+  "shorts.action.share": "Teilen",
+  "shorts.action.withCount": "{label}, {count}",
 } as const satisfies Record<TranslationKey, string>;

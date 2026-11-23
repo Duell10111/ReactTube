@@ -1,26 +1,38 @@
 import {MaterialIcons} from "@expo/vector-icons";
 import {useNavigation} from "@react-navigation/native";
 import {Image} from "expo-image";
-import React, {memo, useEffect, useState} from "react";
+import React, {memo, useCallback, useEffect, useState} from "react";
 import {
   ActivityIndicator,
   Platform,
   Pressable,
+  Share,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {ResizeMode} from "react-native-video";
 
 import VideoComponent from "@/components/VideoComponent";
+import {ShortOverlay} from "@/components/shorts/phone/ShortOverlay";
+import {
+  getShortLikeCount,
+  getShortShareUrl,
+  shouldShortFillScreen,
+} from "@/components/shorts/phone/shortActionsModel";
 import {shortPreviewUri} from "@/components/shorts/phone/shortsPagingModel";
+import {useAccountContext} from "@/context/AccountContext";
+import {usePlaylistManagerContext} from "@/context/PlaylistManagerContext";
+import useChannelManager from "@/hooks/channel/useChannelManager";
 import useVideoDetails from "@/hooks/useVideoDetails";
 import {useTranslation} from "@/localization";
 import {RootNavProp} from "@/navigation/RootStackNavigator";
 import {ErrorState} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
+import Logger from "@/utils/Logger";
 import {YTNodes} from "@/utils/Youtube";
+
+const LOGGER = Logger.extend("SHORTS");
 
 interface Props {
   videoId: string;
@@ -32,6 +44,10 @@ interface Props {
   width: number;
   height: number;
   onPrepared: (videoId: string) => void;
+  /** Opens the comments of this short; the sheet lives above the pager. */
+  onOpenComments: (videoId: string, count?: string) => void;
+  /** The pager holds still while the progress bar is dragged. */
+  onScrubbingChange: (scrubbing: boolean) => void;
 }
 
 /** List cells stay cheap; only visited neighbours and the next short load data. */
@@ -60,6 +76,10 @@ function PreparedShort({
   preload,
   playing,
   onPrepared,
+  onOpenComments,
+  onScrubbingChange,
+  width,
+  height,
 }: Props) {
   const {
     YTVideoInfo,
@@ -75,12 +95,55 @@ function PreparedShort({
     playbackFailureKey,
     reportProgress,
     trackWatchProgress,
+    actionData,
+    like,
+    removeRating,
   } = useVideoDetails(initialEndpoint ?? videoId);
   const navigation = useNavigation<RootNavProp>();
-  const {t} = useTranslation();
+  const {t, formatNumber} = useTranslation();
   const {theme} = useAppTheme();
   const {bottom, left, right} = useSafeAreaInsets();
   const [paused, setPaused] = useState(false);
+  const [position, setPosition] = useState({current: 0, duration: 0});
+  const [seekTo, setSeekTo] = useState<{seconds: number}>();
+  const seek = useCallback((seconds: number) => {
+    setSeekTo({seconds});
+    // Shown at once; the next progress event confirms it.
+    setPosition(previous => ({...previous, current: seconds}));
+  }, []);
+  const {loginData} = useAccountContext();
+  const signedIn = loginData.accounts.length > 0;
+  const {save} = usePlaylistManagerContext();
+  const {subscribe, unsubscribe} = useChannelManager();
+  const [subscribed, setSubscribed] = useState(false);
+
+  useEffect(() => {
+    setSubscribed(YTVideoInfo?.subscribed ?? false);
+  }, [YTVideoInfo?.subscribed]);
+
+  const toggleSubscription = useCallback(() => {
+    const channelId = YTVideoInfo?.channel_id;
+    if (!channelId) return;
+    const next = !subscribed;
+    // Optimistic: the button is the only feedback the request has.
+    setSubscribed(next);
+    (next ? subscribe(channelId) : unsubscribe(channelId))?.catch(reason => {
+      LOGGER.warn("Subscription change failed: ", reason);
+      setSubscribed(!next);
+    });
+  }, [YTVideoInfo?.channel_id, subscribe, subscribed, unsubscribe]);
+
+  const liked = actionData?.liked ?? YTVideoInfo?.liked ?? false;
+  const likeCount = getShortLikeCount(
+    YTVideoInfo?.likeCount,
+    YTVideoInfo?.liked ?? false,
+    liked,
+  );
+  const commentCount = YTVideoInfo?.commentsEntryPointHeader?.comments_count;
+  const withCount = (label: string, count?: string) =>
+    count ? t("shorts.action.withCount", {label, count}) : label;
+  const likeCaption =
+    likeCount !== undefined ? formatNumber(likeCount) : undefined;
 
   useEffect(() => {
     if (active) setPaused(false);
@@ -94,18 +157,23 @@ function PreparedShort({
   const mountPlayer = active || (preload && Platform.OS === "ios");
   const unavailable = !videoUrl && !loading && (error || YTVideoInfo);
   const preview = shortPreviewUri(YTVideoInfo?.thumbnailImage);
+  const fill = shouldShortFillScreen(YTVideoInfo?.frameSize, {
+    width,
+    height,
+  });
 
   return (
     <>
       {preview ? (
         <Image
-          contentFit={"contain"}
+          contentFit={fill ? "cover" : "contain"}
           source={{uri: preview}}
           style={StyleSheet.absoluteFill}
         />
       ) : null}
       {YTVideoInfo && videoUrl && mountPlayer ? (
         <ShortPlayer
+          seekTo={seekTo}
           key={playbackAttemptKey ?? videoUrl}
           url={videoUrl}
           startPositionSeconds={startTime}
@@ -115,6 +183,10 @@ function PreparedShort({
           playbackAttemptKey={playbackAttemptKey}
           onProgress={data => {
             if (!active || !playing || paused) return;
+            setPosition({
+              current: data.currentTime,
+              duration: data.seekableDuration,
+            });
             reportProgress(data.currentTime);
             trackWatchProgress(data.currentTime);
           }}
@@ -125,7 +197,7 @@ function PreparedShort({
           backgroundPlayback={false}
           controls={false}
           repeat
-          resizeMode={ResizeMode.CONTAIN}
+          resizeMode={fill ? ResizeMode.COVER : ResizeMode.CONTAIN}
         />
       ) : null}
       {active && unavailable ? (
@@ -167,40 +239,76 @@ function PreparedShort({
         </>
       ) : null}
       {YTVideoInfo && !unavailable ? (
-        <View
-          pointerEvents={active ? "box-none" : "none"}
-          style={[
-            styles.metadata,
+        <ShortOverlay
+          actions={[
             {
-              paddingBottom: bottom + 16,
-              paddingLeft: left + 16,
-              paddingRight: right + 16,
+              id: "like",
+              icon: liked ? "favorite" : "favorite-border",
+              caption: likeCaption ?? t("video.action.like"),
+              accessibilityLabel: withCount(
+                t("video.action.like"),
+                likeCaption,
+              ),
+              active: liked,
+              onPress: () =>
+                (liked ? removeRating() : like()).catch(LOGGER.warn),
             },
-          ]}>
-          <Pressable
-            accessibilityRole={"button"}
-            disabled={!YTVideoInfo.channel_id}
-            onPress={() =>
-              YTVideoInfo.channel_id &&
-              navigation.navigate("ChannelScreen", {
-                channelId: YTVideoInfo.channel_id,
-              })
-            }
-            style={styles.channel}>
-            {YTVideoInfo.author?.thumbnail?.url ? (
-              <Image
-                source={{uri: YTVideoInfo.author.thumbnail.url}}
-                style={styles.avatar}
-              />
-            ) : null}
-            <Text numberOfLines={1} style={styles.channelName}>
-              {YTVideoInfo.channel?.name ?? YTVideoInfo.author?.name}
-            </Text>
-          </Pressable>
-          <Text numberOfLines={3} style={styles.title}>
-            {YTVideoInfo.title}
-          </Text>
-        </View>
+            {
+              id: "comments",
+              icon: "chat-bubble-outline",
+              caption: commentCount ?? t("video.action.comments"),
+              accessibilityLabel: withCount(
+                t("video.action.comments"),
+                commentCount,
+              ),
+              onPress: () => onOpenComments(YTVideoInfo.id, commentCount),
+            },
+            {
+              id: "save",
+              icon: "bookmark-border",
+              caption: t("video.action.save"),
+              accessibilityLabel: t("video.action.save"),
+              onPress: () => save([YTVideoInfo.id]),
+            },
+            {
+              id: "share",
+              icon: "reply",
+              caption: t("shorts.action.share"),
+              accessibilityLabel: t("shorts.action.share"),
+              onPress: () => {
+                const url = getShortShareUrl(YTVideoInfo.id);
+                Share.share(
+                  Platform.OS === "ios" ? {url} : {message: url},
+                ).catch(LOGGER.warn);
+              },
+            },
+          ]}
+          avatarUrl={YTVideoInfo.author?.thumbnail?.url}
+          channelName={YTVideoInfo.channel?.name ?? YTVideoInfo.author?.name}
+          insets={{bottom, left, right}}
+          interactive={active}
+          onOpenChannel={
+            YTVideoInfo.channel_id
+              ? () =>
+                  navigation.navigate("ChannelScreen", {
+                    channelId: YTVideoInfo.channel_id!,
+                  })
+              : undefined
+          }
+          onToggleSubscription={
+            signedIn && YTVideoInfo.channel_id ? toggleSubscription : undefined
+          }
+          currentSeconds={position.current}
+          durationSeconds={
+            position.duration > 0
+              ? position.duration
+              : YTVideoInfo.durationSeconds
+          }
+          onScrubbingChange={onScrubbingChange}
+          onSeek={seek}
+          subscribed={signedIn ? subscribed : undefined}
+          title={YTVideoInfo.title}
+        />
       ) : null}
     </>
   );
@@ -233,35 +341,5 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 50,
     backgroundColor: "#00000099",
-  },
-  metadata: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    maxWidth: 600,
-    alignSelf: "center",
-    backgroundColor: "#00000080",
-    paddingTop: 12,
-  },
-  channel: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-    gap: 10,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
-  channelName: {
-    flexShrink: 1,
-    color: "white",
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  title: {
-    color: "white",
-    fontSize: 15,
   },
 });

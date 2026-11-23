@@ -225,6 +225,13 @@ function videoDetailsFromSource(
     playlist: metadata.playlist ?? parsed.playlist,
     description: detailFallback.description,
     commentsEntryPointHeader: detailFallback.commentsEntryPointHeader,
+    frameSize: metadata.frameSize ?? parsed.frameSize,
+    author: metadata.author?.thumbnail
+      ? metadata.author
+      : metadata.author && {
+          ...metadata.author,
+          thumbnail: parsed.author?.thumbnail,
+        },
   };
 }
 

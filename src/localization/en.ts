@@ -484,6 +484,8 @@ export const en = {
     "Tap to play or pause. Swipe up or down for the next or previous short.",
   "shorts.previous": "Previous short",
   "shorts.next": "Next short",
+  "shorts.action.share": "Share",
+  "shorts.action.withCount": "{label}, {count}",
 } as const;
 
 export type TranslationKey = keyof typeof en;

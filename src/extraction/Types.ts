@@ -145,6 +145,9 @@ export interface YTVideoInfo {
   };
   liked?: boolean;
   disliked?: boolean;
+  likeCount?: number;
+  /** Picture size from the stream formats, e.g. to tell a portrait short. */
+  frameSize?: {width: number; height: number};
   endscreen?: YTEndscreen;
   commentsEntryPointHeader?: YTVideoInfoCommentEntryPointHeader;
   watchNextFeed?: ElementData[];

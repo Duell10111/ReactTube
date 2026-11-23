@@ -87,6 +87,22 @@ function chooseBestSingleUrlFormat(
 }
 
 // TODO: Also parse buttons available, if available?!
+/**
+ * Picture size of a video from its stream formats. Thumbnails do not tell it:
+ * a short's generic thumbnail is often a landscape frame with bands.
+ */
+function getFrameSize(
+  streamingData: YT.VideoInfo["streaming_data"],
+): {width: number; height: number} | undefined {
+  const format = [
+    ...(streamingData?.adaptive_formats ?? []),
+    ...(streamingData?.formats ?? []),
+  ].find(item => item.has_video && item.width && item.height);
+  return format?.width && format.height
+    ? {width: format.width, height: format.height}
+    : undefined;
+}
+
 export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
   const thumbnail = videoInfo.basic_info.thumbnail
     ? videoInfo.basic_info.thumbnail
@@ -98,6 +114,7 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
   const storyboard = extractStoryboard(videoInfo);
 
   const best_format = chooseBestSingleUrlFormat(videoInfo);
+  const ownerThumbnail = videoInfo.secondary_info?.owner?.author.best_thumbnail;
 
   // TODO: Check?
   // @ts-ignore
@@ -126,6 +143,7 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     playlist: parseVideoInfoPlaylist(videoInfo),
     liked: videoInfo.basic_info.is_liked,
     disliked: videoInfo.basic_info.is_disliked,
+    likeCount: videoInfo.basic_info.like_count,
     endscreen: videoInfo.endscreen
       ? parseEndScreen(videoInfo.endscreen)
       : undefined,
@@ -136,7 +154,9 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     author: {
       name: videoInfo.basic_info.author,
       id: videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
+      thumbnail: ownerThumbnail ? getThumbnail(ownerThumbnail) : undefined,
     },
+    frameSize: getFrameSize(videoInfo.streaming_data),
     watchNextFeed: videoInfo.watch_next_feed
       ? parseObservedArray(videoInfo.watch_next_feed)
       : undefined,
@@ -153,6 +173,28 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     best_format: best_format ? parseFormat(best_format) : undefined,
     subtitles: getSubtitleTrackList(videoInfo.captions),
   } as YTVideoInfo;
+}
+
+/**
+ * Channel avatar of a TV video. The TV client carries no owner node in its
+ * video info; the avatar only appears in the description panel's channel
+ * section.
+ */
+function getTVOwnerThumbnail(videoInfo: YTTV.VideoInfo) {
+  for (const panel of videoInfo.page[1]?.engagement_panels ?? []) {
+    if (!panel.content?.is(YTNodes.StructuredDescriptionContent)) {
+      continue;
+    }
+    const thumbnails = panel.content.items.firstOfType(
+      YTNodes.VideoDescriptionChannelSection,
+    )?.channel?.author.thumbnails;
+    // The last entry is the largest one.
+    const thumbnail = thumbnails?.[thumbnails.length - 1];
+    if (thumbnail) {
+      return getThumbnail(thumbnail);
+    }
+  }
+  return undefined;
 }
 
 export function getElementDataFromTVVideoInfo(videoInfo: YTTV.VideoInfo) {
@@ -189,6 +231,7 @@ export function getElementDataFromTVVideoInfo(videoInfo: YTTV.VideoInfo) {
     playlist: parseVideoInfoPlaylist(videoInfo),
     liked: videoInfo.basic_info.is_liked,
     disliked: videoInfo.basic_info.is_disliked,
+    likeCount: videoInfo.basic_info.like_count,
     endscreen: videoInfo.endscreen
       ? parseEndScreen(videoInfo.endscreen)
       : undefined,
@@ -196,7 +239,9 @@ export function getElementDataFromTVVideoInfo(videoInfo: YTTV.VideoInfo) {
     author: {
       name: videoInfo.basic_info.author,
       id: videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
+      thumbnail: getTVOwnerThumbnail(videoInfo),
     },
+    frameSize: getFrameSize(videoInfo.streaming_data),
     watchNextSections: videoInfo.watch_next_feed
       ? parseArrayHorizontalData(videoInfo.watch_next_feed)
       : undefined,
