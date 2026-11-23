@@ -7,8 +7,10 @@ import {
 } from "@/extraction/ArrayExtraction";
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 import {ElementData} from "@/extraction/Types";
+import {isWatchLaterShelf} from "@/extraction/libraryShelf";
 import Logger from "@/utils/Logger";
 import {YTTV, YTNodes} from "@/utils/Youtube";
+import {loadWatchLaterNewestFirst} from "@/utils/watchLater";
 
 const LOGGER = Logger.extend("LIBRARY");
 
@@ -86,9 +88,33 @@ export default function useLibrary(initSection?: LibrarySections) {
           return;
         }
 
-        setData(parseArrayHorizontalData(lib.items));
+        const sections = parseArrayHorizontalData(lib.items);
+        setData(sections);
         setLoading(false);
         setRefreshing(false);
+
+        // The Watch later shelf holds the oldest entries. They are swapped
+        // for the newest ones once the full list has arrived; until then, or
+        // if that fails, the shelf keeps what the library delivered.
+        const watchLater = sections.find(
+          (item): item is HorizontalData =>
+            "parsedData" in item && isWatchLaterShelf(item),
+        );
+        if (watchLater) {
+          loadWatchLaterNewestFirst(youtube)
+            .then(({items}) =>
+              setData(previous =>
+                previous.map(item =>
+                  item === watchLater
+                    ? {...watchLater, parsedData: items}
+                    : item,
+                ),
+              ),
+            )
+            .catch(reason =>
+              LOGGER.warn("Error ordering Watch later: ", reason),
+            );
+        }
       })
       .catch(reason => {
         LOGGER.warn("Error fetching library: ", reason);

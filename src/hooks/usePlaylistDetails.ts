@@ -9,7 +9,9 @@ import {
   getElementDataFromYTPlaylist,
   getElementDataFromYTTVPlaylist,
 } from "@/extraction/YTElements";
+import {isWatchLaterPlaylistId} from "@/extraction/libraryShelf";
 import usePlaylistManager from "@/hooks/playlist/usePlaylistManager";
+import {loadWatchLaterNewestFirst} from "@/utils/watchLater";
 
 const LOGGER = Logger.extend("PLAYLIST");
 
@@ -18,6 +20,9 @@ export default function usePlaylistDetails(playlistId: string) {
   const youtubeTV = useYoutubeTVContext();
   // Which session the playlist came from, so its pages parse the same way.
   const source = useRef<"classic" | "tv">("classic");
+  // Set once every page is in `data`, as for Watch later. The playlist keeps
+  // its first page for the header, whose continuation must not run again.
+  const complete = useRef(false);
   const [playlist, setPlaylist] = useState<YTPlaylist>();
   const [data, setData] = useState<ElementData[]>([]);
   const [liked, setLiked] = useState<boolean>();
@@ -33,6 +38,7 @@ export default function usePlaylistDetails(playlistId: string) {
 
     setLoading(true);
     setError(undefined);
+    complete.current = false;
     youtube
       .getPlaylist(playlistId)
       .then(p => {
@@ -53,8 +59,17 @@ export default function usePlaylistDetails(playlistId: string) {
         );
         const p = await youtubeTV.tv.getPlaylist(playlistId);
         source.current = "tv";
-        setPlaylist(getElementDataFromYTTVPlaylist(p));
-        setData(parseObservedArray(p.items));
+        if (isWatchLaterPlaylistId(playlistId)) {
+          // Delivered oldest first; the newest entries are the ones people
+          // look for, so the whole list is loaded and reversed.
+          const newest = await loadWatchLaterNewestFirst(youtubeTV, p);
+          complete.current = true;
+          setPlaylist(getElementDataFromYTTVPlaylist(p));
+          setData(newest.items);
+        } else {
+          setPlaylist(getElementDataFromYTTVPlaylist(p));
+          setData(parseObservedArray(p.items));
+        }
         // The TV playlist carries no save state, which hides the button.
         setLiked(undefined);
       })
@@ -74,6 +89,9 @@ export default function usePlaylistDetails(playlistId: string) {
   // }, [data]);
 
   const fetchMore = useCallback(async () => {
+    if (complete.current) {
+      return;
+    }
     if (playlist?.originalData.has_continuation) {
       const update = await playlist.originalData.getContinuation();
       setPlaylist(
