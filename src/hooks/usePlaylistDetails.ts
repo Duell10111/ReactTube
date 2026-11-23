@@ -18,11 +18,10 @@ const LOGGER = Logger.extend("PLAYLIST");
 export default function usePlaylistDetails(playlistId: string) {
   const youtube = useYoutubeContext();
   const youtubeTV = useYoutubeTVContext();
-  // Which session the playlist came from, so its pages parse the same way.
-  const source = useRef<"classic" | "tv">("classic");
-  // Set once every page is in `data`, as for Watch later. The playlist keeps
-  // its first page for the header, whose continuation must not run again.
-  const complete = useRef(false);
+  // The page the next continuation is read from. The playlist itself keeps
+  // its first page, because only that one carries the header; it is unset
+  // once every page is in `data`, as for Watch later.
+  const page = useRef<YTPlaylist["originalData"]>(undefined);
   const [playlist, setPlaylist] = useState<YTPlaylist>();
   const [data, setData] = useState<ElementData[]>([]);
   const [liked, setLiked] = useState<boolean>();
@@ -38,12 +37,12 @@ export default function usePlaylistDetails(playlistId: string) {
 
     setLoading(true);
     setError(undefined);
-    complete.current = false;
+    page.current = undefined;
     youtube
       .getPlaylist(playlistId)
       .then(p => {
         const parsedPlaylist = getElementDataFromYTPlaylist(p);
-        source.current = "classic";
+        page.current = p;
         setPlaylist(parsedPlaylist);
         setData(parseObservedArray(p.items));
         setLiked(parsedPlaylist.saved?.status);
@@ -58,15 +57,14 @@ export default function usePlaylistDetails(playlistId: string) {
           `Playlist ${playlistId} not available to the classic session, trying the TV session`,
         );
         const p = await youtubeTV.tv.getPlaylist(playlistId);
-        source.current = "tv";
         if (isWatchLaterPlaylistId(playlistId)) {
           // Delivered oldest first; the newest entries are the ones people
           // look for, so the whole list is loaded and reversed.
           const newest = await loadWatchLaterNewestFirst(youtubeTV, p);
-          complete.current = true;
           setPlaylist(getElementDataFromYTTVPlaylist(p));
           setData(newest.items);
         } else {
+          page.current = p;
           setPlaylist(getElementDataFromYTTVPlaylist(p));
           setData(parseObservedArray(p.items));
         }
@@ -89,23 +87,14 @@ export default function usePlaylistDetails(playlistId: string) {
   // }, [data]);
 
   const fetchMore = useCallback(async () => {
-    if (complete.current) {
+    const current = page.current;
+    if (!current?.has_continuation) {
       return;
     }
-    if (playlist?.originalData.has_continuation) {
-      const update = await playlist.originalData.getContinuation();
-      setPlaylist(
-        source.current === "tv"
-          ? // @ts-ignore
-            getElementDataFromYTTVPlaylist(update)
-          : // @ts-ignore
-            getElementDataFromYTPlaylist(update),
-      );
-      setData([...data, ...parseObservedArray(update.items)]);
-    } else {
-      LOGGER.warn("No Continuation available");
-    }
-  }, [playlist, data]);
+    const update = await current.getContinuation();
+    page.current = update;
+    setData(previous => [...previous, ...parseObservedArray(update.items)]);
+  }, []);
 
   const togglePlaylistLike = async () => {
     console.log("Liked: ", liked);

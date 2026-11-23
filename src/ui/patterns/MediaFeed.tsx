@@ -16,6 +16,7 @@ import {
   FeedSectionHeader,
   FeedSkeleton,
 } from "./FeedRows";
+import {MediaListRow} from "./MediaListRow";
 import {Shelf} from "./Shelf";
 import {
   buildFeedRows,
@@ -68,6 +69,12 @@ export interface MediaFeedProps {
   shelfPresentation?: ShelfPresentation;
   /** The "see all" action of a shelf, or undefined when it has none. */
   getShelfSeeAll?: (shelf: HorizontalData) => (() => void) | undefined;
+  /**
+   * Renders entries as list rows wherever the grid has a single column. A
+   * list read top to bottom, such as a playlist, then shows several entries
+   * per screen instead of one full-width card; wider grids keep their cards.
+   */
+  listRows?: boolean;
 }
 
 /**
@@ -95,6 +102,7 @@ export function MediaFeed({
   reelGrid: expectReelGrid = false,
   shelfPresentation,
   getShelfSeeAll,
+  listRows = false,
 }: MediaFeedProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
@@ -142,6 +150,19 @@ export function MediaFeed({
         case "header":
           return <FeedSectionHeader padding={rowPadding} title={item.title} />;
         case "cards":
+          if (listRows && metrics.columns === 1) {
+            return (
+              <View style={rowPadding}>
+                {item.items.map((element, index) => (
+                  <MediaListRow
+                    element={element}
+                    key={`${element.id}-${index}`}
+                    width={cardWidth}
+                  />
+                ))}
+              </View>
+            );
+          }
           return (
             <FeedCardRow
               cardWidth={cardWidth}
@@ -152,7 +173,7 @@ export function MediaFeed({
           );
       }
     },
-    [cardWidth, getShelfSeeAll, metrics, rowPadding],
+    [cardWidth, getShelfSeeAll, listRows, metrics, rowPadding],
   );
 
   const empty = loading ? (

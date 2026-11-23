@@ -37,6 +37,11 @@ import {
   withAlbumCover,
 } from "./albumTracks";
 import {
+  parseClassicPlaylistPrivacy,
+  parseTVPlaylistBylines,
+  type PlaylistPrivacy,
+} from "./playlistHeader";
+import {
   YT,
   YTTV,
   YTNodes,
@@ -603,6 +608,9 @@ class YTPlaylistClass implements YTPlaylist {
   thumbnailImage: Thumbnail;
   title: string;
   author?: Author;
+  ownerName?: string;
+  privacy?: PlaylistPrivacy;
+  stats?: string[];
 
   saved?: {
     status: boolean;
@@ -620,6 +628,11 @@ class YTPlaylistClass implements YTPlaylist {
     this.thumbnailImage = getThumbnail(playlist.info.thumbnails[0]);
     this.title = playlist.info.title ?? "Untitled";
     this.author = getAuthor(playlist.info.author);
+    this.ownerName = this.author?.name;
+    this.privacy = parseClassicPlaylistPrivacy(playlist.info.privacy);
+    this.stats = [playlist.info.total_items, playlist.info.views].filter(
+      (value): value is string => Boolean(value?.trim()),
+    );
 
     this.menu = playlist.menu.is(YTNodes.Menu)
       ? parseMenu(playlist.menu)
@@ -659,6 +672,9 @@ class YTTVPlaylistClass implements YTPlaylist {
   title: string;
   description?: string;
   author?: Author;
+  ownerName?: string;
+  privacy?: PlaylistPrivacy;
+  stats?: string[];
 
   // saved?: {
   //   status: boolean;
@@ -676,6 +692,18 @@ class YTTVPlaylistClass implements YTPlaylist {
     // this.thumbnailImage = getThumbnail(playlist.[0]);
     this.title = playlist.header?.title.text ?? "Unknown title";
     this.description = playlist.header?.description?.text;
+
+    const details = parseTVPlaylistBylines(
+      (playlist.header?.bylines ?? []).map(line =>
+        line.items.map(item => ({
+          text: item.text?.text,
+          badgeIcon: item.badge?.icon_type,
+        })),
+      ),
+    );
+    this.ownerName = details.ownerName;
+    this.privacy = details.privacy;
+    this.stats = details.stats;
 
     // this.menu = playlist.menu.is(YTNodes.Menu)
     //   ? parseMenu(playlist.menu)
