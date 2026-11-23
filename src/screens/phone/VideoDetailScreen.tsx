@@ -3,6 +3,7 @@ import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {NavigationBar} from "expo-navigation-bar";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Platform, ScrollView, StatusBar, StyleSheet, View} from "react-native";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {VideoRef} from "react-native-video";
 
 import VideoPlayerNative from "@/components/video/VideoPlayerNative";
@@ -23,9 +24,13 @@ import useVideoComments from "@/hooks/comments/useVideoComments";
 import useOrientationChange from "@/hooks/ui/useOrientationChange";
 import useVideoDetails from "@/hooks/useVideoDetails";
 import usePlayerFullscreen from "@/hooks/video/usePlayerFullscreen";
+import {
+  hidesVideoScreenHeader,
+  isOverlayPlayerEnabled,
+} from "@/hooks/video/videoScreenHeader";
 import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
-import {ErrorState} from "@/ui/components";
+import {AppIconButton, ErrorState} from "@/ui/components";
 import {useAppChrome} from "@/ui/layout";
 import {
   ActionBarItem,
@@ -96,12 +101,14 @@ export default function VideoDetailScreen({route, navigation}: Props) {
   );
   // The same player setting as on TV: the own overlay draws YouTube's
   // controls above the native player, and VLC always runs behind it.
-  const overlayEnabled = Boolean(
-    appSettings.ownOverlayEnabled || appSettings.vlcEnabled,
-  );
+  const overlayEnabled = isOverlayPlayerEnabled(appSettings);
+  // Matches the route options, which hide the header from the push on.
+  const headerHidden = hidesVideoScreenHeader(appSettings, route.params.reel);
   const {fullscreen: fullscreenState, toggleFullscreen} = usePlayerFullscreen({
     followRotation: overlayEnabled,
+    hideHeader: headerHidden,
   });
+  const insets = useSafeAreaInsets();
   // The native controls bring their own full screen.
   const fullscreen = overlayEnabled && fullscreenState;
 
@@ -207,22 +214,50 @@ export default function VideoDetailScreen({route, navigation}: Props) {
     save,
   ]);
 
+  // Loading and error states have no player and so no close arrow. Without
+  // the header they get a back button of their own where the arrow will be.
+  const withBack = (content: React.ReactNode) =>
+    headerHidden ? (
+      <View
+        style={[
+          styles.container,
+          {paddingTop: insets.top, backgroundColor: theme.colors.background},
+        ]}>
+        <View style={styles.container}>{content}</View>
+        {navigation.canGoBack() ? (
+          <View
+            style={[
+              styles.stateBack,
+              {top: insets.top, left: theme.spacing.sm},
+            ]}>
+            <AppIconButton
+              accessibilityLabel={t("common.back")}
+              icon={"arrow-back"}
+              onPress={() => navigation.goBack()}
+            />
+          </View>
+        ) : null}
+      </View>
+    ) : (
+      content
+    );
+
   if (!YTVideoInfo) {
     if (error) {
-      return (
+      return withBack(
         <ErrorState
           message={t(playbackFailureKey ?? "video.unavailable.message")}
           onRetry={() => refresh()}
           title={t("video.unavailable.title")}
-        />
+        />,
       );
     }
 
-    return <VideoDetailSkeleton />;
+    return withBack(<VideoDetailSkeleton />);
   }
 
   if (!videoUrl && !loading) {
-    return (
+    return withBack(
       <ErrorState
         message={
           playbackFailureKey
@@ -232,7 +267,7 @@ export default function VideoDetailScreen({route, navigation}: Props) {
         }
         onRetry={() => refresh()}
         title={t("video.unavailable.title")}
-      />
+      />,
     );
   }
 
@@ -354,6 +389,9 @@ export default function VideoDetailScreen({route, navigation}: Props) {
       style={[
         styles.container,
         {backgroundColor: fullscreen ? "black" : theme.colors.background},
+        // Without the header nothing else keeps the player below the status
+        // bar; full screen hides the bar and takes the whole screen.
+        headerHidden && !fullscreen && {paddingTop: insets.top},
       ]}>
       <StatusBar hidden={fullscreen} animated />
       {/* Android only; the bar comes back with a swipe from the edge. */}
@@ -439,6 +477,9 @@ export default function VideoDetailScreen({route, navigation}: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  stateBack: {
+    position: "absolute",
   },
   // The zIndex keeps the body from being flattened into the container. Without
   // it the player column's zIndex competes with the sheets and the player and

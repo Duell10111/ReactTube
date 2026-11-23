@@ -17,9 +17,11 @@ import {VideoPlayerResolution} from "@/components/video/videoPlayer/settings/Vid
 import {VideoPlayerSettings} from "@/components/video/videoPlayer/settings/VideoPlayerSettings";
 import {VideoPlayerSpeed} from "@/components/video/videoPlayer/settings/VideoPlayerSpeed";
 import {VideoPlayerSubtitles} from "@/components/video/videoPlayer/settings/VideoPlayerSubtitles";
+import {useAppData} from "@/context/AppDataContext";
 import {ElementData} from "@/extraction/Types";
 import type {SubscribedChannel} from "@/extraction/subscribedChannels";
 import useAppInit from "@/hooks/general/useAppInit";
+import {hidesVideoScreenHeader} from "@/hooks/video/videoScreenHeader";
 import {useTranslation} from "@/localization";
 import ChannelScreen from "@/screens/ChannelScreen";
 import HomeWrapperScreen from "@/screens/HomeWrapperScreen";
@@ -90,6 +92,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootStackNavigator() {
   const {init} = useAppInit();
+  const {appSettings} = useAppData();
   const {t} = useTranslation();
   const {theme} = useAppTheme();
 
@@ -113,7 +116,15 @@ export default function RootStackNavigator() {
             component={
               Platform.isTV ? TVVideoScreenWrapper : VideoScreenWrapper
             }
-            options={{title: t("navigation.video")}}
+            options={({route}) => ({
+              title: t("navigation.video"),
+              // Hidden from the push on, so it never shows and then vanishes
+              // once the player is up; see `hidesVideoScreenHeader`.
+              ...(!Platform.isTV &&
+              hidesVideoScreenHeader(appSettings, route.params.reel)
+                ? {headerShown: false}
+                : {}),
+            })}
           />
           <Stack.Screen
             name={"ChannelScreen"}
