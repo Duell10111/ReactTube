@@ -16,6 +16,7 @@ import {
   FeedSectionHeader,
   FeedSkeleton,
 } from "./FeedRows";
+import {MediaListRow} from "./MediaListRow";
 import {Shelf} from "./Shelf";
 import {
   buildFeedRows,
@@ -23,11 +24,13 @@ import {
   type FeedEdgeInsets,
   type FeedItem,
   type FeedRow,
+  type ShelfPresentation,
 } from "./feedLayout";
 import {useFeedGeometry} from "./useFeedGeometry";
 import {useFeedPagination} from "./useFeedPagination";
 
 import ShelfVideoSelectorProvider from "@/context/ShelfVideoSelector";
+import type {HorizontalData} from "@/extraction/ShelfExtraction";
 import {useTranslation} from "@/localization";
 import {AppButton, EmptyState, ErrorState} from "@/ui/components";
 import {useAppTheme} from "@/ui/theme";
@@ -58,6 +61,20 @@ export interface MediaFeedProps {
   reelGrid?: boolean;
   /** Full-screen TV routes supply overscan insets without the navigation rail. */
   contentInsets?: FeedEdgeInsets;
+  /**
+   * Overrides how the layout presents shelves. An overview such as the library
+   * keeps its shelves horizontal on touch too, so every section stays visible
+   * instead of one flattened section filling several screens.
+   */
+  shelfPresentation?: ShelfPresentation;
+  /** The "see all" action of a shelf, or undefined when it has none. */
+  getShelfSeeAll?: (shelf: HorizontalData) => (() => void) | undefined;
+  /**
+   * Renders entries as list rows wherever the grid has a single column. A
+   * list read top to bottom, such as a playlist, then shows several entries
+   * per screen instead of one full-width card; wider grids keep their cards.
+   */
+  listRows?: boolean;
 }
 
 /**
@@ -83,6 +100,9 @@ export function MediaFeed({
   testID,
   contentInsets,
   reelGrid: expectReelGrid = false,
+  shelfPresentation,
+  getShelfSeeAll,
+  listRows = false,
 }: MediaFeedProps) {
   const {theme} = useAppTheme();
   const {t} = useTranslation();
@@ -109,9 +129,10 @@ export function MediaFeed({
     items.length > 0,
   );
 
+  const presentation = shelfPresentation ?? metrics.shelfPresentation;
   const rows = useMemo(
-    () => buildFeedRows(items, metrics.columns, metrics.shelfPresentation),
-    [items, metrics.columns, metrics.shelfPresentation],
+    () => buildFeedRows(items, metrics.columns, presentation),
+    [items, metrics.columns, presentation],
   );
 
   const renderItem = useCallback<ListRenderItem<FeedRow>>(
@@ -119,11 +140,29 @@ export function MediaFeed({
       switch (item.type) {
         case "shelf":
           return (
-            <Shelf metrics={metrics} padding={rowPadding} shelf={item.shelf} />
+            <Shelf
+              metrics={metrics}
+              onSeeAll={getShelfSeeAll?.(item.shelf)}
+              padding={rowPadding}
+              shelf={item.shelf}
+            />
           );
         case "header":
           return <FeedSectionHeader padding={rowPadding} title={item.title} />;
         case "cards":
+          if (listRows && metrics.columns === 1) {
+            return (
+              <View style={rowPadding}>
+                {item.items.map((element, index) => (
+                  <MediaListRow
+                    element={element}
+                    key={`${element.id}-${index}`}
+                    width={cardWidth}
+                  />
+                ))}
+              </View>
+            );
+          }
           return (
             <FeedCardRow
               cardWidth={cardWidth}
@@ -134,7 +173,7 @@ export function MediaFeed({
           );
       }
     },
-    [cardWidth, metrics, rowPadding],
+    [cardWidth, getShelfSeeAll, listRows, metrics, rowPadding],
   );
 
   const empty = loading ? (

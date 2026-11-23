@@ -16,9 +16,10 @@ export type FeedItem = ElementData | HorizontalData;
 /**
  * How a shelf is presented. TV keeps the horizontal row it was delivered as;
  * touch layouts flatten it into the vertical feed under its own title, which
- * is what the plan asks for on phones and tablets. Reel shelves stay
- * horizontal everywhere, because a portrait card at full feed width would push
- * everything else off the screen.
+ * is what the plan asks for on phones and tablets. Reel and channel shelves
+ * stay horizontal everywhere: a portrait card at full feed width would push
+ * everything else off the screen, and a lone avatar per row turned a shelf of
+ * ten channels into several screens of empty space beside a circle.
  */
 export type ShelfPresentation = "horizontal" | "flattened";
 
@@ -54,6 +55,12 @@ export interface FeedMetrics {
    * so on TV the short takes the shape of the video cards around it.
    */
   mixedReelAspectRatio?: number;
+  /**
+   * Width of a channel card in a shelf that holds only channels. On touch it
+   * is narrow, so several avatars share one row like in the YouTube app; TV
+   * keeps the regular shelf card width.
+   */
+  channelCardWidth: number;
   /**
    * How the cards of a grid carry their metadata. A dense touch grid of shorts
    * puts title and views on the thumbnail, as the YouTube app does, because a
@@ -179,6 +186,20 @@ export function isReelShelf(shelf: HorizontalData): boolean {
   return (
     shelf.parsedData.length > 0 &&
     shelf.parsedData.every(item => item.type === "reel")
+  );
+}
+
+/** A shelf of channels. One avatar per row wastes the width, so it stays horizontal. */
+export function isChannelShelf(shelf: HorizontalData): boolean {
+  return (
+    shelf.parsedData.length > 0 &&
+    shelf.parsedData.every(item => isChannelElement(item))
+  );
+}
+
+export function isChannelElement(item: ElementData): boolean {
+  return (
+    item.type === "channel" || item.type === "artist" || item.type === "profile"
   );
 }
 
@@ -358,6 +379,7 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
           tvMixedReelAspectRatio,
         ),
         mixedReelAspectRatio: tvMixedReelAspectRatio,
+        channelCardWidth: tvShelfCardWidth,
       };
     case "compact":
       return {
@@ -369,6 +391,7 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
         shelfPresentation: "flattened",
         reelCardWidth: 180,
         mixedReelCardWidth: 180,
+        channelCardWidth: 112,
       };
     case "medium":
     case "expanded":
@@ -381,6 +404,7 @@ export function getFeedMetrics(layout: LayoutClass): FeedMetrics {
         shelfPresentation: "flattened",
         reelCardWidth: 220,
         mixedReelCardWidth: 220,
+        channelCardWidth: 128,
       };
   }
 }
@@ -455,7 +479,11 @@ export function buildFeedRows(
 
     flush();
 
-    if (shelfPresentation === "horizontal" || isReelShelf(item)) {
+    if (
+      shelfPresentation === "horizontal" ||
+      isReelShelf(item) ||
+      isChannelShelf(item)
+    ) {
       rows.push({
         type: "shelf",
         key: `shelf-${rows.length}-${item.id}`,

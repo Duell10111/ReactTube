@@ -8,6 +8,7 @@ import {en} from "../src/localization/en.ts";
 import {
   buildFeedRows,
   buildFeedSections,
+  isChannelShelf,
   isReelShelf,
   getFeedCardWidth,
   getFeedLayoutClass,
@@ -332,6 +333,35 @@ test("keeps a shorts shelf horizontal even on touch layouts", () => {
   assert.deepEqual(
     buildFeedRows([shorts], 2, "flattened").map(row => row.type),
     ["shelf"],
+  );
+});
+
+test("keeps a channel shelf horizontal even on touch layouts", () => {
+  const channel = id => ({
+    originalNode: {type: "Channel"},
+    type: "channel",
+    id,
+    title: `Channel ${id}`,
+    thumbnailImage: {url: "https://example.test/a.jpg", width: 1, height: 1},
+  });
+  const channels = shelf("channels", [channel("c1"), channel("c2")]);
+
+  assert.equal(isChannelShelf(channels), true);
+  assert.equal(
+    isChannelShelf(shelf("mixed", [channel("c1"), video({id: "a"})])),
+    false,
+  );
+  assert.deepEqual(
+    buildFeedRows([channels], 1, "flattened").map(row => row.type),
+    ["shelf"],
+  );
+});
+
+test("sizes touch channel cards so several avatars share a row", () => {
+  assert.ok(getFeedMetrics("compact").channelCardWidth * 3 < 390);
+  assert.equal(
+    getFeedMetrics("tv").channelCardWidth,
+    getFeedMetrics("tv").shelfCardWidth,
   );
 });
 

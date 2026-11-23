@@ -27,8 +27,11 @@ import {
 } from "@/components/shorts/phone/shortsPagingModel";
 import {shouldPrefetchShorts} from "@/components/shorts/tv/shortsQueueModel";
 import {useMusikPlayerContext} from "@/context/MusicPlayerContext";
+import useVideoComments from "@/hooks/comments/useVideoComments";
 import {useShortsQueue} from "@/hooks/video/useShortsQueue";
+import {useTranslation} from "@/localization";
 import {RootStackParamList} from "@/navigation/RootStackNavigator";
+import {CommentList, SheetPanel} from "@/ui/patterns";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VideoScreen">;
 
@@ -52,9 +55,23 @@ function ReelFeed({route, navigation}: Props) {
     AppState.currentState === "active",
   );
   const [viewport, setViewport] = useState({width: 0, height: 0});
+  const [scrubbing, setScrubbing] = useState(false);
   const [selected, setSelected] = useState(0);
   const [preparedId, setPreparedId] = useState<string>();
   const [preloadForId, setPreloadForId] = useState<string>();
+  const [commentsFor, setCommentsFor] = useState<{
+    videoId: string;
+    count?: string;
+  }>();
+  const comments = useVideoComments(
+    commentsFor?.videoId ?? videoId,
+    commentsFor !== undefined,
+  );
+  const {t} = useTranslation();
+  const openComments = useCallback(
+    (id: string, count?: string) => setCommentsFor({videoId: id, count}),
+    [],
+  );
   const listRef = useRef<FlatList<string>>(null);
   const selectedRef = useRef(0);
   const activeId = videoIds[selected];
@@ -64,6 +81,12 @@ function ReelFeed({route, navigation}: Props) {
   useEffect(() => {
     navigation.setOptions({headerTransparent: true, headerTitle: ""});
   }, [navigation]);
+
+  // iOS pops the screen on a horizontal swipe from anywhere. The scrubber's
+  // native pan wins over it; this also keeps a pop from starting mid-drag.
+  useEffect(() => {
+    navigation.setOptions({gestureEnabled: !scrubbing});
+  }, [navigation, scrubbing]);
 
   useEffect(() => {
     if (focused && musicPlaying) pause();
@@ -141,13 +164,15 @@ function ReelFeed({route, navigation}: Props) {
         {...getShortPageState(index, selected, preloadNext)}
         height={viewport.height}
         initialEndpoint={index === 0 ? navEndpoint : undefined}
+        onOpenComments={openComments}
+        onScrubbingChange={setScrubbing}
         onPrepared={setPreparedId}
         playing={playing}
         videoId={item}
         width={viewport.width}
       />
     ),
-    [navEndpoint, playing, preloadNext, selected, viewport],
+    [navEndpoint, openComments, playing, preloadNext, selected, viewport],
   );
 
   const getItemLayout = useCallback(
@@ -185,8 +210,33 @@ function ReelFeed({route, navigation}: Props) {
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           onMomentumScrollEnd={onMomentumScrollEnd}
+          // Paging under an open sheet would swap the short its comments
+          // belong to.
+          // A drag on the progress bar must seek, not page either.
+          scrollEnabled={commentsFor === undefined && !scrubbing}
         />
       ) : null}
+      <SheetPanel
+        onClose={() => setCommentsFor(undefined)}
+        open={commentsFor !== undefined}
+        subtitle={
+          (comments.count ?? commentsFor?.count)
+            ? t("video.comments.count", {
+                count: comments.count ?? commentsFor?.count ?? "",
+              })
+            : undefined
+        }
+        title={t("video.comments.title")}>
+        <CommentList
+          comments={comments.comments}
+          error={comments.error}
+          inSheet
+          loading={comments.loading}
+          loadingMore={comments.loadingMore}
+          onEndReached={comments.fetchMore}
+          onRetry={comments.retry}
+        />
+      </SheetPanel>
     </View>
   );
 }

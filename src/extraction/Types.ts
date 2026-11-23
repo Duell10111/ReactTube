@@ -13,6 +13,7 @@ import {
 
 import {HorizontalData} from "@/extraction/ShelfExtraction";
 import type {ResolutionBadge} from "@/extraction/lockupMetadata";
+import type {PlaylistPrivacy} from "@/extraction/playlistHeader";
 import type {YTStoryboard} from "@/extraction/storyboard";
 import type {SubtitleTrackList} from "@/utils/Subtitles";
 
@@ -144,6 +145,9 @@ export interface YTVideoInfo {
   };
   liked?: boolean;
   disliked?: boolean;
+  likeCount?: number;
+  /** Picture size from the stream formats, e.g. to tell a portrait short. */
+  frameSize?: {width: number; height: number};
   endscreen?: YTEndscreen;
   commentsEntryPointHeader?: YTVideoInfoCommentEntryPointHeader;
   watchNextFeed?: ElementData[];
@@ -374,6 +378,11 @@ export interface YTPlaylist {
   title: string;
   thumbnailImage?: Thumbnail;
   author?: Author;
+  /** Owner as the header names it; the TV header carries no author node. */
+  ownerName?: string;
+  privacy?: PlaylistPrivacy;
+  /** Counts as YouTube words them, e.g. "45 videos" and "No views". */
+  stats?: string[];
   description?: string;
 
   playEndpoint?: YTNodes.NavigationEndpoint;

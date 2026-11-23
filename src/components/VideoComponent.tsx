@@ -70,6 +70,11 @@ interface Props {
    * controls. Left out, the system decides.
    */
   selectedTextTrack?: SelectedTrack;
+  /**
+   * Position to jump to. A new object seeks again, even to the same second,
+   * so a caller can repeat a seek without the player owning that state.
+   */
+  seekTo?: {seconds: number};
 }
 
 export default function VideoComponent({
@@ -88,9 +93,16 @@ export default function VideoComponent({
   resizeMode,
   backgroundPlayback = true,
   selectedTextTrack,
+  seekTo,
   ...callbacks
 }: Props) {
   const playerRef = useRef<VideoRef>(undefined);
+
+  useEffect(() => {
+    if (seekTo) {
+      playerRef.current?.seek(seekTo.seconds);
+    }
+  }, [seekTo]);
   const isFocused = useIsFocused();
 
   const watchdog = usePlaybackWatchdog({

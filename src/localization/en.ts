@@ -232,6 +232,11 @@ export const en = {
   "playlist.playAll": "Play all",
   "playlist.save": "Save playlist",
   "playlist.remove": "Remove playlist",
+  "playlist.kind": "Playlist",
+  "playlist.byOwner": "by {name}",
+  "playlist.privacy.private": "Private",
+  "playlist.privacy.unlisted": "Unlisted",
+  "playlist.privacy.public": "Public",
   "playlist.loading": "Loading playlist",
   "playlist.empty.title": "Empty playlist",
   "playlist.empty.message": "This playlist does not contain any videos yet.",
@@ -479,6 +484,8 @@ export const en = {
     "Tap to play or pause. Swipe up or down for the next or previous short.",
   "shorts.previous": "Previous short",
   "shorts.next": "Next short",
+  "shorts.action.share": "Share",
+  "shorts.action.withCount": "{label}, {count}",
 } as const;
 
 export type TranslationKey = keyof typeof en;

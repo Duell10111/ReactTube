@@ -31,6 +31,12 @@ interface PlayerFullscreenOptions {
    * the overlay player: the native controls bring their own full screen.
    */
   followRotation?: boolean;
+  /**
+   * Hides the navigation header outside full screen too. Only for a player
+   * that brings its own way back, like the overlay's close arrow; the native
+   * controls have none, so they keep the header.
+   */
+  hideHeader?: boolean;
 }
 
 /**
@@ -46,6 +52,7 @@ interface PlayerFullscreenOptions {
  */
 export default function usePlayerFullscreen({
   followRotation = false,
+  hideHeader = false,
 }: PlayerFullscreenOptions = {}) {
   const navigation = useNavigation();
   const focused = useIsFocused();
@@ -60,10 +67,10 @@ export default function usePlayerFullscreen({
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerShown: !fullscreen,
+      headerShown: !hideHeader && !fullscreen,
       gestureEnabled: !fullscreen,
     });
-  }, [fullscreen, navigation]);
+  }, [fullscreen, hideHeader, navigation]);
 
   // A screen pushed on top, such as a channel opened from an end card, must
   // not inherit the landscape lock or the hidden header.

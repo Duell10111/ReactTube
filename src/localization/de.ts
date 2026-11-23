@@ -238,6 +238,11 @@ export const de = {
   "playlist.playAll": "Alle abspielen",
   "playlist.save": "Playlist speichern",
   "playlist.remove": "Playlist entfernen",
+  "playlist.kind": "Playlist",
+  "playlist.byOwner": "von {name}",
+  "playlist.privacy.private": "Privat",
+  "playlist.privacy.unlisted": "Nicht gelistet",
+  "playlist.privacy.public": "Öffentlich",
   "playlist.loading": "Playlist wird geladen",
   "playlist.empty.title": "Leere Playlist",
   "playlist.empty.message": "Diese Playlist enthält noch keine Videos.",
@@ -492,4 +497,6 @@ export const de = {
     "Tippen zum Abspielen oder Pausieren. Nach oben oder unten wischen für den nächsten oder vorherigen Short.",
   "shorts.previous": "Vorheriges Short",
   "shorts.next": "Nächstes Short",
+  "shorts.action.share": "Teilen",
+  "shorts.action.withCount": "{label}, {count}",
 } as const satisfies Record<TranslationKey, string>;

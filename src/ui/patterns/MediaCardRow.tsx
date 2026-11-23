@@ -2,7 +2,11 @@ import React, {useCallback, useMemo} from "react";
 import {FlatList, Platform, type ListRenderItem} from "react-native";
 
 import {MediaCard} from "./MediaCard";
-import type {FeedMetrics, FeedRowPadding} from "./feedLayout";
+import {
+  isChannelElement,
+  type FeedMetrics,
+  type FeedRowPadding,
+} from "./feedLayout";
 import {getShelfListPerformance} from "./feedPerformance";
 
 import type {ElementData} from "@/extraction/Types";
@@ -43,10 +47,16 @@ export function MediaCardRow({
     () => elements.length > 0 && elements.every(item => item.type === "reel"),
     [elements],
   );
+  const onlyChannels = useMemo(
+    () => elements.length > 0 && elements.every(isChannelElement),
+    [elements],
+  );
 
   const renderItem = useCallback<ListRenderItem<ElementData>>(
     ({item}) =>
-      item.type !== "reel" ? (
+      onlyChannels ? (
+        <MediaCard element={item} width={metrics.channelCardWidth} />
+      ) : item.type !== "reel" ? (
         <MediaCard element={item} width={metrics.shelfCardWidth} />
       ) : onlyReels ? (
         <MediaCard element={item} width={metrics.reelCardWidth} />
@@ -60,10 +70,12 @@ export function MediaCardRow({
         />
       ),
     [
+      metrics.channelCardWidth,
       metrics.mixedReelAspectRatio,
       metrics.mixedReelCardWidth,
       metrics.reelCardWidth,
       metrics.shelfCardWidth,
+      onlyChannels,
       onlyReels,
     ],
   );

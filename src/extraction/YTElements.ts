@@ -37,6 +37,11 @@ import {
   withAlbumCover,
 } from "./albumTracks";
 import {
+  parseClassicPlaylistPrivacy,
+  parseTVPlaylistBylines,
+  type PlaylistPrivacy,
+} from "./playlistHeader";
+import {
   YT,
   YTTV,
   YTNodes,
@@ -82,6 +87,22 @@ function chooseBestSingleUrlFormat(
 }
 
 // TODO: Also parse buttons available, if available?!
+/**
+ * Picture size of a video from its stream formats. Thumbnails do not tell it:
+ * a short's generic thumbnail is often a landscape frame with bands.
+ */
+function getFrameSize(
+  streamingData: YT.VideoInfo["streaming_data"],
+): {width: number; height: number} | undefined {
+  const format = [
+    ...(streamingData?.adaptive_formats ?? []),
+    ...(streamingData?.formats ?? []),
+  ].find(item => item.has_video && item.width && item.height);
+  return format?.width && format.height
+    ? {width: format.width, height: format.height}
+    : undefined;
+}
+
 export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
   const thumbnail = videoInfo.basic_info.thumbnail
     ? videoInfo.basic_info.thumbnail
@@ -93,6 +114,7 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
   const storyboard = extractStoryboard(videoInfo);
 
   const best_format = chooseBestSingleUrlFormat(videoInfo);
+  const ownerThumbnail = videoInfo.secondary_info?.owner?.author.best_thumbnail;
 
   // TODO: Check?
   // @ts-ignore
@@ -121,6 +143,7 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     playlist: parseVideoInfoPlaylist(videoInfo),
     liked: videoInfo.basic_info.is_liked,
     disliked: videoInfo.basic_info.is_disliked,
+    likeCount: videoInfo.basic_info.like_count,
     endscreen: videoInfo.endscreen
       ? parseEndScreen(videoInfo.endscreen)
       : undefined,
@@ -131,7 +154,9 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     author: {
       name: videoInfo.basic_info.author,
       id: videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
+      thumbnail: ownerThumbnail ? getThumbnail(ownerThumbnail) : undefined,
     },
+    frameSize: getFrameSize(videoInfo.streaming_data),
     watchNextFeed: videoInfo.watch_next_feed
       ? parseObservedArray(videoInfo.watch_next_feed)
       : undefined,
@@ -148,6 +173,28 @@ export function getElementDataFromVideoInfo(videoInfo: YT.VideoInfo) {
     best_format: best_format ? parseFormat(best_format) : undefined,
     subtitles: getSubtitleTrackList(videoInfo.captions),
   } as YTVideoInfo;
+}
+
+/**
+ * Channel avatar of a TV video. The TV client carries no owner node in its
+ * video info; the avatar only appears in the description panel's channel
+ * section.
+ */
+function getTVOwnerThumbnail(videoInfo: YTTV.VideoInfo) {
+  for (const panel of videoInfo.page[1]?.engagement_panels ?? []) {
+    if (!panel.content?.is(YTNodes.StructuredDescriptionContent)) {
+      continue;
+    }
+    const thumbnails = panel.content.items.firstOfType(
+      YTNodes.VideoDescriptionChannelSection,
+    )?.channel?.author.thumbnails;
+    // The last entry is the largest one.
+    const thumbnail = thumbnails?.[thumbnails.length - 1];
+    if (thumbnail) {
+      return getThumbnail(thumbnail);
+    }
+  }
+  return undefined;
 }
 
 export function getElementDataFromTVVideoInfo(videoInfo: YTTV.VideoInfo) {
@@ -184,6 +231,7 @@ export function getElementDataFromTVVideoInfo(videoInfo: YTTV.VideoInfo) {
     playlist: parseVideoInfoPlaylist(videoInfo),
     liked: videoInfo.basic_info.is_liked,
     disliked: videoInfo.basic_info.is_disliked,
+    likeCount: videoInfo.basic_info.like_count,
     endscreen: videoInfo.endscreen
       ? parseEndScreen(videoInfo.endscreen)
       : undefined,
@@ -191,7 +239,9 @@ export function getElementDataFromTVVideoInfo(videoInfo: YTTV.VideoInfo) {
     author: {
       name: videoInfo.basic_info.author,
       id: videoInfo.basic_info.channel_id ?? videoInfo.basic_info.channel?.id,
+      thumbnail: getTVOwnerThumbnail(videoInfo),
     },
+    frameSize: getFrameSize(videoInfo.streaming_data),
     watchNextSections: videoInfo.watch_next_feed
       ? parseArrayHorizontalData(videoInfo.watch_next_feed)
       : undefined,
@@ -603,6 +653,9 @@ class YTPlaylistClass implements YTPlaylist {
   thumbnailImage: Thumbnail;
   title: string;
   author?: Author;
+  ownerName?: string;
+  privacy?: PlaylistPrivacy;
+  stats?: string[];
 
   saved?: {
     status: boolean;
@@ -620,6 +673,11 @@ class YTPlaylistClass implements YTPlaylist {
     this.thumbnailImage = getThumbnail(playlist.info.thumbnails[0]);
     this.title = playlist.info.title ?? "Untitled";
     this.author = getAuthor(playlist.info.author);
+    this.ownerName = this.author?.name;
+    this.privacy = parseClassicPlaylistPrivacy(playlist.info.privacy);
+    this.stats = [playlist.info.total_items, playlist.info.views].filter(
+      (value): value is string => Boolean(value?.trim()),
+    );
 
     this.menu = playlist.menu.is(YTNodes.Menu)
       ? parseMenu(playlist.menu)
@@ -659,6 +717,9 @@ class YTTVPlaylistClass implements YTPlaylist {
   title: string;
   description?: string;
   author?: Author;
+  ownerName?: string;
+  privacy?: PlaylistPrivacy;
+  stats?: string[];
 
   // saved?: {
   //   status: boolean;
@@ -676,6 +737,18 @@ class YTTVPlaylistClass implements YTPlaylist {
     // this.thumbnailImage = getThumbnail(playlist.[0]);
     this.title = playlist.header?.title.text ?? "Unknown title";
     this.description = playlist.header?.description?.text;
+
+    const details = parseTVPlaylistBylines(
+      (playlist.header?.bylines ?? []).map(line =>
+        line.items.map(item => ({
+          text: item.text?.text,
+          badgeIcon: item.badge?.icon_type,
+        })),
+      ),
+    );
+    this.ownerName = details.ownerName;
+    this.privacy = details.privacy;
+    this.stats = details.stats;
 
     // this.menu = playlist.menu.is(YTNodes.Menu)
     //   ? parseMenu(playlist.menu)
