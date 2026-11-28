@@ -1,0 +1,11 @@
+appId: com.duell10111.reacttube
+name: Searches for a video
+tags:
+  - smoke
+---
+- runFlow: subflows/launch.yaml
+- runFlow:
+    file: subflows/search.yaml
+    env:
+      QUERY: "big buck bunny"
+- assertVisible: "(?i).*big buck bunny.*, .*ago.*"

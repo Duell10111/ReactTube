@@ -1,0 +1,28 @@
+appId: com.duell10111.reacttube
+name: Opens a search result and resolves a playable stream
+# YouTube often answers CI runner IPs with a "confirm you're not a bot" check,
+# so this flow is opt-in instead of part of the smoke suite.
+tags:
+  - playback
+---
+- runFlow: subflows/launch.yaml
+- runFlow:
+    file: subflows/search.yaml
+    env:
+      QUERY: "big buck bunny blender"
+- tapOn:
+    id: "media-card"
+    index: 0
+# The details render while the stream is still resolving; a failed
+# resolution later swaps the whole screen for the "Video unavailable" state.
+- extendedWaitUntil:
+    visible:
+      id: "action-bar"
+    timeout: 45000
+# A playing video never settles, so this waits out the full timeout and gives
+# the stream time to resolve or fail before the check.
+- waitForAnimationToEnd:
+    timeout: 15000
+- assertNotVisible: "Video unavailable"
+- assertVisible:
+    id: "action-bar"
